@@ -47,6 +47,12 @@ export function nearestPointIndex(points: RoutePoint[], lat: number, lon: number
   return best
 }
 
+/** Position of a distance along a route as percentage 0–100 */
+export function routePositionPct(distanceFromStart: number, totalDistance: number): number {
+  if (totalDistance <= 0) return 0
+  return Math.min(100, Math.max(0, (distanceFromStart / totalDistance) * 100))
+}
+
 /** Bearing at a route point (average of prev→point and point→next) */
 export function bearingAtIndex(points: RoutePoint[], index: number): number {
   if (points.length < 2) return 0

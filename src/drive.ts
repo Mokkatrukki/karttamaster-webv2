@@ -1,7 +1,7 @@
 import L from 'leaflet'
 import type { RoutePoint } from './types'
 
-const STEP_METERS = 50   // advance 50m per "next" press
+const STEP_METERS = 50
 const ZOOM_DRIVE = 17
 
 export class DriveMode {
@@ -25,6 +25,14 @@ export class DriveMode {
 
   stop(): void {
     this.active = false
+    this.currentIndex = 0
+    this.onProgress(0)
+  }
+
+  jumpTo(index: number): void {
+    this.active = true
+    this.currentIndex = Math.max(0, Math.min(index, this.routePoints.length - 1))
+    this.panToCurrent()
   }
 
   isActive(): boolean {
@@ -52,7 +60,15 @@ export class DriveMode {
   }
 
   currentKm(): number {
-    return this.routePoints[this.currentIndex]?.distanceFromStart / 1000 ?? 0
+    return (this.routePoints[this.currentIndex]?.distanceFromStart ?? 0) / 1000
+  }
+
+  totalKm(): number {
+    return (this.routePoints[this.routePoints.length - 1]?.distanceFromStart ?? 0) / 1000
+  }
+
+  currentIndex_(): number {
+    return this.currentIndex
   }
 
   private panToCurrent(): void {
