@@ -72,8 +72,7 @@ export class MarkerManager {
     this.onUpdate()
 
     // Auto-arm rotation immediately after placement
-    const newEl = this.leafletMarkers.get(marker.id)?.getElement()
-    if (newEl) this.armRotation(marker.id, newEl)
+    this.armRotation(marker.id)
 
     return marker
   }
@@ -117,9 +116,10 @@ export class MarkerManager {
     if (m) this.map.setView([m.lat, m.lon], this.map.getZoom())
   }
 
-  private armRotation(id: string, el: HTMLElement): void {
+  private armRotation(id: string): void {
     this.rotationArmedId = id
-    el.classList.add('marker-armed')
+    const el = this.leafletMarkers.get(id)?.getElement()
+    if (el) el.classList.add('marker-armed')
     setTimeout(() => {
       document.addEventListener('mousedown', this.handleArmOutsideClick)
     }, 0)
@@ -151,7 +151,7 @@ export class MarkerManager {
     rotateBtn.addEventListener('click', (e) => {
       e.stopPropagation()
       this.hideContextMenu()
-      this.armRotation(m.id, anchorEl)
+      this.armRotation(m.id)
     })
 
     const deleteBtn = document.createElement('button')
@@ -258,7 +258,9 @@ export class MarkerManager {
       }
       .marker-ctx-rotate { background: #f59e0b; color: #111; }
       .marker-ctx-delete { background: #ef4444; color: #fff; }
-      .marker-armed { outline: 2px solid #f59e0b !important; cursor: crosshair !important; }
+      .sign-handle { display: none; }
+      .marker-armed .sign-handle { display: block; }
+      .marker-armed { cursor: crosshair !important; }
     `
     document.head.appendChild(style)
   }
