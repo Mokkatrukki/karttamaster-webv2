@@ -115,7 +115,6 @@ async function init() {
 
   document.getElementById('btn-route-next')!.addEventListener('click', () => driveMode.next())
   document.getElementById('btn-route-prev')!.addEventListener('click', () => driveMode.prev())
-  document.getElementById('btn-route-stop')!.addEventListener('click', () => { driveMode.stop(); updateProgressBar(0) })
 
   // ── Place-mode (toolbar dropdown flow) ──
   let placeType: MarkerType | null = null

@@ -40,7 +40,7 @@ export class DriveMode {
   }
 
   next(): void {
-    if (!this.active) return
+    this.active = true
     const current = this.routePoints[this.currentIndex]
     const targetDist = current.distanceFromStart + STEP_METERS
     let i = this.currentIndex
@@ -50,7 +50,7 @@ export class DriveMode {
   }
 
   prev(): void {
-    if (!this.active) return
+    this.active = true
     const current = this.routePoints[this.currentIndex]
     const targetDist = current.distanceFromStart - STEP_METERS
     let i = this.currentIndex
