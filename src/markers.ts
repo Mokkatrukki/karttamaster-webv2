@@ -70,6 +70,11 @@ export class MarkerManager {
     this.markers.push(marker)
     this.addLeafletMarker(marker)
     this.onUpdate()
+
+    // Auto-arm rotation immediately after placement
+    const newEl = this.leafletMarkers.get(marker.id)?.getElement()
+    if (newEl) this.armRotation(marker.id, newEl)
+
     return marker
   }
 
