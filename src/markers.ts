@@ -37,14 +37,13 @@ export class MarkerManager {
     this.onUpdate()
   }
 
-  // Disarm when user clicks/mousedowns outside the armed marker
-  private readonly handleArmOutsideClick = (e: MouseEvent) => {
+  // Disarm when user clicks/mousedowns/touchstarts outside the armed marker
+  private readonly handleArmOutsideClick = (e: Event) => {
     const armedEl = this.rotationArmedId
       ? this.leafletMarkers.get(this.rotationArmedId)?.getElement()
       : null
     if (armedEl?.contains(e.target as Node)) return
     this.disarmRotation()
-    document.removeEventListener('mousedown', this.handleArmOutsideClick)
   }
 
   constructor(map: L.Map, routePoints: RoutePoint[], onUpdate: () => void) {
@@ -122,6 +121,7 @@ export class MarkerManager {
     if (el) el.classList.add('marker-armed')
     setTimeout(() => {
       document.addEventListener('mousedown', this.handleArmOutsideClick)
+      document.addEventListener('touchstart', this.handleArmOutsideClick)
     }, 0)
   }
 
@@ -131,6 +131,7 @@ export class MarkerManager {
     if (el) el.classList.remove('marker-armed')
     this.rotationArmedId = null
     document.removeEventListener('mousedown', this.handleArmOutsideClick)
+    document.removeEventListener('touchstart', this.handleArmOutsideClick)
   }
 
   private showContextMenu(m: SignMarker, anchorEl: HTMLElement): void {
@@ -144,6 +145,7 @@ export class MarkerManager {
     menu.style.transform = 'translateX(-50%)'
     menu.addEventListener('click', (e) => e.stopPropagation())
     menu.addEventListener('mousedown', (e) => e.stopPropagation())
+    menu.addEventListener('touchstart', (e) => e.stopPropagation())
 
     const rotateBtn = document.createElement('button')
     rotateBtn.className = 'marker-ctx-rotate'
@@ -171,7 +173,7 @@ export class MarkerManager {
 
     setTimeout(() => {
       document.addEventListener('click', this.handleMenuOutside, { once: true })
-    }, 0)
+    }, 300)
   }
 
   private readonly handleMenuOutside = () => {
