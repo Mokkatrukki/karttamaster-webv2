@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:ui": "vitest --reporter=verbose 2>&1 | tail -30"
+    "test:ui": "vitest --reporter=verbose 2>&1 | tail -30",
+    "test:ci": "vitest run --reporter=dot"
   },
   "dependencies": {
     "leaflet": "^1.9.4"
