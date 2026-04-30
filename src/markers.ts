@@ -12,6 +12,9 @@ export class MarkerManager {
 
   private rotatingId: string | null = null
   private rotatingCenter: { x: number; y: number } | null = null
+  private rotationArmedId: string | null = null
+  private contextMenu: HTMLElement | null = null
+  private contextMenuMarkerId: string | null = null
 
   private readonly handleMouseMove = (e: MouseEvent) => {
     this.applyRotation(e.clientX, e.clientY)
@@ -30,13 +33,25 @@ export class MarkerManager {
     c.removeEventListener('mouseup', this.handleRotateEnd)
     c.removeEventListener('touchmove', this.handleTouchMove)
     c.removeEventListener('touchend', this.handleRotateEnd)
+    this.disarmRotation()
     this.onUpdate()
+  }
+
+  // Disarm when user clicks/mousedowns outside the armed marker
+  private readonly handleArmOutsideClick = (e: MouseEvent) => {
+    const armedEl = this.rotationArmedId
+      ? this.leafletMarkers.get(this.rotationArmedId)?.getElement()
+      : null
+    if (armedEl?.contains(e.target as Node)) return
+    this.disarmRotation()
+    document.removeEventListener('mousedown', this.handleArmOutsideClick)
   }
 
   constructor(map: L.Map, routePoints: RoutePoint[], onUpdate: () => void) {
     this.map = map
     this.routePoints = routePoints
     this.onUpdate = onUpdate
+    MarkerManager.injectStyles()
   }
 
   add(lat: number, lon: number, type: MarkerType): SignMarker {
@@ -59,6 +74,7 @@ export class MarkerManager {
   }
 
   remove(id: string): void {
+    if (this.rotationArmedId === id) this.disarmRotation()
     const lm = this.leafletMarkers.get(id)
     if (lm) { lm.remove(); this.leafletMarkers.delete(id) }
     this.markers = this.markers.filter((m) => m.id !== id)
@@ -96,6 +112,75 @@ export class MarkerManager {
     if (m) this.map.setView([m.lat, m.lon], this.map.getZoom())
   }
 
+  private armRotation(id: string, el: HTMLElement): void {
+    this.rotationArmedId = id
+    el.classList.add('marker-armed')
+    setTimeout(() => {
+      document.addEventListener('mousedown', this.handleArmOutsideClick)
+    }, 0)
+  }
+
+  private disarmRotation(): void {
+    if (!this.rotationArmedId) return
+    const el = this.leafletMarkers.get(this.rotationArmedId)?.getElement()
+    if (el) el.classList.remove('marker-armed')
+    this.rotationArmedId = null
+    document.removeEventListener('mousedown', this.handleArmOutsideClick)
+  }
+
+  private showContextMenu(m: SignMarker, anchorEl: HTMLElement): void {
+    this.hideContextMenu()
+
+    const rect = anchorEl.getBoundingClientRect()
+    const menu = document.createElement('div')
+    menu.className = 'marker-ctx-menu'
+    menu.style.top = `${rect.top - 48}px`
+    menu.style.left = `${rect.left + rect.width / 2}px`
+    menu.style.transform = 'translateX(-50%)'
+    menu.addEventListener('click', (e) => e.stopPropagation())
+    menu.addEventListener('mousedown', (e) => e.stopPropagation())
+
+    const rotateBtn = document.createElement('button')
+    rotateBtn.className = 'marker-ctx-rotate'
+    rotateBtn.textContent = '↻ Käännä'
+    rotateBtn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      this.hideContextMenu()
+      this.armRotation(m.id, anchorEl)
+    })
+
+    const deleteBtn = document.createElement('button')
+    deleteBtn.className = 'marker-ctx-delete'
+    deleteBtn.textContent = '✕'
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      this.hideContextMenu()
+      this.remove(m.id)
+    })
+
+    menu.appendChild(rotateBtn)
+    menu.appendChild(deleteBtn)
+    document.body.appendChild(menu)
+    this.contextMenu = menu
+    this.contextMenuMarkerId = m.id
+
+    setTimeout(() => {
+      document.addEventListener('click', this.handleMenuOutside, { once: true })
+    }, 0)
+  }
+
+  private readonly handleMenuOutside = () => {
+    this.hideContextMenu()
+  }
+
+  private hideContextMenu(): void {
+    if (this.contextMenu) {
+      this.contextMenu.remove()
+      this.contextMenu = null
+      this.contextMenuMarkerId = null
+    }
+  }
+
   private applyRotation(clientX: number, clientY: number): void {
     if (!this.rotatingId || !this.rotatingCenter) return
     const rect = this.map.getContainer().getBoundingClientRect()
@@ -111,17 +196,65 @@ export class MarkerManager {
     this.leafletMarkers.set(m.id, lm)
 
     const el = lm.getElement()
-    if (el) {
-      el.style.cursor = 'grab'
-      el.addEventListener('mousedown', (e) => {
-        e.stopPropagation()
-        this.startRotation(m.id, e.clientX, e.clientY)
-      })
-      el.addEventListener('touchstart', (e) => {
-        e.stopPropagation()
-        e.preventDefault()
-        if (e.touches.length > 0) this.startRotation(m.id, e.touches[0].clientX, e.touches[0].clientY)
-      }, { passive: false })
-    }
+    if (!el) return
+
+    el.style.cursor = 'pointer'
+
+    // Click → context menu (handles both desktop and mobile tap)
+    el.addEventListener('click', (e) => {
+      e.stopPropagation()
+      if (this.rotatingId) return
+      if (this.contextMenuMarkerId === m.id) { this.hideContextMenu(); return }
+      this.showContextMenu(m, el)
+    })
+
+    // Armed state: mousedown → start rotation drag
+    el.addEventListener('mousedown', (e) => {
+      if (this.rotationArmedId !== m.id) return
+      e.stopPropagation()
+      document.removeEventListener('mousedown', this.handleArmOutsideClick)
+      this.startRotation(m.id, e.clientX, e.clientY)
+    })
+
+    // Armed state: touchstart → start rotation drag
+    el.addEventListener('touchstart', (e) => {
+      if (this.rotationArmedId !== m.id) return
+      e.stopPropagation()
+      e.preventDefault()
+      if (e.touches.length > 0) this.startRotation(m.id, e.touches[0].clientX, e.touches[0].clientY)
+    }, { passive: false })
+  }
+
+  private static injectStyles(): void {
+    if (document.getElementById('marker-ctx-styles')) return
+    const style = document.createElement('style')
+    style.id = 'marker-ctx-styles'
+    style.textContent = `
+      .marker-ctx-menu {
+        position: fixed;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        z-index: 2000;
+        pointer-events: auto;
+      }
+      .marker-ctx-menu button {
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .marker-ctx-rotate { background: #f59e0b; color: #111; }
+      .marker-ctx-delete { background: #ef4444; color: #fff; }
+      .marker-armed { outline: 2px solid #f59e0b !important; cursor: crosshair !important; }
+    `
+    document.head.appendChild(style)
   }
 }
