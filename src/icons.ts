@@ -2,36 +2,57 @@ import L from 'leaflet'
 import type { MarkerType } from './types'
 
 // Handle hidden by default via CSS (.sign-handle { display:none }).
-// Shown only when parent has .marker-armed class (armed rotation state).
-// transform-origin at circle center (20px 48px) so drag feels natural.
-function arrowSvg(direction: MarkerType, bearing: number): string {
-  const arrow = direction === 'right' ? '→' : '←'
-  const color = direction === 'right' ? '#16a34a' : '#2563eb'
-  const typeLabel = direction === 'right' ? 'O' : 'V'
+// Shown only when parent has .marker-armed class.
+// transform-origin at circle center so drag feels natural.
+const W = 32
+const H = 50
+const CX = W / 2   // 16
+const CY = 38      // circle center y within SVG (anchor point)
+const R  = 14
+
+function circleSvg(type: MarkerType, bearing: number): string {
+  let arrow: string
+  let color: string
+  let shortLabel: string
+
+  switch (type) {
+    case 'right':          arrow = '→'; color = '#16a34a'; shortLabel = 'O';  break
+    case 'left':           arrow = '←'; color = '#2563eb'; shortLabel = 'V';  break
+    case 'upcoming-right': arrow = '↱'; color = '#b45309'; shortLabel = 'TO'; break
+    case 'upcoming-left':  arrow = '↰'; color = '#7c3aed'; shortLabel = 'TV'; break
+  }
+
+  const isUpcoming = type === 'upcoming-left' || type === 'upcoming-right'
+
   return `
-    <div style="position:relative;width:40px;height:66px">
-      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="66" viewBox="0 0 40 66"
-           style="transform:rotate(${bearing}deg);transform-origin:20px 48px;display:block;overflow:visible">
+    <div style="position:relative;width:${W}px;height:${H}px">
+      <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"
+           viewBox="0 0 ${W} ${H}"
+           style="transform:rotate(${bearing}deg);transform-origin:${CX}px ${CY}px;display:block;overflow:visible">
         <g class="sign-handle">
-          <line x1="20" y1="12" x2="20" y2="31" stroke="${color}" stroke-width="4" stroke-linecap="round"/>
-          <line x1="20" y1="12" x2="20" y2="31" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" stroke-linecap="round"/>
-          <circle cx="20" cy="10" r="8" fill="${color}" stroke="white" stroke-width="2.5"/>
-          <line x1="15" y1="10" x2="25" y2="10" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          <line x1="${CX}" y1="6" x2="${CX}" y2="18"
+                stroke="${color}" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="${CX}" cy="5" r="5" fill="${color}" stroke="white" stroke-width="2"/>
+          <line x1="${CX - 4}" y1="5" x2="${CX + 4}" y2="5"
+                stroke="white" stroke-width="1.5" stroke-linecap="round"/>
         </g>
-        <circle cx="20" cy="48" r="17" fill="${color}" stroke="white" stroke-width="2"/>
-        <text x="20" y="54" text-anchor="middle" font-size="18" fill="white"
-              font-family="sans-serif" font-weight="bold">${arrow}</text>
+        ${isUpcoming
+          ? `<circle cx="${CX}" cy="${CY}" r="${R}" fill="${color}" stroke="white" stroke-width="2" stroke-dasharray="4 2" opacity="0.9"/>`
+          : `<circle cx="${CX}" cy="${CY}" r="${R}" fill="${color}" stroke="white" stroke-width="2"/>`
+        }
+        <text x="${CX}" y="${CY + 5}" text-anchor="middle"
+              font-size="13" fill="white" font-family="sans-serif" font-weight="bold">${arrow}</text>
       </svg>
-      <span style="position:absolute;top:27px;right:-3px;background:${color};color:#fff;border-radius:8px;min-width:14px;height:14px;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid #fff;padding:0 2px;line-height:1;pointer-events:none">${typeLabel}</span>
+      <span style="position:absolute;top:28px;right:-4px;background:${color};color:#fff;border-radius:6px;min-width:12px;height:12px;font-size:8px;font-weight:900;display:flex;align-items:center;justify-content:center;border:1.5px solid #fff;padding:0 2px;line-height:1;pointer-events:none">${shortLabel}</span>
     </div>`
 }
 
 export function createSignIcon(type: MarkerType, bearing: number): L.DivIcon {
   return L.divIcon({
-    html: arrowSvg(type, bearing),
+    html: circleSvg(type, bearing),
     className: '',
-    iconSize: [40, 66],
-    iconAnchor: [20, 48],
-    popupAnchor: [0, -52],
+    iconSize: [W, H],
+    iconAnchor: [CX, CY],
+    popupAnchor: [0, -(CY + 4)],
   })
 }

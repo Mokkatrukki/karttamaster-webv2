@@ -13,7 +13,7 @@
         display: flex;
         flex-direction: column;
         height: 100%;
-        padding-bottom: 68px; /* space for fixed route-bar */
+        padding-bottom: 68px;
       }
 
       /* ── Toolbar ── */
@@ -25,7 +25,8 @@
         background: #1a1a2e;
         color: #fff;
         flex-shrink: 0;
-        flex-wrap: wrap;
+        position: relative;
+        z-index: 200;
       }
       #toolbar h1 { font-size: 14px; font-weight: 600; margin-right: 8px; }
 
@@ -38,22 +39,74 @@
         font-weight: 600;
       }
 
-      #btn-add-right { background: #4ade80; color: #111; }
-      #btn-add-left  { background: #60a5fa; color: #111; }
-      #btn-list      { background: #a78bfa; color: #111; }
+      #btn-add-sign { background: #f59e0b; color: #111; }
+      #btn-add-sign.place-mode { background: #ef4444; color: #fff; }
+      #btn-list     { background: #a78bfa; color: #111; }
 
-      .add-mode-indicator {
-        padding: 4px 10px;
-        border-radius: 20px;
+      .place-mode-label {
         font-size: 12px;
-        background: #fef9c3;
-        color: #713f12;
+        color: #fde68a;
         display: none;
       }
-      .add-mode-indicator.active { display: inline-block; }
+      .place-mode-label.active { display: inline; }
+
+      /* ── Sign type dropdown (toolbar) ── */
+      #sign-type-dropdown {
+        position: fixed;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        padding: 8px;
+        display: none;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 180px;
+        z-index: 2000;
+      }
+      #sign-type-dropdown.open { display: flex; }
+
+      /* ── Floating sign picker (dblclick) ── */
+      #floating-picker {
+        position: fixed;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        padding: 8px;
+        display: none;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 180px;
+        z-index: 1003;
+      }
+      #floating-picker.open { display: flex; }
+
+      /* ── Sign type buttons (shared style) ── */
+      .sign-type-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: #f9fafb;
+        border: none;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        text-align: left;
+        transition: background 0.1s;
+      }
+      .sign-type-btn:hover { background: #f3f4f6; }
+      .sign-type-btn .sign-swatch {
+        width: 20px; height: 20px; border-radius: 50%;
+        flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-size: 12px;
+      }
 
       /* ── Map ── */
       #map { flex: 1; min-height: 0; }
+      #map.place-mode { cursor: crosshair !important; }
+      #map.place-mode .leaflet-container { cursor: crosshair !important; }
 
       /* ── Route bar (always visible, fixed bottom) ── */
       #route-bar {
@@ -106,9 +159,7 @@
 
       #route-track-fill {
         position: absolute;
-        left: 0;
-        top: 0;
-        height: 100%;
+        left: 0; top: 0; height: 100%;
         background: #f59e0b;
         border-radius: 6px;
         pointer-events: none;
@@ -117,11 +168,9 @@
 
       #route-track-handle {
         position: absolute;
-        top: 50%;
-        left: 0%;
+        top: 50%; left: 0%;
         transform: translate(-50%, -50%);
-        width: 18px;
-        height: 18px;
+        width: 18px; height: 18px;
         background: #fff;
         border-radius: 50%;
         box-shadow: 0 1px 4px rgba(0,0,0,0.5);
@@ -132,14 +181,11 @@
         position: absolute;
         top: 50%;
         transform: translate(-50%, -50%);
-        width: 10px;
-        height: 10px;
+        width: 10px; height: 10px;
         border-radius: 50%;
         border: 2px solid #fff;
         cursor: pointer;
       }
-      .route-sign-dot.right { background: #16a34a; }
-      .route-sign-dot.left  { background: #2563eb; }
 
       .route-sign-dot .sign-tooltip {
         display: none;
@@ -170,8 +216,7 @@
 
       #marker-modal {
         position: fixed;
-        top: 50%;
-        left: 50%;
+        top: 50%; left: 50%;
         transform: translate(-50%, -50%);
         width: min(320px, 90vw);
         max-height: 60vh;
@@ -196,12 +241,9 @@
       }
       #marker-modal-header h2 { font-size: 14px; font-weight: 600; }
       #btn-modal-close {
-        background: none;
-        border: none;
-        font-size: 18px;
-        color: #6b7280;
-        cursor: pointer;
-        padding: 2px 6px;
+        background: none; border: none;
+        font-size: 18px; color: #6b7280;
+        cursor: pointer; padding: 2px 6px;
       }
 
       #marker-modal-items { overflow-y: auto; flex: 1; }
@@ -216,51 +258,14 @@
         cursor: pointer;
       }
       .marker-item:hover { background: #f9fafb; }
+      .marker-item--new { background: #fef9c3; }
       .marker-item .marker-icon { font-size: 18px; }
       .marker-item .marker-info { flex: 1; }
       .marker-item .marker-km { color: #6b7280; font-size: 11px; }
       .marker-item .btn-delete {
-        background: none;
-        border: none;
-        color: #ef4444;
-        cursor: pointer;
-        font-size: 16px;
-        padding: 2px 6px;
-      }
-
-      /* ── Sign picker (above route-bar) ── */
-      #sign-picker-panel {
-        position: fixed;
-        bottom: 68px;
-        left: 0;
-        right: 0;
-        background: #fff;
-        border-top: 2px solid #e5e7eb;
-        box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
-        z-index: 1002;
-        padding: 16px;
-        display: none;
-      }
-      #sign-picker-panel.open { display: block; }
-      #sign-picker-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-      }
-      #sign-picker-header span { font-size: 14px; font-weight: 600; color: #374151; }
-      #sign-picker-buttons { display: flex; gap: 12px; }
-      #sign-picker-left {
-        flex: 1; padding: 14px; font-size: 18px;
-        background: #2563eb; color: #fff; border-radius: 10px;
-      }
-      #sign-picker-right {
-        flex: 1; padding: 14px; font-size: 18px;
-        background: #16a34a; color: #fff; border-radius: 10px;
-      }
-      #sign-picker-close {
-        background: none; border: none; font-size: 20px;
-        color: #6b7280; cursor: pointer; padding: 4px 8px; line-height: 1;
+        background: none; border: none;
+        color: #ef4444; cursor: pointer;
+        font-size: 16px; padding: 2px 6px;
       }
     </style>
   </head>
@@ -268,10 +273,9 @@
     <div id="app">
       <div id="toolbar">
         <h1>Karttamaster</h1>
-        <button id="btn-add-right">→ Oikealle</button>
-        <button id="btn-add-left">← Vasemmalle</button>
-        <span class="add-mode-indicator" id="add-mode-label">Klikkaa karttaa</span>
-        <button id="btn-list">☰ Merkit</button>
+        <button id="btn-add-sign">+ Lisää merkki</button>
+        <span class="place-mode-label" id="place-mode-label">Klikkaa karttaa · Esc peruuttaa</span>
+        <button id="btn-list">☰ Lista</button>
       </div>
       <div id="map"></div>
     </div>
@@ -302,17 +306,11 @@
       <div id="marker-modal-items"></div>
     </div>
 
-    <!-- Sign picker panel -->
-    <div id="sign-picker-panel">
-      <div id="sign-picker-header">
-        <span>Lisää kyltti</span>
-        <button id="sign-picker-close">✕</button>
-      </div>
-      <div id="sign-picker-buttons">
-        <button id="sign-picker-left">← Vasemmalle</button>
-        <button id="sign-picker-right">→ Oikealle</button>
-      </div>
-    </div>
+    <!-- Sign type dropdown — positioned by JS below btn-add-sign -->
+    <div id="sign-type-dropdown"></div>
+
+    <!-- Floating sign picker — positioned by JS on dblclick -->
+    <div id="floating-picker"></div>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

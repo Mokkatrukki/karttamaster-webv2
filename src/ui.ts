@@ -1,7 +1,13 @@
 import type { MarkerManager } from './markers'
 import { routePositionPct } from './bearing'
+import type { MarkerType } from './types'
+import { SIGN_TYPES } from './sign-picker'
 
-export function renderMarkerList(manager: MarkerManager): void {
+function typeInfo(type: MarkerType) {
+  return SIGN_TYPES.find((s) => s.type === type) ?? SIGN_TYPES[0]
+}
+
+export function renderMarkerList(manager: MarkerManager, highlightId?: string): void {
   const markers = manager.getAll()
   const countEl = document.getElementById('marker-count')
   const listEl = document.getElementById('marker-modal-items')
@@ -11,13 +17,14 @@ export function renderMarkerList(manager: MarkerManager): void {
   listEl.innerHTML = markers.length === 0
     ? '<p style="padding:12px;color:#6b7280;font-size:13px">Ei merkkejä</p>'
     : markers.map((m) => {
-        const dir = m.type === 'right' ? '→' : '←'
+        const info = typeInfo(m.type)
         const km = (m.distanceFromStart / 1000).toFixed(2)
+        const highlighted = m.id === highlightId ? ' marker-item--new' : ''
         return `
-          <div class="marker-item" data-id="${m.id}">
-            <span class="marker-icon">${dir}</span>
+          <div class="marker-item${highlighted}" data-id="${m.id}">
+            <span class="marker-icon" style="color:${info.color}">${info.label[0]}</span>
             <div class="marker-info">
-              <div>${m.type === 'right' ? 'Oikealle' : 'Vasemmalle'}</div>
+              <div>${info.label}</div>
               <div class="marker-km">${km} km · ${Math.round(m.bearing)}°</div>
             </div>
             <button class="btn-delete" data-id="${m.id}" title="Poista">✕</button>
@@ -49,12 +56,14 @@ export function renderSignDots(manager: MarkerManager, totalDistance: number): v
 
   manager.getAll().forEach((m) => {
     const pct = routePositionPct(m.distanceFromStart, totalDistance)
+    const info = typeInfo(m.type)
     const km = (m.distanceFromStart / 1000).toFixed(2)
-    const label = `${m.type === 'right' ? 'O' : 'V'} · ${km} km`
+    const label = `${info.shortLabel} · ${km} km`
 
     const dot = document.createElement('div')
     dot.className = `route-sign-dot ${m.type}`
     dot.style.left = `${pct}%`
+    dot.style.background = info.color
     dot.innerHTML = `<span class="sign-tooltip">${label}</span>`
     track.appendChild(dot)
   })

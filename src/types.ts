@@ -1,4 +1,4 @@
-export type MarkerType = 'right' | 'left'
+export type MarkerType = 'right' | 'left' | 'upcoming-right' | 'upcoming-left'
 
 export interface RoutePoint {
   lat: number

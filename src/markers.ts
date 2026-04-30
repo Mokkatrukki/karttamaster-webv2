@@ -93,7 +93,7 @@ export class MarkerManager {
     if (lm) lm.setIcon(createSignIcon(m.type, bearing))
   }
 
-  startRotation(id: string, clientX: number, clientY: number): void {
+  startRotation(id: string, _clientX: number, _clientY: number): void {
     const m = this.markers.find((x) => x.id === id)
     if (!m) return
     this.rotatingId = id
@@ -192,7 +192,16 @@ export class MarkerManager {
     const dx = clientX - rect.left - this.rotatingCenter.x
     const dy = clientY - rect.top - this.rotatingCenter.y
     const bearing = ((Math.atan2(dx, -dy) * 180 / Math.PI) + 360) % 360
-    this.updateBearing(this.rotatingId, bearing)
+
+    const m = this.markers.find((x) => x.id === this.rotatingId)
+    if (!m) return
+    m.bearing = bearing
+
+    // Update SVG transform directly — avoids setIcon (which recreates the element
+    // and drops marker-armed class, hiding the handle during drag)
+    const el = this.leafletMarkers.get(this.rotatingId)?.getElement()
+    const svg = el?.querySelector('svg') as HTMLElement | null
+    if (svg) svg.style.transform = `rotate(${bearing}deg)`
   }
 
   private addLeafletMarker(m: SignMarker): void {
@@ -260,7 +269,7 @@ export class MarkerManager {
       .marker-ctx-delete { background: #ef4444; color: #fff; }
       .sign-handle { display: none; }
       .marker-armed .sign-handle { display: block; }
-      .marker-armed { cursor: crosshair !important; }
+      .marker-armed { cursor: grab !important; }
     `
     document.head.appendChild(style)
   }
