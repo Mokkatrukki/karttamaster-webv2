@@ -5,14 +5,38 @@ import { MarkerManager } from './markers'
 import { DriveMode } from './drive'
 import { renderMarkerList, renderSignDots } from './ui'
 import { positionPicker, SIGN_TYPES } from './sign-picker'
+import { TILE_LAYERS } from './tile-layers'
 import type { MarkerType } from './types'
 
 const map = L.map('map')
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap contributors',
-  maxZoom: 19,
+const LS_KEY = 'karttamaster-layer'
+const savedLayerId = localStorage.getItem(LS_KEY) ?? TILE_LAYERS[0].id
+let activeLayerIdx = Math.max(0, TILE_LAYERS.findIndex(l => l.id === savedLayerId))
+
+let currentTileLayer = L.tileLayer(TILE_LAYERS[activeLayerIdx].urlTemplate, {
+  attribution: TILE_LAYERS[activeLayerIdx].attribution,
+  maxZoom: TILE_LAYERS[activeLayerIdx].maxZoom,
 }).addTo(map)
+
+function cycleLayer() {
+  activeLayerIdx = (activeLayerIdx + 1) % TILE_LAYERS.length
+  const cfg = TILE_LAYERS[activeLayerIdx]
+  currentTileLayer.remove()
+  currentTileLayer = L.tileLayer(cfg.urlTemplate, {
+    attribution: cfg.attribution,
+    maxZoom: cfg.maxZoom,
+  }).addTo(map)
+  localStorage.setItem(LS_KEY, cfg.id)
+  const btn = document.getElementById('btn-layer')
+  if (btn) btn.textContent = cfg.label
+}
+
+const btnLayer = document.getElementById('btn-layer')
+if (btnLayer) {
+  btnLayer.textContent = TILE_LAYERS[activeLayerIdx].label
+  btnLayer.addEventListener('click', cycleLayer)
+}
 
 function buildSignTypeButtons(): string {
   return SIGN_TYPES.map((s) => `
