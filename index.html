@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Karttamaster</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { height: 100%; font-family: sans-serif; }
+
+      #app {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      #toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: #1a1a2e;
+        color: #fff;
+        flex-shrink: 0;
+        flex-wrap: wrap;
+      }
+
+      #toolbar h1 {
+        font-size: 14px;
+        font-weight: 600;
+        margin-right: 8px;
+      }
+
+      button {
+        padding: 6px 14px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      #btn-add-right { background: #4ade80; color: #111; }
+      #btn-add-left  { background: #60a5fa; color: #111; }
+      #btn-drive     { background: #f59e0b; color: #111; }
+      #btn-list      { background: #a78bfa; color: #111; }
+
+      #drive-controls {
+        display: none;
+        align-items: center;
+        gap: 8px;
+      }
+      #drive-controls.active { display: flex; }
+      #drive-controls button { background: #e5e7eb; color: #111; }
+      #drive-controls #btn-drive-stop { background: #f87171; color: #111; }
+
+      #map { flex: 1; }
+
+      #marker-list-panel {
+        position: fixed;
+        top: 50px;
+        right: 0;
+        width: 280px;
+        max-height: calc(100% - 60px);
+        overflow-y: auto;
+        background: #fff;
+        border-left: 2px solid #e5e7eb;
+        box-shadow: -4px 0 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+        display: none;
+      }
+      #marker-list-panel.open { display: block; }
+      #marker-list-panel h2 {
+        padding: 12px;
+        font-size: 14px;
+        border-bottom: 1px solid #e5e7eb;
+        background: #f9fafb;
+      }
+      .marker-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .marker-item:hover { background: #f9fafb; }
+      .marker-item .marker-icon { font-size: 18px; }
+      .marker-item .marker-info { flex: 1; }
+      .marker-item .marker-km { color: #6b7280; font-size: 11px; }
+      .marker-item .btn-delete {
+        background: none;
+        border: none;
+        color: #ef4444;
+        cursor: pointer;
+        font-size: 16px;
+        padding: 2px 6px;
+      }
+
+      .add-mode-indicator {
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        background: #fef9c3;
+        color: #713f12;
+        display: none;
+      }
+      .add-mode-indicator.active { display: inline-block; }
+
+      #sign-picker-panel {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #fff;
+        border-top: 2px solid #e5e7eb;
+        box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
+        z-index: 1001;
+        padding: 16px;
+        display: none;
+      }
+      #sign-picker-panel.open { display: block; }
+      #sign-picker-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      #sign-picker-header span {
+        font-size: 14px;
+        font-weight: 600;
+        color: #374151;
+      }
+      #sign-picker-buttons {
+        display: flex;
+        gap: 12px;
+      }
+      #sign-picker-left {
+        flex: 1;
+        padding: 14px;
+        font-size: 18px;
+        background: #2563eb;
+        color: #fff;
+        border-radius: 10px;
+      }
+      #sign-picker-right {
+        flex: 1;
+        padding: 14px;
+        font-size: 18px;
+        background: #16a34a;
+        color: #fff;
+        border-radius: 10px;
+      }
+      #sign-picker-close {
+        background: none;
+        border: none;
+        font-size: 20px;
+        color: #6b7280;
+        cursor: pointer;
+        padding: 4px 8px;
+        line-height: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="toolbar">
+        <h1>Karttamaster</h1>
+        <button id="btn-add-right">→ Oikealle</button>
+        <button id="btn-add-left">← Vasemmalle</button>
+        <span class="add-mode-indicator" id="add-mode-label">Klikkaa karttaa</span>
+        <button id="btn-drive">▶ Aja reitti</button>
+        <div id="drive-controls">
+          <button id="btn-drive-prev">◀</button>
+          <span id="drive-km">0.0 km</span>
+          <button id="btn-drive-next">▶</button>
+          <button id="btn-drive-stop">✕ Lopeta</button>
+        </div>
+        <button id="btn-list">☰ Merkit</button>
+      </div>
+      <div id="map"></div>
+    </div>
+
+    <div id="marker-list-panel">
+      <h2>Merkit (<span id="marker-count">0</span>)</h2>
+      <div id="marker-list-items"></div>
+    </div>
+
+    <div id="sign-picker-panel">
+      <div id="sign-picker-header">
+        <span>Lisää kyltti</span>
+        <button id="sign-picker-close">✕</button>
+      </div>
+      <div id="sign-picker-buttons">
+        <button id="sign-picker-left">← Vasemmalle</button>
+        <button id="sign-picker-right">→ Oikealle</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
