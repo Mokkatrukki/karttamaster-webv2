@@ -1,13 +1,17 @@
 import L from 'leaflet'
 import type { SignMarker, MarkerType, RoutePoint } from './types'
-import { nearestPointIndex, bearingAtIndex } from './bearing'
+import { nearestPointIndex, bearingAtIndex, haversineDistance } from './bearing'
 import { createSignIcon } from './icons'
+import { assignRoutesToMarker } from './multi-route'
+
+interface RouteRef { id: string; routePoints: RoutePoint[] }
 
 export class MarkerManager {
   private markers: SignMarker[] = []
   private leafletMarkers = new Map<string, L.Marker>()
   private map: L.Map
-  private routePoints: RoutePoint[]
+  private routes: RouteRef[]
+  private visibleRouteIds: string[]
   private onUpdate: () => void
 
   private rotatingId: string | null = null
@@ -37,7 +41,6 @@ export class MarkerManager {
     this.onUpdate()
   }
 
-  // Disarm when user clicks/mousedowns/touchstarts outside the armed marker
   private readonly handleArmOutsideClick = (e: Event) => {
     const armedEl = this.rotationArmedId
       ? this.leafletMarkers.get(this.rotationArmedId)?.getElement()
@@ -46,33 +49,41 @@ export class MarkerManager {
     this.disarmRotation()
   }
 
-  constructor(map: L.Map, routePoints: RoutePoint[], onUpdate: () => void) {
+  constructor(map: L.Map, routes: RouteRef[], onUpdate: () => void) {
     this.map = map
-    this.routePoints = routePoints
+    this.routes = routes
+    this.visibleRouteIds = routes.map((r) => r.id)
     this.onUpdate = onUpdate
     MarkerManager.injectStyles()
   }
 
   add(lat: number, lon: number, type: MarkerType): SignMarker {
-    const idx = nearestPointIndex(this.routePoints, lat, lon)
-    const bearing = bearingAtIndex(this.routePoints, idx)
-    const point = this.routePoints[idx]
+    // Find globally nearest point across all routes for bearing/distanceFromStart
+    let bestIdx = 0, bestRouteIdx = 0, bestDist = Infinity
+    this.routes.forEach((r, ri) => {
+      const idx = nearestPointIndex(r.routePoints, lat, lon)
+      const dist = haversineDistance(r.routePoints[idx], { lat, lon })
+      if (dist < bestDist) { bestDist = dist; bestIdx = idx; bestRouteIdx = ri }
+    })
+    const primaryRoute = this.routes[bestRouteIdx]
+    const bearing = bearingAtIndex(primaryRoute.routePoints, bestIdx)
+    const point = primaryRoute.routePoints[bestIdx]
+    const routeIds = assignRoutesToMarker(lat, lon, this.routes)
 
     const marker: SignMarker = {
       id: crypto.randomUUID(),
-      type,
-      lat,
-      lon,
-      bearing,
+      type, lat, lon, bearing,
       distanceFromStart: point.distanceFromStart,
+      routeIds,
     }
     this.markers.push(marker)
-    this.addLeafletMarker(marker)
+
+    // Only add Leaflet marker if at least one of its routes is visible
+    if (marker.routeIds.some((id) => this.visibleRouteIds.includes(id))) {
+      this.addLeafletMarker(marker)
+    }
     this.onUpdate()
-
-    // Auto-arm rotation immediately after placement
     this.armRotation(marker.id)
-
     return marker
   }
 
@@ -106,8 +117,33 @@ export class MarkerManager {
     c.addEventListener('touchend', this.handleRotateEnd)
   }
 
+  /** Returns markers visible under current visibleRouteIds, sorted by distanceFromStart */
   getAll(): SignMarker[] {
-    return [...this.markers].sort((a, b) => a.distanceFromStart - b.distanceFromStart)
+    return this.markers
+      .filter((m) => m.routeIds.some((id) => this.visibleRouteIds.includes(id)))
+      .sort((a, b) => a.distanceFromStart - b.distanceFromStart)
+  }
+
+  /** Returns all markers assigned to a specific route, regardless of visibility */
+  getForRoute(routeId: string): SignMarker[] {
+    return this.markers
+      .filter((m) => m.routeIds.includes(routeId))
+      .sort((a, b) => a.distanceFromStart - b.distanceFromStart)
+  }
+
+  setVisibleRoutes(ids: string[]): void {
+    this.visibleRouteIds = ids
+    this.markers.forEach((m) => {
+      const visible = m.routeIds.some((id) => ids.includes(id))
+      const lm = this.leafletMarkers.get(m.id)
+      if (visible && !lm) {
+        this.addLeafletMarker(m)
+      } else if (!visible && lm) {
+        lm.remove()
+        this.leafletMarkers.delete(m.id)
+      }
+    })
+    this.onUpdate()
   }
 
   panTo(id: string): void {
@@ -199,8 +235,6 @@ export class MarkerManager {
     if (!m) return
     m.bearing = bearing
 
-    // Update SVG transform directly — avoids setIcon (which recreates the element
-    // and drops marker-armed class, hiding the handle during drag)
     const el = this.leafletMarkers.get(this.rotatingId)?.getElement()
     const svg = el?.querySelector('svg') as HTMLElement | null
     if (svg) svg.style.transform = `rotate(${bearing}deg)`
@@ -216,7 +250,6 @@ export class MarkerManager {
 
     el.style.cursor = 'pointer'
 
-    // Click → context menu (handles both desktop and mobile tap)
     el.addEventListener('click', (e) => {
       e.stopPropagation()
       if (this.rotatingId) return
@@ -224,7 +257,6 @@ export class MarkerManager {
       this.showContextMenu(m, el)
     })
 
-    // Armed state: mousedown → start rotation drag
     el.addEventListener('mousedown', (e) => {
       if (this.rotationArmedId !== m.id) return
       e.stopPropagation()
@@ -232,7 +264,6 @@ export class MarkerManager {
       this.startRotation(m.id, e.clientX, e.clientY)
     })
 
-    // Armed state: touchstart → start rotation drag
     el.addEventListener('touchstart', (e) => {
       if (this.rotationArmedId !== m.id) return
       e.stopPropagation()

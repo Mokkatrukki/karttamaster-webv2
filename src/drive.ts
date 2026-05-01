@@ -35,6 +35,13 @@ export class DriveMode {
     this.panToCurrent()
   }
 
+  setRoute(routePoints: RoutePoint[]): void {
+    this.routePoints = routePoints
+    this.currentIndex = 0
+    this.active = true
+    this.panToCurrent()
+  }
+
   isActive(): boolean {
     return this.active
   }

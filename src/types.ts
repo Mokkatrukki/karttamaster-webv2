@@ -12,5 +12,6 @@ export interface SignMarker {
   lat: number
   lon: number
   bearing: number         // degrees, direction of travel at this point
-  distanceFromStart: number // meters
+  distanceFromStart: number // meters — nearest route at placement time
+  routeIds: string[]      // routes this marker belongs to
 }

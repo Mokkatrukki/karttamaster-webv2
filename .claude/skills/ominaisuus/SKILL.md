@@ -40,6 +40,45 @@ If the feature request is already detailed enough that you can infer everything 
 
 Present questions clearly and wait for answers before continuing.
 
+## Phase 2.5: ASCII Layout (UI features only)
+
+**Trigger:** run this phase if the feature touches any visible UI component — toolbar, bottom bar, modal, panel, dropdown, overlay, progress bar, picker, or any new screen element. Skip if the feature is purely logic/data with no new UI surface.
+
+Before writing the spec, present 2–3 ASCII layout alternatives showing how the UI could look. This surfaces layout assumptions early — before spec language locks them in. The user's layout choice becomes a constraint in the spec.
+
+### How to draw the alternatives
+
+Use box-drawing characters. Show realistic content, not placeholders. Label each option with a letter and a one-line tradeoff summary.
+
+Each option must show **both** a mobile (~40 chars wide) and desktop (~80 chars wide) variant side by side or stacked. Mobile and desktop can differ significantly — a bottom bar on mobile might become a sidebar on desktop.
+
+**Example format:**
+
+```
+**A — [name]**
+Mobile (~375px):
+┌──────────────────────────────────────┐
+│ [actual content, not "content here"] │
+└──────────────────────────────────────┘
+
+Desktop (~1200px):
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ [sidebar or wider layout]                                                    │
+└──────────────────────────────────────────────────────────────────────────────┘
+Tradeoff: compact mobile but wastes space on desktop.
+
+**B — [name]**
+...
+```
+
+After presenting alternatives, write exactly:
+
+> **Kumpi layout? (A/B/C tai ehdota muutos)**
+
+Then stop. Do not write the spec until the user picks a layout. If they suggest a hybrid or modification, sketch the updated ASCII and confirm before continuing.
+
+When proceeding to Phase 3, incorporate the chosen layout as a specific constraint: *"UI follows layout B: ..."*
+
 ## Phase 3: Generate Spec
 
 Build the spec from the feature request + codebase context + user answers. Use this exact format:

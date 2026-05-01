@@ -6,7 +6,13 @@ import { DriveMode } from './drive'
 import { renderMarkerList, renderSignDots } from './ui'
 import { positionPicker, SIGN_TYPES } from './sign-picker'
 import { TILE_LAYERS } from './tile-layers'
+import type { RouteConfig } from './multi-route'
 import type { MarkerType } from './types'
+
+export const ROUTE_DEFS: Omit<RouteConfig, 'routePoints'>[] = [
+  { id: '35km', label: '35 km', color: '#f59e0b', file: '/route-35km.gpx' },
+  { id: '55km', label: '55 km', color: '#8b5cf6', file: '/route-55km.gpx' },
+]
 
 const map = L.map('map')
 
@@ -34,7 +40,7 @@ function cycleLayer() {
 
 const btnLayer = document.getElementById('btn-layer')
 if (btnLayer) {
-  btnLayer.textContent = TILE_LAYERS[activeLayerIdx].label
+  if (btnLayer) btnLayer.textContent = TILE_LAYERS[activeLayerIdx].label
   btnLayer.addEventListener('click', cycleLayer)
 }
 
@@ -47,19 +53,31 @@ function buildSignTypeButtons(): string {
 }
 
 async function init() {
-  const rawCoords = await loadGpx('/route.gpx')
-  const routePoints = buildRoutePoints(rawCoords)
-  const totalDistance = routePoints[routePoints.length - 1]?.distanceFromStart ?? 0
-  const totalKm = totalDistance / 1000
+  // Load all routes in parallel
+  const routes: RouteConfig[] = await Promise.all(
+    ROUTE_DEFS.map(async (def) => {
+      const coords = await loadGpx(def.file)
+      return { ...def, routePoints: buildRoutePoints(coords) }
+    })
+  )
 
-  const latlngs = routePoints.map((p) => [p.lat, p.lon] as [number, number])
-  const polyline = L.polyline(latlngs, { color: '#2563eb', weight: 6, opacity: 0.8 }).addTo(map)
-  map.fitBounds(polyline.getBounds(), { padding: [20, 20] })
+  // Create polylines for each route
+  const polylines = routes.map((r) =>
+    L.polyline(r.routePoints.map((p) => [p.lat, p.lon] as [number, number]), {
+      color: r.color, weight: 6, opacity: 0.85,
+    }).addTo(map)
+  )
 
+  // Fit map to all routes combined
+  const group = L.featureGroup(polylines)
+  map.fitBounds(group.getBounds(), { padding: [20, 20] })
+
+  // UI elements
   const routeKmEl = document.getElementById('route-km')!
   const trackFill = document.getElementById('route-track-fill') as HTMLElement
   const trackHandle = document.getElementById('route-track-handle') as HTMLElement
   const routeTrack = document.getElementById('route-track') as HTMLElement
+  const routeSelector = document.getElementById('route-selector')!
   const mapEl = document.getElementById('map')!
   const placeModeLabel = document.getElementById('place-mode-label')!
   const btnAddSign = document.getElementById('btn-add-sign')!
@@ -68,23 +86,125 @@ async function init() {
   const markerModalBackdrop = document.getElementById('marker-modal-backdrop')!
   const markerModal = document.getElementById('marker-modal')!
 
+  // State
+  let visibleRouteIds = routes.map((r) => r.id)
+  let driveRouteId = routes[0].id
+
+  function driveRoute() { return routes.find((r) => r.id === driveRouteId)! }
+  function driveRouteTotal() {
+    const pts = driveRoute().routePoints
+    return pts[pts.length - 1]?.distanceFromStart ?? 0
+  }
+
   function updateProgressBar(km: number) {
-    const pct = routePositionPct(km * 1000, totalDistance)
+    const total = driveRouteTotal()
+    const pct = routePositionPct(km * 1000, total)
     trackFill.style.width = `${pct}%`
     trackHandle.style.left = `${pct}%`
-    routeKmEl.textContent = `${km.toFixed(2)} / ${totalKm.toFixed(1)} km`
+    routeKmEl.textContent = `${km.toFixed(2)} / ${(total / 1000).toFixed(1)} km`
+  }
+
+  function refreshSignDots() {
+    const r = driveRoute()
+    renderSignDots(markerManager, driveRouteTotal(), r.id, r.routePoints)
   }
 
   updateProgressBar(0)
 
-  const markerManager = new MarkerManager(map, routePoints, () => {
+  const markerManager = new MarkerManager(map, routes, () => {
     renderMarkerList(markerManager)
-    renderSignDots(markerManager, totalDistance)
+    refreshSignDots()
   })
 
-  const driveMode = new DriveMode(map, routePoints, (km) => {
+  const driveMode = new DriveMode(map, routes[0].routePoints, (km) => {
     updateProgressBar(km)
   })
+
+  // ── Route tabs UI ──
+  const SVG_EYE_OPEN = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`
+  const SVG_EYE_OFF  = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
+
+  function updateRouteSelector() {
+    const onlyOneVisible = visibleRouteIds.length <= 1
+    routes.forEach((r) => {
+      const tab = routeSelector.querySelector(`.route-tab[data-route-id="${r.id}"]`) as HTMLElement | null
+      if (!tab) return
+      const visBtn = tab.querySelector('.route-tab-vis') as HTMLButtonElement
+      const isVisible = visibleRouteIds.includes(r.id)
+      const isDriving = r.id === driveRouteId
+      tab.classList.toggle('active', isDriving)
+      tab.classList.toggle('route-hidden', !isVisible)
+      visBtn.innerHTML = isVisible ? SVG_EYE_OPEN : SVG_EYE_OFF
+      visBtn.disabled = isVisible && onlyOneVisible
+      visBtn.title = isVisible ? 'Piilota reitti' : 'Näytä reitti'
+    })
+    // Progress bar fill follows active route color
+    trackFill.style.background = driveRoute().color
+  }
+
+  function setVisibleRoutes(ids: string[]) {
+    visibleRouteIds = ids
+    routes.forEach((r, i) => {
+      const visible = ids.includes(r.id)
+      if (visible) polylines[i].addTo(map)
+      else polylines[i].remove()
+    })
+    markerManager.setVisibleRoutes(ids)
+    updateRouteSelector()
+  }
+
+  function setDriveRoute(id: string) {
+    driveRouteId = id
+    if (!visibleRouteIds.includes(id)) {
+      setVisibleRoutes([...visibleRouteIds, id])
+    }
+    const r = routes.find((route) => route.id === id)!
+    driveMode.setRoute(r.routePoints)
+    updateProgressBar(0)
+    refreshSignDots()
+    updateRouteSelector()
+  }
+
+  function toggleRouteVisible(id: string) {
+    if (visibleRouteIds.includes(id)) {
+      if (visibleRouteIds.length <= 1) return
+      const newVisible = visibleRouteIds.filter((rid) => rid !== id)
+      if (id === driveRouteId) {
+        driveRouteId = newVisible[0]
+        const r = routes.find((route) => route.id === driveRouteId)!
+        driveMode.setRoute(r.routePoints)
+        updateProgressBar(0)
+        refreshSignDots()
+      }
+      setVisibleRoutes(newVisible)
+    } else {
+      setVisibleRoutes([...visibleRouteIds, id])
+    }
+  }
+
+  routes.forEach((r) => {
+    const tab = document.createElement('div')
+    tab.className = 'route-tab'
+    tab.dataset.routeId = r.id
+    tab.style.background = r.color
+
+    const driveBtn = document.createElement('button')
+    driveBtn.className = 'route-tab-drive'
+    driveBtn.title = 'Aseta ajettavaksi reitiksi'
+    driveBtn.innerHTML = `<span class="tab-color-dot" style="background:${r.color}"></span>${r.label}<span class="tab-arrow">▶</span>`
+    driveBtn.addEventListener('click', () => setDriveRoute(r.id))
+
+    const visBtn = document.createElement('button')
+    visBtn.className = 'route-tab-vis'
+    visBtn.innerHTML = SVG_EYE_OPEN
+    visBtn.addEventListener('click', () => toggleRouteVisible(r.id))
+
+    tab.appendChild(driveBtn)
+    tab.appendChild(visBtn)
+    routeSelector.appendChild(tab)
+  })
+
+  updateRouteSelector()
 
   // ── Progress bar drag ──
   let trackDragging = false
@@ -92,10 +212,11 @@ async function init() {
   function jumpToTrackFraction(clientX: number) {
     const rect = routeTrack.getBoundingClientRect()
     const fraction = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
-    const targetDist = fraction * totalDistance
+    const targetDist = fraction * driveRouteTotal()
+    const pts = driveRoute().routePoints
     let best = 0, bestDiff = Infinity
-    for (let i = 0; i < routePoints.length; i++) {
-      const diff = Math.abs(routePoints[i].distanceFromStart - targetDist)
+    for (let i = 0; i < pts.length; i++) {
+      const diff = Math.abs(pts[i].distanceFromStart - targetDist)
       if (diff < bestDiff) { bestDiff = diff; best = i }
     }
     driveMode.jumpTo(best)
@@ -108,9 +229,14 @@ async function init() {
   document.addEventListener('mouseup', () => { trackDragging = false })
   document.addEventListener('touchend', () => { trackDragging = false })
 
-  polyline.on('click', (e: L.LeafletMouseEvent) => {
-    const idx = nearestPointIndex(routePoints, e.latlng.lat, e.latlng.lng)
-    driveMode.jumpTo(idx)
+  // Click on any polyline → jump to nearest point on that route and set as drive route
+  polylines.forEach((polyline, i) => {
+    polyline.on('click', (e: L.LeafletMouseEvent) => {
+      const r = routes[i]
+      if (r.id !== driveRouteId) setDriveRoute(r.id)
+      const idx = nearestPointIndex(r.routePoints, e.latlng.lat, e.latlng.lng)
+      driveMode.jumpTo(idx)
+    })
   })
 
   document.getElementById('btn-route-next')!.addEventListener('click', () => driveMode.next())
@@ -186,7 +312,6 @@ async function init() {
   function openFloatingPicker(lat: number, lon: number, clientX: number, clientY: number) {
     pendingDblClick = { lat, lon }
     floatingPicker.classList.add('open')
-    // Measure after display
     requestAnimationFrame(() => {
       const { offsetWidth: w, offsetHeight: h } = floatingPicker
       const pos = positionPicker(clientX, clientY, w, h, window.innerWidth, window.innerHeight)

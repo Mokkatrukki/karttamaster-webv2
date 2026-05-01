@@ -7,59 +7,74 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      html, body { height: 100%; font-family: sans-serif; }
+      html, body {
+        height: 100%;
+        font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      }
 
       #app {
         display: flex;
         flex-direction: column;
         height: 100%;
-        padding-bottom: 68px;
+        padding-bottom: 122px;
       }
 
       /* ── Toolbar ── */
       #toolbar {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        background: #1a1a2e;
+        gap: 6px;
+        padding: 8px 10px;
+        background: #0f172a;
         color: #fff;
         flex-shrink: 0;
         position: relative;
         z-index: 200;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
       }
-      #toolbar h1 { font-size: 14px; font-weight: 600; margin-right: 8px; }
+      #toolbar h1 {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: #94a3b8;
+        margin-right: 4px;
+        text-transform: uppercase;
+      }
 
       button {
-        padding: 6px 14px;
+        padding: 6px 12px;
         border: none;
         border-radius: 6px;
         cursor: pointer;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 600;
+        font-family: inherit;
+        letter-spacing: 0.01em;
       }
 
       #btn-add-sign { background: #f59e0b; color: #111; }
       #btn-add-sign.place-mode { background: #ef4444; color: #fff; }
-      #btn-list     { background: #a78bfa; color: #111; }
+      #btn-list { background: rgba(255,255,255,0.1); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.12); }
 
       .place-mode-label {
-        font-size: 12px;
-        color: #fde68a;
+        font-size: 11px;
+        color: #fcd34d;
         display: none;
+        white-space: nowrap;
       }
       .place-mode-label.active { display: inline; }
 
       /* ── Sign type dropdown (toolbar) ── */
       #sign-type-dropdown {
         position: fixed;
-        background: #fff;
+        background: #1e293b;
+        border: 1px solid rgba(255,255,255,0.1);
         border-radius: 10px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-        padding: 8px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        padding: 6px;
         display: none;
         flex-direction: column;
-        gap: 4px;
+        gap: 2px;
         min-width: 180px;
         z-index: 2000;
       }
@@ -68,13 +83,14 @@
       /* ── Floating sign picker (dblclick) ── */
       #floating-picker {
         position: fixed;
-        background: #fff;
+        background: #1e293b;
+        border: 1px solid rgba(255,255,255,0.1);
         border-radius: 10px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        padding: 8px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        padding: 6px;
         display: none;
         flex-direction: column;
-        gap: 4px;
+        gap: 2px;
         min-width: 180px;
         z-index: 1003;
       }
@@ -87,21 +103,23 @@
         gap: 10px;
         padding: 8px 12px;
         min-height: 44px;
-        border-radius: 8px;
-        background: #f9fafb;
+        border-radius: 7px;
+        background: transparent;
         border: none;
         cursor: pointer;
         font-size: 13px;
         font-weight: 600;
+        font-family: inherit;
         text-align: left;
+        color: #e2e8f0;
         transition: background 0.1s;
       }
-      .sign-type-btn:hover { background: #f3f4f6; }
+      .sign-type-btn:hover { background: rgba(255,255,255,0.08); }
       .sign-type-btn .sign-swatch {
-        width: 20px; height: 20px; border-radius: 50%;
+        width: 22px; height: 22px; border-radius: 6px;
         flex-shrink: 0;
         display: flex; align-items: center; justify-content: center;
-        color: #fff; font-size: 12px;
+        color: #fff; font-size: 11px; font-weight: 700;
       }
 
       /* ── Map ── */
@@ -109,22 +127,92 @@
       #map.place-mode { cursor: crosshair !important; }
       #map.place-mode .leaflet-container { cursor: crosshair !important; }
 
-      /* ── Route bar (always visible, fixed bottom) ── */
+      /* ── Route bar ── */
       #route-bar {
         position: fixed;
         bottom: 0;
         left: 0;
         right: 0;
-        height: 68px;
-        background: #1a1a2e;
+        background: #0f172a;
         color: #fff;
         z-index: 100;
         display: flex;
         flex-direction: column;
-        padding: 8px 12px 10px;
-        gap: 6px;
+        padding: 10px 12px 12px;
+        gap: 8px;
+        box-shadow: 0 -1px 0 rgba(255,255,255,0.06), 0 -8px 24px rgba(0,0,0,0.3);
       }
 
+      /* ── Route tabs ── */
+      #route-selector {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .route-tab {
+        display: flex;
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1.5px solid transparent;
+        transition: border-color 0.15s, opacity 0.2s;
+        background: rgba(255,255,255,0.07);
+      }
+      .route-tab.active {
+        border-color: rgba(255,255,255,0.65);
+      }
+      .route-tab.route-hidden { opacity: 0.35; }
+
+      .route-tab-drive {
+        padding: 5px 10px;
+        height: 30px;
+        font-size: 12px;
+        font-weight: 700;
+        font-family: inherit;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        background: transparent;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+        letter-spacing: 0.01em;
+      }
+
+      .tab-color-dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .tab-arrow {
+        font-size: 8px;
+        opacity: 0;
+        transition: opacity 0.15s;
+        color: rgba(255,255,255,0.7);
+      }
+      .route-tab.active .tab-arrow { opacity: 1; }
+
+      .route-tab-vis {
+        width: 32px;
+        height: 30px;
+        border: none;
+        border-left: 1px solid rgba(255,255,255,0.1);
+        cursor: pointer;
+        background: transparent;
+        color: rgba(255,255,255,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        transition: color 0.1s, background 0.1s;
+      }
+      .route-tab-vis:hover { background: rgba(255,255,255,0.08); color: #fff; }
+      .route-tab-vis:disabled { cursor: default; opacity: 0.35; }
+      .route-tab-vis svg { pointer-events: none; }
+
+      /* ── Progress row ── */
       #route-bar-top {
         display: flex;
         align-items: center;
@@ -132,26 +220,38 @@
       }
 
       #route-km {
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 600;
-        color: #e5e7eb;
-        min-width: 110px;
+        color: #94a3b8;
+        min-width: 100px;
+        font-variant-numeric: tabular-nums;
       }
 
       #route-drive-controls {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 4px;
         margin-left: auto;
       }
-      #btn-route-prev, #btn-route-next { background: #374151; color: #fff; padding: 8px 20px; font-size: 16px; min-height: 44px; }
+      #btn-route-prev, #btn-route-next {
+        background: rgba(255,255,255,0.08);
+        color: #e2e8f0;
+        border: 1px solid rgba(255,255,255,0.1);
+        padding: 6px 18px;
+        font-size: 14px;
+        min-height: 36px;
+        border-radius: 6px;
+      }
+      #btn-route-prev:hover, #btn-route-next:hover {
+        background: rgba(255,255,255,0.14);
+      }
 
       /* ── Progress track ── */
       #route-track {
         position: relative;
-        height: 12px;
-        background: #374151;
-        border-radius: 6px;
+        height: 16px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 8px;
         cursor: pointer;
         user-select: none;
         touch-action: none;
@@ -160,20 +260,20 @@
       #route-track-fill {
         position: absolute;
         left: 0; top: 0; height: 100%;
-        background: #f59e0b;
-        border-radius: 6px;
+        border-radius: 8px;
         pointer-events: none;
         width: 0%;
+        transition: background-color 0.3s;
       }
 
       #route-track-handle {
         position: absolute;
         top: 50%; left: 0%;
         transform: translate(-50%, -50%);
-        width: 18px; height: 18px;
+        width: 20px; height: 20px;
         background: #fff;
         border-radius: 50%;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+        box-shadow: 0 1px 6px rgba(0,0,0,0.5);
         pointer-events: none;
       }
 
@@ -183,24 +283,25 @@
         transform: translate(-50%, -50%);
         width: 10px; height: 10px;
         border-radius: 50%;
-        border: 2px solid #fff;
+        border: 2px solid rgba(255,255,255,0.8);
         cursor: pointer;
       }
 
       .route-sign-dot .sign-tooltip {
         display: none;
         position: absolute;
-        bottom: 16px;
+        bottom: 18px;
         left: 50%;
         transform: translateX(-50%);
-        background: rgba(0,0,0,0.85);
-        color: #fff;
+        background: rgba(15,23,42,0.95);
+        color: #e2e8f0;
         font-size: 11px;
-        padding: 3px 7px;
-        border-radius: 4px;
+        padding: 4px 8px;
+        border-radius: 5px;
         white-space: nowrap;
         pointer-events: none;
         z-index: 10;
+        border: 1px solid rgba(255,255,255,0.1);
       }
       .route-sign-dot:hover .sign-tooltip { display: block; }
 
@@ -208,9 +309,10 @@
       #marker-modal-backdrop {
         position: fixed;
         inset: 0;
-        background: rgba(0,0,0,0.4);
+        background: rgba(0,0,0,0.5);
         z-index: 999;
         display: none;
+        backdrop-filter: blur(2px);
       }
       #marker-modal-backdrop.open { display: block; }
 
@@ -218,11 +320,12 @@
         position: fixed;
         top: 50%; left: 50%;
         transform: translate(-50%, -50%);
-        width: min(320px, 90vw);
+        width: min(340px, 92vw);
         max-height: 60vh;
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        background: #1e293b;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 14px;
+        box-shadow: 0 16px 48px rgba(0,0,0,0.5);
         z-index: 1000;
         display: none;
         flex-direction: column;
@@ -234,17 +337,22 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 12px 16px;
-        border-bottom: 1px solid #e5e7eb;
-        background: #f9fafb;
+        padding: 14px 16px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
         flex-shrink: 0;
       }
-      #marker-modal-header h2 { font-size: 14px; font-weight: 600; }
+      #marker-modal-header h2 { font-size: 14px; font-weight: 700; color: #e2e8f0; }
       #btn-modal-close {
-        background: none; border: none;
-        font-size: 18px; color: #6b7280;
-        cursor: pointer; padding: 2px 6px;
+        background: rgba(255,255,255,0.08);
+        border: none;
+        font-size: 14px;
+        color: #94a3b8;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 5px;
+        font-family: inherit;
       }
+      #btn-modal-close:hover { background: rgba(255,255,255,0.14); color: #e2e8f0; }
 
       #marker-modal-items { overflow-y: auto; flex: 1; }
 
@@ -252,41 +360,57 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        padding: 10px 12px;
-        border-bottom: 1px solid #f3f4f6;
+        padding: 10px 14px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
         font-size: 13px;
         cursor: pointer;
+        color: #e2e8f0;
+        transition: background 0.1s;
       }
-      .marker-item:hover { background: #f9fafb; }
-      .marker-item--new { background: #fef9c3; }
+      .marker-item:hover { background: rgba(255,255,255,0.05); }
+      .marker-item--new { background: rgba(245,158,11,0.12); }
       .marker-item .marker-icon { font-size: 18px; }
       .marker-item .marker-info { flex: 1; }
-      .marker-item .marker-km { color: #6b7280; font-size: 11px; }
+      .marker-item .marker-km { color: #64748b; font-size: 11px; margin-top: 1px; }
       .marker-item .btn-delete {
         background: none; border: none;
         color: #ef4444; cursor: pointer;
-        font-size: 16px; padding: 2px 6px;
+        font-size: 14px; padding: 2px 6px;
         min-width: 44px; min-height: 44px;
         display: flex; align-items: center; justify-content: center;
+        border-radius: 5px;
+        opacity: 0.7;
+        transition: opacity 0.1s, background 0.1s;
       }
+      .marker-item .btn-delete:hover { opacity: 1; background: rgba(239,68,68,0.12); }
+
+      /* ── Layer button ── */
+      #btn-layer {
+        background: rgba(255,255,255,0.08) !important;
+        color: #94a3b8 !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        font-size: 11px !important;
+        margin-left: auto;
+      }
+      #btn-layer:hover { background: rgba(255,255,255,0.14) !important; }
     </style>
   </head>
   <body>
     <div id="app">
       <div id="toolbar">
         <h1>Karttamaster</h1>
-        <button id="btn-add-sign">+ Lisää merkki</button>
+        <button id="btn-add-sign">+ Merkki</button>
         <span class="place-mode-label" id="place-mode-label">Napauta karttaa · Esc peruuttaa</span>
         <button id="btn-list">☰ Lista</button>
-        <button id="btn-layer" style="background:#334155;color:#e2e8f0;margin-left:auto">MML Taustakartta</button>
+        <button id="btn-layer" style="margin-left:auto">MML Taustakartta</button>
       </div>
       <div id="map"></div>
     </div>
 
-    <!-- Route progress bar — always visible -->
     <div id="route-bar">
+      <div id="route-selector"></div>
       <div id="route-bar-top">
-        <span id="route-km">0.0 / 0.0 km</span>
+        <span id="route-km">0.00 / 0.0 km</span>
         <div id="route-drive-controls">
           <button id="btn-route-prev">◀</button>
           <button id="btn-route-next">▶</button>
@@ -298,7 +422,6 @@
       </div>
     </div>
 
-    <!-- Marker list modal -->
     <div id="marker-modal-backdrop"></div>
     <div id="marker-modal">
       <div id="marker-modal-header">
@@ -308,10 +431,7 @@
       <div id="marker-modal-items"></div>
     </div>
 
-    <!-- Sign type dropdown — positioned by JS below btn-add-sign -->
     <div id="sign-type-dropdown"></div>
-
-    <!-- Floating sign picker — positioned by JS on dblclick -->
     <div id="floating-picker"></div>
 
     <script type="module" src="/src/main.ts"></script>

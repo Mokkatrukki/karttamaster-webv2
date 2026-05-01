@@ -1,6 +1,6 @@
 import type { MarkerManager } from './markers'
-import { routePositionPct } from './bearing'
-import type { MarkerType } from './types'
+import { routePositionPct, nearestPointIndex } from './bearing'
+import type { MarkerType, RoutePoint } from './types'
 import { SIGN_TYPES } from './sign-picker'
 
 function typeInfo(type: MarkerType) {
@@ -46,7 +46,12 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string): 
   })
 }
 
-export function renderSignDots(manager: MarkerManager, totalDistance: number): void {
+export function renderSignDots(
+  manager: MarkerManager,
+  totalDistance: number,
+  activeRouteId: string,
+  activeRoutePoints: RoutePoint[],
+): void {
   const track = document.getElementById('route-track')
   if (!track) return
 
@@ -54,10 +59,13 @@ export function renderSignDots(manager: MarkerManager, totalDistance: number): v
 
   if (totalDistance <= 0) return
 
-  manager.getAll().forEach((m) => {
-    const pct = routePositionPct(m.distanceFromStart, totalDistance)
+  // Only show dots for markers on the active drive route
+  manager.getForRoute(activeRouteId).forEach((m) => {
+    const idx = nearestPointIndex(activeRoutePoints, m.lat, m.lon)
+    const dist = activeRoutePoints[idx].distanceFromStart
+    const pct = routePositionPct(dist, totalDistance)
     const info = typeInfo(m.type)
-    const km = (m.distanceFromStart / 1000).toFixed(2)
+    const km = (dist / 1000).toFixed(2)
     const label = `${info.shortLabel} · ${km} km`
 
     const dot = document.createElement('div')
