@@ -1,0 +1,24 @@
+import { getRole, setRole } from '../logic/role'
+import type { Role } from '../logic/role'
+
+export class RoleSelector {
+  private role: Role
+
+  constructor(private readonly btn: HTMLButtonElement) {
+    this.role = getRole()
+    this.updateBtn()
+    btn.addEventListener('click', () => {
+      this.role = this.role === 'järjestäjä' ? 'talkoolainen' : 'järjestäjä'
+      setRole(this.role)
+      this.updateBtn()
+    })
+  }
+
+  getRole(): Role { return this.role }
+
+  private updateBtn(): void {
+    this.btn.textContent = this.role === 'järjestäjä' ? 'Järjestäjä' : 'Talkoolainen'
+    this.btn.dataset.role = this.role
+    this.btn.classList.toggle('role-active', this.role === 'talkoolainen')
+  }
+}

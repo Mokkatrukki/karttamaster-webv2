@@ -462,6 +462,20 @@ button {
 
 /* ── Layer button ── */
 
+#btn-role {
+  min-height: 44px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-default);
+  font-size: 12px;
+}
+#btn-role.role-active {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: transparent;
+}
+#btn-role:hover:not(.role-active) { background: var(--hover-light); }
+
 #btn-layer {
   background: var(--hover-light) !important;
   color: var(--text-muted) !important;

@@ -102,6 +102,13 @@ metsässä, hanskat kädessä.
 - Napit: `padding: 6px 12px`, `border-radius: 6px`, `font-size: 12px`, `font-weight: 600`
 - ⚠️ **Puute:** toolbar-napeilla ei `min-height: 44px` — korjattava
 
+### Role-toggle (`#btn-role`)
+- Toolbarissa, toolbar-nappi tyyli
+- `min-height: 44px` (§R pakollinen)
+- Inactive: `color: text-muted`, `background: transparent`
+- Active: `background: accent`, `color: accent-text`
+- Teksti: `"Järjestäjä"` tai `"Talkoolainen"` — ei ikoneja (aria)
+
 ### Route-bar (`#route-bar`)
 - Kiinteä alareuna, `z-index: 100`
 - Tausta: `bg-primary`, shadow ylöspäin

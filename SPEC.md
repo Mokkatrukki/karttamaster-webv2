@@ -19,7 +19,11 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 
 - `public/route-*.gpx` — 4 GPX-tiedostoa (35km, 55km + 2 puuttuu?)
 - `localStorage['karttamaster-layer']` — tile-layer preference
-- `localStorage['karttamaster-markers']` — marker data: `{ version: 1, markers: SignMarker[] }`
+- `localStorage['karttamaster-markers']` — marker data: `{ version: 1, markers: SignMarker[], lastSyncAt?: string }`
+- `GET /api/markers?event=<id>` — hae kaikki merkit tapahtumalle
+- `PUT /api/markers/:id` — luo tai päivitä merkki (upsert)
+- `DELETE /api/markers/:id` — poista merkki
+- `GET /api/events/:id` — tapahtuman metatiedot (GPX-polut jne.)
 - Leaflet tile APIs: MML Taustakartta, MML Maastokartta, OSM
 - `VISION.md` — product vision, luetaan suunnittelun ja testauksen referenssinä
 
@@ -44,6 +48,9 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | V15 | Merkki on drag-siirrettävissä kartalla — siirto laskee bearing + routeIds uudelleen uudesta sijainnista (sama logiikka kuin add) |
 | V16 | Rotation arm ei häviä tahattomalla karttaklikillä — arm pitää poistaa vain explicit dismiss (Esc, toinen merkki, uusi lisäys) |
 | V17 | Merkin tyyppi on vaihdettavissa jälkikäteen ilman delete+redo — kontekstivalikko tai lista |
+| V18 | Kun backend käytössä: server on source of truth. localStorage on cache-only. App yrittää aina serveriltä ensin — localStorage fallback vain verkkovian aikana. |
+| V19 | Offline-muutos saa `pendingSync: true` flagin. Kun yhteys palaa, `pushPending()` lähettää muutokset serverille automaattisesti ennen muuta operaatiota. |
+| V20 | Merge-konflikti (pendingSync > 0 && server muuttunut): käyttäjä päättää — "vaihda kaikki serveriltä" tai "pidä omat muutokset". Ei automaattista merge-logiikkaa per field. |
 
 ## §T Tasks
 
@@ -60,7 +67,7 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | T9  | . | Ikonilähde-research: Lucide / Heroicons / custom SVG — päätä ennen T22 | V10 |
 | T10 | ✓ | MarkerStatus type + tila-siirtymälogiikka (Vitest-pure): suunniteltu→asetettu→tarkistettu→kerätty\|ei_tarpeen. Tyyppi `src/logic/types.ts`, logiikka `src/logic/marker-status.ts`. `transitionStatus/canTransition/validActions/isTerminal`. Normalisointi persistence.ts:ssä vanhalle datalle. | V9 |
 | T11 | ✓ | Paikkaohjeet: `locationNote?: string` SignMarker-tyyppiin, `updateNote(id, text)` MarkerManageriin, inline-input marker-listassa, tallentuu automaattisesti (blur/Enter), XSS-safe (DOM-assign) | §G |
-| T12 | . | Rooli-state localStorage (järjestäjä\|talkoolainen), toggle UI — ei backendiä vielä | V13 |
+| T12 | ✓ | Rooli-state + toggle UI. Logiikka: `src/logic/role.ts` — `type Role = 'järjestäjä' \| 'talkoolainen'`, `getRole(): Role` (localStorage, default `'järjestäjä'`), `setRole(r: Role): void` (persist). Toggle-nappi toolbariin: `src/ui/role-selector.ts`, vaihtaa roolia yhdellä klikillä, active = accent-highlight (DESIGN.md §K role-toggle). Ei piilota/näytä mitään vielä — se on T32. localStorage: vi.stubGlobal-mock (CLAUDE.md). Testattavuus: Vitest-pure (logic), Vitest-jsdom (toggle). Käyttäjä: molemmat. Avaa: T24, T32. | V13 |
 | T13 | . | Pätkä data model: alku/loppu distanceFromStart per route, jatkuvuus-validointi (Vitest-pure) | V11 |
 | T14 | . | Talkoolaisen pätkänäkymä: filtteröity kartta + merkkilista omalta pätkältä | V11,T12,T13 |
 | T15 | . | Tilannekuva-logiikka: laske % per status per reitti (Vitest-pure) | V9 |
@@ -89,6 +96,9 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | T38 | . | Vaihda merkin tyyppi: kontekstivalikosta tai listasta — ei delete+redo. Päivittää ikonia kartalla + listaa | V17 |
 | T39 | . | Drive mode "hyppää seuraavaan merkkiin": nappi joka siirtyy seuraavan merkin distanceFromStart-kohtaan aktiivisella reitillä — ei GPS-riippuvainen, toimii jo nyt ilman T30 | T4 |
 | T40 | . | Rotation arm sticky: arm ei häviä karttaklikistä — poistuu vain Esc / toisen merkin arm / uusi lisäys. Korjaa järjestäjän turhautunut reset-flow | V16 |
+| T41 | . | Backend REST API: Hono + Bun + SQLite. `markers` taulu: `id, event_id, data JSON, updated_at, created_by`. CRUD: `GET/PUT/DELETE /api/markers/:id`, `GET /api/markers?event=X`. Testattavuus: Bun test (integration, oikea SQLite). | V18,V19 |
+| T42 | . | Sync-logiikka: `src/logic/sync.ts` — online-first, localStorage cache. `syncMarkers()`: fetch serveriltä → päivitä localStorage → palauta. `pushPending()`: lähetä pendingSync-merkit serverille. Vitest-pure (mock fetch). | V18,V19,T41 |
+| T43 | . | Merge-konflikti UI: jos `pendingSync > 0` ja server on muuttunut → dialog: "X merkkiä muuttunut serverillä — vaihda kaikki / pidä omat X muutosta". Per-marker merge ei MVP:ssä. Vitest-jsdom. | V20,T42 |
 
 ## §UX Kenttämuistio
 
