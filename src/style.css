@@ -427,6 +427,21 @@ button {
 .marker-item .marker-icon { font-size: 18px; }
 .marker-item .marker-info { flex: 1; }
 .marker-item .marker-km { color: var(--text-meta); font-size: 11px; margin-top: 1px; }
+.marker-item .marker-note {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 3px 6px;
+  font-size: 11px;
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  outline: none;
+  box-sizing: border-box;
+}
+.marker-item .marker-note::placeholder { color: var(--text-meta); opacity: 0.6; }
+.marker-item .marker-note:focus { border-color: var(--accent); background: rgba(255,255,255,0.1); }
 .marker-item .btn-delete {
   background: none;
   border: none;

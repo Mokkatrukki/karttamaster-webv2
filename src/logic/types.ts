@@ -1,5 +1,7 @@
 export type MarkerType = 'right' | 'left' | 'upcoming-right' | 'upcoming-left'
 
+export type MarkerStatus = 'suunniteltu' | 'asetettu' | 'tarkistettu' | 'kerätty' | 'ei_tarpeen'
+
 export interface RoutePoint {
   lat: number
   lon: number
@@ -14,4 +16,6 @@ export interface SignMarker {
   bearing: number         // degrees, direction of travel at this point
   distanceFromStart: number // meters — nearest route at placement time
   routeIds: string[]      // routes this marker belongs to
+  status: MarkerStatus    // lifecycle: suunniteltu → asetettu → tarkistettu → kerätty | ei_tarpeen
+  locationNote?: string   // vapaa teksti: mihin tarkasti kiinnitetään
 }

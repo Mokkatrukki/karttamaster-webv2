@@ -88,10 +88,10 @@ Puhtaat funktiot. Ei Leafletia, ei DOM:ia. **Testattavuus: Vitest-pure.**
 
 ---
 
-## PersistenceLayer *(tulossa — T29)*
+## PersistenceLayer ✓ (T29)
 **Vastuu:** Merkkien tallennus/lataus — localStorage nyt, backend sync myöhemmin
 **Käyttäjä:** molemmat (taustalogiikka)
-**Moduuli:** `src/logic/persistence.ts` *(ei vielä)*
+**Moduuli:** `src/logic/persistence.ts`
 **Testattavuus:** Vitest-jsdom (localStorage mock)
 
 ### Tallennusformaatti
@@ -99,55 +99,58 @@ Puhtaat funktiot. Ei Leafletia, ei DOM:ia. **Testattavuus: Vitest-pure.**
 { "version": 1, "markers": [ ...SignMarker[] ] }
 ```
 
+### Ominaisuudet
+- ✓ `saveMarkers(markers)` — JSON + versiointi → localStorage
+- ✓ `loadMarkers()` — parsii, validoi versio → SignMarker[] tai []
+- ✓ Silent reset korruptoituneella datalla (V14)
+- ✓ Normalisoi `status: 'suunniteltu'` vanhoille merkeille (T10-compat)
+
 ### Tulossa
-- [ ] `saveMarkers(markers)` — JSON + versiointi → localStorage (T29)
-- [ ] `loadMarkers()` — parsii, validoi versio → SignMarker[] tai [] (T29)
-- [ ] Silent reset korruptoituneella datalla (T29)
-- [ ] Myöhemmin: POST/PUT palvelimelle (backend T)
+- [ ] POST/PUT palvelimelle (backend vaihe)
 
 ---
 
-## SignLibrary *(tulossa — T8)*
+## SignLibrary ✓ (T8)
 **Vastuu:** Merkkikirjaston data model + CRUD-logiikka
 **Käyttäjä:** järjestäjä
-**Moduuli:** `src/logic/sign-library.ts` *(ei vielä)*
+**Moduuli:** `src/logic/sign-library.ts`
 **Testattavuus:** Vitest-pure
 
-### SignTemplate-tyyppi
-```typescript
-interface SignTemplate {
-  id: string
-  label: string
-  shortLabel: string
-  color: string
-  description: string
-  icon: string  // Lucide-nimi tai custom SVG (T9 selvittää)
-}
-```
+### Ominaisuudet
+- ✓ `SignTemplate` type: id, label, shortLabel, color, description
+- ✓ `createTemplate/updateTemplate/deleteTemplate/listTemplates` (in-memory)
 
 ### Tulossa
-- [ ] CRUD: create/update/delete SignTemplate (T8)
 - [ ] Ikonilähde selvitetään: Lucide / Heroicons / custom SVG (T9)
+- [ ] UI-paneeli järjestäjälle (T22)
 
 ---
 
-## MarkerStatus *(tulossa — T10)*
+## MarkerStatus ✓ (T10)
 **Vastuu:** Merkin elinkaari-tila ja tila-siirtymälogiikka
 **Käyttäjä:** molemmat
-**Moduuli:** `src/logic/marker-status.ts` *(ei vielä)*
+**Moduuli:** `src/logic/marker-status.ts`
 **Testattavuus:** Vitest-pure
 
 ### Elinkaari
 ```
 suunniteltu → asetettu → tarkistettu → kerätty
-                     ↘ ei_tarpeen
+     ↘ ei_tarpeen ↗peru         ↗peru
 ```
 
+### Ominaisuudet
+- ✓ `MarkerStatus` type: suunniteltu | asetettu | tarkistettu | kerätty | ei_tarpeen
+- ✓ `StatusAction` type: aseta | ohita | tarkista | kerää | peru
+- ✓ `transitionStatus(status, action)` — palauttaa uuden statuksen tai heittää
+- ✓ `canTransition(status, action)` — validoi siirtymä
+- ✓ `validActions(status)` — lailliset toimet nykytilassa
+- ✓ `isTerminal(status)` — onko tila päätepiste (kerätty = true)
+- ✓ `DEFAULT_STATUS` = 'suunniteltu'
+- ✓ Status lisätty `SignMarker`-tyyppiin (pakollinen kenttä)
+
 ### Tulossa
-- [ ] `MarkerStatus` type (T10)
-- [ ] `canTransition(from, to)` — validoi legalit siirtymät (T10)
-- [ ] `nextStatus(current)` — seuraava normaali tila (T10)
-- [ ] Status lisätään `SignMarker`-tyyppiin (T10)
+- [ ] Status-kuvake kartalla (T23)
+- [ ] Kuittaus-UI talkoolaiselle (T24)
 
 ---
 
@@ -200,6 +203,6 @@ interface Segment {
 ## Types (ei komponentti)
 **Moduuli:** `src/logic/types.ts`
 
-Nykyiset: `MarkerType`, `RoutePoint`, `SignMarker`
+Nykyiset: `MarkerType`, `MarkerStatus`, `RoutePoint`, `SignMarker`
 
-Tulossa lisätään: `MarkerStatus`, `SignTemplate`, `Segment`, `Role`
+Tulossa lisätään: `SignTemplate`, `Segment`, `Role`

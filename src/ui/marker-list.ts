@@ -26,15 +26,33 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string): 
             <div class="marker-info">
               <div>${info.label}</div>
               <div class="marker-km">${km} km · ${Math.round(m.bearing)}°</div>
+              <input class="marker-note" data-id="${m.id}" type="text" placeholder="Paikkaohjeet..." maxlength="200">
             </div>
             <button class="btn-delete" data-id="${m.id}" title="Poista">✕</button>
           </div>`
       }).join('')
 
+  // Set note values via DOM to avoid XSS
+  markers.forEach((m) => {
+    const input = listEl.querySelector<HTMLInputElement>(`.marker-note[data-id="${m.id}"]`)
+    if (input && m.locationNote) input.value = m.locationNote
+  })
+
+  listEl.querySelectorAll<HTMLInputElement>('.marker-note').forEach((input) => {
+    input.addEventListener('click', (e) => e.stopPropagation())
+    input.addEventListener('blur', () => {
+      manager.updateNote(input.dataset.id ?? '', input.value.trim())
+    })
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') input.blur()
+    })
+  })
+
   listEl.querySelectorAll('.marker-item').forEach((el) => {
     el.addEventListener('click', (e) => {
       const target = e.target as HTMLElement
       if (target.classList.contains('btn-delete')) return
+      if (target.classList.contains('marker-note')) return
       manager.panTo((el as HTMLElement).dataset.id ?? '')
     })
   })

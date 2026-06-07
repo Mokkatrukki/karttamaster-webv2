@@ -31,12 +31,13 @@ server/       ← Hono + Bun + SQLite (tulossa)
 | Types | `src/logic/types.ts` | ✓ valmis | [logic.md](docs/components/logic.md) |
 | SignIcon | `src/map/icons.ts` | ✓ valmis | [map.md](docs/components/map.md) |
 | DriveMode | `src/map/drive.ts` | ✓ valmis | [map.md](docs/components/map.md) |
-| MarkerManager | `src/map/markers.ts` ⚠️ 309 riv | ✓ valmis | [map.md](docs/components/map.md) |
-| MarkerListUI | `src/ui/marker-list.ts` | ✓ valmis | [ui.md](docs/components/ui.md) |
+| MarkerManager | `src/map/markers.ts` 159 riv | ✓+T37,T38 | [map.md](docs/components/map.md) |
+| MarkerInteraction | `src/map/marker-interaction.ts` 189 riv | ✓+T40 | [map.md](docs/components/map.md) |
+| MarkerListUI | `src/ui/marker-list.ts` | ✓ T11 | [ui.md](docs/components/ui.md) |
 | AppController | `src/main.ts` ⚠️ 385 riv | ✓ valmis | [ui.md](docs/components/ui.md) |
 | PersistenceLayer | `src/logic/persistence.ts` | ○ T29 | [logic.md](docs/components/logic.md) |
 | SignLibrary | `src/logic/sign-library.ts` | ○ T8 | [logic.md](docs/components/logic.md) |
-| MarkerStatus | `src/logic/marker-status.ts` | ○ T10 | [logic.md](docs/components/logic.md) |
+| MarkerStatus | `src/logic/marker-status.ts` | ✓ T10 | [logic.md](docs/components/logic.md) |
 | SegmentManager | `src/logic/segments.ts` | ○ T13 | [logic.md](docs/components/logic.md) |
 | RoleController | `src/logic/role.ts` | ○ T12 | [logic.md](docs/components/logic.md) |
 | SituationLogic | `src/logic/situation.ts` | ○ T15 | [logic.md](docs/components/logic.md) |
@@ -72,7 +73,7 @@ Lisää: [backend.md — Vaiheistus](docs/components/backend.md)
 | Moduuli | Rivit | Milloin pilkotaan |
 |---|---|---|
 | `src/main.ts` | 386 | Ennen T12/T32 → RouteBar, ProgressBar, PlaceMode |
-| `src/map/markers.ts` | 323 | Ennen T10 → status-logiikka tuo kolmannen vastuun |
+| `src/map/marker-interaction.ts` | 189 | Seuraa — jos kasvaa >250 riv, erota rotation omaksi |
 
 ---
 

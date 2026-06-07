@@ -1,4 +1,5 @@
 import type { SignMarker } from './types'
+import { DEFAULT_STATUS } from './marker-status'
 
 const LS_KEY = 'karttamaster-markers'
 const VERSION = 1
@@ -22,7 +23,10 @@ export function loadMarkers(): SignMarker[] {
       localStorage.removeItem(LS_KEY)
       return []
     }
-    return data.markers
+    return data.markers.map((m) => {
+      const raw = m as Partial<SignMarker> & Omit<SignMarker, 'status'>
+      return { ...raw, status: raw.status ?? DEFAULT_STATUS } as SignMarker
+    })
   } catch {
     console.warn('[persistence] parse error, resetting')
     localStorage.removeItem(LS_KEY)

@@ -41,6 +41,9 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | V12 | Merkit persistoidaan sessioiden yli — ei kadota sivun päivityksellä |
 | V13 | Rooli (järjestäjä\|talkoolainen) ohjaa näkymää — ei kahta sovellusta, vain eri toolbar + paneelit |
 | V14 | Korruptoitunut tai tuntematon versio localStorage-datassa → silent reset: console.warn + removeItem + tyhjä tila; ei kaatumista |
+| V15 | Merkki on drag-siirrettävissä kartalla — siirto laskee bearing + routeIds uudelleen uudesta sijainnista (sama logiikka kuin add) |
+| V16 | Rotation arm ei häviä tahattomalla karttaklikillä — arm pitää poistaa vain explicit dismiss (Esc, toinen merkki, uusi lisäys) |
+| V17 | Merkin tyyppi on vaihdettavissa jälkikäteen ilman delete+redo — kontekstivalikko tai lista |
 
 ## §T Tasks
 
@@ -55,8 +58,8 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | T7  | . | Lisää puuttuvat 2 GPX-reittiä (4 reittiä yhteensä) | §C |
 | T8  | ✓ | SignTemplate data model + CRUD logiikka — `src/logic/sign-library.ts`. Tyyppi: `SignTemplate{id,label,shortLabel,color,description}`. Funktiot: createTemplate/updateTemplate/deleteTemplate/listTemplates, in-memory (ei localStorage). SignTemplate on superset SignTypeInfo:lle (sign-picker.ts) — korvaa sen T22-vaiheessa. Testattavuus: Vitest-pure. Käyttäjä: järjestäjä rakentaa, talkoolainen käyttää. Avaa: T9,T22,T27 | V10 |
 | T9  | . | Ikonilähde-research: Lucide / Heroicons / custom SVG — päätä ennen T22 | V10 |
-| T10 | . | MarkerStatus type + tila-siirtymälogiikka (Vitest-pure): suunniteltu→asetettu→tarkistettu→kerätty\|ei_tarpeen | V9 |
-| T11 | . | Paikkaohjeet: vapaa tekstikenttä per merkkiinstanssi (lisätään SignMarker-tyyppiin + UI) | §G |
+| T10 | ✓ | MarkerStatus type + tila-siirtymälogiikka (Vitest-pure): suunniteltu→asetettu→tarkistettu→kerätty\|ei_tarpeen. Tyyppi `src/logic/types.ts`, logiikka `src/logic/marker-status.ts`. `transitionStatus/canTransition/validActions/isTerminal`. Normalisointi persistence.ts:ssä vanhalle datalle. | V9 |
+| T11 | ✓ | Paikkaohjeet: `locationNote?: string` SignMarker-tyyppiin, `updateNote(id, text)` MarkerManageriin, inline-input marker-listassa, tallentuu automaattisesti (blur/Enter), XSS-safe (DOM-assign) | §G |
 | T12 | . | Rooli-state localStorage (järjestäjä\|talkoolainen), toggle UI — ei backendiä vielä | V13 |
 | T13 | . | Pätkä data model: alku/loppu distanceFromStart per route, jatkuvuus-validointi (Vitest-pure) | V11 |
 | T14 | . | Talkoolaisen pätkänäkymä: filtteröity kartta + merkkilista omalta pätkältä | V11,T12,T13 |
@@ -82,6 +85,45 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | T34 | . | GPX-korvaus: varoitus + merge/discard-valinta olemassa oleville merkeille | V1,V2 |
 | T35 | . | Yhteinen osuus -visualisointi: korostus kartalla missä reitit jakavat merkin | V2 |
 | T36 | . | Kutsukoodi-auth backend: admin generoi koodit, koodi → rooli-assert | T12,V13 |
+| T37 | . | Drag-to-move merkki: järjestäjä siirtää väärässä paikassa olevan merkin — bearing + routeIds lasketaan uudelleen uudesta sijainnista, persistoi | V15,V1,V2 |
+| T38 | . | Vaihda merkin tyyppi: kontekstivalikosta tai listasta — ei delete+redo. Päivittää ikonia kartalla + listaa | V17 |
+| T39 | . | Drive mode "hyppää seuraavaan merkkiin": nappi joka siirtyy seuraavan merkin distanceFromStart-kohtaan aktiivisella reitillä — ei GPS-riippuvainen, toimii jo nyt ilman T30 | T4 |
+| T40 | . | Rotation arm sticky: arm ei häviä karttaklikistä — poistuu vain Esc / toisen merkin arm / uusi lisäys. Korjaa järjestäjän turhautunut reset-flow | V16 |
+
+## §UX Kenttämuistio
+
+UX-simulaatio 2026-06-07. Kaksi roolia läpikäyty — löydöt kirjattu taskeihin ja invariantteihin.
+
+### Talkoolainen metsässä — kriittiset kitkat
+
+| kitka | vakavuus | task |
+|-------|----------|------|
+| Ei GPS-pistettä — ei tiedä missä on kartalla | kriittinen | T30 |
+| Ei kuittaustoimintoa — ei voi merkitä asetetuksi | kriittinen | T24 |
+| Kaikki merkit näyttää samalta — ei status-värikoodausta | suuri | T23 |
+| Ei "seuraava asettamaton" -navigointia — selaa koko lista | suuri | T16, T31 |
+| Drive mode 50m askeleet = hidas hypätä merkkien välillä | pieni | T39 |
+| Tupla-klik hanskat kädessä — epätarkka kohdennus | pieni | — |
+
+### Järjestäjä toimistossa — kriittiset kitkat
+
+| kitka | vakavuus | task |
+|-------|----------|------|
+| Drag-to-move puuttuu — väärässä paikassa → delete + redo | suuri | T37 |
+| Rotation arm häviää ulkoklikillä — turha reset | suuri | T40 |
+| Ei tyypin vaihto-toimintoa — väärä tyyppi → delete + redo | suuri | T38 |
+| Ei kokonaistilannekuvaa — ei merkkimäärää per reitti helposti | suuri | T15, T28 |
+
+### Hyvää (säilytä)
+
+- Tupla-klik + floating picker — nopea desktop-flow ✓
+- Automaattinen bearing — ei tarvitse säätää manuaalisesti ✓
+- Rotation arm aktivoituu heti lisäyksen jälkeen ✓
+- Marker-lista etäisyysjärjestyksessä ✓
+- Escape-chain toimii loogisesti läpi koko UI:n ✓
+- Reitin vaihto + näkyvyystoggle toimii ✓
+
+---
 
 ## §B Bugs
 
