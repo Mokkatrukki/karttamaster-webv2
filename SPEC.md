@@ -51,6 +51,7 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | V18 | Kun backend käytössä: server on source of truth. localStorage on cache-only. App yrittää aina serveriltä ensin — localStorage fallback vain verkkovian aikana. |
 | V19 | Offline-muutos saa `pendingSync: true` flagin. Kun yhteys palaa, `pushPending()` lähettää muutokset serverille automaattisesti ennen muuta operaatiota. |
 | V20 | Merge-konflikti (pendingSync > 0 && server muuttunut): käyttäjä päättää — "vaihda kaikki serveriltä" tai "pidä omat muutokset". Ei automaattista merge-logiikkaa per field. |
+| V21 | Merkki jonka routeIds on tyhjä ei saa tallentua hiljaa — `MarkerManager.add()` pakottaa vähintään lähimmän reitin routeIds:ään riippumatta etäisyydestä. Näytetään varoitus jos klikki >500m lähimmältä reitiltä. Ei koskaan hiljainen katoaminen. |
 
 ## §T Tasks
 
@@ -79,7 +80,7 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | T21 | . | Live tracking v1: laitteen GPS-sijainti näkyvissä itselle kartalla | §C,T30 |
 | T22 | . | SignLibrary UI paneeli: järjestäjä luo/muokkaa/poistaa SignTemplateja | T8,T9 |
 | T23 | . | Merkin status-kuvake kartalla: SignIcon värikoodi + muoto statuksen mukaan | T10 |
-| T24 | . | Talkoolaisen kuittaus-UI: 1 iso nappi (asetettu / ei_tarpeen) — max 2 toimintoa | T10,T12 |
+| T24 | ✓ | Talkoolaisen kuittaus-UI: 1 iso nappi (asetettu / ei_tarpeen) — max 2 toimintoa | T10,T12 |
 | T25 | . | Pätkä UI kartalla: järjestäjä piirtää välin, visualisoitu viivana reitillä | T13 |
 | T26 | . | Pätkä-assign: järjestäjä linkittää pätkän talkoolaiselle (roolitunnus) | T12,T25 |
 | T27 | . | Varustelista: auto-laskuri per SignTemplate + manuaali-rivit + ohjeteksti | T8,T14 |
@@ -99,6 +100,9 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | T41 | . | Backend REST API: Hono + Bun + SQLite. `markers` taulu: `id, event_id, data JSON, updated_at, created_by`. CRUD: `GET/PUT/DELETE /api/markers/:id`, `GET /api/markers?event=X`. Testattavuus: Bun test (integration, oikea SQLite). | V18,V19 |
 | T42 | . | Sync-logiikka: `src/logic/sync.ts` — online-first, localStorage cache. `syncMarkers()`: fetch serveriltä → päivitä localStorage → palauta. `pushPending()`: lähetä pendingSync-merkit serverille. Vitest-pure (mock fetch). | V18,V19,T41 |
 | T43 | . | Merge-konflikti UI: jos `pendingSync > 0` ja server on muuttunut → dialog: "X merkkiä muuttunut serverillä — vaihda kaikki / pidä omat X muutosta". Per-marker merge ei MVP:ssä. Vitest-jsdom. | V20,T42 |
+| T44 | . | Ghost marker fix: `MarkerManager.add()` pakottaa lähimmän reitin id routeIds:ään jos assignRoutesToMarker palauttaa []. Näytä varoitusbanneri kartalla jos merkki >500m reitistä. Vitest-pure (logiikka), Playwright (banneri). | V21,V1 |
+| T45 | . | Touch targets mobile: route-tab-napit (35km/55km) ja eye-icon-toggle ≥44px korkeus mobiililla. Playwright (375px viewport, kaikki napit ≥44px). | §C |
+| T46 | . | Playwright E2E -perusta: `playwright.config.ts` webServer-config, `e2e/`-hakemisto, 3 kriittistä polkua: (1) merkki asetetaan kartalle → näkyy listassa, (2) drive mode käynnistyy + navigoi, (3) rooli-toggle muuttaa toolbaria. | §C |
 
 ## §UX Kenttämuistio
 
@@ -139,3 +143,6 @@ UX-simulaatio 2026-06-07. Kaksi roolia läpikäyty — löydöt kirjattu taskeih
 
 | id | date | cause | fix |
 |----|------|-------|-----|
+| B1 | 2026-06-07 | `MarkerManager.add()` käyttää `assignRoutesToMarker` (100m threshold) routeIds:lle mutta ei fallback-logiikkaa — klikki >100m reitistä → routeIds:[], merkki tallentuu mutta katoaa hiljaa | V21 → T44 |
+| B2 | 2026-06-07 | `PlaceMode.exit()` asettaa btnAddSign.textContent = '+ Lisää merkki' eikä alkuperäiseen '+ Merkki' — teksti ei resetoidu oikeaksi | T44 (samalla korjauksella) |
+| B3 | 2026-06-07 | Route-tab-napit ja eye-icon-toggle ≤30px korkeus mobiililla (375px viewport) — alle 44px touch target | V21→T45 |

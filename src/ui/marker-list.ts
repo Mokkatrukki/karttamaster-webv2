@@ -1,10 +1,45 @@
 import type { MarkerManager } from '../map/markers'
 import { routePositionPct, nearestPointIndex } from '../logic/bearing'
-import type { MarkerType, RoutePoint } from '../logic/types'
+import type { MarkerType, RoutePoint, MarkerStatus } from '../logic/types'
 import { SIGN_TYPES } from '../logic/sign-picker'
+import { getRole } from '../logic/role'
+import { validActions, isTerminal } from '../logic/marker-status'
+import type { StatusAction } from '../logic/marker-status'
 
 function typeInfo(type: MarkerType) {
   return SIGN_TYPES.find((s) => s.type === type) ?? SIGN_TYPES[0]
+}
+
+const ACTION_LABELS: Record<StatusAction, string> = {
+  aseta: '✓ Aseta',
+  ohita: 'Ei tarpeen',
+  tarkista: '✓ Tarkista',
+  kerää: '✓ Kerää',
+  peru: '↩ Peru',
+}
+
+const STATUS_LABELS: Record<MarkerStatus, string> = {
+  suunniteltu: 'Suunniteltu',
+  asetettu: 'Asetettu',
+  tarkistettu: 'Tarkistettu',
+  kerätty: 'Kerätty',
+  ei_tarpeen: 'Ei tarpeen',
+}
+
+const SECONDARY_ACTIONS: StatusAction[] = ['peru', 'ohita']
+
+function renderStatusActions(markerId: string, status: MarkerStatus): string {
+  if (isTerminal(status)) return ''
+  const actions = validActions(status)
+  const primary = actions.filter((a) => !SECONDARY_ACTIONS.includes(a))
+  const secondary = actions.filter((a) => SECONDARY_ACTIONS.includes(a))
+  const primaryBtns = primary
+    .map((a) => `<button class="btn-status-primary" data-id="${markerId}" data-action="${a}">${ACTION_LABELS[a]}</button>`)
+    .join('')
+  const secondaryBtns = secondary
+    .map((a) => `<button class="btn-status-secondary" data-id="${markerId}" data-action="${a}">${ACTION_LABELS[a]}</button>`)
+    .join('')
+  return `<div class="marker-actions">${primaryBtns}${secondaryBtns}</div>`
 }
 
 export function renderMarkerList(manager: MarkerManager, highlightId?: string): void {
@@ -13,6 +48,8 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string): 
   const listEl = document.getElementById('marker-modal-items')
   if (!countEl || !listEl) return
 
+  const isTalkoolainen = getRole() === 'talkoolainen'
+
   countEl.textContent = String(markers.length)
   listEl.innerHTML = markers.length === 0
     ? '<p class="empty-state">Ei merkkejä</p>'
@@ -20,13 +57,17 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string): 
         const info = typeInfo(m.type)
         const km = (m.distanceFromStart / 1000).toFixed(2)
         const highlighted = m.id === highlightId ? ' marker-item--new' : ''
+        const statusBadge = `<span class="marker-status marker-status--${m.status}">${STATUS_LABELS[m.status]}</span>`
+        const actions = isTalkoolainen ? renderStatusActions(m.id, m.status) : ''
         return `
           <div class="marker-item${highlighted}" data-id="${m.id}">
             <span class="marker-icon" style="color:${info.color}">${info.label[0]}</span>
             <div class="marker-info">
               <div>${info.label}</div>
               <div class="marker-km">${km} km · ${Math.round(m.bearing)}°</div>
+              ${statusBadge}
               <input class="marker-note" data-id="${m.id}" type="text" placeholder="Paikkaohjeet..." maxlength="200">
+              ${actions}
             </div>
             <button class="btn-delete" data-id="${m.id}" title="Poista">✕</button>
           </div>`
@@ -48,11 +89,22 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string): 
     })
   })
 
+  listEl.querySelectorAll<HTMLButtonElement>('.btn-status-primary, .btn-status-secondary').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      const id = btn.dataset.id ?? ''
+      const action = btn.dataset.action as StatusAction
+      manager.updateStatus(id, action)
+    })
+  })
+
   listEl.querySelectorAll('.marker-item').forEach((el) => {
     el.addEventListener('click', (e) => {
       const target = e.target as HTMLElement
       if (target.classList.contains('btn-delete')) return
       if (target.classList.contains('marker-note')) return
+      if (target.classList.contains('btn-status-primary')) return
+      if (target.classList.contains('btn-status-secondary')) return
       manager.panTo((el as HTMLElement).dataset.id ?? '')
     })
   })

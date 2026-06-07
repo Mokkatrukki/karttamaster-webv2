@@ -5,7 +5,8 @@ import { createSignIcon } from './icons'
 import { assignRoutesToMarker } from '../logic/multi-route'
 import { saveMarkers } from '../logic/persistence'
 import { MarkerInteraction } from './marker-interaction'
-import { DEFAULT_STATUS } from '../logic/marker-status'
+import { DEFAULT_STATUS, transitionStatus } from '../logic/marker-status'
+import type { StatusAction } from '../logic/marker-status'
 
 interface RouteRef { id: string; routePoints: RoutePoint[] }
 
@@ -122,6 +123,14 @@ export class MarkerManager {
   panTo(id: string): void {
     const m = this.markers.find((x) => x.id === id)
     if (m) this.map.setView([m.lat, m.lon], this.map.getZoom())
+  }
+
+  updateStatus(id: string, action: StatusAction): void {
+    const m = this.markers.find((x) => x.id === id)
+    if (!m) return
+    m.status = transitionStatus(m.status, action)
+    this.save()
+    this.onUpdate()
   }
 
   updateNote(id: string, note: string): void {
