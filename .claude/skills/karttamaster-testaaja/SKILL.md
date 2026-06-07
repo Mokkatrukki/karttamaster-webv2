@@ -175,5 +175,10 @@ Liputa ja kutsu `/karttamaster-arkkitehtuuri` kun:
 | `/ck:spec bug: <kuvaus>` | Bugi löytyy testissä — välittömästi |
 | `/karttamaster-arkkitehtuuri` | Arkkitehtuuririkkomus tai pilkko-tarve |
 | `/ck:spec amend §T` | Taso 1 -kattavuuspuute vaatii uuden taskin |
+| `/karttamaster-ux komponentti <nimi>` | UX-ongelma: touch target, kontrasti, mobiili, ulkoasu |
+
+**UX-delegointi:** Jos käyttäjätestissä (ks. Käyttäjätestiperspektiivi) löytyy ongelma joka on
+ulkoasuun tai responsiivisuuteen liittyvä (ei logiikkabugi), kutsu `/karttamaster-ux` — älä yritä
+korjata CSS:ää itse.
 
 `/ck:build` kutsuu tätä skilliä automaattisesti jokaisen task-toteutuksen jälkeen.

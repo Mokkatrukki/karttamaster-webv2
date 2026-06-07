@@ -1,3 +1,4 @@
+import './style.css'
 import L from 'leaflet'
 import { loadGpx } from './logic/gpx'
 import { buildRoutePoints, nearestPointIndex, routePositionPct } from './logic/bearing'

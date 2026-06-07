@@ -15,7 +15,7 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string): 
 
   countEl.textContent = String(markers.length)
   listEl.innerHTML = markers.length === 0
-    ? '<p style="padding:12px;color:#6b7280;font-size:13px">Ei merkkejä</p>'
+    ? '<p class="empty-state">Ei merkkejä</p>'
     : markers.map((m) => {
         const info = typeInfo(m.type)
         const km = (m.distanceFromStart / 1000).toFixed(2)

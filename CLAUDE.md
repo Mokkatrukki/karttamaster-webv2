@@ -10,17 +10,25 @@ Stack: `src/logic/` (puhdas logiikka) → `src/map/` (Leaflet) → `src/ui/` (DO
 - `SPEC.md` — taskit (§T), invariantit (§V), bugit (§B). Ainoa totuus.
 - `VISION.md` — product vision + käyttäjäroolit + arkkitehtuuriperiaatteet.
 - `COMPONENTS.md` — komponentti-indeksi (lyhyt). Yksityiskohdat: `docs/components/`.
+- `DESIGN.md` — design-sopimukset: värit, spacing, komponentit, CSS custom properties.
 
 ## Kehitysflow
 
 **Normaali task:**
 ```
-/ck:spec amend §T  →  /karttamaster-rakentaja T<n>  →  (testaaja automaattinen)
+/karttamaster-rakentaja T<n>  →  (testaaja + ux automaattinen)
 ```
 
-**Uusi feature:**
+**Uusi feature (täydellinen flow):**
 ```
-/karttamaster-arkkitehtuuri feature <kuvaus>  →  /ck:spec  →  /karttamaster-rakentaja
+/karttamaster-pm tarkista <feature>   ← vision-yhtenäisyys
+  → /karttamaster-spec <feature>      ← kerää arch+ux+test konteksti → /ck:spec
+  → /karttamaster-rakentaja T<n>      ← build + testaaja + ux
+```
+
+**Ei ideoita mitä tehdä:**
+```
+/karttamaster-pm mitä seuraavaksi
 ```
 
 **Bugi:**
@@ -28,13 +36,34 @@ Stack: `src/logic/` (puhdas logiikka) → `src/map/` (Leaflet) → `src/ui/` (DO
 /ck:spec bug: <kuvaus>  →  /karttamaster-rakentaja §T<korjaus>
 ```
 
+## Skill-ekosysteemi
+
+```
+VISIO/SUUNTA          SPEC-KIRJOITUS         RAKENNUS              LAATU
+─────────────────     ──────────────────     ─────────────────     ──────────────────
+karttamaster-pm    →  karttamaster-spec   →  karttamaster-       →  karttamaster-
+(MITÄ ja MIKSI)       (arch+ux+test         rakentaja               testaaja
+                       → /ck:spec)           (ck:build)              (testit + UX-audit)
+                                                  ↓
+                       karttamaster-ux ←──── automaattinen jos UI
+                       (DESIGN.md)
+                            ↑
+                       karttamaster-arkkitehtuuri
+                       (kerros, tiedosto, pilkko)
+```
+
 ## Automaattiset kutsut
 
 | Skill | Kutsuu automaattisesti |
 |---|---|
+| `/karttamaster-spec` | → `/karttamaster-arkkitehtuuri ck:spec-konteksti` |
+| `/karttamaster-spec` | → `/karttamaster-ux` jos UI-komponentti |
+| `/karttamaster-spec` | → `/ck:spec amend §T` lopuksi |
 | `/karttamaster-rakentaja` | → `/ck:build` + `/karttamaster-testaaja` |
+| `/karttamaster-rakentaja` | → `/karttamaster-ux` jos task koskee src/ui/ tai CSS |
 | `/karttamaster-testaaja` | → `/ck:spec bug:` jos bugi löytyy |
 | `/karttamaster-testaaja` | → `/karttamaster-arkkitehtuuri` jos arkkitehtuuririkkomus |
+| `/karttamaster-testaaja` | → `/karttamaster-ux` jos UX-ongelma (touch/kontrasti/mobiili) |
 | `/ck:build` | → `/ck:backprop` jos testi hajoaa |
 
 ## localStorage-mock (Node v26 conflict)

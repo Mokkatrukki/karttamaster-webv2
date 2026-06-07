@@ -23,6 +23,8 @@ Tämä skill on ohut wrapper `/ck:build`:n ympärillä. Lisää automaattisen
 4. karttamaster-testaaja tarkistaa kattavuuden + käyttäjäperspektiivin
 5. Jos testaaja löytää bugin → se kutsuu /ck:spec bug: automaattisesti
 6. Jos testaaja löytää arkkitehtuuririkkomuksen → se kutsuu /karttamaster-arkkitehtuuri
+7. Jos task koskee src/ui/ tai index.html (CSS/ulkoasu):
+   → Kutsu /karttamaster-ux komponentti <nimi>
 ```
 
 ## Käyttö

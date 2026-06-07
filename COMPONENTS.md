@@ -71,8 +71,8 @@ Lisää: [backend.md — Vaiheistus](docs/components/backend.md)
 
 | Moduuli | Rivit | Milloin pilkotaan |
 |---|---|---|
-| `src/main.ts` | 385 | Ennen T12/T32 → RouteBar, ProgressBar, PlaceMode |
-| `src/map/markers.ts` | 309 | Ennen T10 → status-logiikka tuo kolmannen vastuun |
+| `src/main.ts` | 386 | Ennen T12/T32 → RouteBar, ProgressBar, PlaceMode |
+| `src/map/markers.ts` | 323 | Ennen T10 → status-logiikka tuo kolmannen vastuun |
 
 ---
 
