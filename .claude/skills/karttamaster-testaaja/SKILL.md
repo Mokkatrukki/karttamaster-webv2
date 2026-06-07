@@ -4,46 +4,42 @@ description: >
   Karttamaster-projektin älykäs testaaja. Tietää testauskolmion (Vitest-pure / Vitest-jsdom /
   Playwright) ja osaa päättää oikean tason jokaiselle featurelle. Arvioi featuret myös
   käyttäjänäkökulmasta: toimiiko talkoolaiselle metsässä, onko järjestäjällä riittävä
-  tilannekuva. Käytä aina kun: kirjoitetaan uusia testejä, arvioidaan onko feature valmis,
-  tarkistetaan testikattavuus uudelle taskille, tai mietitään tarvitaanko Playwright vai
-  riittääkö Vitest. Käytä myös `tarkista`-komennolla auditoimaan koko projektin testikattavuus.
+  tilannekuva. Löytäessään bugin kutsuu /ck:spec bug: automaattisesti. Löytäessään
+  arkkitehtuuririkkomuksen kutsuu /karttamaster-arkkitehtuuri. Käytä aina kun: kirjoitetaan
+  uusia testejä, arvioidaan onko feature valmis, tarkistetaan testikattavuus uudelle taskille,
+  tai mietitään tarvitaanko Playwright vai riittääkö Vitest.
 ---
 
 # Karttamaster-testaaja
 
 Lue ensin:
-- VISION.md § Testausperiaatteet ja § Käyttäjät — nämä ovat testauksen lähde
-- COMPONENTS.md — kertoo komponentin testattavuustason
+- `VISION.md` §Testausperiaatteet ja §Käyttäjät — testauksen lähde
+- `COMPONENTS.md` — indeksi, kertoo testattavuustason per komponentti
+- `docs/components/logic.md` / `map.md` / `ui.md` / `backend.md` — yksityiskohdat
+
+## Automaattiset kutsut muihin skilleihin
+
+**Bugi löytyy** → kutsu heti `/ck:spec bug: <kuvaus>`. Älä vain raportoi — kirjoita se SPEC:iin.
+
+**Arkkitehtuuririkkomus löytyy** (logiikka väärässä kerroksessa, moduuli >150 riv kahdella vastuulla) → kutsu `/karttamaster-arkkitehtuuri` pilkko-ehdotuksella.
+
+**Kattavuuspuute löytyy** (src/logic/-tiedosto ilman testiä) → ehdota uusi §T-task `/ck:spec`:llä.
+
+Nämä kutsut tehdään saman session aikana — ei pelkkää raportointia.
+
+---
 
 ## Komennot
 
 ### `tarkista` — auditoi testikattavuus
 
-Aja seuraava tarkistus ja raportoi tulokset:
+1. Aja `find src/logic -name "*.ts" | sort` — listaa kaikki logic-moduulit
+2. Vertaa `tests/`-kansioon — onko testi per moduuli?
+3. Aja `find src/ui -name "*.ts" | sort` — listaa UI-komponentit
+4. Vertaa — onko jsdom-testi per UI-komponentti?
+5. Aja `bun run test` — laske `↓`-rivit (todo-testit)
 
-1. **Taso 1 -aukot** — listaa jokainen `src/logic/`-tiedosto ja tarkista onko sille testi `tests/`-kansiossa:
-   ```
-   src/logic/bearing.ts      → tests/bearing.test.ts       ✓/✗
-   src/logic/gpx.ts          → tests/gpx.test.ts           ✓/✗
-   src/logic/multi-route.ts  → tests/multi-route.spec.ts   ✓/✗
-   src/logic/sign-picker.ts  → tests/sign-picker.spec.ts   ✓/✗
-   src/logic/tile-layers.ts  → tests/tile-layers.spec.ts   ✓/✗
-   src/logic/types.ts        → (tyyppitiedosto, ei testiä tarvita)
-   ```
-   Uudet `src/logic/`-tiedostot jotka puuttuvat listasta → liputa.
-
-2. **Taso 2 -aukot** — listaa jokainen `src/ui/`-tiedosto ja tarkista onko jsdom-testi:
-   ```
-   src/ui/marker-list.ts → tests/marker-list.test.ts  ✓/✗
-   ```
-   Uudet `src/ui/`-tiedostot jotka puuttuvat → liputa.
-
-3. **Taso 3 -aukot** — tarkista onko nämä kriittiset polut Playwright-testattuna:
-   - Merkki asetetaan kartalle → näkyy merkkilistassa
-   - Drive mode käynnistyy ja etenee
-   - GPS-navigointi (kun toteutettu)
-
-4. **Todo-testit** — aja `bun run test` ja laske `↓`-rivit. Nämä ovat kirjoitettuja mutta toteutumattomia — muistuta mitkä ovat prioriteetti.
+**Jokainen puuttuva Taso 1 -testi → kutsu `/ck:spec`** lisätäksesi §T-taskin.
 
 Raporttimuoto:
 ```
@@ -52,7 +48,21 @@ Taso 1: N/M moduulia katettu  [puuttuvat: ...]
 Taso 2: N/M komponenttia katettu  [puuttuvat: ...]
 Taso 3: N kriittistä polkua katettu  [puuttuvat: ...]
 Todo-testit: N kpl odottaa toteutusta
+Toimenpiteet: [mitä kutsuttiin → /ck:spec tai /karttamaster-arkkitehtuuri]
 ```
+
+### `T<n>` — tarkista yksittäinen task
+
+Kun `/ck:build` on valmis, tarkista task:
+1. Aja `bun run test` — kaikki pass?
+2. Tarkista `docs/components/`-tiedostosta komponentin testattavuustaso
+3. Onko uusi logiikka `src/logic/`-kansiossa? → Taso 1 -testi pakollinen
+4. Onko uusi UI `src/ui/`-kansiossa? → Taso 2 -testi
+5. Kriittinen karttainteraktio `src/map/`-kansiossa? → Taso 3 minimaalinen
+6. Käyttäjätestiperspektiivi (ks. alla)
+
+**Jos testi puuttuu** → kirjoita se itse tai kutsu `/ck:spec` lisäämään §T-taskin.
+**Jos bugi löytyy testissä** → kutsu `/ck:spec bug: <kuvaus>` välittömästi.
 
 ---
 
@@ -60,129 +70,110 @@ Todo-testit: N kpl odottaa toteutusta
 
 ### Taso 1: Vitest-pure (nopea, ei DOM)
 **Milloin:** logiikka elää `src/logic/` — ei Leaflet-riippuvuutta, ei DOM:ia.
-**Moduulit:** `src/logic/bearing.ts`, `src/logic/gpx.ts`, `src/logic/multi-route.ts`, `src/logic/sign-picker.ts`, `src/logic/tile-layers.ts` — ja kaikki tulevat `src/logic/`-tiedostot.
-**Esimerkkejä:** bearing-laskenta, GPX-parsinta, pätkälogiikka, merkkikirjasto-haku, statussiirtymät, varustelistan laskenta, navigointilogiikka.
+**Testattavuus:** nopea, ajettavissa satoja sekunnissa.
 
-**Kirjoita ensin tänne.** Jos et pysty kirjoittaa Taso 1 -testiä, logiikka on väärässä kerroksessa — siirrä se ensin `src/logic/`-kansioon ennen testin kirjoittamista.
+**Kirjoita ensin tänne.** Jos et pysty kirjoittaa Taso 1 -testiä, logiikka on väärässä kerroksessa → kutsu `/karttamaster-arkkitehtuuri` siirtämään se `src/logic/`-kansioon.
 
-### Taso 2: Vitest + jsdom (keskinopea, DOM ilman selainta)
-**Milloin:** komponentti elää `src/ui/` — DOM-rakenne tai event-logiikka on tärkeä, mutta `src/map/`-riippuvuutta (Leaflet) ei ole.
-**Moduulit:** `src/ui/marker-list.ts` — ja kaikki tulevat `src/ui/`-tiedostot.
-**Esimerkkejä:** merkkilistat, varustelista-komponentti, statuspaneeli, lomakkeet.
-
-**Jsdom-testin pohja tälle projektille:**
+**localStorage-mock** (Node v26 conflict — käytä aina tätä localStorage-testeissä):
 ```typescript
-// tests/marker-list.test.ts
-import { describe, it, expect, beforeEach } from 'vitest'
+import { vi } from 'vitest'
 
-// Jsdom-ympäristö — lisää vitest.config.ts:hen jos puuttuu:
-// test: { environment: 'jsdom' }
+function makeLocalStorageMock() {
+  let store: Record<string, string> = {}
+  return {
+    getItem: (k: string) => store[k] ?? null,
+    setItem: (k: string, v: string) => { store[k] = v },
+    removeItem: (k: string) => { delete store[k] },
+    clear: () => { store = {} },
+  }
+}
 
+beforeEach(() => {
+  vi.stubGlobal('localStorage', makeLocalStorageMock())
+})
+```
+
+### Taso 2: Vitest + jsdom (DOM ilman selainta)
+**Milloin:** komponentti elää `src/ui/` — DOM-rakenne tai event-logiikka tärkeä, ei Leafletia.
+
+**Jsdom-testin pohja:**
+```typescript
 describe('renderMarkerList', () => {
   beforeEach(() => {
-    // Rakenna minimaalinen DOM jota ui/marker-list.ts odottaa
     document.body.innerHTML = `
       <span id="marker-count"></span>
       <div id="marker-modal-items"></div>
     `
   })
-
   it('näyttää "Ei merkkejä" kun lista tyhjä', async () => {
     const { renderMarkerList } = await import('../src/ui/marker-list')
-    // Stub MarkerManager jolla ei merkkejä
-    const stubManager = { getAll: () => [], panTo: () => {}, remove: () => {} } as any
-    renderMarkerList(stubManager)
+    const stub = { getAll: () => [], panTo: () => {}, remove: () => {} } as any
+    renderMarkerList(stub)
     expect(document.getElementById('marker-modal-items')!.textContent).toContain('Ei merkkejä')
-    expect(document.getElementById('marker-count')!.textContent).toBe('0')
-  })
-
-  it('renderöi merkkirivin per merkki', async () => {
-    const { renderMarkerList } = await import('../src/ui/marker-list')
-    const stubMarker = { id: 'abc', type: 'right' as const, distanceFromStart: 1500, bearing: 90, lat: 0, lon: 0, routeIds: ['35km'] }
-    const stubManager = { getAll: () => [stubMarker], panTo: () => {}, remove: () => {} } as any
-    renderMarkerList(stubManager)
-    const items = document.querySelectorAll('.marker-item')
-    expect(items).toHaveLength(1)
-    expect(items[0].textContent).toContain('1.50 km')
   })
 })
 ```
 
-**Huom:** jsdom ei tue Leaflet-renderöintiä. Jos `src/ui/`-komponentti importtaa `src/map/`-moduulin, käytä stubbeja tai siirrä logiikka `src/logic/`-kerrokseen.
+**Huom:** jsdom ei tue Leaflet-renderöintiä. Jos `src/ui/`-komponentti importtaa `src/map/`-moduulia → stub se tai siirrä logiikka `src/logic/`-kerrokseen.
 
 ### Taso 3: Playwright (hidas, kallis — minimoi)
-**Milloin:** komponentti elää `src/map/` tai kriittinen käyttäjäpolku vaatii oikean selaimen ja Leaflet-kartan.
-**Moduulit:** `src/map/markers.ts`, `src/map/drive.ts`, `src/map/icons.ts` — näitä ei voi testata jsdom:lla.
+**Milloin:** `src/map/`-komponentti tai kriittinen käyttäjäpolku vaatii oikean Leaflet-kartan.
 
 **Hyväksyttäviä Playwright-testejä:**
 - Merkki asetetaan kartalle → näkyy merkkilistassa
 - Drive mode käynnistyy, eteneminen toimii
-- GPS-navigointi näyttää seuraavan merkin
+- GPS-navigointi näyttää seuraavan merkin (kun T30 valmis)
 
-**Ei Playwrightia:** logiikka joka voidaan eristää `src/logic/`-kerrokseen, `src/ui/`-komponentit ilman karttaa, laskentafunktiot.
+**Ei Playwrightia:** `src/logic/`-logiikka, `src/ui/`-komponentit ilman karttaa.
 
 ---
 
 ## Käyttäjätestiperspektiivi
 
-Tekninen testi ei riitä. Jokainen uusi feature arvioidaan myös näillä kysymyksillä:
+Tekninen testi ei riitä. Jokainen feature arvioidaan myös:
 
 ### Talkoolaistesti (metsässä, stressi, huono yhteys)
-- Saako kriittisen toiminnon tehtyä max 2 napilla?
-- Toimiiko offline tai heikolla yhteydellä?
-- Onko nappi riittävän iso (min 44px touch target)?
-- Jos tekee virheen, voiko korjata helposti?
-- Onko näkymä selkeä pienellä näytöllä?
+- Max 2 nappia kriittiseen toimintoon?
+- Toimii offline / heikolla yhteydellä?
+- Nappi ≥44px touch target?
+- Virheestä voi toipua helposti?
+- Näkymä selkeä pienellä näytöllä?
 
-### Järjestäjätesti (toimisto, iso näyttö, hallinta)
-- Saako tilannekuvan yhdellä silmäyksellä?
-- Voiko delegoida ja seurata edistymistä?
-- Onko kaikki tarvittava käden ulottuvilla suunnittelunäkymässä?
+### Järjestäjätesti (toimisto, iso näyttö)
+- Tilannekuva yhdellä silmäyksellä?
+- Delegointi ja edistymisen seuranta mahdollista?
+- Kaikki tarvittava käden ulottuvilla?
 
-Jos feature läpäisee teknisen testin mutta epäonnistuu käyttäjätestissä → feature on kesken.
-
----
-
-## Testitapausten kirjoittaminen
-
-### Rakenne Vitest-pure testille (src/logic/)
-```typescript
-describe('<ModuulinNimi>', () => {
-  it('<mitä testataan>', () => {
-    // Arrange: minimaalinen syöte
-    // Act: kutsu funktiota
-    // Assert: tarkista tulos
-  })
-})
-```
-
-### Vitest-konfiguraatio jsdom-testejä varten
-Jos `vitest.config.ts` ei ole vielä asetettu jsdom:lle, tarkista onko `environment: 'jsdom'` päällä tests-kansiossa. Voi myös asettaa per-tiedosto kommentilla:
-```typescript
-// @vitest-environment jsdom
-```
-
-### Mitä ei testata
-- Leaflet-sisäistä toimintaa (Leaflet testaa itsensä)
-- DOM-rakenteen visuaalista ulkonäköä
-- Tietoja joita ei voi deterministisesti ennustaa (GPS-koordinaatit oikeassa metsässä)
+**Feature läpäisee teknisen testin mutta epäonnistuu käyttäjätestissä → feature on kesken.**
 
 ---
 
-## Testikattavuuden tarkistus — task valmis?
+## Bugiraportointiprotokolla
 
-Kun uusi §T-task on valmis, tarkista:
-1. Onko uusi logiikka `src/logic/`-kansiossa? Jos on → Taso 1 -testi pakollinen.
-2. Onko uusi UI-komponentti `src/ui/`-kansiossa ilman Leaflet-riippuvuutta? → Taso 2 -testi.
-3. Onko kyseessä kriittinen karttainteraktio (`src/map/`)? → Taso 3 -testi minimaalinen.
-4. Läpäisee sekä teknisen testin että käyttäjätestiperspektiivin?
+Kun testi paljastaa bugin:
 
-Puuttuva testi Taso 1:lla on aina bugiriski — logiikka ilman testiä tarkoittaa että refaktorointi rikkoo sen hiljaa.
+1. Tunnista juurisyy (koodi vai spec?)
+2. Kutsu `/ck:spec bug: <kuvaus>` — se lisää §B-rivin ja harkitsee uuden §V-invariantin
+3. Jatka testauksen loppuun
+4. Raportissa mainitse: "Bugi X → /ck:spec bug: kutsuttu, §B päivitetty"
+
+**Älä korjaa bugia itse** — `/ck:build` korjaa sen backprop-flowlla.
+
+## Arkkitehtuuririkkomukset
+
+Liputa ja kutsu `/karttamaster-arkkitehtuuri` kun:
+- `src/map/`- tai `src/main.ts`-tiedostossa on liiketoimintalogiikkaa (→ kuuluu `src/logic/`)
+- Moduuli >150 riviä kahdella eri vastuulla
+- Sama logiikka copy-pastettu kahteen paikkaan
 
 ---
 
 ## Suhde muihin skilleihin
 
-- `/karttamaster-arkkitehtuuri` kertoo komponentin testattavuustason ja COMPONENTS.md-sijainnin
-- `/ck:build` kutsuu tätä tarkistamaan testikattavuuden ennen kuin task merkataan valmiiksi
-- `/ck:spec` käyttää tätä arvioimaan §V-invariantteja uusille featureille
+| Skill | Milloin testaaja kutsuu |
+|---|---|
+| `/ck:spec bug: <kuvaus>` | Bugi löytyy testissä — välittömästi |
+| `/karttamaster-arkkitehtuuri` | Arkkitehtuuririkkomus tai pilkko-tarve |
+| `/ck:spec amend §T` | Taso 1 -kattavuuspuute vaatii uuden taskin |
+
+`/ck:build` kutsuu tätä skilliä automaattisesti jokaisen task-toteutuksen jälkeen.
