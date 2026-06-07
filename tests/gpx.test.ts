@@ -33,7 +33,7 @@ describe('parseGpx', () => {
 
 describe('parseGpx with real file', () => {
   it('parses 1553 points from Syöte MTB 34km', () => {
-    const xml = readFileSync(join(__dirname, '../public/route.gpx'), 'utf-8')
+    const xml = readFileSync(join(__dirname, '../public/route-35km.gpx'), 'utf-8')
     const coords = parseGpx(xml)
     expect(coords.length).toBe(1553)
     expect(coords[0].lat).toBeCloseTo(65.627707, 4)
