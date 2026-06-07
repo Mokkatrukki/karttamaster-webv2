@@ -98,6 +98,29 @@ Leaflet-glue. Ohut kerros kartan päällä. **Testattavuus: Playwright.**
 
 ---
 
+## RouteBar
+**Vastuu:** Reittitabsit + polyline-näkyvyystoggle + drive-reitti valinta
+**Käyttäjä:** molemmat
+**Moduuli:** `src/map/route-bar.ts` (108 riv)
+**Testattavuus:** Playwright
+
+### Ominaisuudet
+- ✓ Buildaa route-tab DOM elementit
+- ✓ `setDriveRoute(id)` — vaihto + driveMode.setRoute() + callback
+- ✓ `toggleVisible(id)` — polyline add/remove + V6 invariantti
+- ✓ `getActiveRoute / getActiveTotalM` — getterit ProgressBarille
+- ✓ Polyline-klik → setDriveRoute + jumpTo lähimpään pisteeseen
+- ✓ updateDOM — tab highlight + progress bar color + eye-icon
+
+### Tulossa
+- [ ] Rooli-näkymä: talkoolaisella piilotettu järjestäjätoiminnot (T32)
+
+### Käyttäjätarkistus
+> Talkoolainen: reittitabi vaihtaa drive-reitin ✓
+> Järjestäjä: eye-icon piilottaa/näyttää reitin ✓
+
+---
+
 ## GpsNavigator *(tulossa — T21, T30, T31)*
 **Vastuu:** Laitteen GPS-sijainti kartalla + navigointi seuraavaan merkkiin
 **Käyttäjä:** talkoolainen metsässä

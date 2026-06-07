@@ -27,36 +27,65 @@ DOM-komponentit ilman Leafletia. **Testattavuus: Vitest-jsdom.**
 
 ---
 
+## ProgressBar
+**Vastuu:** Edistymispalkki + drag-to-seek + merkkidotit
+**Käyttäjä:** molemmat
+**Moduuli:** `src/ui/progress-bar.ts` (74 riv)
+**Testattavuus:** Vitest-jsdom
+
+### Ominaisuudet
+- ✓ `update(km)` — fill + handle + km-teksti
+- ✓ `refreshDots()` — renderSignDots aktiiviselle reitille
+- ✓ Drag-to-seek: mouse + touch, jumpTo lähimpään pisteeseen
+
+### Tulossa
+- [ ] Merkkipisteet värikoodattu statuksen mukaan (T23)
+
+### Käyttäjätarkistus
+> Talkoolainen: drag progress bar → siirtyy suoraan ✓
+> Järjestäjä: km-laskuri näkyvissä ✓
+
+---
+
+## PlaceMode
+**Vastuu:** Merkin lisäystila — toolbar dropdown + floating picker (dblclick)
+**Käyttäjä:** järjestäjä toimistossa
+**Moduuli:** `src/ui/place-mode.ts` (103 riv)
+**Testattavuus:** Vitest-jsdom
+
+### Ominaisuudet
+- ✓ `enter/exit` — place-mode CSS + btn teksti
+- ✓ Toolbar dropdown: avaa/sulje, sign-type valinta
+- ✓ Floating picker: asemointi positionPicker, dblclick flow
+- ✓ `onMapClick` — lisää merkki jos place mode aktiivinen
+- ✓ Outside mousedown → sulkee molemmat
+
+### Tulossa
+- [ ] Roolisuojaus: vain järjestäjä voi lisätä (T32)
+
+### Käyttäjätarkistus
+> Järjestäjä: tuplaklikkaa → picker ilmestyy kursorin viereen ✓
+> Talkoolainen: ei pääsyä place-modeen roolin mukaan (T32 jälkeen)
+
+---
+
 ## AppController
 **Vastuu:** Sovelluksen init ja komponenttien wiring
 **Käyttäjä:** molemmat (entry point)
-**Moduuli:** `src/main.ts` (385 riviä — ⚠️ PILKKOHÄLYTYS)
+**Moduuli:** `src/main.ts` (143 riv)
 **Testattavuus:** Playwright
 
 ### Ominaisuudet
 - ✓ GPX-lataus kaikille reiteille rinnakkain
 - ✓ Leaflet-polylinjojen luonti
 - ✓ Tile layer -sykli + localStorage
-- ✓ Route selector -tabsit (drive + visibility toggle)
-- ✓ Progress bar + drag-to-seek
-- ✓ Place mode (toolbar dropdown flow)
-- ✓ Floating picker (dblclick flow)
 - ✓ Marker modal avaus/sulkeminen
 - ✓ Keyboard shortcuts (Escape, ←→ drive)
-- ✓ Polyline click → jump to nearest point
+- ✓ RouteBar + ProgressBar + PlaceMode wiring
 
 ### Tulossa
 - [ ] Auth-flow (T36)
 - [ ] Roolinäkymävalinta (T32)
-
-### Pilkkomahdollisuus — tee ennen T12/T32
-4 vastuuta erilleen:
-| Uusi tiedosto | Vastuu |
-|---|---|
-| `src/ui/route-bar.ts` | Route selector tabs + visibility toggle |
-| `src/ui/progress-bar.ts` | Progress bar + drag-to-seek + sign dots wiring |
-| `src/ui/place-mode.ts` | Place mode state + dropdown + floating picker |
-| `src/main.ts` | Vain init + wiring (~80 riviä jää) |
 
 ---
 
