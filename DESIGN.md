@@ -35,6 +35,20 @@ Inline SVG-tyylit (dynaamiset, bearing-riippuvaiset): `src/map/icons.ts`.
 | marker-up-r    | `#b45309` | Tuleva oikealle (oranssi)  |
 | marker-up-l    | `#7c3aed` | Tuleva vasemmalle (violetti)|
 
+### Status-värit (merkki-elinkaari, src/ui/marker-list.ts + style.css)
+
+Käytetään tummalla taustalla (bg-card `#1e293b`) — värit valittu WCAG AA -kontrastille pieniä tekstejä varten.
+
+| Token              | Teksti hex | Taustaopasiteetti | Status           |
+|--------------------|------------|-------------------|------------------|
+| status-suunniteltu | `#94a3b8`  | `rgba(255,255,255,0.06)` | Suunniteltu |
+| status-asetettu    | `#4ade80`  | `rgba(74,222,128,0.10)`  | Asetettu ✓  |
+| status-tarkistettu | `#93c5fd`  | `rgba(147,197,253,0.10)` | Tarkistettu ✓|
+| status-kerätty     | `#6ee7b7`  | `rgba(110,231,183,0.10)` | Kerätty     |
+| status-ei_tarpeen  | `#fbbf24`  | `rgba(251,191,36,0.10)`  | Ei tarpeen  |
+
+Kuittaus-napit (talkoolainen): `btn-status-primary` bg `#15803d` (5.0:1 kontrastisuhde #fff kanssa).
+
 **Sääntö:** Käytä vain yllä olevia arvoja. Älä keksi uusia hex-koodeja suoraan CSS:ään.
 Jos tarvitaan uusi väri, lisää se ensin tähän taulukkoon.
 

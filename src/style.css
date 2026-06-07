@@ -494,7 +494,7 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
 
 .marker-status {
   display: inline-block;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -502,11 +502,11 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   border-radius: var(--radius-sm);
   margin-top: 3px;
 }
-.marker-status--suunniteltu  { color: var(--text-meta); background: rgba(255,255,255,0.06); }
-.marker-status--asetettu     { color: #16a34a; background: rgba(22,163,74,0.12); }
-.marker-status--tarkistettu  { color: #2563eb; background: rgba(37,99,235,0.15); }
-.marker-status--kerätty      { color: #059669; background: rgba(5,150,105,0.15); }
-.marker-status--ei_tarpeen   { color: #d97706; background: rgba(217,119,6,0.12); }
+.marker-status--suunniteltu  { color: var(--text-muted); background: rgba(255,255,255,0.06); }
+.marker-status--asetettu     { color: #4ade80; background: rgba(74,222,128,0.10); }
+.marker-status--tarkistettu  { color: #93c5fd; background: rgba(147,197,253,0.10); }
+.marker-status--kerätty      { color: #6ee7b7; background: rgba(110,231,183,0.10); }
+.marker-status--ei_tarpeen   { color: #fbbf24; background: rgba(251,191,36,0.10); }
 
 /* ── Kuittaus action buttons (talkoolainen) ── */
 
@@ -521,7 +521,7 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   flex: 1;
   min-width: 100px;
   min-height: 44px;
-  background: #16a34a;
+  background: #15803d;
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
@@ -531,7 +531,7 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   cursor: pointer;
   transition: background 0.1s;
 }
-.btn-status-primary:hover { background: #15803d; }
+.btn-status-primary:hover { background: #166534; }
 
 .btn-status-secondary {
   min-height: 44px;
