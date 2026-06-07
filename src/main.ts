@@ -6,6 +6,7 @@ import { DriveMode } from './map/drive'
 import { renderMarkerList, renderSignDots } from './ui/marker-list'
 import { positionPicker, SIGN_TYPES } from './logic/sign-picker'
 import { TILE_LAYERS } from './logic/tile-layers'
+import { loadMarkers } from './logic/persistence'
 import type { RouteConfig } from './logic/multi-route'
 import type { MarkerType } from './logic/types'
 
@@ -114,7 +115,7 @@ async function init() {
   const markerManager = new MarkerManager(map, routes, () => {
     renderMarkerList(markerManager)
     refreshSignDots()
-  })
+  }, loadMarkers())
 
   const driveMode = new DriveMode(map, routes[0].routePoints, (km) => {
     updateProgressBar(km)

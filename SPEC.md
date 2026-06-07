@@ -18,7 +18,8 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 ## §I Interfaces
 
 - `public/route-*.gpx` — 4 GPX-tiedostoa (35km, 55km + 2 puuttuu?)
-- `localStorage` — tile-layer preference
+- `localStorage['karttamaster-layer']` — tile-layer preference
+- `localStorage['karttamaster-markers']` — marker data: `{ version: 1, markers: SignMarker[] }`
 - Leaflet tile APIs: MML Taustakartta, MML Maastokartta, OSM
 - `VISION.md` — product vision, luetaan suunnittelun ja testauksen referenssinä
 
@@ -39,6 +40,7 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | V11 | Pätkä on jatkuva väli reitillä pisteestä Y pisteeseen X; ei voi olla epäjatkuva |
 | V12 | Merkit persistoidaan sessioiden yli — ei kadota sivun päivityksellä |
 | V13 | Rooli (järjestäjä\|talkoolainen) ohjaa näkymää — ei kahta sovellusta, vain eri toolbar + paneelit |
+| V14 | Korruptoitunut tai tuntematon versio localStorage-datassa → silent reset: console.warn + removeItem + tyhjä tila; ei kaatumista |
 
 ## §T Tasks
 
@@ -72,7 +74,7 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | T26 | . | Pätkä-assign: järjestäjä linkittää pätkän talkoolaiselle (roolitunnus) | T12,T25 |
 | T27 | . | Varustelista: auto-laskuri per SignTemplate + manuaali-rivit + ohjeteksti | T8,T14 |
 | T28 | . | Tilannekuva-kartta UI: merkit värikoodattu + % per reitti näkyvissä | T15,T23 |
-| T29 | . | Merkkien persistointi localStorage: tallennus + lataus sivun latauksessa | V12 |
+| T29 | ✓ | Merkkien persistointi: `src/logic/persistence.ts` — saveMarkers/loadMarkers, tallennus joka add/remove/updateBearing, lataus init:ssä ennen karttaa, format `{version:1,markers:[]}`, routeIds säilyy vaikka reitti puuttuisi | V12,V14,§I |
 | T30 | . | Geolocation API: laitteen sijainti pisteenä kartalla (itselle, ei muille) | §C |
 | T31 | . | GPS-drive UI: navigointi lähimpään asettamattomaan merkkiin + kuittaus | T16,T24,T30 |
 | T32 | . | Rooli-näkymävalinta UI: toolbar + paneelit eriytyvät roolin mukaan | T12,V13 |

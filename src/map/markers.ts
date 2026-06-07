@@ -3,6 +3,7 @@ import type { SignMarker, MarkerType, RoutePoint } from '../logic/types'
 import { nearestPointIndex, bearingAtIndex, haversineDistance } from '../logic/bearing'
 import { createSignIcon } from './icons'
 import { assignRoutesToMarker } from '../logic/multi-route'
+import { saveMarkers } from '../logic/persistence'
 
 interface RouteRef { id: string; routePoints: RoutePoint[] }
 
@@ -38,6 +39,7 @@ export class MarkerManager {
     c.removeEventListener('touchmove', this.handleTouchMove)
     c.removeEventListener('touchend', this.handleRotateEnd)
     this.disarmRotation()
+    this.save()
     this.onUpdate()
   }
 
@@ -49,12 +51,22 @@ export class MarkerManager {
     this.disarmRotation()
   }
 
-  constructor(map: L.Map, routes: RouteRef[], onUpdate: () => void) {
+  constructor(map: L.Map, routes: RouteRef[], onUpdate: () => void, initialMarkers: SignMarker[] = []) {
     this.map = map
     this.routes = routes
     this.visibleRouteIds = routes.map((r) => r.id)
     this.onUpdate = onUpdate
+    this.markers = initialMarkers
+    initialMarkers.forEach((m) => {
+      if (m.routeIds.some((id) => this.visibleRouteIds.includes(id))) {
+        this.addLeafletMarker(m)
+      }
+    })
     MarkerManager.injectStyles()
+  }
+
+  private save(): void {
+    saveMarkers(this.markers)
   }
 
   add(lat: number, lon: number, type: MarkerType): SignMarker {
@@ -77,6 +89,7 @@ export class MarkerManager {
       routeIds,
     }
     this.markers.push(marker)
+    this.save()
 
     // Only add Leaflet marker if at least one of its routes is visible
     if (marker.routeIds.some((id) => this.visibleRouteIds.includes(id))) {
@@ -92,6 +105,7 @@ export class MarkerManager {
     const lm = this.leafletMarkers.get(id)
     if (lm) { lm.remove(); this.leafletMarkers.delete(id) }
     this.markers = this.markers.filter((m) => m.id !== id)
+    this.save()
     this.onUpdate()
   }
 
