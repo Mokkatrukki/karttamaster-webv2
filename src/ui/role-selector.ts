@@ -4,13 +4,18 @@ import type { Role } from '../logic/role'
 export class RoleSelector {
   private role: Role
 
-  constructor(private readonly btn: HTMLButtonElement) {
+  constructor(
+    private readonly btn: HTMLButtonElement,
+    private readonly onChange?: (role: Role) => void,
+  ) {
     this.role = getRole()
     this.updateBtn()
+    onChange?.(this.role)
     btn.addEventListener('click', () => {
       this.role = this.role === 'järjestäjä' ? 'talkoolainen' : 'järjestäjä'
       setRole(this.role)
       this.updateBtn()
+      onChange?.(this.role)
     })
   }
 

@@ -157,6 +157,22 @@ button {
   font-weight: 700;
 }
 
+/* ── Rooli-näkymä ── */
+
+body[data-role="talkoolainen"] #btn-add-sign { display: none; }
+body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
+
+#btn-role {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-default);
+}
+#btn-role.role-active {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: transparent;
+}
+
 /* ── Map ── */
 
 #map { flex: 1; min-height: 0; touch-action: manipulation; }

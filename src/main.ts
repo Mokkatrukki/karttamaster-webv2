@@ -28,7 +28,14 @@ let currentTileLayer = L.tileLayer(TILE_LAYERS[activeLayerIdx].urlTemplate, {
   maxZoom: TILE_LAYERS[activeLayerIdx].maxZoom,
 }).addTo(map)
 
-new RoleSelector(document.getElementById('btn-role') as HTMLButtonElement)
+function applyRoleView(role: string): void {
+  document.body.dataset.role = role
+}
+
+new RoleSelector(
+  document.getElementById('btn-role') as HTMLButtonElement,
+  applyRoleView,
+)
 
 const btnLayer = document.getElementById('btn-layer')
 if (btnLayer) {
