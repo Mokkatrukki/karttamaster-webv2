@@ -1,8 +1,8 @@
 import L from 'leaflet'
-import type { SignMarker, MarkerType, RoutePoint } from './types'
-import { nearestPointIndex, bearingAtIndex, haversineDistance } from './bearing'
+import type { SignMarker, MarkerType, RoutePoint } from '../logic/types'
+import { nearestPointIndex, bearingAtIndex, haversineDistance } from '../logic/bearing'
 import { createSignIcon } from './icons'
-import { assignRoutesToMarker } from './multi-route'
+import { assignRoutesToMarker } from '../logic/multi-route'
 
 interface RouteRef { id: string; routePoints: RoutePoint[] }
 

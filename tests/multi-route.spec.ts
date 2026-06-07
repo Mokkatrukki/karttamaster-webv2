@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { assignRoutesToMarker } from '../src/multi-route'
-import { buildRoutePoints } from '../src/bearing'
+import { assignRoutesToMarker } from '../src/logic/multi-route'
+import { buildRoutePoints } from '../src/logic/bearing'
 
 // Route A: lat 65.0, lon 27.00→27.10 (shared segment 27.00–27.05, then own)
 // Route B: lat 65.0, lon 27.00→27.05 then lat 65.01 lon 27.06→27.10 (diverges)

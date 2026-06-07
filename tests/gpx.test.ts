@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseGpx } from '../src/gpx'
+import { parseGpx } from '../src/logic/gpx'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 

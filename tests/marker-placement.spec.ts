@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildRoutePoints, nearestPointIndex, bearingAtIndex } from '../src/bearing'
+import { buildRoutePoints, nearestPointIndex, bearingAtIndex } from '../src/logic/bearing'
 
 // Spec: how markers behave when placed on the map
 // Written BEFORE any new implementation.

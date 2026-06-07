@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { buildRoutePoints } from '../src/bearing'
+import { buildRoutePoints } from '../src/logic/bearing'
 
 // Test DriveMode logic in isolation (no Leaflet)
 // We extract the pure step logic here to test without DOM/map

@@ -37,6 +37,8 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | V9 | Merkillä on elinkaari-status: suunniteltu → asetettu → tarkistettu → kerätty \| ei_tarpeen |
 | V10 | Merkkikirjaston malli (SignTemplate) pitää sisältää: ikoni, teksti, kuvaus |
 | V11 | Pätkä on jatkuva väli reitillä pisteestä Y pisteeseen X; ei voi olla epäjatkuva |
+| V12 | Merkit persistoidaan sessioiden yli — ei kadota sivun päivityksellä |
+| V13 | Rooli (järjestäjä\|talkoolainen) ohjaa näkymää — ei kahta sovellusta, vain eri toolbar + paneelit |
 
 ## §T Tasks
 
@@ -48,21 +50,36 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | T4 | ✓ | Drive mode: 50m step, keyboard nav, progress bar drag, polyline click | V4 |
 | T5 | ✓ | Tile-layer vaihto MML/OSM, persistoi | V5 |
 | T6 | ✓ | Route tabs: näkyvyys toggle, drive-reitti vaihto, eye-icon | V6 |
-| T7 | . | Lisää puuttuvat 2 GPX-reittiä (4 reittiä yhteensä) | §C |
-| T8 | . | Merkkikirjasto: järjestäjä luo/muokkaa SignTemplate (ikoni+teksti+kuvaus) | V10 |
-| T9 | . | Ikonilähde-research: Lucide / Heroicons / custom SVG upload | V10 |
-| T10 | . | Merkin elinkaari-status UI: suunniteltu/asetettu/tarkistettu/kerätty/ei_tarpeen | V9 |
-| T11 | . | Paikkaohjeet: vapaa tekstikenttä per merkkiinstanssi | §G |
-| T12 | . | Auth v1: admin-tunnus, kutsukoodi → talkoolainen / järjestäjä rooli | §C |
-| T13 | . | Pätkäjako: järjestäjä valitsee välin kartalla, assign talkoolaiselle | V11 |
-| T14 | . | Talkoolaisen näkymä: oma pätkä + varustelista (auto-laskuri + manuaali) + ohjeteksti | V11 |
-| T15 | . | Tilannekuva: värikoodattu kartta status-väreillä + prosenttiluvut | V9 |
-| T16 | . | GPS-navigointi metsässä: "seuraava merkki 300m", kuittaus asetettu/ei_tarpeen | V9 |
-| T17 | . | Jälkikäteinen kuittaus: talkoolainen merkkaa listasta useita kerralla | V9 |
+| T7  | . | Lisää puuttuvat 2 GPX-reittiä (4 reittiä yhteensä) | §C |
+| T8  | . | SignTemplate data model + CRUD logiikka (Vitest-pure) — id,label,shortLabel,color,description | V10 |
+| T9  | . | Ikonilähde-research: Lucide / Heroicons / custom SVG — päätä ennen T22 | V10 |
+| T10 | . | MarkerStatus type + tila-siirtymälogiikka (Vitest-pure): suunniteltu→asetettu→tarkistettu→kerätty\|ei_tarpeen | V9 |
+| T11 | . | Paikkaohjeet: vapaa tekstikenttä per merkkiinstanssi (lisätään SignMarker-tyyppiin + UI) | §G |
+| T12 | . | Rooli-state localStorage (järjestäjä\|talkoolainen), toggle UI — ei backendiä vielä | V13 |
+| T13 | . | Pätkä data model: alku/loppu distanceFromStart per route, jatkuvuus-validointi (Vitest-pure) | V11 |
+| T14 | . | Talkoolaisen pätkänäkymä: filtteröity kartta + merkkilista omalta pätkältä | V11,T12,T13 |
+| T15 | . | Tilannekuva-logiikka: laske % per status per reitti (Vitest-pure) | V9 |
+| T16 | . | Navigointilogiikka: nearestUnsetMarker, distanceToNext (Vitest-pure) | V9 |
+| T17 | . | Jälkikäteinen kuittaus: talkoolainen merkkaa listasta useita kerralla | V9,T10 |
 | T18 | . | Offline-tuki: oma pätkä ladattavissa (PWA + service worker) | §C |
-| T19 | . | Purkupätkä: sama logiikka kuin asettaminen, valittava lähtösuunta | V11 |
-| T20 | . | Kasauspisteet: erikoismerkki "kasa tässä", merkitään haetuksi | V9 |
-| T21 | . | Live tracking v1: oma GPS-sijainti näkyvissä itselle | §C |
+| T19 | . | Purkupätkä: lähtösuunnan valinta, merkit kerätään käänteisessä järjestyksessä | V11,T10 |
+| T20 | . | Kasauspisteet: erikoismerkki "kasa tässä", merkitään haetuksi kerralla | V9,T10 |
+| T21 | . | Live tracking v1: laitteen GPS-sijainti näkyvissä itselle kartalla | §C,T30 |
+| T22 | . | SignLibrary UI paneeli: järjestäjä luo/muokkaa/poistaa SignTemplateja | T8,T9 |
+| T23 | . | Merkin status-kuvake kartalla: SignIcon värikoodi + muoto statuksen mukaan | T10 |
+| T24 | . | Talkoolaisen kuittaus-UI: 1 iso nappi (asetettu / ei_tarpeen) — max 2 toimintoa | T10,T12 |
+| T25 | . | Pätkä UI kartalla: järjestäjä piirtää välin, visualisoitu viivana reitillä | T13 |
+| T26 | . | Pätkä-assign: järjestäjä linkittää pätkän talkoolaiselle (roolitunnus) | T12,T25 |
+| T27 | . | Varustelista: auto-laskuri per SignTemplate + manuaali-rivit + ohjeteksti | T8,T14 |
+| T28 | . | Tilannekuva-kartta UI: merkit värikoodattu + % per reitti näkyvissä | T15,T23 |
+| T29 | . | Merkkien persistointi localStorage: tallennus + lataus sivun latauksessa | V12 |
+| T30 | . | Geolocation API: laitteen sijainti pisteenä kartalla (itselle, ei muille) | §C |
+| T31 | . | GPS-drive UI: navigointi lähimpään asettamattomaan merkkiin + kuittaus | T16,T24,T30 |
+| T32 | . | Rooli-näkymävalinta UI: toolbar + paneelit eriytyvät roolin mukaan | T12,V13 |
+| T33 | ✓ | Arkkitehtuurirefaktorointi: src/logic/, src/map/, src/ui/ hakemistot — siirrä tiedostot | §C |
+| T34 | . | GPX-korvaus: varoitus + merge/discard-valinta olemassa oleville merkeille | V1,V2 |
+| T35 | . | Yhteinen osuus -visualisointi: korostus kartalla missä reitit jakavat merkin | V2 |
+| T36 | . | Kutsukoodi-auth backend: admin generoi koodit, koodi → rooli-assert | T12,V13 |
 
 ## §B Bugs
 

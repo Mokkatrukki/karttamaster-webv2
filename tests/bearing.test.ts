@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calcBearing, haversineDistance, buildRoutePoints, nearestPointIndex, bearingAtIndex } from '../src/bearing'
+import { calcBearing, haversineDistance, buildRoutePoints, nearestPointIndex, bearingAtIndex } from '../src/logic/bearing'
 
 describe('calcBearing', () => {
   it('north', () => {

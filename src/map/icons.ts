@@ -1,5 +1,5 @@
 import L from 'leaflet'
-import type { MarkerType } from './types'
+import type { MarkerType } from '../logic/types'
 
 // Handle hidden by default via CSS (.sign-handle { display:none }).
 // Shown only when parent has .marker-armed class.

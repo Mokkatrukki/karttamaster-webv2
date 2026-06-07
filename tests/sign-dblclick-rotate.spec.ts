@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createSignIcon } from '../src/icons'
+import { createSignIcon } from '../src/map/icons'
 
 describe('Sign rotation', () => {
   it.todo('clicking existing sign enters rotation mode (no popup)')

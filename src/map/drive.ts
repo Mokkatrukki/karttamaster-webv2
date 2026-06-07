@@ -1,5 +1,5 @@
 import L from 'leaflet'
-import type { RoutePoint } from './types'
+import type { RoutePoint } from '../logic/types'
 
 const STEP_METERS = 50
 const ZOOM_DRIVE = 17

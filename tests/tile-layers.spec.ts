@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildMmlTileUrl, TILE_LAYERS } from '../src/tile-layers'
+import { buildMmlTileUrl, TILE_LAYERS } from '../src/logic/tile-layers'
 
 describe('MML tile URL', () => {
   it('URL contains y before x (WMTS TileRow/TileCol order)', () => {

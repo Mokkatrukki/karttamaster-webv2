@@ -1,13 +1,13 @@
 import L from 'leaflet'
-import { loadGpx } from './gpx'
-import { buildRoutePoints, nearestPointIndex, routePositionPct } from './bearing'
-import { MarkerManager } from './markers'
-import { DriveMode } from './drive'
-import { renderMarkerList, renderSignDots } from './ui'
-import { positionPicker, SIGN_TYPES } from './sign-picker'
-import { TILE_LAYERS } from './tile-layers'
-import type { RouteConfig } from './multi-route'
-import type { MarkerType } from './types'
+import { loadGpx } from './logic/gpx'
+import { buildRoutePoints, nearestPointIndex, routePositionPct } from './logic/bearing'
+import { MarkerManager } from './map/markers'
+import { DriveMode } from './map/drive'
+import { renderMarkerList, renderSignDots } from './ui/marker-list'
+import { positionPicker, SIGN_TYPES } from './logic/sign-picker'
+import { TILE_LAYERS } from './logic/tile-layers'
+import type { RouteConfig } from './logic/multi-route'
+import type { MarkerType } from './logic/types'
 
 export const ROUTE_DEFS: Omit<RouteConfig, 'routePoints'>[] = [
   { id: '35km', label: '35 km', color: '#f59e0b', file: '/route-35km.gpx' },

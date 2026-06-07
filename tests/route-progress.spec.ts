@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildRoutePoints, routePositionPct } from '../src/bearing'
+import { buildRoutePoints, routePositionPct } from '../src/logic/bearing'
 
 const ROUTE = buildRoutePoints([
   { lat: 65.62, lon: 27.62 },

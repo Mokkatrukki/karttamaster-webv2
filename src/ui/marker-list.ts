@@ -1,7 +1,7 @@
-import type { MarkerManager } from './markers'
-import { routePositionPct, nearestPointIndex } from './bearing'
-import type { MarkerType, RoutePoint } from './types'
-import { SIGN_TYPES } from './sign-picker'
+import type { MarkerManager } from '../map/markers'
+import { routePositionPct, nearestPointIndex } from '../logic/bearing'
+import type { MarkerType, RoutePoint } from '../logic/types'
+import { SIGN_TYPES } from '../logic/sign-picker'
 
 function typeInfo(type: MarkerType) {
   return SIGN_TYPES.find((s) => s.type === type) ?? SIGN_TYPES[0]

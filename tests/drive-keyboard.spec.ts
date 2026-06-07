@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildRoutePoints } from '../src/bearing'
+import { buildRoutePoints } from '../src/logic/bearing'
 
 // Spec: keyboard navigation in drive mode
 // Written from VERIFICATION criteria, before implementation

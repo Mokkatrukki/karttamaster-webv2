@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { positionPicker } from '../src/sign-picker'
-import { createSignIcon } from '../src/icons'
+import { positionPicker } from '../src/logic/sign-picker'
+import { createSignIcon } from '../src/map/icons'
 
 describe('positionPicker — viewport-aware placement', () => {
   it('prefers 20px below click when space available', () => {
