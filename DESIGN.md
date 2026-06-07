@@ -149,11 +149,23 @@ metsässä, hanskat kädessä.
 - Väriswatch: `22×22px`, `border-radius: 6px`
 - Hover: `rgba(255,255,255,0.08)`
 
-### Karkkimerkit (SVG, `src/map/icons.ts`)
+### SignIcon — karttamerkit (SVG, `src/map/icons.ts`)
 - Koko: `32×50px` (W×H)
 - Pyöreä ikoni: `r=14`, ankkuri pisteessä `(16, 38)`
-- Värit: ks. §C Merkki-värit
+- Värit: ks. §C Merkki-värit (tyyppiväri — ei muutu statuksen mukaan)
 - Outline: `stroke: white, stroke-width: 2`
+- Upcoming-tyyppi: `stroke-dasharray="4 2"` (jo käytössä — ei muuteta statukselle)
+
+**Status-visualisointi (T23, `createSignIcon(type, bearing, status)`):**
+- `suunniteltu` → `opacity: 0.45` koko ikonille — "haalistunut = ei tehty"
+- muut statukset → `opacity: 1.0`
+- Status-piste: `8px` absoluuttinen `<div>` oikeaan alakulmaan
+  - `suunniteltu`: piilotettu (ei pistettä)
+  - `asetettu`: `#4ade80`
+  - `tarkistettu`: `#93c5fd`
+  - `kerätty`: `#6ee7b7`
+  - `ei_tarpeen`: `#fbbf24`
+- Ei tekstiä merkillä, ei muotomuutosta — tyyppiväri pysyy tunnistimena
 
 ---
 
