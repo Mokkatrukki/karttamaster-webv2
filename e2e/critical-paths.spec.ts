@@ -45,16 +45,14 @@ test.describe('Merkki kartalle', () => {
     expect(data.markers.length).toBeGreaterThan(0)
 
     const marker = data.markers[0]
-    // B1/T44: routeIds voi olla [] jos klikki >100m reitistä — ghost marker bug
-    // Tämä assert aktivoidaan kun T44 on ✓:
-    // expect(marker.routeIds.length).toBeGreaterThan(0)
-    console.log(`B1 check: routeIds=${JSON.stringify(marker.routeIds)} ([] = B1 bug auki)`)
+    // T44 ✓: routeIds aina non-empty (V21 — ensureRouteIds fallback)
+    expect(marker.routeIds.length).toBeGreaterThan(0)
 
-    // Lista näyttää merkin (vaatii T44-fix — routeIds täytyy olla non-empty)
-    // TODO: poista kommentti kun T44 ✓
-    // await page.click('#btn-list')
-    // const listText = await page.locator('#marker-modal').innerText()
-    // expect(listText).not.toContain('Ei merkkejä')
+    // Lista näyttää merkin (T44 ✓)
+    await page.click('#btn-list')
+    await page.waitForTimeout(300)
+    const listText = await page.locator('#marker-modal').innerText()
+    expect(listText).not.toContain('Ei merkkejä')
   })
 
   test('dblclick kartalla avaa floating pickerin', async ({ page }) => {

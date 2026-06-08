@@ -100,7 +100,7 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | T41 | . | Backend REST API: Hono + Bun + SQLite. `markers` taulu: `id, event_id, data JSON, updated_at, created_by`. CRUD: `GET/PUT/DELETE /api/markers/:id`, `GET /api/markers?event=X`. Testattavuus: Bun test (integration, oikea SQLite). | V18,V19 |
 | T42 | . | Sync-logiikka: `src/logic/sync.ts` — online-first, localStorage cache. `syncMarkers()`: fetch serveriltä → päivitä localStorage → palauta. `pushPending()`: lähetä pendingSync-merkit serverille. Vitest-pure (mock fetch). | V18,V19,T41 |
 | T43 | . | Merge-konflikti UI: jos `pendingSync > 0` ja server on muuttunut → dialog: "X merkkiä muuttunut serverillä — vaihda kaikki / pidä omat X muutosta". Per-marker merge ei MVP:ssä. Vitest-jsdom. | V20,T42 |
-| T44 | . | Ghost marker fix: `MarkerManager.add()` pakottaa lähimmän reitin id routeIds:ään jos assignRoutesToMarker palauttaa []. Näytä varoitusbanneri kartalla jos merkki >500m reitistä. Vitest-pure (logiikka), Playwright (banneri). | V21,V1 |
+| T44 | ✓ | Ghost marker fix: `MarkerManager.add()` pakottaa lähimmän reitin id routeIds:ään jos assignRoutesToMarker palauttaa []. Näytä varoitusbanneri kartalla jos merkki >500m reitistä. Vitest-pure (logiikka), Playwright (banneri). | V21,V1 |
 | T45 | . | Touch targets mobile: route-tab-napit (35km/55km) ja eye-icon-toggle ≥44px korkeus mobiililla. Playwright (375px viewport, kaikki napit ≥44px). | §C |
 | T46 | ✓ | Playwright E2E -perusta: `playwright.config.ts` webServer-config, `e2e/`-hakemisto, 3 kriittistä polkua: (1) merkki asetetaan kartalle → näkyy listassa, (2) drive mode käynnistyy + navigoi, (3) rooli-toggle muuttaa toolbaria. | §C |
 

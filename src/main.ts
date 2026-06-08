@@ -67,10 +67,19 @@ async function init() {
 
   let progressBar!: ProgressBar
 
+  const distanceWarningEl = document.getElementById('distance-warning')!
+  let distanceWarningTimer: ReturnType<typeof setTimeout> | null = null
+  function showDistanceWarning(distM: number): void {
+    distanceWarningEl.textContent = `⚠ Merkki kaukana reitistä (${Math.round(distM)} m)`
+    distanceWarningEl.style.display = 'block'
+    if (distanceWarningTimer) clearTimeout(distanceWarningTimer)
+    distanceWarningTimer = setTimeout(() => { distanceWarningEl.style.display = 'none' }, 4000)
+  }
+
   const markerManager = new MarkerManager(map, routes, () => {
     renderMarkerList(markerManager)
     progressBar.refreshDots()
-  }, loadMarkers())
+  }, loadMarkers(), showDistanceWarning)
 
   const driveMode = new DriveMode(map, routes[0].routePoints, km => progressBar.update(km))
 

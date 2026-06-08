@@ -3,6 +3,7 @@ import type { SignMarker, MarkerType, RoutePoint } from '../logic/types'
 import { nearestPointIndex, bearingAtIndex, haversineDistance } from '../logic/bearing'
 import { createSignIcon } from './icons'
 import { assignRoutesToMarker } from '../logic/multi-route'
+import { ensureRouteIds, FAR_FROM_ROUTE_M } from '../logic/marker-assign'
 import { saveMarkers } from '../logic/persistence'
 import { MarkerInteraction } from './marker-interaction'
 import { DEFAULT_STATUS, transitionStatus } from '../logic/marker-status'
@@ -17,13 +18,15 @@ export class MarkerManager {
   private routes: RouteRef[]
   private visibleRouteIds: string[]
   private onUpdate: () => void
+  private onFarFromRoute?: (distM: number) => void
   private interaction: MarkerInteraction
 
-  constructor(map: L.Map, routes: RouteRef[], onUpdate: () => void, initialMarkers: SignMarker[] = []) {
+  constructor(map: L.Map, routes: RouteRef[], onUpdate: () => void, initialMarkers: SignMarker[] = [], onFarFromRoute?: (distM: number) => void) {
     this.map = map
     this.routes = routes
     this.visibleRouteIds = routes.map((r) => r.id)
     this.onUpdate = onUpdate
+    this.onFarFromRoute = onFarFromRoute
     this.markers = initialMarkers
     this.interaction = new MarkerInteraction(
       map,
@@ -54,7 +57,9 @@ export class MarkerManager {
     const primaryRoute = this.routes[bestRouteIdx]
     const bearing = bearingAtIndex(primaryRoute.routePoints, bestIdx)
     const point = primaryRoute.routePoints[bestIdx]
-    const routeIds = assignRoutesToMarker(lat, lon, this.routes)
+    const rawRouteIds = assignRoutesToMarker(lat, lon, this.routes)
+    const routeIds = ensureRouteIds(rawRouteIds, primaryRoute.id)
+    if (bestDist > FAR_FROM_ROUTE_M) this.onFarFromRoute?.(bestDist)
 
     const marker: SignMarker = {
       id: crypto.randomUUID(),

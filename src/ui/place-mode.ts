@@ -50,7 +50,7 @@ export class PlaceMode {
     this.mapEl.classList.remove('place-mode')
     this.placeModeLabel.classList.remove('active')
     this.btnAddSign.classList.remove('place-mode')
-    ;(this.btnAddSign as HTMLButtonElement).textContent = '+ Lisää merkki'
+    ;(this.btnAddSign as HTMLButtonElement).textContent = '+ Merkki'
   }
 
   closeDropdown(): void {
