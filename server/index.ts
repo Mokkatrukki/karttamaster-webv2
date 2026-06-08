@@ -3,6 +3,7 @@ import { createDb, seedAdmin } from './db'
 import { dbMiddleware } from './middleware/auth'
 import { authRoutes } from './routes/auth'
 import { adminRoutes } from './routes/admin'
+import { markersRoutes } from './routes/markers'
 
 const db = createDb(process.env.DB_PATH)
 seedAdmin(db)
@@ -13,6 +14,7 @@ app.use('*', dbMiddleware(db))
 app.get('/api/health', (c) => c.json({ ok: true }))
 app.route('/api/auth', authRoutes)
 app.route('/api/admin', adminRoutes)
+app.route('/api/markers', markersRoutes)
 
 export default {
   port: Number(process.env.PORT ?? 3001),

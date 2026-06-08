@@ -60,7 +60,7 @@ server/       ← Hono + Bun + SQLite (tulossa)
 | BackendServer | `server/index.ts` | ○ T41 | — | [backend.md](docs/components/backend.md) |
 | AuthRoutes | `server/routes/auth.ts` | ✓ T36 | — | [backend.md](docs/components/backend.md) |
 | AdminRoutes | `server/routes/admin.ts` | ✓ T36 (users/invites/codes) | — | [backend.md](docs/components/backend.md) |
-| MarkersAPI | `server/routes/markers.ts` | ○ T47 | — | [backend.md](docs/components/backend.md) |
+| MarkersAPI | `server/routes/markers.ts` | ✓ T47 | — | [backend.md](docs/components/backend.md) |
 | MapStateAPI | `server/routes/admin.ts` | ○ T48 | — | [backend.md](docs/components/backend.md) |
 | OfflineManager | `public/sw.js` | ○ T18 | — | [backend.md](docs/components/backend.md) |
 
