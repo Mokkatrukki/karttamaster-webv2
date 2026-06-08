@@ -206,8 +206,7 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
 
 .route-tab-drive {
   padding: 5px 10px;
-  height: 30px;
-  min-height: unset;
+  min-height: 44px;
   font-size: 12px;
   font-weight: 700;
   font-family: inherit;
@@ -238,9 +237,8 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
 .route-tab.active .tab-arrow { opacity: 1; }
 
 .route-tab-vis {
-  width: 32px;
-  height: 30px;
-  min-height: unset;
+  width: 44px;
+  min-height: 44px;
   border: none;
   border-left: 1px solid var(--border-default);
   cursor: pointer;

@@ -175,9 +175,7 @@ test.describe('Touch targets — T45', () => {
       console.log('TOUCH TARGET VIOLATIONS:', violations.join(', '))
     }
 
-    // T45 korjattu → tämä testin pitää mennä läpi
-    // Tällä hetkellä B3 auki — odottaa T45 fixiä
-    // expect(violations).toHaveLength(0)
-    // TODO: poista kommentti kun T45 on ✓
+    // T45 ✓ — kaikki napit ≥44px mobiililla
+    expect(violations).toHaveLength(0)
   })
 })
