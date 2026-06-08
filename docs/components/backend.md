@@ -2,175 +2,413 @@
 
 Jaettu tilannekuva vaatii backendin. **"Kaikki näkevät kaikkien statuksen"** (VISION) ei onnistu pelkällä localStorage:lla.
 
-Backend ei ole vielä SPEC §T:ssä — lisätään ennen kuin T14/T28/T31/T36 saavat toteutettavan muodon.
-
 ---
 
 ## Miksi backend tarvitaan
 
-| Ilman backendia | Backendillä |
+| Ilman backendiä | Backendillä |
 |---|---|
 | Talkoolainen näkee vain oman puhelimensa tiedot | Talkoolainen näkee muiden kuittaukset reaaliajassa |
 | Järjestäjä ei näe kenttätyön edistymistä | Tilannekuva päivittyy automaattisesti |
 | localStorage per-laite, ei sync | Kaikki laitteet synkassa |
-| Auth ei ole mahdollinen (ei sessioita) | Kutsukoodi → rooli → oikeudet |
+| Auth ei ole mahdollinen (ei sessioita) | Rooli + oikeudet verifioidaan serverillä |
 
 ---
 
-## BackendAPI *(tulossa — ei SPEC-taskia vielä)*
-**Vastuu:** Merkkidatan + tilojen synkronointi eri laitteiden välillä
-**Käyttäjä:** molemmat (läpinäkyvä — PersistenceLayer kutsuu)
-**Moduuli:** `server/` *(erillinen hakemisto, ei vielä)*
-**Testattavuus:** Vitest integraatiotestit
-
-### Teknologiapäätökset
+## Teknologiapäätökset
 
 ```
-Runtime:    Bun (sama kuin frontend build-tooling)
-Framework:  Hono (kevyt, TypeScript-native, no magic)
+Runtime:    Bun (sama kuin frontend)
+Framework:  Hono (kevyt, TypeScript-native)
 DB:         SQLite (bun:sqlite — ei erillistä prosessia)
+Auth:       httpOnly cookie session (turvallinen mobiililla)
 Proxy:      nginx → /api/* → Hono (Fly.io)
 ```
 
-Vaihtoehtoina harkittiin: Express (liikaa boilerplate), Fastify (hieman raskas), PostgreSQL (overkill yhdelle tapahtumalle).
+---
 
-### SQLite-schema (alustava)
+## Hakemistorakenne
+
+```
+server/
+  index.ts            ← Hono app + routes wiring
+  db.ts               ← SQLite yhteys + schema init + migrations
+  middleware/
+    auth.ts           ← session check, role gate
+  routes/
+    markers.ts        ← CRUD merkeille
+    auth.ts           ← login, logout, me
+    admin.ts          ← käyttäjähallinta, kartta-tila, snapshots
+    poi.ts            ← info-pisteet (POI)
+  types.ts            ← jaetut server-tyypit
+```
+
+---
+
+## SQLite-schema
 
 ```sql
--- Reitit (ladataan GPX:stä, tallennetaan viitteeksi)
-CREATE TABLE routes (
+-- Käyttäjät
+CREATE TABLE users (
   id TEXT PRIMARY KEY,
-  label TEXT NOT NULL,
-  color TEXT NOT NULL,
-  gpx_file TEXT NOT NULL
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,      -- bcrypt, null-proof
+  role TEXT NOT NULL,               -- 'admin' | 'järjestäjä' | 'talkoolainen'
+  invite_token TEXT UNIQUE,         -- admin luo järjestäjälle, one-time
+  display_name TEXT,                -- näytetään tilannekuvassa
+  created_at TEXT NOT NULL
+);
+
+-- Talkoolais-koodit (ei pysyvä tunnus — event-scoped)
+CREATE TABLE talkoolainen_codes (
+  code TEXT PRIMARY KEY,            -- esim "SYÖTE-MATTI-7X"
+  display_name TEXT NOT NULL,       -- "Matti Meikäläinen"
+  segment_id TEXT,                  -- linkitys pätkään (optional)
+  used_at TEXT,                     -- milloin käytettiin
+  created_at TEXT NOT NULL
+);
+
+-- Sessiot
+CREATE TABLE sessions (
+  id TEXT PRIMARY KEY,              -- satunnainen token
+  user_id TEXT,                     -- NULL jos talkoolainen-koodi
+  talkoolainen_code TEXT,           -- NULL jos järjestäjä/admin
+  role TEXT NOT NULL,
+  display_name TEXT,
+  expires_at TEXT NOT NULL
 );
 
 -- Merkit
 CREATE TABLE markers (
   id TEXT PRIMARY KEY,
-  type TEXT NOT NULL,               -- MarkerType
+  type TEXT NOT NULL,
   lat REAL NOT NULL,
   lon REAL NOT NULL,
   bearing REAL NOT NULL,
   distance_from_start REAL NOT NULL,
-  route_ids TEXT NOT NULL,          -- JSON array: ["35km","55km"]
+  route_ids TEXT NOT NULL,          -- JSON: ["35km","55km"]
   status TEXT NOT NULL DEFAULT 'suunniteltu',
-  notes TEXT,
-  updated_at TEXT NOT NULL          -- ISO8601
+  location_note TEXT,
+  updated_at TEXT NOT NULL,
+  updated_by TEXT                   -- display_name kuka muutti
 );
 
--- Pätkät
-CREATE TABLE segments (
+-- Info-pisteet (POI) — sama logiikka kuin merkit, eri näkymä
+CREATE TABLE poi (
   id TEXT PRIMARY KEY,
-  route_id TEXT NOT NULL,
-  start_dist REAL NOT NULL,
-  end_dist REAL NOT NULL,
-  assigned_to TEXT                  -- user id tai roolitunnus
+  title TEXT NOT NULL,              -- "Ruokala", "Mökki A", "Parking"
+  body TEXT,                        -- vapaa ohjeteksti
+  category TEXT NOT NULL,           -- 'ruoka' | 'majoitus' | 'pysäköinti' | 'muu'
+  lat REAL NOT NULL,
+  lon REAL NOT NULL,
+  icon TEXT,                        -- Lucide icon name
+  created_at TEXT NOT NULL,
+  created_by TEXT
 );
 
--- Käyttäjät (kutsukoodi-pohjainen)
-CREATE TABLE users (
+-- Kartta-tila
+CREATE TABLE map_state (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+-- Rivit: ('status', 'luonnos'|'hyväksytty'), ('approved_at', ISO8601), ('approved_by', display_name)
+
+-- Snapshots (versiohistoria)
+CREATE TABLE snapshots (
   id TEXT PRIMARY KEY,
-  role TEXT NOT NULL,               -- järjestäjä | talkoolainen
-  invite_code TEXT UNIQUE NOT NULL,
-  created_at TEXT NOT NULL
+  label TEXT NOT NULL,              -- "Hyväksyntä 2026-06-08", "Päivittäinen backup"
+  markers_json TEXT NOT NULL,       -- koko markers-taulun JSON-dump
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  trigger TEXT NOT NULL             -- 'manual' | 'approve' | 'auto'
 );
 ```
 
-### REST API endpoints (suunniteltu)
+---
+
+## Auth-flow
+
+### Admin (seed-tunnus)
 
 ```
-GET    /api/markers              → kaikki merkit
-POST   /api/markers              → uusi merkki
-PUT    /api/markers/:id          → päivitä merkki (status, bearing, notes)
-DELETE /api/markers/:id          → poista merkki
-
-GET    /api/segments             → kaikki pätkät
-POST   /api/segments             → uusi pätkä
-PUT    /api/segments/:id         → päivitä assign
-
-POST   /api/auth/login           → koodi → sessio + rooli
-GET    /api/auth/me              → nykyinen sessio
+Deploy → server/db.ts lukee ADMIN_USERNAME + ADMIN_PASSWORD_HASH env-muuttujat
+       → luo admin-käyttäjä jos ei ole olemassa (idempotent)
+Admin kirjautuu → /api/auth/login → httpOnly session cookie → rooli 'admin'
+Admin vaihtaa salasanan → /api/admin/password
 ```
 
-### Tulossa (SPEC-taskit lisätään)
-- [ ] Hono + Bun setup, SQLite yhteys, health check endpoint
-- [ ] GET/POST/PUT/DELETE markers
-- [ ] GET/POST segments + assign
-- [ ] Auth: kutsukoodi → sessio (T36)
-- [ ] PersistenceLayer käyttää API:a localStorage-cachen lisäksi
-- [ ] Fly.io deploy: Dockerfile, fly.toml, nginx config
+Seed env-muuttujat (fly.toml secrets):
+```
+ADMIN_USERNAME=karttamaster-admin
+ADMIN_PASSWORD=vaihda-tämä-heti   ← tai ADMIN_PASSWORD_HASH=bcrypt(...)
+```
+
+### Järjestäjä (invite-flow)
+
+```
+Admin luo invite → POST /api/admin/invites → palauttaa token
+Admin lähettää linkin: https://app.example.com/join?token=XYZ
+Järjestäjä avaa linkin → syöttää salasanan → POST /api/auth/register
+Token invalidoituu → järjestäjällä pysyvä tunnus
+```
+
+### Talkoolainen (event-koodi)
+
+```
+Admin/järjestäjä luo koodit → POST /api/admin/codes (bulk tai yksi)
+  → koodi sidotaan nimeen + mahdollisesti pätkään
+Talkoolainen syöttää koodin → POST /api/auth/code-login → sessio (24h)
+  → sessio ei tallennu talkoolaiselle pysyvästi (koodi riittää uudelleenkirjautumiseen)
+```
+
+Talkoolaisella ei käyttäjätunnusta — koodi on "avain". Voi syöttää uudelleen jos sessio vanhenee.
+
+---
+
+## Kartta-tila: luonnos / hyväksytty
+
+```
+luonnos  → vain järjestäjät + admin näkevät merkit
+         → talkoolaiset saavat "kartta ei vielä valmis" -viestin
+hyväksytty → kaikki näkevät merkit
+           → talkoolaiset voivat päivittää statusta (aseta/kuittaa)
+           → järjestäjät voivat edelleen muokata sijaintia ja tyyppiä
+```
+
+**Server-enforcement (middleware):**
+```typescript
+// markers.ts — GET /api/markers
+if (mapState === 'luonnos' && session.role === 'talkoolainen') {
+  return c.json({ error: 'map_not_ready' }, 403)
+}
+```
+
+**Client-side:**
+- `PersistenceLayer.syncMarkers()` saa 403 → näyttää "Kartta valmisteilla" -bannerin
+- Järjestäjä-näkymässä: badge "LUONNOS / HYVÄKSYTTY" toolbarissa
+
+**Approve-flow:**
+```
+Järjestäjä klikkaa "Hyväksy kartta" → POST /api/admin/map-state {status: 'hyväksytty'}
+  → server: tallentaa approved_at + approved_by
+  → server: luo automaattinen snapshot (trigger: 'approve')
+  → kaikki talkoolaiset saavat 200 seuraavalla sync-pollilla
+```
+
+---
+
+## Backup / versiohistoria
+
+### Milloin snapshot luodaan
+
+| Trigger | Milloin |
+|---------|---------|
+| `approve` | Aina kun järjestäjä hyväksyy kartan |
+| `auto` | Päivittäin klo 03:00 (Bun cron tai yksinkertainen interval) |
+| `manual` | Järjestäjä klikkaa "Luo backup nyt" |
+
+### Restore
+
+```
+Järjestäjä: lista snapshotseista → valitse → "Palauta tämä versio"
+  → POST /api/admin/snapshots/:id/restore
+  → server: korvaa kaikki merkit snapshot-datalla (transaction)
+  → server: luo uusi snapshot ("Palautus: [alkuperäinen label]")
+```
+
+**Retention:** pidetään max 20 snapshottia, vanhin poistetaan automaattisesti.
+
+---
+
+## Info-pisteet (POI)
+
+Sama karttalogiikka kuin merkeillä — sama snap, sama lista, eri ikoni.
+
+**Frontend-arkkitehtuuri:**
+- `src/logic/poi.ts` — POI-tyypit ja logiikka (Vitest-pure)
+- `src/map/poi-layer.ts` — Leaflet-renderöinti (Playwright)
+- `src/ui/poi-list.ts` — lista-näkymä (Vitest-jsdom)
+
+**Kategoriat ja ikonit (Lucide):**
+
+| Kategoria | Lucide-ikoni | Esimerkki |
+|-----------|-------------|-----------|
+| ruoka | `utensils` | "Ruokala 12-14h" |
+| majoitus | `bed` | "Mökki A — varattu Virtanen" |
+| pysäköinti | `parking-circle` | "Huoltopiste P1" |
+| muu | `info` | "Ensiapupiste" |
+
+**POI kartalla:**
+- Oma layer (voidaan toggle pois kuten reittinäkyvyys)
+- Ikoni: Lucide-ikoni värjättynä (ei bearing-nuolia)
+- Klikkaus: popup jossa title + body
+- Listanäkymässä: erillinen välilehti tai suodatin
+
+**POI on vaihe 3** — ei tarvita SyöteMTB 2026 merkintätyöhön, mutta arkkitehtuuri ei estä.
+
+---
+
+## REST API — täydellinen lista
+
+```
+# Auth
+POST   /api/auth/login              → username+password → session cookie
+POST   /api/auth/code-login         → talkoolainen-koodi → session cookie
+POST   /api/auth/logout             → poista sessio
+GET    /api/auth/me                 → nykyinen sessio + rooli
+
+# Admin
+GET    /api/admin/users             → lista käyttäjistä (admin)
+POST   /api/admin/invites           → luo invite-token järjestäjälle
+POST   /api/admin/codes             → luo talkoolainen-koodeja (bulk)
+DELETE /api/admin/codes/:code       → poista koodi
+POST   /api/admin/password          → vaihda oma salasana (admin/järjestäjä)
+GET    /api/admin/map-state         → luonnos | hyväksytty
+POST   /api/admin/map-state         → vaihda tila (järjestäjä+)
+GET    /api/admin/snapshots         → lista snapshotseista
+POST   /api/admin/snapshots         → luo manual snapshot
+POST   /api/admin/snapshots/:id/restore → palauta versio
+
+# Auth rekisteröinti (invite-flow)
+GET    /api/auth/invite/:token      → tarkista token
+POST   /api/auth/register           → rekisteröidy invite-tokenilla
+
+# Merkit
+GET    /api/markers                 → kaikki merkit (403 jos luonnos + talkoolainen)
+POST   /api/markers                 → uusi merkki (järjestäjä+)
+PUT    /api/markers/:id             → päivitä (status: kaikki, sijainti: järjestäjä+)
+DELETE /api/markers/:id             → poista (järjestäjä+)
+
+# POI (vaihe 3)
+GET    /api/poi                     → kaikki POI:t
+POST   /api/poi                     → uusi POI (järjestäjä+)
+PUT    /api/poi/:id                 → päivitä
+DELETE /api/poi/:id                 → poista
+```
+
+---
+
+## Roolimatriisi (mitä kukin saa tehdä)
+
+| Toiminto | talkoolainen | järjestäjä | admin |
+|----------|:---:|:---:|:---:|
+| Näe merkit (hyväksytty) | ✓ | ✓ | ✓ |
+| Näe merkit (luonnos) | ✗ | ✓ | ✓ |
+| Päivitä merkin status | ✓ | ✓ | ✓ |
+| Lisää/poista/siirrä merkki | ✗ | ✓ | ✓ |
+| Hyväksy kartta | ✗ | ✓ | ✓ |
+| Luo snapshots | ✗ | ✓ | ✓ |
+| Palauta snapshot | ✗ | ✓ | ✓ |
+| Hallitse käyttäjiä | ✗ | ✗ | ✓ |
+| Luo invite / talkoolainen-koodit | ✗ | ✓ | ✓ |
+
+---
+
+## Sync-malli (frontend ↔ backend)
+
+```
+Online:
+  App käynnistyy → GET /api/markers → tallenna localStorage → renderöi
+  Käyttäjä muuttaa merkkiä → PUT /api/markers/:id → päivitä localStorage
+
+Offline (talkoolainen metsässä):
+  PUT /api/markers/:id epäonnistuu → tallenna localStorage + merkitse pendingSync: true
+  Yhteys palaa → pushPending() → lähetä kaikki pendingSync-merkit
+  Konflikti (server muuttunut) → V20: käyttäjä päättää
+
+Polling (tilannekuva):
+  Järjestäjän tilannekuva-näkymä pollaa GET /api/markers 30s välein
+  Talkoolainen pollaa vain kun drive mode aktiivinen
+```
+
+---
+
+## Vaiheistus
+
+**Vaihe 2a — Backend core (T41 uudelleenspeksattu):**
+- Hono + SQLite setup
+- Markers CRUD
+- Seed admin + session auth
+- Talkoolainen-koodi login
+- Invite-flow järjestäjälle
+- Kartta-tila luonnos/hyväksytty
+- Automaattinen snapshot approve-vaiheessa
+
+**Vaihe 2b — Sync:**
+- PersistenceLayer online-first (T42)
+- Merge-konflikti UI (T43)
+- Polling tilannekuvaan
+
+**Vaihe 2c — Offline:**
+- PWA + service worker (T18)
+- Tile pre-fetch
+- ActionBuffer
+
+**Vaihe 3 — POI:**
+- poi taulu + API
+- Frontend POI-layer + lista
+- Kategoriat + ikonit
+
+---
+
+## BackendAPI
+
+**Vastuu:** Merkkidatan, auth-sessionien ja kartta-tilan hallinta
+**Käyttäjä:** molemmat (läpinäkyvä — PersistenceLayer kutsuu)
+**Moduuli:** `server/` *(ei vielä)*
+**Testattavuus:** Bun integraatiotestit (oikea SQLite, in-memory)
+
+### Ominaisuudet
+*(kaikki tulossa)*
+
+### Tulossa (Vaihe 2a)
+- [ ] Hono + SQLite setup + schema (T41)
+- [ ] Markers CRUD + rooli-gate (T41)
+- [ ] Seed admin (env-muuttujat) (T41)
+- [ ] Session auth: admin/järjestäjä + talkoolainen-koodi (T36 uudelleenspeksattu)
+- [ ] Invite-flow järjestäjälle (T36)
+- [ ] Kartta-tila luonnos/hyväksytty (uusi task)
+- [ ] Snapshot approve-vaiheessa + manual (uusi task)
+- [ ] Snapshot restore (uusi task)
+
+### Käyttäjätarkistus
+> Talkoolainen: syöttää koodin → suoraan omaan pätkänäkymään. Koodi riittää uudelleenkirjautumiseen. ✓
+> Järjestäjä: invite-linkki → rekisteröinti → kaikki työkalut. Admin näkee ketkä ovat kirjautuneena. ✓
 
 ---
 
 ## OfflineManager *(tulossa — T18)*
+
 **Vastuu:** PWA service worker + offline-tuki omalle pätkälle
 **Käyttäjä:** talkoolainen metsässä (ei nettiä)
 **Moduuli:** `public/sw.js` + `src/logic/offline.ts` *(ei vielä)*
 **Testattavuus:** Playwright (offline mode)
 
-### Arkkitehtuuri: Offline-first ActionBuffer
+### Arkkitehtuuri
 
 ```
-Normaali flow:
-  Talkoolainen kuittaa → PersistenceLayer → localStorage + POST /api/markers/:id
-
-Offline flow:
-  Talkoolainen kuittaa → PersistenceLayer → localStorage + ActionBuffer (queue)
-  Yhteys palaa → ActionBuffer flush → POST /api/markers/:id kaikki jonossa olevat
+Normaali: kuittaus → PersistenceLayer → localStorage + PUT /api/markers/:id
+Offline:  kuittaus → PersistenceLayer → localStorage + ActionBuffer (queue)
+          Yhteys palaa → ActionBuffer flush → PUT kaikki jonossa
 ```
 
-### Service Worker cachettaa
-- Karttatiiliset omalle pätkälle (pre-fetch valmistelu-vaiheessa)
+Service Worker cachettaa:
 - App shell (HTML, JS, CSS)
-- Oma pätkä + merkit (IndexedDB tai localStorage)
-
-### Tulossa
-- [ ] PWA manifest + service worker rekisteröinti (T18)
-- [ ] Tile pre-fetch omalle pätkälle ennen kenttätyötä (T18)
-- [ ] ActionBuffer: kuittaukset jonoon, sync yhteyden palautuessa (T18)
-
-### Käyttäjätarkistus
-> Talkoolainen: avaa sovelluksen kotona → lataa pätkä → sulkee netit → toimii metsässä ✓
+- Karttatiiliset omalle pätkälle (pre-fetch ennen kenttätyötä)
+- Oman pätkän merkit (localStorage / IndexedDB)
 
 ---
 
-## AuthController *(tulossa — T36)*
-**Vastuu:** Kutsukoodi-pohjainen autentikointi + rooli-assert
+## AuthController *(tulossa — T36 uudelleenspeksattu)*
+
+**Vastuu:** Session-pohjainen auth + rooliassertio
 **Käyttäjä:** molemmat
-**Moduuli:** `src/logic/auth.ts` + BackendAPI (T36)
-**Testattavuus:** Vitest-pure (logiikka)
+**Moduuli:** `server/routes/auth.ts` + `server/middleware/auth.ts`
+**Testattavuus:** Bun integraatiotesti
 
 ### Flow
-
 ```
-Admin luo koodeja → BackendAPI POST /api/admin/codes
-Käyttäjä syöttää koodin → POST /api/auth/login → sessio + rooli
-Sessio localStorage:issa → RoleController saa roolin
+Seed admin → vaihda salasana → luo invitet järjestäjille → luo koodit talkoolaisille
+Järjestäjä → invite-linkki → rekisteröinti → pysyvä tunnus
+Talkoolainen → koodi → 24h sessio (uusittavissa samalla koodilla)
 ```
-
-### Tulossa
-- [ ] Admin-generointityökalu koodeihin (T36)
-- [ ] Koodi → sessio → rooli (T36)
-- [ ] Auth screen ennen karttaa (T36, AuthScreen UI)
-
-### Käyttäjätarkistus
-> Talkoolainen: syöttää koodin → suoraan omaan pätkänäkymään ✓
-> Järjestäjä: admin-koodi → kaikki työkalut ✓
-
----
-
-## Vaiheistus: milloin backend lisätään?
-
-**MVP ilman backendiä** (vaihe 1):
-- T7, T8, T9, T10, T11, T12, T29, T32 voi rakentaa ilman backendiä
-- localStorage riittää yhden henkilön käyttöön
-- Testaaminen ja kehitys helpompaa
-
-**Backend lisätään kun** (vaihe 2):
-- MVP toimii paikallisesti
-- Useampi henkilö tarvitaan testaukseen
-- Talkoolainen + järjestäjä -roolit halutaan oikeasti testata
-- Arviolta: ennen tapahtumaa 2–3 kuukautta
-
-**PersistenceLayer on avain** — se abstrahoi localStorage:n ja API:n saman rajapinnan taakse. Backend lisätään vaihtamalla PersistenceLayerin toteutus, ei muuttamalla MarkerManager:ia tai UI:ta.

@@ -53,11 +53,15 @@ server/       ← Hono + Bun + SQLite (tulossa)
 | SegmentPanel | `src/ui/segment-panel.ts` | ○ T25 | — | [ui.md](docs/components/ui.md) |
 | SituationDashboard | `src/ui/situation-dashboard.ts` | ○ T28 | — | [ui.md](docs/components/ui.md) |
 | EquipmentList | `src/ui/equipment-list.ts` | ○ T27 | — | [ui.md](docs/components/ui.md) |
-| AuthScreen | `src/ui/auth-screen.ts` | ○ T36 | — | [ui.md](docs/components/ui.md) |
+| AuthScreen | `src/ui/auth-screen.ts` | ○ T51 | — | [ui.md](docs/components/ui.md) |
+| MapStateBadge | `src/ui/map-state-badge.ts` | ○ T49 | — | [ui.md](docs/components/ui.md) |
+| SnapshotPanel | `src/ui/snapshot-panel.ts` | ○ T50 | — | [ui.md](docs/components/ui.md) |
 | GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30 | critical-paths: "GPS-paikannin" | [map.md](docs/components/map.md) |
-| BackendAPI | `server/` | ○ ei taskia | — | [backend.md](docs/components/backend.md) |
+| BackendServer | `server/index.ts` | ○ T41 | — | [backend.md](docs/components/backend.md) |
+| AuthRoutes | `server/routes/auth.ts` | ○ T36 | — | [backend.md](docs/components/backend.md) |
+| MarkersAPI | `server/routes/markers.ts` | ○ T47 | — | [backend.md](docs/components/backend.md) |
+| MapStateAPI | `server/routes/admin.ts` | ○ T48 | — | [backend.md](docs/components/backend.md) |
 | OfflineManager | `public/sw.js` | ○ T18 | — | [backend.md](docs/components/backend.md) |
-| AuthController | `src/logic/auth.ts` | ○ T36 | — | [backend.md](docs/components/backend.md) |
 
 **Tila:** ✓ = valmis, ○ = tulossa, B# = avoin bugi, pilkko = rivimäärä kasvaa
 
@@ -68,8 +72,14 @@ server/       ← Hono + Bun + SQLite (tulossa)
 **Vaihe 1 — Frontend MVP** (ei backendiä, yksi laite):
 Taskit: T7, T8, T9, T10, T11, T12, T29, T32
 
-**Vaihe 2 — Jaettu tilannekuva** (backend lisätään):
-BackendAPI + PersistenceLayer backend-sync + OfflineManager
+**Vaihe 2a — Backend core** (multi-device, auth, kartta-tila):
+Taskit: T41 (server setup) → T36 (auth) → T47 (markers API) → T48 (kartta-tila BE) → T49 (kartta-tila UI) → T50 (snapshots) → T51 (auth screen UI)
+
+**Vaihe 2b — Sync** (online-first + offline):
+Taskit: T42 (sync-logiikka) → T43 (merge-konflikti UI) → T18 (offline/PWA)
+
+**Vaihe 3 — Jaettu tilannekuva + POI**:
+T15, T28 (tilannekuva) + info-pisteet (ei vielä speksattu)
 
 Lisää: [backend.md — Vaiheistus](docs/components/backend.md)
 
