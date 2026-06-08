@@ -65,7 +65,7 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | T6 | ✓ | Route tabs: näkyvyys toggle, drive-reitti vaihto, eye-icon | V6 |
 | T7  | . | Lisää puuttuvat 2 GPX-reittiä (4 reittiä yhteensä) | §C |
 | T8  | ✓ | SignTemplate data model + CRUD logiikka — `src/logic/sign-library.ts`. Tyyppi: `SignTemplate{id,label,shortLabel,color,description}`. Funktiot: createTemplate/updateTemplate/deleteTemplate/listTemplates, in-memory (ei localStorage). SignTemplate on superset SignTypeInfo:lle (sign-picker.ts) — korvaa sen T22-vaiheessa. Testattavuus: Vitest-pure. Käyttäjä: järjestäjä rakentaa, talkoolainen käyttää. Avaa: T9,T22,T27 | V10 |
-| T9  | . | Ikonilähde-research: Lucide / Heroicons / custom SVG — päätä ennen T22 | V10 |
+| T9  | ✓ | Ikonilähde-research: päätös Lucide — TypeScript-natiivi, tree-shakeable, MIT. `lucide` npm-paketti. SignTemplate.iconId = Lucide icon name string. T22 voi edetä. | V10 |
 | T10 | ✓ | MarkerStatus type + tila-siirtymälogiikka (Vitest-pure): suunniteltu→asetettu→tarkistettu→kerätty\|ei_tarpeen. Tyyppi `src/logic/types.ts`, logiikka `src/logic/marker-status.ts`. `transitionStatus/canTransition/validActions/isTerminal`. Normalisointi persistence.ts:ssä vanhalle datalle. | V9 |
 | T11 | ✓ | Paikkaohjeet: `locationNote?: string` SignMarker-tyyppiin, `updateNote(id, text)` MarkerManageriin, inline-input marker-listassa, tallentuu automaattisesti (blur/Enter), XSS-safe (DOM-assign) | §G |
 | T12 | ✓ | Rooli-state + toggle UI. Logiikka: `src/logic/role.ts` — `type Role = 'järjestäjä' \| 'talkoolainen'`, `getRole(): Role` (localStorage, default `'järjestäjä'`), `setRole(r: Role): void` (persist). Toggle-nappi toolbariin: `src/ui/role-selector.ts`, vaihtaa roolia yhdellä klikillä, active = accent-highlight (DESIGN.md §K role-toggle). Ei piilota/näytä mitään vielä — se on T32. localStorage: vi.stubGlobal-mock (CLAUDE.md). Testattavuus: Vitest-pure (logic), Vitest-jsdom (toggle). Käyttäjä: molemmat. Avaa: T24, T32. | V13 |
@@ -93,7 +93,7 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | T34 | . | GPX-korvaus: varoitus + merge/discard-valinta olemassa oleville merkeille | V1,V2 |
 | T35 | . | Yhteinen osuus -visualisointi: korostus kartalla missä reitit jakavat merkin | V2 |
 | T36 | . | Kutsukoodi-auth backend: admin generoi koodit, koodi → rooli-assert | T12,V13 |
-| T37 | . | Drag-to-move merkki: järjestäjä siirtää väärässä paikassa olevan merkin — bearing + routeIds lasketaan uudelleen uudesta sijainnista, persistoi | V15,V1,V2 |
+| T37 | ✓ | Drag-to-move merkki: `marker.options.draggable = true` MarkerManager.add()-vaiheessa. `dragend` → uusi LatLng → `assignRoutesToMarker` (V21: pakota lähimmän reitin id jos [] palautuu) → päivitä routeIds + laske bearing uudelleen → päivitä Leaflet-ikoni → `saveMarkers`. Varoitusbanneri jos >500m reitistä (sama kuin T44). `src/map/markers.ts`. Käyttäjä: järjestäjä (desktop/hiiri). Testattavuus: Playwright — drag-testi `e2e/critical-paths.spec.ts`. | V15,V1,V2,V21 |
 | T38 | . | Vaihda merkin tyyppi: kontekstivalikosta tai listasta — ei delete+redo. Päivittää ikonia kartalla + listaa | V17 |
 | T39 | . | Drive mode "hyppää seuraavaan merkkiin": nappi joka siirtyy seuraavan merkin distanceFromStart-kohtaan aktiivisella reitillä — ei GPS-riippuvainen, toimii jo nyt ilman T30 | T4 |
 | T40 | . | Rotation arm sticky: arm ei häviä karttaklikistä — poistuu vain Esc / toisen merkin arm / uusi lisäys. Korjaa järjestäjän turhautunut reset-flow | V16 |

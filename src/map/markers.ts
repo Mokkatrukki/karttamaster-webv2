@@ -35,6 +35,7 @@ export class MarkerManager {
       (id) => this.remove(id),
       () => this.save(),
       onUpdate,
+      (armedId) => this.updateDragStates(armedId),
     )
     initialMarkers.forEach((m) => {
       if (m.routeIds.some((id) => this.visibleRouteIds.includes(id))) {
@@ -45,6 +46,16 @@ export class MarkerManager {
 
   private save(): void {
     saveMarkers(this.markers)
+  }
+
+  private updateDragStates(armedId: string | null): void {
+    this.leafletMarkers.forEach((lm, id) => {
+      if (id === armedId) {
+        lm.dragging?.disable()
+      } else {
+        lm.dragging?.enable()
+      }
+    })
   }
 
   add(lat: number, lon: number, type: MarkerType): SignMarker {
@@ -149,8 +160,32 @@ export class MarkerManager {
 
   private addLeafletMarker(m: SignMarker): void {
     const icon = createSignIcon(m.type, m.bearing, m.status)
-    const lm = L.marker([m.lat, m.lon], { icon }).addTo(this.map)
+    const lm = L.marker([m.lat, m.lon], { icon, draggable: true }).addTo(this.map)
     this.leafletMarkers.set(m.id, lm)
+
+    lm.on('dragend', () => {
+      const { lat, lng } = lm.getLatLng()
+      let bestIdx = 0, bestRouteIdx = 0, bestDist = Infinity
+      this.routes.forEach((r, ri) => {
+        const idx = nearestPointIndex(r.routePoints, lat, lng)
+        const dist = haversineDistance(r.routePoints[idx], { lat, lon: lng })
+        if (dist < bestDist) { bestDist = dist; bestIdx = idx; bestRouteIdx = ri }
+      })
+      const primaryRoute = this.routes[bestRouteIdx]
+      const bearing = bearingAtIndex(primaryRoute.routePoints, bestIdx)
+      const point = primaryRoute.routePoints[bestIdx]
+      const rawRouteIds = assignRoutesToMarker(lat, lng, this.routes)
+      const routeIds = ensureRouteIds(rawRouteIds, primaryRoute.id)
+      if (bestDist > FAR_FROM_ROUTE_M) this.onFarFromRoute?.(bestDist)
+      m.lat = lat
+      m.lon = lng
+      m.bearing = bearing
+      m.distanceFromStart = point.distanceFromStart
+      m.routeIds = routeIds
+      lm.setIcon(createSignIcon(m.type, bearing, m.status))
+      this.save()
+      this.onUpdate()
+    })
 
     const el = lm.getElement()
     if (!el) return

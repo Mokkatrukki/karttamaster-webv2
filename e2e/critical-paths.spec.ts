@@ -154,6 +154,71 @@ test.describe('Rooli-toggle', () => {
   })
 })
 
+test.describe('Drag-to-move — T37', () => {
+  test('merkki voidaan siirtää drag&drop — bearing + routeIds päivittyy', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    // Lisää merkki reitille
+    await page.click('#btn-add-sign')
+    await page.waitForTimeout(300)
+    await page.click('.sign-type-btn[data-type="right"]')
+    await page.waitForTimeout(300)
+    const routePath = page.locator('.leaflet-overlay-pane path').first()
+    const routeBox = await routePath.boundingBox()
+    expect(routeBox).not.toBeNull()
+    const mapBox = await page.locator('#map').boundingBox()
+    expect(mapBox).not.toBeNull()
+    const clickX = Math.round(routeBox!.x + routeBox!.width * 0.15 - mapBox!.x)
+    const clickY = Math.round(routeBox!.y + routeBox!.height * 0.5 - mapBox!.y)
+    await page.click('#map', { position: { x: clickX, y: clickY }, timeout: 10000 })
+    await page.waitForTimeout(800)
+
+    // Lue alkuperäinen sijainti
+    const lsBefore = await page.evaluate(() => localStorage.getItem('karttamaster-markers'))
+    const dataBefore = JSON.parse(lsBefore!)
+    expect(dataBefore.markers.length).toBeGreaterThan(0)
+    const latBefore = dataBefore.markers[0].lat
+    const lonBefore = dataBefore.markers[0].lon
+
+    // Reload — merkki latautuu ilman arm-tilaa → drag käytössä
+    await page.reload()
+    await page.waitForTimeout(1500)
+
+    // Hae marker-elementti kartalla
+    const markerEl = page.locator('.leaflet-marker-pane .leaflet-marker-icon').first()
+    const markerBox = await markerEl.boundingBox()
+    expect(markerBox).not.toBeNull()
+
+    const startX = markerBox!.x + markerBox!.width / 2
+    const startY = markerBox!.y + markerBox!.height / 2
+
+    // Drag 120px oikealle ja 60px alas
+    await page.mouse.move(startX, startY)
+    await page.mouse.down()
+    await page.mouse.move(startX + 40, startY + 20, { steps: 5 })
+    await page.mouse.move(startX + 80, startY + 40, { steps: 5 })
+    await page.mouse.move(startX + 120, startY + 60, { steps: 5 })
+    await page.mouse.up()
+    await page.waitForTimeout(800)
+
+    // Tarkista localStorage — sijainti muuttunut
+    const lsAfter = await page.evaluate(() => localStorage.getItem('karttamaster-markers'))
+    const dataAfter = JSON.parse(lsAfter!)
+    expect(dataAfter.markers.length).toBeGreaterThan(0)
+    const latAfter = dataAfter.markers[0].lat
+    const lonAfter = dataAfter.markers[0].lon
+
+    // Sijainti muuttunut (V15)
+    const positionChanged = Math.abs(latAfter - latBefore) > 0.00001 || Math.abs(lonAfter - lonBefore) > 0.00001
+    expect(positionChanged).toBe(true)
+
+    // routeIds ei koskaan tyhjä (V21)
+    expect(dataAfter.markers[0].routeIds.length).toBeGreaterThan(0)
+  })
+})
+
 test.describe('Touch targets — T45', () => {
   test('kaikki napit ≥44px mobiililla (375px)', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 })

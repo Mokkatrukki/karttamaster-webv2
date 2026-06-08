@@ -47,6 +47,7 @@ export class MarkerInteraction {
     private onRemove: (id: string) => void,
     private onSave: () => void,
     private onUpdate: () => void,
+    private onArmChange?: (armedId: string | null) => void,
   ) {
     MarkerInteraction.injectStyles()
   }
@@ -59,6 +60,7 @@ export class MarkerInteraction {
     this._armedId = id
     const el = this.leafletMarkers.get(id)?.getElement()
     if (el) el.classList.add('marker-armed')
+    this.onArmChange?.(id)
     setTimeout(() => {
       document.addEventListener('mousedown', this.handleArmOutsideClick)
       document.addEventListener('touchstart', this.handleArmOutsideClick)
@@ -72,6 +74,7 @@ export class MarkerInteraction {
     this._armedId = null
     document.removeEventListener('mousedown', this.handleArmOutsideClick)
     document.removeEventListener('touchstart', this.handleArmOutsideClick)
+    this.onArmChange?.(null)
   }
 
   startRotation(id: string): void {
