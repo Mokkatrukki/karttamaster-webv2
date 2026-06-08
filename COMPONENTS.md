@@ -58,7 +58,8 @@ server/       ← Hono + Bun + SQLite (tulossa)
 | SnapshotPanel | `src/ui/snapshot-panel.ts` | ○ T50 | — | [ui.md](docs/components/ui.md) |
 | GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30 | critical-paths: "GPS-paikannin" | [map.md](docs/components/map.md) |
 | BackendServer | `server/index.ts` | ○ T41 | — | [backend.md](docs/components/backend.md) |
-| AuthRoutes | `server/routes/auth.ts` | ○ T36 | — | [backend.md](docs/components/backend.md) |
+| AuthRoutes | `server/routes/auth.ts` | ✓ T36 | — | [backend.md](docs/components/backend.md) |
+| AdminRoutes | `server/routes/admin.ts` | ✓ T36 (users/invites/codes) | — | [backend.md](docs/components/backend.md) |
 | MarkersAPI | `server/routes/markers.ts` | ○ T47 | — | [backend.md](docs/components/backend.md) |
 | MapStateAPI | `server/routes/admin.ts` | ○ T48 | — | [backend.md](docs/components/backend.md) |
 | OfflineManager | `public/sw.js` | ○ T18 | — | [backend.md](docs/components/backend.md) |
@@ -70,7 +71,9 @@ server/       ← Hono + Bun + SQLite (tulossa)
 ## MVP-rajaus
 
 **Vaihe 1 — Frontend MVP** (ei backendiä, yksi laite):
-Taskit: T7, T8, T9, T10, T11, T12, T29, T32
+Taskit: T8, T9, T10, T11, T12, T29, T32 — **VALMIS ✓**
+
+**T7 — myöhemmin/tarvittaessa**: GPX-tiedostot 3+4 ei välttämättä saatavilla ajoissa. Lisätään kun tiedostot olemassa.
 
 **Vaihe 2a — Backend core** (multi-device, auth, kartta-tila):
 Taskit: T41 (server setup) → T36 (auth) → T47 (markers API) → T48 (kartta-tila BE) → T49 (kartta-tila UI) → T50 (snapshots) → T51 (auth screen UI)

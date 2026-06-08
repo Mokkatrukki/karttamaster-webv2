@@ -2,16 +2,22 @@ import { randomUUID } from 'crypto'
 import type { Database } from 'bun:sqlite'
 import type { Role } from './types'
 
+// cost 4 = fastest valid bcrypt for tests (~1ms vs ~100ms at cost 10)
+export const TEST_PASSWORD = 'test-salasana-123'
+const TEST_PASSWORD_HASH = Bun.password.hashSync(TEST_PASSWORD, { algorithm: 'bcrypt', cost: 4 })
+
 export const TEST_USERS = {
   admin: {
     username: 'test-admin',
-    passwordHash: '$2b$10$test.hash.admin.placeholder',
+    password: TEST_PASSWORD,
+    passwordHash: TEST_PASSWORD_HASH,
     role: 'admin' as Role,
     displayName: 'Testi Admin',
   },
   järjestäjä: {
     username: 'test-jarjestaja',
-    passwordHash: '$2b$10$test.hash.jarj.placeholder',
+    password: TEST_PASSWORD,
+    passwordHash: TEST_PASSWORD_HASH,
     role: 'järjestäjä' as Role,
     displayName: 'Testi Järjestäjä',
   },
