@@ -126,7 +126,9 @@ metsässä, hanskat kädessä.
 ### Route-bar (`#route-bar`)
 - Kiinteä alareuna, `z-index: 100`
 - Tausta: `bg-primary`, shadow ylöspäin
-- Navigointipainikkeet (`btn-route-prev/next`): `min-height: 36px` — nostettava 44px:ään
+- Navigointipainikkeet (`btn-route-prev/next`): `min-height: 44px` ✓
+- Route-tab-drive: `min-height: 44px` ✓ (T45)
+- Route-tab-vis (eye-icon): `width: 44px; min-height: 44px` ✓ (T45)
 
 ### Dropdownit (`#sign-type-dropdown`, `#floating-picker`)
 - Tausta: `bg-card`, border: `border-default`, `border-radius: 10px`
@@ -185,16 +187,13 @@ metsässä, hanskat kädessä.
 
 ## §B Tunnetut UX-velat (kirjattu init-auditoinnissa 2026-06-07)
 
-| ID  | Ongelma                                              | Kriittisyys |
-|-----|------------------------------------------------------|-------------|
-| U1  | `button` global: ei `min-height: 44px` → toolbar-napit liian pieniä | Korkea |
-| U2  | `#btn-route-prev/next`: `min-height: 36px` → alle touch-targetin | Korkea |
-| U3  | `#btn-modal-close`: `padding: 4px 8px` → paljon alle 44px | Korkea |
-| U4  | `aria-label` puuttuu: btn-modal-close, btn-route-prev/next, route-tab-vis | Keski |
-| U5  | Border-radius epäyhtenäinen: 6px / 7px / 10px / 14px sekaisin | Matala |
-
-**U1–U3 korjataan ennen seuraavaa kenttätestausta.** Talkoolainen metsässä ei pääse
-pieniin nappeihin hanskat kädessä.
+| ID  | Ongelma                                              | Kriittisyys | Status |
+|-----|------------------------------------------------------|-------------|--------|
+| U1  | `button` global: ei `min-height: 44px` → toolbar-napit liian pieniä | Korkea | ✓ korjattu |
+| U2  | `#btn-route-prev/next`: `min-height: 36px` → alle touch-targetin | Korkea | ✓ korjattu |
+| U3  | `#btn-modal-close`: `padding: 4px 8px` → paljon alle 44px | Korkea | ✓ korjattu |
+| U4  | `aria-label` puuttuu: btn-modal-close, btn-route-prev/next, route-tab-vis | Keski | auki |
+| U5  | Border-radius epäyhtenäinen: 6px / 7px / 10px / 14px sekaisin | Matala | auki |
 
 ---
 
