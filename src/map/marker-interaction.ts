@@ -29,12 +29,13 @@ export class MarkerInteraction {
     this.onSave()
     this.onUpdate()
   }
-  private readonly handleArmOutsideClick = (e: Event) => {
-    const armedEl = this._armedId
-      ? this.leafletMarkers.get(this._armedId)?.getElement()
-      : null
-    if (armedEl?.contains(e.target as Node)) return
-    this.disarm()
+  private readonly handleEscKey = (e: KeyboardEvent) => {
+    if (e.key !== 'Escape') return
+    if (this.rotatingId) {
+      this.handleRotateEnd()
+    } else {
+      this.disarm()
+    }
   }
   private readonly handleMenuOutside = () => {
     this.hideContextMenu()
@@ -57,14 +58,12 @@ export class MarkerInteraction {
   get activeContextMenuMarkerId(): string | null { return this._contextMenuMarkerId }
 
   arm(id: string): void {
+    this.disarm()
     this._armedId = id
     const el = this.leafletMarkers.get(id)?.getElement()
     if (el) el.classList.add('marker-armed')
     this.onArmChange?.(id)
-    setTimeout(() => {
-      document.addEventListener('mousedown', this.handleArmOutsideClick)
-      document.addEventListener('touchstart', this.handleArmOutsideClick)
-    }, 0)
+    document.addEventListener('keydown', this.handleEscKey)
   }
 
   disarm(): void {
@@ -72,8 +71,7 @@ export class MarkerInteraction {
     const el = this.leafletMarkers.get(this._armedId)?.getElement()
     if (el) el.classList.remove('marker-armed')
     this._armedId = null
-    document.removeEventListener('mousedown', this.handleArmOutsideClick)
-    document.removeEventListener('touchstart', this.handleArmOutsideClick)
+    document.removeEventListener('keydown', this.handleEscKey)
     this.onArmChange?.(null)
   }
 

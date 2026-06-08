@@ -154,6 +154,41 @@ test.describe('Rooli-toggle', () => {
   })
 })
 
+test.describe('Rotation arm sticky — T40', () => {
+  test('karttaklikki ei poista armia — Esc poistaa', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    // Lisää merkki — se on heti armed
+    await page.click('#btn-add-sign')
+    await page.waitForTimeout(300)
+    await page.click('.sign-type-btn[data-type="right"]')
+    await page.waitForTimeout(300)
+    const routePath = page.locator('.leaflet-overlay-pane path').first()
+    const routeBox = await routePath.boundingBox()
+    const mapBox = await page.locator('#map').boundingBox()
+    const clickX = Math.round(routeBox!.x + routeBox!.width * 0.15 - mapBox!.x)
+    const clickY = Math.round(routeBox!.y + routeBox!.height * 0.5 - mapBox!.y)
+    await page.click('#map', { position: { x: clickX, y: clickY }, timeout: 10000 })
+    await page.waitForTimeout(800)
+
+    // Merkki on armed (marker-armed class)
+    const armedLocator = page.locator('.leaflet-marker-pane .leaflet-marker-icon.marker-armed')
+    await expect(armedLocator).toBeVisible()
+
+    // Klikkaa karttaa kaukana merkistä — arm EI saa poistua (V16)
+    await page.click('#map', { position: { x: 100, y: 100 } })
+    await page.waitForTimeout(300)
+    await expect(armedLocator).toBeVisible()
+
+    // Esc poistaa armin
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(300)
+    await expect(armedLocator).not.toBeVisible()
+  })
+})
+
 test.describe('Drag-to-move — T37', () => {
   test('merkki voidaan siirtää drag&drop — bearing + routeIds päivittyy', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 })
