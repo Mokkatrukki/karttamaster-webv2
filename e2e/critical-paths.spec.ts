@@ -254,6 +254,40 @@ test.describe('Drag-to-move — T37', () => {
   })
 })
 
+test.describe('GPS-paikannin — T30', () => {
+  test('GPS-nappi käynnistää paikannus — piste ilmestyy kartalle', async ({ browser }) => {
+    const context = await browser.newContext({
+      permissions: ['geolocation'],
+      geolocation: { latitude: 65.627, longitude: 27.628 },
+    })
+    const page = await context.newPage()
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    // Alkutila: GPS ei aktiivinen
+    await expect(page.locator('#btn-gps')).not.toHaveClass(/gps-active/)
+
+    // Käynnistä GPS
+    await page.click('#btn-gps')
+    await page.waitForTimeout(800)
+
+    // Nappi on aktiivinen
+    await expect(page.locator('#btn-gps')).toHaveClass(/gps-active/)
+
+    // GPS-piste (.gps-dot) ilmestyy kartalle
+    await expect(page.locator('.leaflet-overlay-pane .gps-dot')).toBeVisible()
+
+    // Pysäytä GPS
+    await page.click('#btn-gps')
+    await page.waitForTimeout(300)
+    await expect(page.locator('#btn-gps')).not.toHaveClass(/gps-active/)
+    await expect(page.locator('.leaflet-overlay-pane .gps-dot')).not.toBeVisible()
+
+    await context.close()
+  })
+})
+
 test.describe('Touch targets — T45', () => {
   test('kaikki napit ≥44px mobiililla (375px)', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 })

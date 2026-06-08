@@ -488,6 +488,10 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
 }
 #btn-layer:hover { background: rgba(255, 255, 255, 0.14) !important; }
 
+#btn-gps { background: transparent; color: var(--text-muted); border: 1px solid var(--border-default); font-size: 12px; }
+#btn-gps.gps-active { background: #1d4ed8; color: #fff; border-color: transparent; }
+#btn-gps:hover:not(.gps-active) { background: var(--hover-light); }
+
 /* ── Marker status badge ── */
 
 .marker-status {

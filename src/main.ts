@@ -11,6 +11,7 @@ import { renderMarkerList } from './ui/marker-list'
 import { RoleSelector } from './ui/role-selector'
 import { TILE_LAYERS } from './logic/tile-layers'
 import { loadMarkers } from './logic/persistence'
+import { GpsNavigator } from './map/gps-navigator'
 import type { RouteConfig } from './logic/multi-route'
 
 export const ROUTE_DEFS: Omit<RouteConfig, 'routePoints'>[] = [
@@ -47,6 +48,20 @@ if (btnLayer) {
     currentTileLayer = L.tileLayer(cfg.urlTemplate, { attribution: cfg.attribution, maxZoom: cfg.maxZoom }).addTo(map)
     localStorage.setItem(LS_KEY, cfg.id)
     btnLayer.textContent = cfg.label
+  })
+}
+
+const gpsNavigator = new GpsNavigator(map)
+const btnGps = document.getElementById('btn-gps')
+if (btnGps) {
+  btnGps.addEventListener('click', () => {
+    if (gpsNavigator.isActive()) {
+      gpsNavigator.stop()
+      btnGps.classList.remove('gps-active')
+    } else {
+      gpsNavigator.start()
+      btnGps.classList.add('gps-active')
+    }
   })
 }
 

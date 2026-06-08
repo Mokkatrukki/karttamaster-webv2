@@ -34,8 +34,8 @@ server/       ← Hono + Bun + SQLite (tulossa)
 | Types | `src/logic/types.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
 | SignIcon | `src/map/icons.ts` | ✓ valmis | critical-paths: "toolbar-dropdown" | [map.md](docs/components/map.md) |
 | DriveMode | `src/map/drive.ts` | ✓ valmis | critical-paths: "Drive mode" | [map.md](docs/components/map.md) |
-| MarkerManager | `src/map/markers.ts` | ✓+T37,T38,B1 | critical-paths: "Merkki kartalle" | [map.md](docs/components/map.md) |
-| MarkerInteraction | `src/map/marker-interaction.ts` 189 riv | ✓+T40 | critical-paths: "dblclick" | [map.md](docs/components/map.md) |
+| MarkerManager | `src/map/markers.ts` | ✓+T38,B1 | critical-paths: "Merkki kartalle", "Drag-to-move" | [map.md](docs/components/map.md) |
+| MarkerInteraction | `src/map/marker-interaction.ts` 192 riv | ✓ | critical-paths: "dblclick", "Rotation arm sticky" | [map.md](docs/components/map.md) |
 | MarkerListUI | `src/ui/marker-list.ts` | ✓ T11,T24 | — | [ui.md](docs/components/ui.md) |
 | RouteBar | `src/map/route-bar.ts` 108 riv | ✓ pilkko | — | [map.md](docs/components/map.md) |
 | ProgressBar | `src/ui/progress-bar.ts` | ✓ pilkko | critical-paths: "Drive mode" | [ui.md](docs/components/ui.md) |
@@ -47,13 +47,14 @@ server/       ← Hono + Bun + SQLite (tulossa)
 | SegmentManager | `src/logic/segments.ts` | ○ T13 | — | [logic.md](docs/components/logic.md) |
 | RoleController | `src/logic/role.ts` | ✓ T12 | critical-paths: "Rooli-toggle" | [logic.md](docs/components/logic.md) |
 | SituationLogic | `src/logic/situation.ts` | ○ T15 | — | [logic.md](docs/components/logic.md) |
+| NavigationLogic | `src/logic/navigation.ts` | ✓ T16 | — | [logic.md](docs/components/logic.md) |
 | SignLibraryPanel | `src/ui/sign-library-panel.ts` | ○ T22 | — | [ui.md](docs/components/ui.md) |
 | RoleSelector | `src/ui/role-selector.ts` | ✓ T12 | critical-paths: "Rooli-toggle" | [ui.md](docs/components/ui.md) |
 | SegmentPanel | `src/ui/segment-panel.ts` | ○ T25 | — | [ui.md](docs/components/ui.md) |
 | SituationDashboard | `src/ui/situation-dashboard.ts` | ○ T28 | — | [ui.md](docs/components/ui.md) |
 | EquipmentList | `src/ui/equipment-list.ts` | ○ T27 | — | [ui.md](docs/components/ui.md) |
 | AuthScreen | `src/ui/auth-screen.ts` | ○ T36 | — | [ui.md](docs/components/ui.md) |
-| GpsNavigator | `src/map/gps-navigator.ts` | ○ T30 | — (lisätään T30:ssa) | [map.md](docs/components/map.md) |
+| GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30 | critical-paths: "GPS-paikannin" | [map.md](docs/components/map.md) |
 | BackendAPI | `server/` | ○ ei taskia | — | [backend.md](docs/components/backend.md) |
 | OfflineManager | `public/sw.js` | ○ T18 | — | [backend.md](docs/components/backend.md) |
 | AuthController | `src/logic/auth.ts` | ○ T36 | — | [backend.md](docs/components/backend.md) |
