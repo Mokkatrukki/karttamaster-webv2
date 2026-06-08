@@ -245,6 +245,29 @@ describe('T36: Auth-reittit', () => {
       expect(res2.status).toBe(400)
     })
 
+    test('register → uusi järjestäjä voi kirjautua loginilla', async () => {
+      const inviteRes = await makeApp(db).request('/api/admin/invites', {
+        method: 'POST',
+        headers: authHeaders(db, 'admin'),
+      })
+      const { token } = await inviteRes.json() as { token: string }
+
+      await makeApp(db).request('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, username: 'jarjestaja2', password: 'uusi-salasana' }),
+      })
+
+      const loginRes = await makeApp(db).request('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'jarjestaja2', password: 'uusi-salasana' }),
+      })
+      expect(loginRes.status).toBe(200)
+      const body = await loginRes.json() as { role: string }
+      expect(body.role).toBe('järjestäjä')
+    })
+
     test('POST /api/auth/register → username conflict → 409', async () => {
       const inviteRes = await makeApp(db).request('/api/admin/invites', {
         method: 'POST',
