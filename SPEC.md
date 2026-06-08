@@ -72,7 +72,7 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | T13 | . | Pätkä data model: alku/loppu distanceFromStart per route, jatkuvuus-validointi (Vitest-pure) | V11 |
 | T14 | . | Talkoolaisen pätkänäkymä: filtteröity kartta + merkkilista omalta pätkältä | V11,T12,T13 |
 | T15 | . | Tilannekuva-logiikka: laske % per status per reitti (Vitest-pure) | V9 |
-| T16 | . | Navigointilogiikka: nearestUnsetMarker, distanceToNext (Vitest-pure) | V9 |
+| T16 | ✓ | Navigointilogiikka: uusi `src/logic/navigation.ts`. `nearestUnsetMarker(markers: SignMarker[], currentDist: number, routeId: string): SignMarker | null` — pienin |distanceFromStart−currentDist| jolla status==='suunniteltu' JA routeIds sisältää routeId. `distanceToNext(markers: SignMarker[], currentDist: number, routeId: string): number | null` — etäisyys metreinä lähimpään 'suunniteltu'-merkkiin, null jos ei löydy. Testattavuus: Vitest-pure (pakollinen). Käyttäjä: talkoolainen. Avaa: T31. | V9 |
 | T17 | . | Jälkikäteinen kuittaus: talkoolainen merkkaa listasta useita kerralla | V9,T10 |
 | T18 | . | Offline-tuki: oma pätkä ladattavissa (PWA + service worker) | §C |
 | T19 | . | Purkupätkä: lähtösuunnan valinta, merkit kerätään käänteisessä järjestyksessä | V11,T10 |
