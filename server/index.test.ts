@@ -2,9 +2,8 @@ import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
 import { Hono } from 'hono'
 import { createDb, seedAdmin } from './db'
 import { dbMiddleware, requireAuth, requireRole } from './middleware/auth'
+import { seedTestUsers, makeTestSession, authHeaders } from './test-fixtures'
 import type { Database } from 'bun:sqlite'
-import { setCookie } from 'hono/cookie'
-import { randomUUID } from 'crypto'
 
 function makeApp(db: Database) {
   const app = new Hono()
@@ -15,25 +14,12 @@ function makeApp(db: Database) {
   return app
 }
 
-function insertSession(
-  db: Database,
-  role: 'admin' | 'järjestäjä' | 'talkoolainen',
-  expiresOffset = 3600
-): string {
-  const id = randomUUID()
-  const expires = new Date(Date.now() + expiresOffset * 1000).toISOString()
-  db.run(
-    'INSERT INTO sessions (id, user_id, talkoolainen_code, role, display_name, expires_at) VALUES (?, ?, ?, ?, ?, ?)',
-    [id, null, null, role, 'Testi', expires]
-  )
-  return id
-}
-
 describe('T41: Backend server-perusta', () => {
   let db: Database
 
   beforeEach(() => {
     db = createDb(':memory:')
+    seedTestUsers(db)
   })
 
   afterEach(() => {
@@ -42,20 +28,15 @@ describe('T41: Backend server-perusta', () => {
 
   describe('GET /api/health', () => {
     test('returns 200 with ok:true', async () => {
-      const app = makeApp(db)
-      const res = await app.request('/api/health')
+      const res = await makeApp(db).request('/api/health')
       expect(res.status).toBe(200)
-      const body = await res.json()
-      expect(body).toEqual({ ok: true })
+      expect(await res.json()).toEqual({ ok: true })
     })
   })
 
   describe('schema init', () => {
     test('idempotent — second createDb does not throw', () => {
-      expect(() => {
-        const db2 = createDb(':memory:')
-        db2.close()
-      }).not.toThrow()
+      expect(() => { const d = createDb(':memory:'); d.close() }).not.toThrow()
     })
 
     test('map_state seeded with luonnos', () => {
@@ -65,7 +46,7 @@ describe('T41: Backend server-perusta', () => {
       expect(row?.value).toBe('luonnos')
     })
 
-    test('map_state insert idempotent — no duplicate', () => {
+    test('map_state init idempotent — no duplicate status row', () => {
       const db2 = createDb(':memory:')
       const count = db2.query<{ count: number }, []>(
         "SELECT COUNT(*) as count FROM map_state WHERE key='status'"
@@ -77,62 +58,64 @@ describe('T41: Backend server-perusta', () => {
 
   describe('seedAdmin', () => {
     test('creates admin user from env', () => {
-      process.env.ADMIN_USERNAME = 'testadmin'
+      const db2 = createDb(':memory:')
+      process.env.ADMIN_USERNAME = 'prodadmin'
       process.env.ADMIN_PASSWORD_HASH = '$2b$10$fakehash'
-      seedAdmin(db)
-      const user = db.query<{ role: string }, [string]>(
+      seedAdmin(db2)
+      const user = db2.query<{ role: string }, [string]>(
         'SELECT role FROM users WHERE username = ?'
-      ).get('testadmin')
+      ).get('prodadmin')
       expect(user?.role).toBe('admin')
       delete process.env.ADMIN_USERNAME
       delete process.env.ADMIN_PASSWORD_HASH
+      db2.close()
     })
 
     test('idempotent — does not create duplicate', () => {
-      process.env.ADMIN_USERNAME = 'testadmin'
+      const db2 = createDb(':memory:')
+      process.env.ADMIN_USERNAME = 'prodadmin'
       process.env.ADMIN_PASSWORD_HASH = '$2b$10$fakehash'
-      seedAdmin(db)
-      seedAdmin(db)
-      const count = db.query<{ count: number }, [string]>(
+      seedAdmin(db2)
+      seedAdmin(db2)
+      const count = db2.query<{ count: number }, [string]>(
         'SELECT COUNT(*) as count FROM users WHERE username = ?'
-      ).get('testadmin')
+      ).get('prodadmin')
       expect(count?.count).toBe(1)
       delete process.env.ADMIN_USERNAME
       delete process.env.ADMIN_PASSWORD_HASH
+      db2.close()
     })
 
     test('no-op when env vars missing', () => {
       delete process.env.ADMIN_USERNAME
       delete process.env.ADMIN_PASSWORD_HASH
-      expect(() => seedAdmin(db)).not.toThrow()
-      const count = db.query<{ count: number }, []>(
+      const db2 = createDb(':memory:')
+      expect(() => seedAdmin(db2)).not.toThrow()
+      const count = db2.query<{ count: number }, []>(
         'SELECT COUNT(*) as count FROM users'
       ).get()
       expect(count?.count).toBe(0)
+      db2.close()
     })
   })
 
   describe('requireAuth middleware', () => {
     test('rejects request without session cookie → 401', async () => {
-      const app = makeApp(db)
-      const res = await app.request('/api/protected')
+      const res = await makeApp(db).request('/api/protected')
       expect(res.status).toBe(401)
     })
 
     test('rejects expired session → 401', async () => {
-      const id = insertSession(db, 'admin', -1)
-      const app = makeApp(db)
-      const res = await app.request('/api/protected', {
+      const id = makeTestSession(db, 'admin', -1)
+      const res = await makeApp(db).request('/api/protected', {
         headers: { Cookie: `session=${id}` },
       })
       expect(res.status).toBe(401)
     })
 
     test('accepts valid session → 200', async () => {
-      const id = insertSession(db, 'admin')
-      const app = makeApp(db)
-      const res = await app.request('/api/protected', {
-        headers: { Cookie: `session=${id}` },
+      const res = await makeApp(db).request('/api/protected', {
+        headers: authHeaders(db, 'admin'),
       })
       expect(res.status).toBe(200)
     })
@@ -140,28 +123,22 @@ describe('T41: Backend server-perusta', () => {
 
   describe('requireRole middleware', () => {
     test('admin can access admin-only route', async () => {
-      const id = insertSession(db, 'admin')
-      const app = makeApp(db)
-      const res = await app.request('/api/admin-only', {
-        headers: { Cookie: `session=${id}` },
+      const res = await makeApp(db).request('/api/admin-only', {
+        headers: authHeaders(db, 'admin'),
       })
       expect(res.status).toBe(200)
     })
 
     test('talkoolainen blocked from admin-only route → 403', async () => {
-      const id = insertSession(db, 'talkoolainen')
-      const app = makeApp(db)
-      const res = await app.request('/api/admin-only', {
-        headers: { Cookie: `session=${id}` },
+      const res = await makeApp(db).request('/api/admin-only', {
+        headers: authHeaders(db, 'talkoolainen'),
       })
       expect(res.status).toBe(403)
     })
 
     test('järjestäjä blocked from admin-only route → 403', async () => {
-      const id = insertSession(db, 'järjestäjä')
-      const app = makeApp(db)
-      const res = await app.request('/api/admin-only', {
-        headers: { Cookie: `session=${id}` },
+      const res = await makeApp(db).request('/api/admin-only', {
+        headers: authHeaders(db, 'järjestäjä'),
       })
       expect(res.status).toBe(403)
     })

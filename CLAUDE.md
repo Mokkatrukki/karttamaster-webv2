@@ -88,6 +88,7 @@ beforeEach(() => {
 - `src/map/` — ohut Leaflet-glue → Playwright
 - `src/ui/` — DOM ilman Leafletia → Vitest-jsdom
 - `src/main.ts` — vain init + wiring, max ~80 riviä
+- `server/` — Hono + SQLite, EI src/-importteja → Bun integraatiotestit (`bun test server/`)
 
 Logiikka väärässä kerroksessa = bugi. Kutsu `/karttamaster-arkkitehtuuri`.
 
@@ -99,8 +100,16 @@ Logiikka väärässä kerroksessa = bugi. Kutsu `/karttamaster-arkkitehtuuri`.
 ## Testaus
 
 ```bash
-bun run test          # kaikki testit
-bun run test:watch    # watch mode
+bun run test                              # Vitest (Taso 1+2 — src/)
+bun run test:watch                        # watch mode
+bun test server/                          # Bun integraatiotestit (Taso 4 — server/)
+bunx playwright test e2e/ --browser=chromium  # Playwright E2E (Taso 3)
 ```
 
 `↓`-rivit = todo-testit, ei regression.
+
+**E2E-testit:** `e2e/`-hakemisto, `playwright.config.ts`. Käynnistä dev-serveri ensin (`bun run dev`).
+`src/map/`-muutos tai kriittinen käyttäjäpolku → playwright-cli -validointi pakollinen ennen ✓.
+
+**Server-testit (Taso 4):** käytä aina `server/test-fixtures.ts` — `seedTestUsers` + `authHeaders`.
+Katso pohja: `docs/components/backend.md` → "Testiapurit".

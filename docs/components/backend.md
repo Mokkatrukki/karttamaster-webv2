@@ -33,6 +33,8 @@ Proxy:      nginx → /api/* → Hono (Fly.io)
 server/
   index.ts            ← Hono app + routes wiring
   db.ts               ← SQLite yhteys + schema init + migrations
+  types.ts            ← jaetut tyypit: Role, SessionData, User
+  test-fixtures.ts    ← testiapurit (seedTestUsers, authHeaders, makeTestSession)
   middleware/
     auth.ts           ← session check, role gate
   routes/
@@ -351,25 +353,56 @@ Polling (tilannekuva):
 
 ---
 
+## Testiapurit — `server/test-fixtures.ts`
+
+**Kaikki server-testit käyttävät näitä.** Älä kirjoita boilerplate setup-koodia suoraan testeihin.
+
+```typescript
+import { createDb } from './db'
+import { seedTestUsers, authHeaders, makeTestSession, TEST_USERS } from './test-fixtures'
+
+// Setup joka testissä:
+let db: Database
+beforeEach(() => { db = createDb(':memory:'); seedTestUsers(db) })
+afterEach(() => db.close())
+
+// Auth headerit:
+authHeaders(db, 'admin')          // { Cookie: 'session=...' }
+authHeaders(db, 'järjestäjä')
+authHeaders(db, 'talkoolainen')
+
+// Vanhentunut sessio:
+makeTestSession(db, 'admin', -1)  // expiresOffset negatiivinen
+
+// Vakiotunnukset:
+TEST_USERS.admin.username         // 'test-admin'
+TEST_USERS.järjestäjä.displayName // 'Testi Järjestäjä'
+TEST_USERS.talkoolainen.code      // 'TEST-KOODI-1'
+```
+
+**Ajotapa:** `bun test server/` — ei Vitest.
+
+---
+
 ## BackendAPI
 
 **Vastuu:** Merkkidatan, auth-sessionien ja kartta-tilan hallinta
 **Käyttäjä:** molemmat (läpinäkyvä — PersistenceLayer kutsuu)
-**Moduuli:** `server/` *(ei vielä)*
-**Testattavuus:** Bun integraatiotestit (oikea SQLite, in-memory)
+**Moduuli:** `server/`
+**Testattavuus:** Bun integraatiotestit (in-memory SQLite) — käytä `test-fixtures.ts`
 
-### Ominaisuudet
-*(kaikki tulossa)*
+### Valmis (T41 ✓)
+- [x] Hono + SQLite setup + schema (T41)
+- [x] Seed admin env-muuttujista — idempotent (T41)
+- [x] Auth-middleware: session cookie check + role gate (T41)
+- [x] `GET /api/health` → 200 (T41)
 
 ### Tulossa (Vaihe 2a)
-- [ ] Hono + SQLite setup + schema (T41)
-- [ ] Markers CRUD + rooli-gate (T41)
-- [ ] Seed admin (env-muuttujat) (T41)
-- [ ] Session auth: admin/järjestäjä + talkoolainen-koodi (T36 uudelleenspeksattu)
+- [ ] Session auth: admin/järjestäjä + talkoolainen-koodi (T36)
 - [ ] Invite-flow järjestäjälle (T36)
-- [ ] Kartta-tila luonnos/hyväksytty (uusi task)
-- [ ] Snapshot approve-vaiheessa + manual (uusi task)
-- [ ] Snapshot restore (uusi task)
+- [ ] Kartta-tila luonnos/hyväksytty (T48)
+- [ ] Snapshot approve-vaiheessa + manual (T50)
+- [ ] Snapshot restore (T50)
 
 ### Käyttäjätarkistus
 > Talkoolainen: syöttää koodin → suoraan omaan pätkänäkymään. Koodi riittää uudelleenkirjautumiseen. ✓

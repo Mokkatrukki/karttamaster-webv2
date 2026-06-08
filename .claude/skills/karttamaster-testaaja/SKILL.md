@@ -119,12 +119,80 @@ describe('renderMarkerList', () => {
 ### Taso 3: Playwright (hidas, kallis — minimoi)
 **Milloin:** `src/map/`-komponentti tai kriittinen käyttäjäpolku vaatii oikean Leaflet-kartan.
 
-**Hyväksyttäviä Playwright-testejä:**
-- Merkki asetetaan kartalle → näkyy merkkilistassa
-- Drive mode käynnistyy, eteneminen toimii
-- GPS-navigointi näyttää seuraavan merkin (kun T30 valmis)
+**PAKOLLINEN WORKFLOW — aina ennen Taso 3 -testin kirjoittamista:**
+
+```bash
+# 1. Käynnistä dev-serveri (jos ei pyöri)
+bun run dev &
+
+# 2. Aja olemassa olevat E2E-testit — kaikki vihreänä ennen muutoksia
+bunx playwright test e2e/ --browser=chromium --reporter=line
+
+# 3. Kirjoita uusi testi e2e/-hakemistoon
+# 4. Aja uusi testi — varmista pass
+bunx playwright test e2e/uusi.spec.ts --browser=chromium
+
+# 5. Kuvakaappaus epäselvissä tilanteissa
+bunx playwright screenshot http://localhost:5173 /tmp/debug.png --browser=chromium
+```
+
+**E2E-testit sijaitsevat `e2e/`-hakemistossa** (ei `tests/`). Config: `playwright.config.ts`.
+
+**Kriittiset polut joille E2E-testi PAKOLLINEN:**
+- Merkki asetetaan kartalle → näkyy merkkilistassa (T46)
+- Drive mode käynnistyy + navigoi eteenpäin (T46)
+- Rooli-toggle muuttaa toolbaria (T46)
+- Ghost marker -varoitus näkyy kun klikki >500m reitistä (T44)
+- Touch targets ≥44px mobiililla 375px viewportilla (T45)
+
+**Touch target -validointi (aina mobiili-taskien jälkeen):**
+```typescript
+await page.setViewportSize({ width: 375, height: 812 })
+const buttons = await page.locator('button').all()
+for (const btn of buttons) {
+  const box = await btn.boundingBox()
+  const text = (await btn.innerText()).trim()
+  if (box) expect(Math.min(box.width, box.height), `TOUCH SMALL: "${text}"`).toBeGreaterThanOrEqual(44)
+}
+```
 
 **Ei Playwrightia:** `src/logic/`-logiikka, `src/ui/`-komponentit ilman karttaa.
+
+### Taso 4: Bun integraatiotesti (server/)
+**Milloin:** `server/`-koodi — Hono-reitit, SQLite-logiikka, auth-middleware.
+**Ajotapa:** `bun test server/` (ei vitest, ei playwright)
+**Testattavuus:** in-memory SQLite, ei verkkoyhteyttä, nopea.
+
+**Testifixturit — käytä aina `server/test-fixtures.ts`:**
+```typescript
+import { createDb } from './db'
+import { seedTestUsers, authHeaders, makeTestSession } from './test-fixtures'
+import type { Database } from 'bun:sqlite'
+
+let db: Database
+beforeEach(() => {
+  db = createDb(':memory:')
+  seedTestUsers(db)   // luo admin + järjestäjä + talkoolainen-koodi
+})
+afterEach(() => db.close())
+
+// Yksi rivi auth per testi:
+const res = await app.request('/api/jotain', { headers: authHeaders(db, 'admin') })
+const res = await app.request('/api/jotain', { headers: authHeaders(db, 'talkoolainen') })
+
+// Vanhentunut sessio:
+const id = makeTestSession(db, 'admin', -1)   // expiresOffset negatiivinen
+```
+
+**TEST_USERS** — vakiotunnukset joita kaikki server-testit käyttävät:
+```typescript
+import { TEST_USERS } from './test-fixtures'
+// TEST_USERS.admin.username, .role, .displayName
+// TEST_USERS.järjestäjä.username, .role, .displayName
+// TEST_USERS.talkoolainen.code, .displayName, .role
+```
+
+**Ei Bun-testiä:** `src/`-kansion koodi — käytä Vitest (Taso 1/2) tai Playwright (Taso 3).
 
 ---
 
