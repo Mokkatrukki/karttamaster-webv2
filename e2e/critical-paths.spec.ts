@@ -288,6 +288,85 @@ test.describe('GPS-paikannin — T30', () => {
   })
 })
 
+test.describe('Auth screen — T51', () => {
+  test('401 → login-lomake näkyy → järjestäjä kirjautuu → kartta näkyy', async ({ page }) => {
+    await page.route('/api/auth/me', route =>
+      route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'unauthorized' }) }),
+    )
+    await page.route('/api/auth/login', route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ role: 'järjestäjä', display_name: 'Admin' }) }),
+    )
+
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(500)
+
+    // Auth screen näkyy
+    await expect(page.locator('#auth-screen')).toHaveClass(/open/)
+    await expect(page.locator('#auth-form-jarjestaja')).toHaveClass(/active/)
+
+    // Täytä ja lähetä lomake
+    await page.fill('#auth-username', 'admin')
+    await page.fill('#auth-password', 'password')
+    await page.click('#auth-form-jarjestaja button[type="submit"]')
+    await page.waitForTimeout(500)
+
+    // Auth screen piilotettu, kartta näkyy
+    await expect(page.locator('#auth-screen')).not.toHaveClass(/open/)
+    await expect(page.locator('#map')).toBeVisible()
+  })
+
+  test('401 → talkoolainen-tab → talkoolaiskoodi → kirjautuminen', async ({ page }) => {
+    await page.route('/api/auth/me', route =>
+      route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'unauthorized' }) }),
+    )
+    await page.route('/api/auth/code-login', route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ role: 'talkoolainen', display_name: 'Talkoolainen 1' }) }),
+    )
+
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.goto('/')
+    await page.waitForTimeout(500)
+
+    // Vaihda talkoolainen-tabille
+    await page.click('[data-tab="talkoolainen"]')
+    await expect(page.locator('#auth-form-talkoolainen')).toHaveClass(/active/)
+
+    // Syötä koodi ja kirjaudu
+    await page.fill('#auth-code', 'ABC123')
+    await page.click('#auth-form-talkoolainen button[type="submit"]')
+    await page.waitForTimeout(500)
+
+    await expect(page.locator('#auth-screen')).not.toHaveClass(/open/)
+  })
+
+  test('väärä salasana → virheviesti näkyy', async ({ page }) => {
+    await page.route('/api/auth/me', route =>
+      route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'unauthorized' }) }),
+    )
+    await page.route('/api/auth/login', route =>
+      route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'invalid_credentials' }) }),
+    )
+
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(500)
+
+    await page.fill('#auth-username', 'wrong')
+    await page.fill('#auth-password', 'wrong')
+    await page.click('#auth-form-jarjestaja button[type="submit"]')
+    await page.waitForTimeout(300)
+
+    // Virheviesti
+    const errorText = await page.locator('#auth-error').innerText()
+    expect(errorText).toBeTruthy()
+    expect(errorText).toContain('Väärä')
+
+    // Auth screen yhä auki
+    await expect(page.locator('#auth-screen')).toHaveClass(/open/)
+  })
+})
+
 test.describe('Touch targets — T45', () => {
   test('kaikki napit ≥44px mobiililla (375px)', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 })

@@ -9,8 +9,10 @@ import { ProgressBar } from './ui/progress-bar'
 import { PlaceMode } from './ui/place-mode'
 import { renderMarkerList } from './ui/marker-list'
 import { RoleSelector } from './ui/role-selector'
+import { AuthScreen } from './ui/auth-screen'
 import { TILE_LAYERS } from './logic/tile-layers'
 import { loadMarkers } from './logic/persistence'
+import { setRole } from './logic/role'
 import { GpsNavigator } from './map/gps-navigator'
 import type { RouteConfig } from './logic/multi-route'
 
@@ -32,11 +34,6 @@ let currentTileLayer = L.tileLayer(TILE_LAYERS[activeLayerIdx].urlTemplate, {
 function applyRoleView(role: string): void {
   document.body.dataset.role = role
 }
-
-new RoleSelector(
-  document.getElementById('btn-role') as HTMLButtonElement,
-  applyRoleView,
-)
 
 const btnLayer = document.getElementById('btn-layer')
 if (btnLayer) {
@@ -174,4 +171,12 @@ async function init() {
   })
 }
 
-init().catch(console.error)
+const authScreen = new AuthScreen(({ role }) => {
+  setRole(role)
+  new RoleSelector(
+    document.getElementById('btn-role') as HTMLButtonElement,
+    applyRoleView,
+  )
+  init().catch(console.error)
+})
+authScreen.start().catch(console.error)
