@@ -10,9 +10,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --reporter=verbose 2>&1 | tail -30",
-    "test:ci": "vitest run --reporter=dot"
+    "test:ci": "vitest run --reporter=dot",
+    "test:server": "bun test server/",
+    "server": "bun server/index.ts"
   },
   "dependencies": {
+    "hono": "^4.12.23",
     "leaflet": "^1.9.4"
   },
   "devDependencies": {
