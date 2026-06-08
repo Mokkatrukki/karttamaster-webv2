@@ -88,7 +88,7 @@ export class MarkerManager {
     if (!m) return
     m.bearing = bearing
     const lm = this.leafletMarkers.get(id)
-    if (lm) lm.setIcon(createSignIcon(m.type, bearing))
+    if (lm) lm.setIcon(createSignIcon(m.type, bearing, m.status))
   }
 
   /** Returns markers visible under current visibleRouteIds, sorted by distanceFromStart */
@@ -129,6 +129,8 @@ export class MarkerManager {
     const m = this.markers.find((x) => x.id === id)
     if (!m) return
     m.status = transitionStatus(m.status, action)
+    const lm = this.leafletMarkers.get(id)
+    if (lm) lm.setIcon(createSignIcon(m.type, m.bearing, m.status))
     this.save()
     this.onUpdate()
   }
@@ -141,7 +143,7 @@ export class MarkerManager {
   }
 
   private addLeafletMarker(m: SignMarker): void {
-    const icon = createSignIcon(m.type, m.bearing)
+    const icon = createSignIcon(m.type, m.bearing, m.status)
     const lm = L.marker([m.lat, m.lon], { icon }).addTo(this.map)
     this.leafletMarkers.set(m.id, lm)
 

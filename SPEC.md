@@ -79,7 +79,7 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | T20 | . | Kasauspisteet: erikoismerkki "kasa tässä", merkitään haetuksi kerralla | V9,T10 |
 | T21 | . | Live tracking v1: laitteen GPS-sijainti näkyvissä itselle kartalla | §C,T30 |
 | T22 | . | SignLibrary UI paneeli: järjestäjä luo/muokkaa/poistaa SignTemplateja | T8,T9 |
-| T23 | . | Merkin status-kuvake kartalla: `createSignIcon(type, bearing, status)` — opacity 0.45 suunniteltu / 1.0 muut + 8px status-piste oik. alakulmaan (`#4ade80` asetettu, `#93c5fd` tarkistettu, `#fbbf24` ei_tarpeen, piilotettu suunniteltu). Ei muotomuutosta, ei tekstiä merkillä. | T10 |
+| T23 | ✓ | Merkin status-kuvake kartalla: `createSignIcon(type, bearing, status)` — opacity 0.45 suunniteltu / 1.0 muut + 8px status-piste oik. alakulmaan (`#4ade80` asetettu, `#93c5fd` tarkistettu, `#fbbf24` ei_tarpeen, piilotettu suunniteltu). Ei muotomuutosta, ei tekstiä merkillä. | T10 |
 | T24 | ✓ | Talkoolaisen kuittaus-UI: 1 iso nappi (asetettu / ei_tarpeen) — max 2 toimintoa | T10,T12 |
 | T25 | . | Pätkä UI kartalla: järjestäjä piirtää välin, visualisoitu viivana reitillä | T13 |
 | T26 | . | Pätkä-assign: järjestäjä linkittää pätkän talkoolaiselle (roolitunnus) | T12,T25 |
