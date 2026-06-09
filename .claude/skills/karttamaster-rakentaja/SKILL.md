@@ -25,6 +25,11 @@ Tämä skill on ohut wrapper `/ck:build`:n ympärillä. Lisää automaattisen
 6. Jos testaaja löytää arkkitehtuuririkkomuksen → se kutsuu /karttamaster-arkkitehtuuri
 7. Jos task koskee src/ui/ tai index.html (CSS/ulkoasu):
    → Kutsu /karttamaster-ux komponentti <nimi>
+8. Jos task koskee src/map/ TAI §T-kuvauksessa lukee "Playwright":
+   → Aja: bunx playwright test e2e/ --browser=chromium --reporter=line
+   → Tarkista COMPONENTS.md E2E-sarake: onko muutetulla komponentilla testi?
+   → Jos testi hajoaa: korjaa ennen ✓-merkintää
+   → Jos E2E-sarake on "—" mutta src/map/-komponentti on kriittinen: lisää testi
 ```
 
 ## Käyttö

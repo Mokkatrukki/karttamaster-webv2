@@ -6,7 +6,7 @@ import { adminRoutes } from './routes/admin'
 import { markersRoutes } from './routes/markers'
 
 const db = createDb(process.env.DB_PATH)
-seedAdmin(db)
+await seedAdmin(db)
 
 const app = new Hono()
 app.use('*', dbMiddleware(db))

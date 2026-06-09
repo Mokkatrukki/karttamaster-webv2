@@ -78,6 +78,19 @@ src/ui/    → Vitest-jsdom (DOM-logiikka)
 src/map/   → Playwright vain jos kriittinen karttainteraktio
 ```
 
+**Jos feature koskee `src/map/`:**
+1. Tarkista `COMPONENTS.md` E2E-sarake kyseiselle komponentille
+2. Jos sarake on ei-tyhjä → lisää §T-kuvaukseen: `"päivitä e2e/<tiedosto>:<testi-nimi>"`
+3. Jos sarake on `—` ja feature on kriittinen käyttäjäpolku → lisää §T-kuvaukseen: `"uusi E2E-testi e2e/critical-paths.spec.ts"`
+4. Rakentaja ajaa `bunx playwright test e2e/` osana build-flowta (vaihe 8)
+
+**Olemassa olevat E2E-testit** (`e2e/critical-paths.spec.ts`):
+- "Merkki kartalle" → koskee: PlaceMode, MarkerManager
+- "dblclick kartalla" → koskee: PlaceMode, MarkerInteraction
+- "Drive mode" → koskee: DriveMode, ProgressBar
+- "Rooli-toggle" → koskee: RoleSelector, RoleController
+- "Touch targets" → koskee: kaikki napit mobiililla
+
 Lisää §T-kuvaukseen: `(Testattavuus: Vitest-pure)` tai vastaava.
 
 Tarkista myös: onko `localStorage`-käyttöä? → muistuta CLAUDE.md:n vi.stubGlobal-mockista.
