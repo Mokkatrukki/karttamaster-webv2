@@ -190,7 +190,7 @@ describe('T51 — AuthScreen', () => {
       const form = document.querySelector('#auth-form-talkoolainen') as HTMLFormElement
       form.dispatchEvent(new Event('submit', { cancelable: true }))
       await new Promise(r => setTimeout(r, 10))
-      expect(onAuthenticated).toHaveBeenCalledWith({ role: 'talkoolainen', displayName: 'Talkoolainen 1' })
+      expect(onAuthenticated).toHaveBeenCalledWith({ role: 'talkoolainen', displayName: 'Talkoolainen 1', code: 'ABC123' })
     })
 
     it('invalid code → error message', async () => {

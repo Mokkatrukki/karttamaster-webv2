@@ -1,7 +1,7 @@
 import { getRole } from '../logic/role'
 import type { Role } from '../logic/role'
 
-export type AuthResult = { role: Role; displayName: string }
+export type AuthResult = { role: Role; displayName: string; code?: string }
 
 export class AuthScreen {
   private readonly overlay: HTMLElement
@@ -113,7 +113,7 @@ export class AuthScreen {
       if (resp.ok) {
         const data = await resp.json() as { role: Role; display_name: string }
         this.hide()
-        this.onAuthenticated({ role: data.role, displayName: data.display_name })
+        this.onAuthenticated({ role: data.role, displayName: data.display_name, code })
       } else {
         this.showError('Väärä koodi — tarkista koodi uudelleen')
       }

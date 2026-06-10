@@ -188,6 +188,18 @@ metsässä, hanskat kädessä.
 - Segmenttirivi: `padding: 6px 10px`, nimi `text-primary 12px`, km-väli `text-muted 11px`
 - Poista-nappi: `rgba(239,68,68,0.10)` tausta, `#f87171` teksti — vaarallinen toiminto
 
+### SegmentView (`#segment-view`, `src/ui/segment-view.ts`)
+- Vain talkoolaiselle jolla on assignedCode matchaava pätkä
+- Sijainti: `#app`:n sisällä ennen karttaa (erillinen `#segment-view-container`)
+- Tausta: `bg-primary`, bottom-border: `border-subtle`
+- Header: pätkän nimi `text-primary 12px bold`, km-väli `text-muted 11px`
+- Description: `text-muted 11px`, max 2 riviä, hidden jos tyhjä
+- Merkkilista: max-height 200px scrollable, `border-card`-separaattorit
+  - Merkkirivi: type-label + bearing + status-badge, `11px`
+  - Status-väri: sama kuin global status-värit (§C)
+- `[data-role="talkoolainen"] #segment-view { display: block }` — muille hidden
+- Ei purku-bulk-nappia vielä (T52 lisää)
+
 ### SegmentOverlay (Leaflet-layer, `src/map/segment-overlay.ts`)
 - Pätkäkaista: `weight: 8, opacity: 0.7`, väri rotaatiosta SEGMENT_COLORS (alla)
 - DisplayName: pysyvä tooltip `permanent: true`, CSS-class `segment-label`

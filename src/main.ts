@@ -22,7 +22,8 @@ import { GpsNavigator } from './map/gps-navigator'
 import { GpsDrivePanel } from './ui/gps-drive-panel'
 import { SegmentOverlay } from './map/segment-overlay'
 import { SegmentPanel } from './ui/segment-panel'
-import { createSegmentStore } from './logic/segments'
+import { SegmentView } from './ui/segment-view'
+import { createSegmentStore, getSegmentForCode, getMarkersForSegment } from './logic/segments'
 import type { RouteConfig } from './logic/multi-route'
 
 export const ROUTE_DEFS: Omit<RouteConfig, 'routePoints'>[] = [
@@ -71,7 +72,7 @@ if (btnGps) {
   })
 }
 
-async function init() {
+async function init(talkoolainenCode?: string) {
   // V18: push any offline changes before syncing, then load from server
   await pushPending().catch(() => {})
   let initialMarkers = loadMarkers()
@@ -119,11 +120,28 @@ async function init() {
     () => segmentOverlay.update(segmentStore),
   )
 
+  let segmentView: SegmentView | null = null
+
   const markerManager = new MarkerManager(map, routes, () => {
     renderMarkerList(markerManager)
     progressBar.refreshDots()
     statusPanel?.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
+    if (segmentView) {
+      const seg = talkoolainenCode ? getSegmentForCode(segmentStore, talkoolainenCode) : undefined
+      if (seg) segmentView.update(getMarkersForSegment(seg, markerManager.getAll()))
+    }
   }, initialMarkers, showDistanceWarning)
+
+  if (talkoolainenCode) {
+    const seg = getSegmentForCode(segmentStore, talkoolainenCode)
+    if (seg) {
+      segmentView = new SegmentView(
+        document.getElementById('segment-view-container')!,
+        seg,
+      )
+      segmentView.update(getMarkersForSegment(seg, markerManager.getAll()))
+    }
+  }
 
   const driveMode = new DriveMode(map, routes[0].routePoints, km => {
     progressBar.update(km)
@@ -221,7 +239,7 @@ async function init() {
   })
 }
 
-const authScreen = new AuthScreen(({ role }) => {
+const authScreen = new AuthScreen(({ role, code }) => {
   setRole(role)
   new RoleSelector(
     document.getElementById('btn-role') as HTMLButtonElement,
@@ -229,6 +247,6 @@ const authScreen = new AuthScreen(({ role }) => {
   )
   new MapStateBadge(document.getElementById('toolbar')!, role)
   new SnapshotPanel(document.getElementById('snapshot-panel-container')!, role)
-  init().catch(console.error)
+  init(code).catch(console.error)
 })
 authScreen.start().catch(console.error)
