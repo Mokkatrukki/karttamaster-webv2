@@ -1,3 +1,5 @@
+import { bulkCollect } from '../logic/segment-actions'
+import { isTerminal } from '../logic/marker-status'
 import type { Segment } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
 
@@ -18,19 +20,33 @@ const STATUS_LABELS: Record<string, string> = {
 
 export class SegmentView {
   private readonly markerListEl: HTMLUListElement
+  private readonly bulkBtn: HTMLButtonElement
+  private currentMarkers: SignMarker[] = []
 
-  constructor(container: HTMLElement, private segment: Segment) {
-    const { panel, markerListEl } = this.build()
+  constructor(
+    container: HTMLElement,
+    private segment: Segment,
+    private readonly onBulkCollect?: (updated: SignMarker[]) => void,
+  ) {
+    const { panel, markerListEl, bulkBtn } = this.build()
     this.markerListEl = markerListEl
+    this.bulkBtn = bulkBtn
     container.appendChild(panel)
   }
 
   update(markers: SignMarker[], segment?: Segment): void {
     if (segment) this.segment = segment
+    this.currentMarkers = markers
     this.renderMarkers(markers)
+    this.updateBulkBtn(markers)
   }
 
-  private build(): { panel: HTMLElement; markerListEl: HTMLUListElement } {
+  private updateBulkBtn(markers: SignMarker[]): void {
+    const hasNonTerminal = markers.some(m => !isTerminal(m.status))
+    this.bulkBtn.hidden = this.segment.phase !== 'purku' || !hasNonTerminal
+  }
+
+  private build(): { panel: HTMLElement; markerListEl: HTMLUListElement; bulkBtn: HTMLButtonElement } {
     const panel = document.createElement('div')
     panel.id = 'segment-view'
 
@@ -58,11 +74,21 @@ export class SegmentView {
       panel.appendChild(desc)
     }
 
+    const bulkBtn = document.createElement('button')
+    bulkBtn.className = 'btn-bulk-collect'
+    bulkBtn.textContent = '✓ Merkitse kaikki kerätyksi'
+    bulkBtn.hidden = true
+    bulkBtn.addEventListener('click', () => {
+      const updated = bulkCollect(this.segment, this.currentMarkers)
+      if (updated.length > 0) this.onBulkCollect?.(updated)
+    })
+    panel.appendChild(bulkBtn)
+
     const markerListEl = document.createElement('ul')
     markerListEl.className = 'segment-view-list'
     panel.appendChild(markerListEl)
 
-    return { panel, markerListEl }
+    return { panel, markerListEl, bulkBtn }
   }
 
   private renderMarkers(markers: SignMarker[]): void {

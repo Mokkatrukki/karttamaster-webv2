@@ -1006,6 +1006,23 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   font-size: 11px;
 }
 
+.btn-bulk-collect {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  background: #15803d;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 8px 0;
+}
+
+.btn-bulk-collect:hover {
+  background: #166534;
+}
+
 .segment-panel-header {
   display: flex;
   align-items: center;

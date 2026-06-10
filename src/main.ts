@@ -138,6 +138,9 @@ async function init(talkoolainenCode?: string) {
       segmentView = new SegmentView(
         document.getElementById('segment-view-container')!,
         seg,
+        (updated) => {
+          for (const m of updated) markerManager.updateStatus(m.id, 'kerää')
+        },
       )
       segmentView.update(getMarkersForSegment(seg, markerManager.getAll()))
     }
