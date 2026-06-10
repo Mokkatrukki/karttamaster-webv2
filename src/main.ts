@@ -20,6 +20,9 @@ import { calcAllRouteStatus } from './logic/route-status'
 import { setRole } from './logic/role'
 import { GpsNavigator } from './map/gps-navigator'
 import { GpsDrivePanel } from './ui/gps-drive-panel'
+import { SegmentOverlay } from './map/segment-overlay'
+import { SegmentPanel } from './ui/segment-panel'
+import { createSegmentStore } from './logic/segments'
 import type { RouteConfig } from './logic/multi-route'
 
 export const ROUTE_DEFS: Omit<RouteConfig, 'routePoints'>[] = [
@@ -107,6 +110,15 @@ async function init() {
     distanceWarningTimer = setTimeout(() => { distanceWarningEl.style.display = 'none' }, 4000)
   }
 
+  const segmentStore = createSegmentStore()
+  const segmentOverlay = new SegmentOverlay(map, routes)
+  const segmentPanel = new SegmentPanel(
+    document.getElementById('segment-panel-container')!,
+    routes,
+    segmentStore,
+    () => segmentOverlay.update(segmentStore),
+  )
+
   const markerManager = new MarkerManager(map, routes, () => {
     renderMarkerList(markerManager)
     progressBar.refreshDots()
@@ -173,6 +185,10 @@ async function init() {
   let clickTimer: ReturnType<typeof setTimeout> | null = null
 
   map.on('click', (e: L.LeafletMouseEvent) => {
+    if (segmentPanel.isCreationMode()) {
+      segmentPanel.onMapClick(e.latlng.lat, e.latlng.lng)
+      return
+    }
     if (placeMode.isPickerOpen())   { placeMode.closePicker();   return }
     if (placeMode.isDropdownOpen()) { placeMode.closeDropdown(); return }
     if (clickTimer !== null) { clearTimeout(clickTimer); clickTimer = null; return }

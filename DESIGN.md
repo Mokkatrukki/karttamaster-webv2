@@ -124,7 +124,7 @@ metsässä, hanskat kädessä.
 - Teksti: `"Järjestäjä"` tai `"Talkoolainen"` — ei ikoneja (aria)
 
 ### Route-bar (`#route-bar`)
-- Kiinteä alareuna, `z-index: 100`
+- Kiinteä alareuna, `z-index: 2000` (yli Leaflet-kontrollit 1000)
 - Tausta: `bg-primary`, shadow ylöspäin
 - Navigointipainikkeet (`btn-route-prev/next`): `min-height: 44px` ✓
 - Route-tab-drive: `min-height: 44px` ✓ (T45)
@@ -139,7 +139,7 @@ metsässä, hanskat kädessä.
 - Vain järjestäjälle — `hidden`-attribuutti talkoolaiselle (component-tason gate)
 - Sijainti: `#app`:n sisällä `#status-panel`:in jälkeen, ennen karttaa
 - Tausta: `bg-primary`, bottom-border: `border-subtle`
-- Header: `11px uppercase text-muted`, "Luo varmuuskopio" -nappi compact (min-height 28px, ei 44px — hallintanäkymä)
+- Header: `11px uppercase text-muted`, "Luo varmuuskopio" -nappi `min-height: 44px` (§R pakollinen)
 - Lista: `max-height: 160px`, scrollable, `border-card`-separaattorit
 - Listarivi: `padding: 6px 10px`, teksti `text-muted`, `11px`
 - Palauta-nappi: `rgba(239,68,68,0.10)` tausta, `#f87171` teksti — vaarallinen toiminto = punainen
@@ -177,6 +177,23 @@ metsässä, hanskat kädessä.
   - `kerätty`: `#6ee7b7`
   - `ei_tarpeen`: `#fbbf24`
 - Ei tekstiä merkillä, ei muotomuutosta — tyyppiväri pysyy tunnistimena
+
+### SegmentPanel (`#segment-panel`)
+- Vain järjestäjälle (`hidden` muille)
+- Sijainti: `#app`:n sisällä `#snapshot-panel-container`:n jälkeen, ennen karttaa
+- Tausta: `bg-primary`, bottom-border: `border-subtle`
+- Header: `11px uppercase text-muted`, "Luo uusi pätkä" -nappi `min-height: 44px` (§R pakollinen)
+- Luomistila: `12px text-muted`, "Klikkaa reittiä: 1. / 2. piste" — kaksi klikkausta reitillä → luo pätkän
+- Lista: `max-height: 160px`, scrollable, `border-card`-separaattorit
+- Segmenttirivi: `padding: 6px 10px`, nimi `text-primary 12px`, km-väli `text-muted 11px`
+- Poista-nappi: `rgba(239,68,68,0.10)` tausta, `#f87171` teksti — vaarallinen toiminto
+
+### SegmentOverlay (Leaflet-layer, `src/map/segment-overlay.ts`)
+- Pätkäkaista: `weight: 8, opacity: 0.7`, väri rotaatiosta SEGMENT_COLORS (alla)
+- DisplayName: pysyvä tooltip `permanent: true`, CSS-class `segment-label`
+- Aukko (gap): `color: text-muted hex (#94a3b8), weight: 8, opacity: 0.3`
+- SEGMENT_COLORS (6 väriä, rotaatio indeksin mukaan):
+  `['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#ef4444']`
 
 ---
 

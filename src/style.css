@@ -177,7 +177,7 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   right: 0;
   background: var(--bg-primary);
   color: var(--text-primary);
-  z-index: 100;
+  z-index: 2000;
   display: flex;
   flex-direction: column;
   padding: 10px 12px 12px;
@@ -854,7 +854,7 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   border: 1px solid var(--border-default);
   font-size: 11px;
   padding: 4px 10px;
-  min-height: 28px;
+  min-height: 44px;
 }
 
 .btn-snapshot-create:hover {
@@ -908,6 +908,122 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   background: rgba(239, 68, 68, 0.20);
   color: #fca5a5;
 }
+
+/* ── Segment panel (T25) — järjestäjä only ── */
+
+#segment-panel-container {
+  flex-shrink: 0;
+}
+
+#segment-panel {
+  display: none;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+[data-role="järjestäjä"] #segment-panel,
+[data-role="admin"] #segment-panel {
+  display: block;
+}
+
+.segment-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  gap: 8px;
+}
+
+.segment-panel-header h3 {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.btn-segment-create {
+  background: var(--hover-light);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  font-size: 11px;
+  padding: 4px 10px;
+  min-height: 44px;
+}
+
+.btn-segment-create:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.segment-panel-status {
+  padding: 4px 10px 6px;
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.segment-list {
+  list-style: none;
+  max-height: 160px;
+  overflow-y: auto;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.segment-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-card);
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+.segment-info {
+  flex: 1;
+  color: var(--text-muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.segment-empty {
+  padding: 8px 10px;
+  color: var(--text-meta);
+  font-size: 11px;
+}
+
+.btn-segment-delete {
+  background: rgba(239, 68, 68, 0.10);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  font-size: 11px;
+  padding: 4px 8px;
+  min-height: 28px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-segment-delete:hover {
+  background: rgba(239, 68, 68, 0.20);
+  color: #fca5a5;
+}
+
+/* ── Segment label (Leaflet tooltip) ── */
+.segment-label {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-ui);
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.segment-label::before { display: none; }
 
 /* ── Marker type select (T38) ── */
 
