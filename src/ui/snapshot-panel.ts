@@ -8,14 +8,24 @@ export interface SnapshotEntry {
 
 export class SnapshotPanel {
   private readonly panel: HTMLElement
+  private readonly titleEl: HTMLElement
+  private readonly backupBtn: HTMLButtonElement
+  private readonly toggleBtn: HTMLButtonElement
   private listEl: HTMLElement | null = null
+  private collapsed = true
+  private snapshotCount = 0
 
   constructor(
     container: HTMLElement,
     private readonly role: string,
   ) {
-    this.panel = this.build()
+    const built = this.build()
+    this.panel = built.panel
+    this.titleEl = built.titleEl
+    this.backupBtn = built.backupBtn
+    this.toggleBtn = built.toggleBtn
     container.appendChild(this.panel)
+    this.applyCollapsed()
     if (this.isAllowed()) {
       this.refresh().catch(console.error)
     }
@@ -25,22 +35,45 @@ export class SnapshotPanel {
     return this.role === 'järjestäjä' || this.role === 'admin'
   }
 
-  private build(): HTMLElement {
+  private build(): { panel: HTMLElement; titleEl: HTMLElement; backupBtn: HTMLButtonElement; toggleBtn: HTMLButtonElement } {
     const el = document.createElement('div')
     el.id = 'snapshot-panel'
 
     const header = document.createElement('div')
     header.className = 'snapshot-header'
+    header.style.cursor = 'pointer'
+    header.addEventListener('click', (e) => {
+      // Don't toggle when clicking backup button
+      if ((e.target as HTMLElement).closest('#btn-snapshot-create')) return
+      this.collapsed = !this.collapsed
+      this.applyCollapsed()
+    })
 
-    const title = document.createElement('h3')
-    title.textContent = 'Varmuuskopiot'
-    header.appendChild(title)
+    const titleEl = document.createElement('h3')
+    titleEl.textContent = 'Varmuuskopiot'
+    header.appendChild(titleEl)
+
+    const toggleBtn = document.createElement('button')
+    toggleBtn.className = 'btn-snapshot-toggle'
+    toggleBtn.setAttribute('aria-label', 'Näytä tai piilota varmuuskopiot')
+    toggleBtn.textContent = '▶'
+    toggleBtn.style.background = 'transparent'
+    toggleBtn.style.border = 'none'
+    toggleBtn.style.color = 'var(--text-muted)'
+    toggleBtn.style.fontSize = '10px'
+    toggleBtn.style.padding = '0 4px'
+    toggleBtn.style.minHeight = '0'
+    toggleBtn.style.cursor = 'pointer'
+    header.appendChild(toggleBtn)
 
     const backupBtn = document.createElement('button')
     backupBtn.id = 'btn-snapshot-create'
     backupBtn.textContent = 'Luo varmuuskopio'
     backupBtn.className = 'btn-snapshot-create'
-    backupBtn.addEventListener('click', () => { this.handleCreate().catch(console.error) })
+    backupBtn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      this.handleCreate().catch(console.error)
+    })
     header.appendChild(backupBtn)
 
     el.appendChild(header)
@@ -50,7 +83,17 @@ export class SnapshotPanel {
     this.listEl.className = 'snapshot-list'
     el.appendChild(this.listEl)
 
-    return el
+    return { panel: el, titleEl, backupBtn, toggleBtn }
+  }
+
+  private applyCollapsed(): void {
+    const count = this.snapshotCount
+    this.titleEl.textContent = this.collapsed
+      ? `Varmuuskopiot (${count})`
+      : 'Varmuuskopiot'
+    this.toggleBtn.textContent = this.collapsed ? '▶' : '▼'
+    if (this.listEl) this.listEl.hidden = this.collapsed
+    this.backupBtn.hidden = this.collapsed
   }
 
   async refresh(): Promise<void> {
@@ -59,7 +102,9 @@ export class SnapshotPanel {
       const res = await fetch('/api/admin/snapshots')
       if (!res.ok) return
       const snapshots = await res.json() as SnapshotEntry[]
+      this.snapshotCount = snapshots.length
       this.render(snapshots)
+      this.applyCollapsed()
     } catch {
       // network error — leave list as-is
     }

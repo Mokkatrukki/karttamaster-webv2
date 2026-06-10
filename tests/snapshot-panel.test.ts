@@ -134,6 +134,60 @@ describe('T50 — SnapshotPanel', () => {
     })
   })
 
+  describe('T57 — collapsible (default collapsed)', () => {
+    it('list hidden by default', async () => {
+      mockFetch({ 'GET /api/admin/snapshots': [SNAP1] })
+      new SnapshotPanel(container, 'järjestäjä')
+      await vi.waitFor(() => expect(container.querySelector('.snapshot-item')).not.toBeNull())
+      expect(container.querySelector('#snapshot-list')?.hasAttribute('hidden')).toBe(true)
+    })
+
+    it('backup button hidden by default', async () => {
+      mockFetch({ 'GET /api/admin/snapshots': [] })
+      new SnapshotPanel(container, 'järjestäjä')
+      await vi.waitFor(() => expect(fetch).toHaveBeenCalled())
+      expect(container.querySelector<HTMLElement>('#btn-snapshot-create')?.hidden).toBe(true)
+    })
+
+    it('title shows count when collapsed', async () => {
+      mockFetch({ 'GET /api/admin/snapshots': [SNAP1, SNAP2] })
+      new SnapshotPanel(container, 'järjestäjä')
+      await vi.waitFor(() => {
+        const h3 = container.querySelector('h3')!.textContent ?? ''
+        expect(h3).toContain('2')
+      })
+    })
+
+    it('header click expands panel', async () => {
+      mockFetch({ 'GET /api/admin/snapshots': [SNAP1] })
+      new SnapshotPanel(container, 'järjestäjä')
+      await vi.waitFor(() => expect(container.querySelector('.snapshot-item')).not.toBeNull())
+      const header = container.querySelector('.snapshot-header') as HTMLElement
+      header.click()
+      expect(container.querySelector('#snapshot-list')?.hasAttribute('hidden')).toBe(false)
+      expect(container.querySelector<HTMLElement>('#btn-snapshot-create')?.hidden).toBe(false)
+    })
+
+    it('header click again collapses panel', async () => {
+      mockFetch({ 'GET /api/admin/snapshots': [SNAP1] })
+      new SnapshotPanel(container, 'järjestäjä')
+      await vi.waitFor(() => expect(container.querySelector('.snapshot-item')).not.toBeNull())
+      const header = container.querySelector('.snapshot-header') as HTMLElement
+      header.click() // expand
+      header.click() // collapse
+      expect(container.querySelector('#snapshot-list')?.hasAttribute('hidden')).toBe(true)
+    })
+
+    it('title shows "Varmuuskopiot" without count when expanded', async () => {
+      mockFetch({ 'GET /api/admin/snapshots': [SNAP1, SNAP2] })
+      new SnapshotPanel(container, 'järjestäjä')
+      await vi.waitFor(() => expect(container.querySelector('.snapshot-item')).not.toBeNull())
+      const header = container.querySelector('.snapshot-header') as HTMLElement
+      header.click()
+      expect(container.querySelector('h3')!.textContent).toBe('Varmuuskopiot')
+    })
+  })
+
   describe('restore button', () => {
     it('calls POST /api/admin/snapshots/:id/restore after confirm', async () => {
       vi.stubGlobal('confirm', vi.fn(() => true))
