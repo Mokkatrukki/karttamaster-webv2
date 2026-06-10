@@ -26,6 +26,9 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* Ensure [hidden] always wins even if CSS sets an explicit display */
+[hidden] { display: none !important; }
+
 html, body {
   height: 100%;
   font-family: var(--font-ui);
@@ -828,8 +831,14 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
 }
 
 #snapshot-panel {
+  display: none;
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-subtle);
+}
+
+[data-role="järjestäjä"] #snapshot-panel,
+[data-role="admin"] #snapshot-panel {
+  display: block;
 }
 
 .snapshot-header {

@@ -28,7 +28,6 @@ export class SnapshotPanel {
   private build(): HTMLElement {
     const el = document.createElement('div')
     el.id = 'snapshot-panel'
-    el.hidden = !this.isAllowed()
 
     const header = document.createElement('div')
     header.className = 'snapshot-header'

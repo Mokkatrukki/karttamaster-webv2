@@ -52,28 +52,24 @@ describe('T50 — SnapshotPanel', () => {
   })
 
   describe('role gate', () => {
-    it('talkoolainen — panel hidden', () => {
+    // CSS [data-role] handles visual visibility — test fetch gating behavior
+
+    it('talkoolainen — ei fetch (CSS piilottaa paneelin)', () => {
       mockFetch({ 'GET /api/admin/snapshots': [] })
-      const panel = new SnapshotPanel(container, 'talkoolainen')
-      const el = container.querySelector('#snapshot-panel') as HTMLElement
-      expect(el.hidden).toBe(true)
+      new SnapshotPanel(container, 'talkoolainen')
       expect(fetch).not.toHaveBeenCalled()
     })
 
-    it('järjestäjä — panel visible + fetches', async () => {
+    it('järjestäjä — fetches snapshot-lista', async () => {
       mockFetch({ 'GET /api/admin/snapshots': [] })
-      const panel = new SnapshotPanel(container, 'järjestäjä')
+      new SnapshotPanel(container, 'järjestäjä')
       await vi.waitFor(() => expect(fetch).toHaveBeenCalled())
-      const el = container.querySelector('#snapshot-panel') as HTMLElement
-      expect(el.hidden).toBe(false)
     })
 
-    it('admin — panel visible', async () => {
+    it('admin — fetches snapshot-lista', async () => {
       mockFetch({ 'GET /api/admin/snapshots': [] })
-      const panel = new SnapshotPanel(container, 'admin')
+      new SnapshotPanel(container, 'admin')
       await vi.waitFor(() => expect(fetch).toHaveBeenCalled())
-      const el = container.querySelector('#snapshot-panel') as HTMLElement
-      expect(el.hidden).toBe(false)
     })
   })
 
