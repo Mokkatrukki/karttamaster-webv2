@@ -185,7 +185,14 @@ async function init(talkoolainenCode?: string) {
   const markerModal = document.getElementById('marker-modal')!
 
   const openMarkerModal = (highlightId?: string) => {
-    renderMarkerList(markerManager, highlightId)
+    let segmentMarkerIds: Set<string> | undefined
+    if (talkoolainenCode) {
+      const seg = getSegmentForCode(segmentStore, talkoolainenCode)
+      if (seg) {
+        segmentMarkerIds = new Set(getMarkersForSegment(seg, markerManager.getAll()).map(m => m.id))
+      }
+    }
+    renderMarkerList(markerManager, highlightId, segmentMarkerIds)
     markerModalBackdrop.classList.add('open')
     markerModal.classList.add('open')
   }

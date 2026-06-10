@@ -42,8 +42,10 @@ function renderStatusActions(markerId: string, status: MarkerStatus): string {
   return `<div class="marker-actions">${primaryBtns}${secondaryBtns}</div>`
 }
 
-export function renderMarkerList(manager: MarkerManager, highlightId?: string): void {
-  const markers = manager.getAll()
+export function renderMarkerList(manager: MarkerManager, highlightId?: string, segmentMarkerIds?: Set<string>): void {
+  const allMarkers = manager.getAll()
+  // V33: talkoolainen sees only their segment's markers when segmentMarkerIds provided
+  const markers = segmentMarkerIds ? allMarkers.filter(m => segmentMarkerIds.has(m.id)) : allMarkers
   const countEl = document.getElementById('marker-count')
   const listEl = document.getElementById('marker-modal-items')
   if (!countEl || !listEl) return
