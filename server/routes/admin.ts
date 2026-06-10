@@ -75,6 +75,102 @@ adminRoutes.get('/map-state', requireAuth(), requireRole('admin', 'järjestäjä
   })
 })
 
+// ── Snapshot helpers ────────────────────────────────────────────────────────
+
+interface MarkerRow {
+  id: string
+  type: string
+  lat: number
+  lon: number
+  bearing: number
+  distance_from_start: number
+  route_ids: string
+  status: string
+  location_note: string | null
+  updated_at: string
+  updated_by: string | null
+}
+
+interface SnapshotRow {
+  id: string
+  label: string
+  markers_json: string
+  created_at: string
+  created_by: string
+  trigger: string
+}
+
+function createSnapshot(db: Database, label: string, createdBy: string, trigger: string): void {
+  const markers = db.query<MarkerRow, []>('SELECT * FROM markers').all()
+  db.run(
+    'INSERT INTO snapshots (id, label, markers_json, created_at, created_by, trigger) VALUES (?, ?, ?, ?, ?, ?)',
+    [randomUUID(), label, JSON.stringify(markers), new Date().toISOString(), createdBy, trigger],
+  )
+  // Prune: keep max 20 by insertion order (rowid is monotone, avoids timestamp ties)
+  db.run(`
+    DELETE FROM snapshots WHERE rowid NOT IN (
+      SELECT rowid FROM snapshots ORDER BY rowid DESC LIMIT 20
+    )
+  `)
+}
+
+// GET /api/admin/snapshots — max 20, newest first (no markers_json, too large)
+adminRoutes.get('/snapshots', requireAuth(), requireRole('admin', 'järjestäjä'), (c) => {
+  const db: Database = c.get('db')
+  const snapshots = db
+    .query<Omit<SnapshotRow, 'markers_json'>, []>(
+      'SELECT id, label, created_at, created_by, trigger FROM snapshots ORDER BY rowid DESC LIMIT 20',
+    )
+    .all()
+  return c.json(snapshots)
+})
+
+// POST /api/admin/snapshots — manual snapshot
+adminRoutes.post('/snapshots', requireAuth(), requireRole('admin', 'järjestäjä'), async (c) => {
+  const db: Database = c.get('db')
+  const session: SessionData = c.get('session')
+  const body = await c.req.json<{ label?: string }>().catch(() => ({}))
+  const label = body.label?.trim() || `Manuaalinen ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`
+  const createdBy = session.display_name ?? session.role
+  createSnapshot(db, label, createdBy, 'manual')
+  const snap = db.query<Omit<SnapshotRow, 'markers_json'>, []>(
+    'SELECT id, label, created_at, created_by, trigger FROM snapshots ORDER BY created_at DESC LIMIT 1',
+  ).get()
+  return c.json(snap, 201)
+})
+
+// POST /api/admin/snapshots/:id/restore — V24: atomic restore
+adminRoutes.post('/snapshots/:id/restore', requireAuth(), requireRole('admin', 'järjestäjä'), (c) => {
+  const db: Database = c.get('db')
+  const session: SessionData = c.get('session')
+  const id = c.req.param('id')
+
+  const snap = db.query<SnapshotRow, [string]>('SELECT * FROM snapshots WHERE id = ?').get(id)
+  if (!snap) return c.json({ error: 'not_found' }, 404)
+
+  let markers: MarkerRow[]
+  try {
+    markers = JSON.parse(snap.markers_json) as MarkerRow[]
+  } catch {
+    return c.json({ error: 'corrupt_snapshot' }, 500)
+  }
+
+  // V24: atomic — all or nothing
+  db.transaction(() => {
+    db.run('DELETE FROM markers')
+    for (const m of markers) {
+      db.run(
+        'INSERT INTO markers (id, type, lat, lon, bearing, distance_from_start, route_ids, status, location_note, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [m.id, m.type, m.lat, m.lon, m.bearing, m.distance_from_start, m.route_ids, m.status, m.location_note ?? null, m.updated_at, m.updated_by ?? null],
+      )
+    }
+    const createdBy = session.display_name ?? session.role
+    createSnapshot(db, `Palautus: ${snap.label}`, createdBy, 'restore')
+  })()
+
+  return c.json({ ok: true })
+})
+
 // POST /api/admin/map-state — V23: auto-snapshot when transitioning to 'hyväksytty'
 adminRoutes.post('/map-state', requireAuth(), requireRole('admin', 'järjestäjä'), async (c) => {
   const db: Database = c.get('db')
@@ -87,13 +183,9 @@ adminRoutes.post('/map-state', requireAuth(), requireRole('admin', 'järjestäj�
   }
 
   if (status === 'hyväksytty') {
-    const markers = db.query('SELECT * FROM markers').all()
     const now = new Date().toISOString()
     const displayName = session.display_name ?? session.role
-    db.run(
-      'INSERT INTO snapshots (id, label, markers_json, created_at, created_by, trigger) VALUES (?, ?, ?, ?, ?, ?)',
-      [randomUUID(), 'Hyväksytty', JSON.stringify(markers), now, displayName, 'auto-hyväksytty'],
-    )
+    createSnapshot(db, 'Hyväksytty', displayName, 'auto-hyväksytty')
     db.run("INSERT OR REPLACE INTO map_state (key, value) VALUES ('approved_at', ?)", [now])
     db.run("INSERT OR REPLACE INTO map_state (key, value) VALUES ('approved_by', ?)", [displayName])
   } else {

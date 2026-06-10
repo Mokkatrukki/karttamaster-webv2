@@ -4,9 +4,11 @@ import { dbMiddleware } from './middleware/auth'
 import { authRoutes } from './routes/auth'
 import { adminRoutes } from './routes/admin'
 import { markersRoutes } from './routes/markers'
+import { scheduleNightlySnapshot } from './snapshot-scheduler'
 
 const db = createDb(process.env.DB_PATH)
 await seedAdmin(db)
+scheduleNightlySnapshot(db)
 
 const app = new Hono()
 app.use('*', dbMiddleware(db))
