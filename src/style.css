@@ -582,7 +582,7 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   color: var(--text-primary);
 }
 
-#gdp-info .gdp-near #gdp-dist { color: #4ade80; }
+#gps-drive-panel.gdp-near #gdp-dist { color: #4ade80; }
 
 #gdp-label {
   font-size: 11px;
