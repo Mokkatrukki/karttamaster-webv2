@@ -698,3 +698,64 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
 .btn-approve:hover {
   background: #166534;
 }
+
+/* ── Status panel (T28) — järjestäjä only ── */
+
+#status-panel {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 10px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+[data-role="järjestäjä"] #status-panel {
+  display: flex;
+}
+
+.status-panel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+.status-panel-label {
+  width: 40px;
+  color: var(--text-muted);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.status-panel-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.status-panel-fill {
+  height: 100%;
+  background: #4ade80;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.status-panel-pct {
+  width: 32px;
+  text-align: right;
+  color: #4ade80;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.status-panel-detail {
+  width: 36px;
+  text-align: right;
+  color: var(--text-meta);
+  flex-shrink: 0;
+}

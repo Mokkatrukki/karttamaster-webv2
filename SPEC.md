@@ -87,7 +87,7 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | T25 | . | Pätkä UI kartalla: järjestäjä piirtää välin, visualisoitu viivana reitillä | T13 |
 | T26 | . | Pätkä-assign: järjestäjä linkittää pätkän talkoolaiselle (roolitunnus) | T12,T25 |
 | T27 | . | Varustelista: auto-laskuri per SignTemplate + manuaali-rivit + ohjeteksti | T8,T14 |
-| T28 | . | Tilannekuva-kartta UI: merkit värikoodattu + % per reitti näkyvissä | T15,T23 |
+| T28 | ✓ | Tilannekuva-kartta UI: merkit värikoodattu + % per reitti näkyvissä | T15,T23 |
 | T29 | ✓ | Merkkien persistointi: `src/logic/persistence.ts` — saveMarkers/loadMarkers, tallennus joka add/remove/updateBearing, lataus init:ssä ennen karttaa, format `{version:1,markers:[]}`, routeIds säilyy vaikka reitti puuttuisi | V12,V14,§I |
 | T30 | ✓ | Geolocation API: laitteen sijainti pisteenä kartalla (itselle, ei muille) | §C |
 | T31 | . | GPS-drive UI: navigointi lähimpään asettamattomaan merkkiin + kuittaus | T16,T24,T30 |

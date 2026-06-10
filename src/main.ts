@@ -14,6 +14,8 @@ import { TILE_LAYERS } from './logic/tile-layers'
 import { loadMarkers } from './logic/persistence'
 import { syncMarkers, pushPending, SyncError } from './logic/sync'
 import { MapStateBadge, showMapNotReadyBanner } from './ui/map-state-badge'
+import { StatusPanel } from './ui/status-panel'
+import { calcAllRouteStatus } from './logic/route-status'
 import { setRole } from './logic/role'
 import { GpsNavigator } from './map/gps-navigator'
 import type { RouteConfig } from './logic/multi-route'
@@ -91,6 +93,7 @@ async function init() {
   map.fitBounds(L.featureGroup(polylines).getBounds(), { padding: [20, 20] })
 
   let progressBar!: ProgressBar
+  let statusPanel!: StatusPanel
 
   const distanceWarningEl = document.getElementById('distance-warning')!
   let distanceWarningTimer: ReturnType<typeof setTimeout> | null = null
@@ -104,6 +107,7 @@ async function init() {
   const markerManager = new MarkerManager(map, routes, () => {
     renderMarkerList(markerManager)
     progressBar.refreshDots()
+    statusPanel?.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
   }, initialMarkers, showDistanceWarning)
 
   const driveMode = new DriveMode(map, routes[0].routePoints, km => progressBar.update(km))
@@ -122,6 +126,9 @@ async function init() {
     markerManager,
   )
   progressBar.update(0)
+
+  statusPanel = new StatusPanel(document.getElementById('status-panel')!)
+  statusPanel.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
 
   const placeMode = new PlaceMode(markerManager)
 
