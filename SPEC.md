@@ -59,6 +59,10 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | V26 | Pätkällä on `phase: 'asettaminen' \| 'purku'`. Asettaminen ja purku ovat erillisiä pätkäjakoja — sama fyysinen osuus voi olla eri talkoolaisella eri vaiheissa. |
 | V27 | `/s/<koodi>` URL ohjaa talkoolaisen suoraan omaan pätkänäkymään auto-autentikoinnilla — koodi pre-täyttää T51:n kirjautumislomakkeen ja skippaavat manuaalisen syötön. |
 | V28 | Purku bulk-kuittaus on atominen: "merkitse kaikki kerätyksi" siirtää pätkän kaikki ei-terminal-merkit kerätty-tilaan yhdessä operaatiossa tai ei yhtään. |
+| V29 | Auth-screen ei saa kutsua `onAuthenticated` ilman onnistunutta `/api/auth/me`- tai `/api/auth/login`-vastausta. Verkkovirhe tai non-401 → näytä kirjautumislomake. Ei silent skip. Dev-ympäristö ilman backendiä → lomake näkyy, ei ohita. |
+| V30 | Segmentit persistoidaan localStorage:en sessioiden yli — samat säännöt kuin merkeillä (V12). Format: `{version:1, segments:[]}`. Korruptoitunut data → silent reset (V14-sääntö). |
+| V31 | Pätkän luontivaiheessa ensimmäinen klikattu piste visualisoidaan kartalla (väliaikainen markkeri) kunnes toinen piste klikataan tai luonti peruutetaan (Esc). |
+| V32 | Pätkän startDist ja endDist ovat muokattavissa luonnin jälkeen — piste on siirrettävissä kartalla tai numeerisesti panelissa. Poista+redo ei ole ainoa vaihtoehto. |
 
 ## §T Tasks
 
@@ -117,6 +121,10 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | T51 | ✓ | Auth screen ennen karttaa: `src/ui/auth-screen.ts`. App käynnistyy → `GET /api/auth/me` → 401 → näytä login-lomake (toggle: 'Järjestäjä' username+password / 'Talkoolainen' koodi-kenttä). Onnistunut login → piilota lomake, näytä kartta + set role. Virheviesti väärästä tunnuksesta/koodista. Vitest-jsdom (lomake + toggle + virheviesti). Playwright: login-flow kriittinen polku (`e2e/critical-paths.spec.ts`). Vaatii T36. Käyttäjä: molemmat. | V13,T36 |
 | T52 | ✓ | Purku-pätkäjako + bulk-kuittaus: järjestäjä luo purku-vaiheen pätkäjaon (`phase: 'purku'`, T13) — eri jako kuin asettaminen. Talkoolainen voi kuitata merkit yksitellen (V9) TAI bulk: "Merkitse kaikki kerätyksi" -nappi → atominen `bulkCollect(segment, markers)` → kaikki ei-terminal-merkit → kerätty (V28). Retroaktiivinen: toimii jälkikäteen ilman per-merkki-kuittailua. `src/logic/segment-actions.ts` (`bulkCollect`). Bulk-UI: iso nappi `src/ui/segment-view.ts`:ssä (T14). Vitest-pure (logiikka) + Vitest-jsdom (UI). Käyttäjä: talkoolainen purku-vaiheessa. | V9,V26,V28,T13,T14 |
 | T53 | ✓ | URL-reititys: `/s/<koodi>` deep-link → `src/ui/auth-screen.ts` lukee `window.location.pathname` käynnistyksessä, poimi koodi → pre-täytä koodi-kenttä + automaattinen submit → suoraan talkoolaisen pätkänäkymään (T14). Ei erillistä backend-reittiä — SPA client-side URL-handling, nginx fallback `try_files $uri /index.html`. Vitest-jsdom (URL-parsinta + auto-fill). Käyttäjä: talkoolainen. | V27,T51,T14 |
+| T54 | ✓ | Auth fallback -korjaus: `auth-screen.ts` — poista silent skip (rivit 48–53). Verkkovirhe tai non-401 → `this.show()` (kirjautumislomake näkyviin), ei `onAuthenticated`. Dev-ympäristö ilman backendiä: käyttäjä näkee lomakkeen. Vitest-jsdom: testi jossa fetch heittää NetworkError → lomake näkyy, `onAuthenticated` ei kutsuta. | V29,T51 |
+| T55 | . | Segmenttien persistointi: `src/logic/segment-persistence.ts` — `saveSegments(store)/loadSegments(): SegmentStore`. Format `{version:1,segments:Segment[]}`. localStorage-avain `karttamaster-segments`. Korruptoitunut data → silent reset (V14). Kutsu `saveSegments` jokaisen `createSegment/updateSegment/deleteSegment`-kutsun jälkeen. Lataa `loadSegments()` `init()`-vaiheessa ennen karttaa. Vitest-pure (localStorage-mock). | V30,V14,T13 |
+| T56 | . | Pätkän luonti-UX: (a) ensimmäisen klikkauksen jälkeen näytä väliaikainen markkeri kartalla (L.circleMarker, punainen) — häviää kun toinen piste klikataan tai Esc. (b) Pätkärivillä "Muokkaa pisteitä" -nappi → siirrä overlay-pisteet drag-to-reposition -moodiin. `src/ui/segment-panel.ts` + `src/map/segment-overlay.ts`. Playwright (luonti-flow). | V31,V32,T25 |
+| T57 | . | Snapshot-paneeli collapsible: oletuksena supistettu (vain "Varmuuskopiot (N)" -otsikko + expand-nappi). Laajenee klikillä. Tieto-elementit eivät vie tilaa oletuksena. `src/ui/snapshot-panel.ts`. Vitest-jsdom. | T50 |
 
 ## §UX Kenttämuistio
 
@@ -160,3 +168,7 @@ UX-simulaatio 2026-06-07. Kaksi roolia läpikäyty — löydöt kirjattu taskeih
 | B1 | 2026-06-07 | `MarkerManager.add()` käyttää `assignRoutesToMarker` (100m threshold) routeIds:lle mutta ei fallback-logiikkaa — klikki >100m reitistä → routeIds:[], merkki tallentuu mutta katoaa hiljaa | V21 → T44 |
 | B2 | 2026-06-07 | `PlaceMode.exit()` asettaa btnAddSign.textContent = '+ Lisää merkki' eikä alkuperäiseen '+ Merkki' — teksti ei resetoidu oikeaksi | T44 (samalla korjauksella) |
 | B3 | 2026-06-07 | Route-tab-napit ja eye-icon-toggle ≤30px korkeus mobiililla (375px viewport) — alle 44px touch target | V21→T45 |
+| B4 | 2026-06-10 | `auth-screen.ts:48–53` — non-401 (esim. 404 Vite dev-server) tai verkkovirhe → `onAuthenticated` kutsutaan ilman kirjautumista. Sovellus aukeaa ilman autentikaatiota. | V29→T54 |
+| B5 | 2026-06-10 | `createSegmentStore()` = `new Map()` — segmenteillä ei localStorageen tallennusta. Kaikki pätkäjako katoaa sivun päivityksellä. | V30→T55 |
+| B6 | 2026-06-10 | Pätkän luonnissa ensimmäinen klikattu piste ei näy kartalla — ei visuaalista palautetta. Luonnin jälkeen startDist/endDist ei muokattavissa — ainoa vaihtoehto poista+redo. | V31,V32→T56 |
+| B7 | 2026-06-10 | `snapshot-panel.ts` renderöi aina koko listan — vie liikaa tilaa admin-näkymästä kun varmuuskopioita on paljon. | T57 |

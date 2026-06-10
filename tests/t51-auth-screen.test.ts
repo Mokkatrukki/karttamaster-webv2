@@ -45,18 +45,20 @@ describe('T51 — AuthScreen', () => {
       expect(document.getElementById('auth-screen')?.classList.contains('open')).toBe(true)
     })
 
-    it('network error → graceful degradation with järjestäjä', async () => {
+    it('network error → login form shown, onAuthenticated not called (V29)', async () => {
       vi.stubGlobal('fetch', vi.fn().mockRejectedValueOnce(new Error('network')))
       const screen = new AuthScreen(onAuthenticated)
       await screen.start()
-      expect(onAuthenticated).toHaveBeenCalledWith({ role: 'järjestäjä', displayName: '' })
+      expect(onAuthenticated).not.toHaveBeenCalled()
+      expect(document.getElementById('auth-screen')?.classList.contains('open')).toBe(true)
     })
 
-    it('404 (no backend) → graceful degradation with järjestäjä', async () => {
+    it('404 (no backend) → login form shown, onAuthenticated not called (V29)', async () => {
       vi.stubGlobal('fetch', mockFetchMe(404, {}))
       const screen = new AuthScreen(onAuthenticated)
       await screen.start()
-      expect(onAuthenticated).toHaveBeenCalledWith({ role: 'järjestäjä', displayName: '' })
+      expect(onAuthenticated).not.toHaveBeenCalled()
+      expect(document.getElementById('auth-screen')?.classList.contains('open')).toBe(true)
     })
 
     it('200 with talkoolainen role → onAuthenticated with talkoolainen', async () => {

@@ -124,7 +124,7 @@ describe('T53 — AuthScreen URL-reititys', () => {
     expect(authScreen?.classList.contains('open')).toBe(true)
   })
 
-  it('verkkovirhe + /s/<koodi> → onAuthenticated sisältää koodin', async () => {
+  it('verkkovirhe + /s/<koodi> → lomake auki talkoolainen-välilehti, koodi pre-täytetty (V29)', async () => {
     vi.stubGlobal('location', { pathname: '/s/matti123' })
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')))
 
@@ -132,7 +132,7 @@ describe('T53 — AuthScreen URL-reititys', () => {
     await screen.start()
     await new Promise(r => setTimeout(r, 10))
 
-    const result = onAuthenticated.mock.calls[0]?.[0]
-    expect(result?.code).toBe('matti123')
+    expect(onAuthenticated).not.toHaveBeenCalled()
+    expect(document.getElementById('auth-screen')?.classList.contains('open')).toBe(true)
   })
 })

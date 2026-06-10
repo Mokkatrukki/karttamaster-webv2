@@ -1,4 +1,3 @@
-import { getRole } from '../logic/role'
 import type { Role } from '../logic/role'
 
 export type AuthResult = { role: Role; displayName: string; code?: string }
@@ -45,11 +44,11 @@ export class AuthScreen {
         this.show()
         return
       }
-      // Non-401 error (e.g. 404 from Vite dev server) → no backend, skip auth
-      this.onAuthenticated({ role: getRole(), displayName: '', code: pathCode ?? undefined })
+      // Non-401 error (e.g. 404, 500) → show login form (V29: no silent skip)
+      this.show()
     } catch {
-      // Network error → no backend, skip auth
-      this.onAuthenticated({ role: getRole(), displayName: '', code: pathCode ?? undefined })
+      // Network error → show login form (V29: no silent skip)
+      this.show()
     }
   }
 
