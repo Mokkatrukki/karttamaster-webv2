@@ -59,6 +59,11 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string): 
         const highlighted = m.id === highlightId ? ' marker-item--new' : ''
         const statusBadge = `<span class="marker-status marker-status--${m.status}">${STATUS_LABELS[m.status]}</span>`
         const actions = isTalkoolainen ? renderStatusActions(m.id, m.status) : ''
+        const typeSelect = !isTalkoolainen
+          ? `<select class="marker-type-select" data-id="${m.id}" title="Vaihda tyyppi">${
+              SIGN_TYPES.map((t) => `<option value="${t.type}"${t.type === m.type ? ' selected' : ''}>${t.label}</option>`).join('')
+            }</select>`
+          : ''
         return `
           <div class="marker-item${highlighted}" data-id="${m.id}">
             <span class="marker-icon" style="color:${info.color}">${info.label[0]}</span>
@@ -66,6 +71,7 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string): 
               <div>${info.label}</div>
               <div class="marker-km">${km} km · ${Math.round(m.bearing)}°</div>
               ${statusBadge}
+              ${typeSelect}
               <input class="marker-note" data-id="${m.id}" type="text" placeholder="Paikkaohjeet..." maxlength="200">
               ${actions}
             </div>
@@ -98,6 +104,13 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string): 
     })
   })
 
+  listEl.querySelectorAll<HTMLSelectElement>('.marker-type-select').forEach((sel) => {
+    sel.addEventListener('change', (e) => {
+      e.stopPropagation()
+      manager.updateType(sel.dataset.id ?? '', sel.value as MarkerType)
+    })
+  })
+
   listEl.querySelectorAll('.marker-item').forEach((el) => {
     el.addEventListener('click', (e) => {
       const target = e.target as HTMLElement
@@ -105,6 +118,7 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string): 
       if (target.classList.contains('marker-note')) return
       if (target.classList.contains('btn-status-primary')) return
       if (target.classList.contains('btn-status-secondary')) return
+      if (target.classList.contains('marker-type-select')) return
       manager.panTo((el as HTMLElement).dataset.id ?? '')
     })
   })

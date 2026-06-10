@@ -151,6 +151,16 @@ export class MarkerManager {
     this.onUpdate()
   }
 
+  updateType(id: string, newType: MarkerType): void {
+    const m = this.markers.find((x) => x.id === id)
+    if (!m) return
+    m.type = newType
+    const lm = this.leafletMarkers.get(id)
+    if (lm) lm.setIcon(createSignIcon(newType, m.bearing, m.status))
+    this.save()
+    this.onUpdate()
+  }
+
   updateNote(id: string, note: string): void {
     const m = this.markers.find((x) => x.id === id)
     if (!m) return

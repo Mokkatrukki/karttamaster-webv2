@@ -759,3 +759,17 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   color: var(--text-meta);
   flex-shrink: 0;
 }
+
+/* ── Marker type select (T38) ── */
+
+.marker-type-select {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-family: inherit;
+  padding: 3px 6px;
+  cursor: pointer;
+  min-height: 28px;
+}
