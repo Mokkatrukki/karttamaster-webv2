@@ -7,7 +7,7 @@ import { markersRoutes } from './routes/markers'
 import { scheduleNightlySnapshot } from './snapshot-scheduler'
 
 const db = createDb(process.env.DB_PATH)
-await seedAdmin(db)
+seedAdmin(db)
 scheduleNightlySnapshot(db)
 
 const app = new Hono()
