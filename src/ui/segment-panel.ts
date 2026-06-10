@@ -1,5 +1,5 @@
 import { nearestPointIndex, haversineDistance } from '../logic/bearing'
-import { createSegment, deleteSegment } from '../logic/segments'
+import { createSegment, updateSegment, deleteSegment } from '../logic/segments'
 import type { Segment, SegmentStore } from '../logic/segments'
 import type { RouteConfig } from '../logic/multi-route'
 
@@ -149,13 +149,16 @@ export class SegmentPanel {
     li.className = 'segment-item'
     li.dataset.id = seg.id
 
+    const main = document.createElement('div')
+    main.className = 'segment-row-main'
+
     const info = document.createElement('span')
     info.className = 'segment-info'
     const startKm = (seg.startDist / 1000).toFixed(1)
     const endKm = (seg.endDist / 1000).toFixed(1)
     const name = seg.displayName ?? `(#${seg.id.slice(0, 6)})`
     info.textContent = `${name} — ${startKm}–${endKm} km`
-    li.appendChild(info)
+    main.appendChild(info)
 
     const deleteBtn = document.createElement('button')
     deleteBtn.className = 'btn-segment-delete'
@@ -165,8 +168,72 @@ export class SegmentPanel {
       this.render()
       this.onUpdate()
     })
-    li.appendChild(deleteBtn)
+    main.appendChild(deleteBtn)
+    li.appendChild(main)
+
+    li.appendChild(this.buildAssignSection(seg))
 
     return li
+  }
+
+  private buildAssignSection(seg: Segment): HTMLElement {
+    const section = document.createElement('div')
+    section.className = 'segment-assign'
+
+    if (seg.assignedCode) {
+      const url = `/s/${seg.assignedCode}`
+
+      const urlSpan = document.createElement('span')
+      urlSpan.className = 'segment-url'
+      urlSpan.textContent = url
+      section.appendChild(urlSpan)
+
+      const copyBtn = document.createElement('button')
+      copyBtn.className = 'btn-copy-url'
+      copyBtn.textContent = '📋 Kopioi'
+      copyBtn.addEventListener('click', () => {
+        const fullUrl = `${window.location.origin}${url}`
+        navigator.clipboard.writeText(fullUrl).catch(() => {})
+      })
+      section.appendChild(copyBtn)
+
+      const editBtn = document.createElement('button')
+      editBtn.className = 'btn-assign-edit'
+      editBtn.textContent = 'Muuta'
+      editBtn.addEventListener('click', () => {
+        updateSegment(this.store, seg.id, { assignedCode: undefined })
+        this.render()
+      })
+      section.appendChild(editBtn)
+    } else {
+      const codeInput = document.createElement('input')
+      codeInput.className = 'input-assign-code'
+      codeInput.placeholder = 'Koodi'
+      codeInput.setAttribute('aria-label', 'Talkoolaisen koodi')
+
+      const nameInput = document.createElement('input')
+      nameInput.className = 'input-assign-name'
+      nameInput.placeholder = 'Nimi (valinnainen)'
+      nameInput.value = seg.displayName ?? ''
+      nameInput.setAttribute('aria-label', 'Pätkän nimi')
+
+      const saveBtn = document.createElement('button')
+      saveBtn.className = 'btn-assign-save'
+      saveBtn.textContent = 'Tallenna'
+      saveBtn.addEventListener('click', () => {
+        const code = codeInput.value.trim()
+        if (!code) return
+        const displayName = nameInput.value.trim() || seg.displayName
+        updateSegment(this.store, seg.id, { assignedCode: code, displayName })
+        this.render()
+        this.onUpdate()
+      })
+
+      section.appendChild(codeInput)
+      section.appendChild(nameInput)
+      section.appendChild(saveBtn)
+    }
+
+    return section
   }
 }
