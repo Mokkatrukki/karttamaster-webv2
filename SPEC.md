@@ -63,6 +63,7 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | V30 | Segmentit persistoidaan localStorage:en sessioiden yli — samat säännöt kuin merkeillä (V12). Format: `{version:1, segments:[]}`. Korruptoitunut data → silent reset (V14-sääntö). |
 | V31 | Pätkän luontivaiheessa ensimmäinen klikattu piste visualisoidaan kartalla (väliaikainen markkeri) kunnes toinen piste klikataan tai luonti peruutetaan (Esc). |
 | V32 | Pätkän startDist ja endDist ovat muokattavissa luonnin jälkeen — piste on siirrettävissä kartalla tai numeerisesti panelissa. Poista+redo ei ole ainoa vaihtoehto. |
+| V33 | Kun rooli=talkoolainen JA talkoolainenCode on asetettu: merkki-modaali (☰ Lista) näyttää vain `getMarkersForSegment(seg, markers)` — ei globaalia listaa. Järjestäjälle näytetään aina kaikki. |
 
 ## §T Tasks
 
@@ -125,6 +126,7 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | T55 | . | Segmenttien persistointi: `src/logic/segment-persistence.ts` — `saveSegments(store)/loadSegments(): SegmentStore`. Format `{version:1,segments:Segment[]}`. localStorage-avain `karttamaster-segments`. Korruptoitunut data → silent reset (V14). Kutsu `saveSegments` jokaisen `createSegment/updateSegment/deleteSegment`-kutsun jälkeen. Lataa `loadSegments()` `init()`-vaiheessa ennen karttaa. Vitest-pure (localStorage-mock). | V30,V14,T13 |
 | T56 | . | Pätkän luonti-UX: (a) ensimmäisen klikkauksen jälkeen näytä väliaikainen markkeri kartalla (L.circleMarker, punainen) — häviää kun toinen piste klikataan tai Esc. (b) Pätkärivillä "Muokkaa pisteitä" -nappi → siirrä overlay-pisteet drag-to-reposition -moodiin. `src/ui/segment-panel.ts` + `src/map/segment-overlay.ts`. Playwright (luonti-flow). | V31,V32,T25 |
 | T57 | . | Snapshot-paneeli collapsible: oletuksena supistettu (vain "Varmuuskopiot (N)" -otsikko + expand-nappi). Laajenee klikillä. Tieto-elementit eivät vie tilaa oletuksena. `src/ui/snapshot-panel.ts`. Vitest-jsdom. | T50 |
+| T58 | . | Talkoolaisen marker-modaali filtteröity: `openMarkerModal` `src/main.ts`:ssä — jos `talkoolainenCode` asetettu JA pätkä löytyy, kutsu `renderMarkerList(markerManager, highlightId, segmentMarkerIds)` jossa `segmentMarkerIds = Set<string>` pätkän merkki-id:t. `renderMarkerList` suodattaa: talkoolaiselle näytetään vain pätkän merkit. Vitest-jsdom (renderMarkerList suodatus). | V33,T13,T14,T25 |
 
 ## §UX Kenttämuistio
 
@@ -172,3 +174,4 @@ UX-simulaatio 2026-06-07. Kaksi roolia läpikäyty — löydöt kirjattu taskeih
 | B5 | 2026-06-10 | `createSegmentStore()` = `new Map()` — segmenteillä ei localStorageen tallennusta. Kaikki pätkäjako katoaa sivun päivityksellä. | V30→T55 |
 | B6 | 2026-06-10 | Pätkän luonnissa ensimmäinen klikattu piste ei näy kartalla — ei visuaalista palautetta. Luonnin jälkeen startDist/endDist ei muokattavissa — ainoa vaihtoehto poista+redo. | V31,V32→T56 |
 | B7 | 2026-06-10 | `snapshot-panel.ts` renderöi aina koko listan — vie liikaa tilaa admin-näkymästä kun varmuuskopioita on paljon. | T57 |
+| B8 | 2026-06-10 | `main.ts:186-188` — `openMarkerModal` kutsuu `renderMarkerList(markerManager)` ilman pätkäfiltteriä. Talkoolainen näkee kaikki merkit eikä vain oman pätkän. | V33→T58 |

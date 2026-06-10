@@ -321,8 +321,8 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   top: 50%;
   left: 0%;
   transform: translate(-50%, -50%);
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   background: #fff;
   border-radius: 50%;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
@@ -756,7 +756,7 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   color: #fff;
   font-size: 11px;
   padding: 4px 10px;
-  min-height: 28px;
+  min-height: 44px;
 }
 
 .btn-approve:hover {
@@ -908,7 +908,7 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   border: 1px solid rgba(239, 68, 68, 0.25);
   font-size: 11px;
   padding: 4px 8px;
-  min-height: 28px;
+  min-height: 44px;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -988,9 +988,10 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 0;
+  padding: 8px 0;
   border-bottom: 1px solid var(--border-card);
-  font-size: 11px;
+  font-size: 12px;
+  min-height: 44px;
 }
 
 .segment-view-item-info {
@@ -1110,10 +1111,10 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   border: 1px solid var(--border-default);
   color: var(--text-primary);
   border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 11px;
-  min-height: 28px;
-  width: 90px;
+  padding: 8px;
+  font-size: 12px;
+  min-height: 44px;
+  width: 110px;
 }
 
 .btn-copy-url,
@@ -1124,7 +1125,7 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   border: 1px solid var(--border-strong);
   font-size: 11px;
   padding: 4px 8px;
-  min-height: 28px;
+  min-height: 44px;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -1157,7 +1158,7 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   border: 1px solid rgba(239, 68, 68, 0.25);
   font-size: 11px;
   padding: 4px 8px;
-  min-height: 28px;
+  min-height: 44px;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -1189,9 +1190,9 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   color: var(--text-primary);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: 12px;
   font-family: inherit;
-  padding: 3px 6px;
+  padding: 6px 8px;
   cursor: pointer;
-  min-height: 28px;
+  min-height: 44px;
 }
