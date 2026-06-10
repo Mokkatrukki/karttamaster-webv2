@@ -1,5 +1,6 @@
 import { nearestPointIndex, haversineDistance } from '../logic/bearing'
 import { createSegment, updateSegment, deleteSegment } from '../logic/segments'
+import { saveSegments } from '../logic/segment-persistence'
 import type { Segment, SegmentStore } from '../logic/segments'
 import type { RouteConfig } from '../logic/multi-route'
 
@@ -65,6 +66,7 @@ export class SegmentPanel {
         phase: 'asettaminen',
         displayName: `Pätkä ${this.segmentCount}`,
       })
+      saveSegments(this.store)
 
       this.state = { mode: 'idle' }
       this.statusEl.hidden = true
@@ -165,6 +167,7 @@ export class SegmentPanel {
     deleteBtn.textContent = '✕'
     deleteBtn.addEventListener('click', () => {
       deleteSegment(this.store, seg.id)
+      saveSegments(this.store)
       this.render()
       this.onUpdate()
     })
@@ -202,6 +205,7 @@ export class SegmentPanel {
       editBtn.textContent = 'Muuta'
       editBtn.addEventListener('click', () => {
         updateSegment(this.store, seg.id, { assignedCode: undefined })
+        saveSegments(this.store)
         this.render()
       })
       section.appendChild(editBtn)
@@ -225,6 +229,7 @@ export class SegmentPanel {
         if (!code) return
         const displayName = nameInput.value.trim() || seg.displayName
         updateSegment(this.store, seg.id, { assignedCode: code, displayName })
+        saveSegments(this.store)
         this.render()
         this.onUpdate()
       })

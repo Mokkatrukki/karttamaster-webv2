@@ -23,7 +23,8 @@ import { GpsDrivePanel } from './ui/gps-drive-panel'
 import { SegmentOverlay } from './map/segment-overlay'
 import { SegmentPanel } from './ui/segment-panel'
 import { SegmentView } from './ui/segment-view'
-import { createSegmentStore, getSegmentForCode, getMarkersForSegment } from './logic/segments'
+import { getSegmentForCode, getMarkersForSegment } from './logic/segments'
+import { loadSegments } from './logic/segment-persistence'
 import type { RouteConfig } from './logic/multi-route'
 
 export const ROUTE_DEFS: Omit<RouteConfig, 'routePoints'>[] = [
@@ -111,7 +112,7 @@ async function init(talkoolainenCode?: string) {
     distanceWarningTimer = setTimeout(() => { distanceWarningEl.style.display = 'none' }, 4000)
   }
 
-  const segmentStore = createSegmentStore()
+  const segmentStore = loadSegments()
   const segmentOverlay = new SegmentOverlay(map, routes)
   const segmentPanel = new SegmentPanel(
     document.getElementById('segment-panel-container')!,
