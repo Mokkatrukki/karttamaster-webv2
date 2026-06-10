@@ -10,12 +10,12 @@ export class RoleSelector {
   ) {
     this.role = getRole()
     this.updateBtn()
-    onChange?.(this.role)
+    this.onChange?.(this.role)
     btn.addEventListener('click', () => {
       this.role = this.role === 'järjestäjä' ? 'talkoolainen' : 'järjestäjä'
       setRole(this.role)
       this.updateBtn()
-      onChange?.(this.role)
+      this.onChange?.(this.role)
     })
   }
 

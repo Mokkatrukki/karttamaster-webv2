@@ -78,7 +78,6 @@ export class MarkerInteraction {
   startRotation(id: string): void {
     const m = this.getMarker(id)
     if (!m) return
-    document.removeEventListener('mousedown', this.handleArmOutsideClick)
     this.rotatingId = id
     const pt = this.map.latLngToContainerPoint([m.lat, m.lon])
     this.rotatingCenter = { x: pt.x, y: pt.y }
