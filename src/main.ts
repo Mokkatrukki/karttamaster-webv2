@@ -18,6 +18,7 @@ import { StatusPanel } from './ui/status-panel'
 import { calcAllRouteStatus } from './logic/route-status'
 import { setRole } from './logic/role'
 import { GpsNavigator } from './map/gps-navigator'
+import { GpsDrivePanel } from './ui/gps-drive-panel'
 import type { RouteConfig } from './logic/multi-route'
 
 export const ROUTE_DEFS: Omit<RouteConfig, 'routePoints'>[] = [
@@ -94,6 +95,7 @@ async function init() {
 
   let progressBar!: ProgressBar
   let statusPanel!: StatusPanel
+  let gpsDrivePanel: GpsDrivePanel | null = null
 
   const distanceWarningEl = document.getElementById('distance-warning')!
   let distanceWarningTimer: ReturnType<typeof setTimeout> | null = null
@@ -110,7 +112,10 @@ async function init() {
     statusPanel?.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
   }, initialMarkers, showDistanceWarning)
 
-  const driveMode = new DriveMode(map, routes[0].routePoints, km => progressBar.update(km))
+  const driveMode = new DriveMode(map, routes[0].routePoints, km => {
+    progressBar.update(km)
+    gpsDrivePanel?.update(km)
+  })
 
   const routeBar = new RouteBar(
     routes, polylines, map, driveMode, markerManager,
@@ -126,6 +131,14 @@ async function init() {
     markerManager,
   )
   progressBar.update(0)
+
+  gpsDrivePanel = new GpsDrivePanel(
+    document.getElementById('gps-drive-panel')!,
+    driveMode,
+    markerManager,
+    () => routeBar.getActiveRoute().id,
+  )
+  gpsDrivePanel.update(0)
 
   statusPanel = new StatusPanel(document.getElementById('status-panel')!)
   statusPanel.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))

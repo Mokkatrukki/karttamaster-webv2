@@ -550,6 +550,67 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
 }
 .btn-status-secondary:hover { background: rgba(255,255,255,0.12); color: var(--text-primary); }
 
+/* ── GPS Drive Panel ── */
+
+#gps-drive-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border-default);
+  flex-wrap: wrap;
+}
+
+#gps-drive-panel.gdp-near {
+  background: rgba(74, 222, 128, 0.12);
+  border-color: #4ade80;
+}
+
+#gdp-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 80px;
+}
+
+#gdp-dist {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+#gdp-info .gdp-near #gdp-dist { color: #4ade80; }
+
+#gdp-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+#gdp-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+#gdp-jump {
+  min-height: 44px;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.09);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.1s;
+}
+#gdp-jump:hover { background: rgba(255,255,255,0.14); }
+
 /* ── Empty state ── */
 
 .empty-state {

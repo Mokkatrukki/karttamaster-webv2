@@ -35,6 +35,15 @@ export class DriveMode {
     this.panToCurrent()
   }
 
+  jumpToDistance(distM: number): void {
+    let best = 0, bestDiff = Infinity
+    for (let i = 0; i < this.routePoints.length; i++) {
+      const diff = Math.abs(this.routePoints[i].distanceFromStart - distM)
+      if (diff < bestDiff) { bestDiff = diff; best = i }
+    }
+    this.jumpTo(best)
+  }
+
   setRoute(routePoints: RoutePoint[]): void {
     this.routePoints = routePoints
     this.currentIndex = 0
