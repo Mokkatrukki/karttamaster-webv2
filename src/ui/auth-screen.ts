@@ -3,6 +3,12 @@ import type { Role } from '../logic/role'
 
 export type AuthResult = { role: Role; displayName: string; code?: string }
 
+// V27: extract talkoolainen code from /s/<koodi> deep-link
+export function extractSegmentCode(pathname: string): string | null {
+  const m = pathname.match(/^\/s\/([a-z0-9_-]+)$/i)
+  return m ? m[1] : null
+}
+
 export class AuthScreen {
   private readonly overlay: HTMLElement
   private readonly errorEl: HTMLElement
@@ -19,22 +25,31 @@ export class AuthScreen {
   }
 
   async start(): Promise<void> {
+    const pathCode = extractSegmentCode(window.location.pathname)
     try {
       const resp = await fetch('/api/auth/me')
       if (resp.ok) {
         const data = await resp.json() as { role: Role; display_name: string }
-        this.onAuthenticated({ role: data.role, displayName: data.display_name })
+        this.onAuthenticated({ role: data.role, displayName: data.display_name, code: pathCode ?? undefined })
         return
       }
       if (resp.status === 401) {
+        if (pathCode) {
+          this.show()
+          this.switchTab('talkoolainen')
+          const codeInput = this.overlay.querySelector('#auth-code') as HTMLInputElement
+          codeInput.value = pathCode
+          this.talkoolainenForm.dispatchEvent(new Event('submit', { cancelable: true }))
+          return
+        }
         this.show()
         return
       }
       // Non-401 error (e.g. 404 from Vite dev server) → no backend, skip auth
-      this.onAuthenticated({ role: getRole(), displayName: '' })
+      this.onAuthenticated({ role: getRole(), displayName: '', code: pathCode ?? undefined })
     } catch {
       // Network error → no backend, skip auth
-      this.onAuthenticated({ role: getRole(), displayName: '' })
+      this.onAuthenticated({ role: getRole(), displayName: '', code: pathCode ?? undefined })
     }
   }
 
