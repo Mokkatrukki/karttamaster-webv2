@@ -14,6 +14,7 @@ import { TILE_LAYERS } from './logic/tile-layers'
 import { loadMarkers } from './logic/persistence'
 import { syncMarkers, pushPending, SyncError } from './logic/sync'
 import { MapStateBadge, showMapNotReadyBanner } from './ui/map-state-badge'
+import { SnapshotPanel } from './ui/snapshot-panel'
 import { StatusPanel } from './ui/status-panel'
 import { calcAllRouteStatus } from './logic/route-status'
 import { setRole } from './logic/role'
@@ -211,6 +212,7 @@ const authScreen = new AuthScreen(({ role }) => {
     applyRoleView,
   )
   new MapStateBadge(document.getElementById('toolbar')!, role)
+  new SnapshotPanel(document.getElementById('snapshot-panel-container')!, role)
   init().catch(console.error)
 })
 authScreen.start().catch(console.error)
