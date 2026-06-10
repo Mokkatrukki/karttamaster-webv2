@@ -12,6 +12,8 @@ import { RoleSelector } from './ui/role-selector'
 import { AuthScreen } from './ui/auth-screen'
 import { TILE_LAYERS } from './logic/tile-layers'
 import { loadMarkers } from './logic/persistence'
+import { syncMarkers, pushPending, SyncError } from './logic/sync'
+import { MapStateBadge, showMapNotReadyBanner } from './ui/map-state-badge'
 import { setRole } from './logic/role'
 import { GpsNavigator } from './map/gps-navigator'
 import type { RouteConfig } from './logic/multi-route'
@@ -63,6 +65,17 @@ if (btnGps) {
 }
 
 async function init() {
+  // V18: push any offline changes before syncing, then load from server
+  await pushPending().catch(() => {})
+  let initialMarkers = loadMarkers()
+  try {
+    initialMarkers = await syncMarkers()
+  } catch (err) {
+    if (err instanceof SyncError && err.reason === 'map_not_ready') {
+      showMapNotReadyBanner()
+    }
+  }
+
   const routes: RouteConfig[] = await Promise.all(
     ROUTE_DEFS.map(async def => {
       const coords = await loadGpx(def.file)
@@ -91,7 +104,7 @@ async function init() {
   const markerManager = new MarkerManager(map, routes, () => {
     renderMarkerList(markerManager)
     progressBar.refreshDots()
-  }, loadMarkers(), showDistanceWarning)
+  }, initialMarkers, showDistanceWarning)
 
   const driveMode = new DriveMode(map, routes[0].routePoints, km => progressBar.update(km))
 
@@ -177,6 +190,7 @@ const authScreen = new AuthScreen(({ role }) => {
     document.getElementById('btn-role') as HTMLButtonElement,
     applyRoleView,
   )
+  new MapStateBadge(document.getElementById('toolbar')!, role)
   init().catch(console.error)
 })
 authScreen.start().catch(console.error)
