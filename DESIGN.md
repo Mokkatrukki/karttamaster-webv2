@@ -135,6 +135,15 @@ metsässä, hanskat kädessä.
 - Shadow: `0 8px 24px rgba(0,0,0,0.4)`
 - `z-index: 1003–2000` (floating-picker alempana)
 
+### SnapshotPanel (`#snapshot-panel`, `#snapshot-panel-container`)
+- Vain järjestäjälle — `hidden`-attribuutti talkoolaiselle (component-tason gate)
+- Sijainti: `#app`:n sisällä `#status-panel`:in jälkeen, ennen karttaa
+- Tausta: `bg-primary`, bottom-border: `border-subtle`
+- Header: `11px uppercase text-muted`, "Luo varmuuskopio" -nappi compact (min-height 28px, ei 44px — hallintanäkymä)
+- Lista: `max-height: 160px`, scrollable, `border-card`-separaattorit
+- Listarivi: `padding: 6px 10px`, teksti `text-muted`, `11px`
+- Palauta-nappi: `rgba(239,68,68,0.10)` tausta, `#f87171` teksti — vaarallinen toiminto = punainen
+
 ### Marker-modaali (`#marker-modal`)
 - Tausta: `bg-card`, border: `border-default`, `border-radius: 14px`
 - Shadow: `0 16px 48px rgba(0,0,0,0.5)`

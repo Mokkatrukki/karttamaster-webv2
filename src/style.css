@@ -821,6 +821,94 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   flex-shrink: 0;
 }
 
+/* ── Snapshot panel (T50) — järjestäjä only ── */
+
+#snapshot-panel-container {
+  flex-shrink: 0;
+}
+
+#snapshot-panel {
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.snapshot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  gap: 8px;
+}
+
+.snapshot-header h3 {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.btn-snapshot-create {
+  background: var(--hover-light);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  font-size: 11px;
+  padding: 4px 10px;
+  min-height: 28px;
+}
+
+.btn-snapshot-create:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.snapshot-list {
+  list-style: none;
+  max-height: 160px;
+  overflow-y: auto;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.snapshot-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-card);
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+.snapshot-info {
+  flex: 1;
+  color: var(--text-muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.snapshot-empty {
+  padding: 8px 10px;
+  color: var(--text-meta);
+  font-size: 11px;
+}
+
+.btn-snapshot-restore {
+  background: rgba(239, 68, 68, 0.10);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  font-size: 11px;
+  padding: 4px 8px;
+  min-height: 28px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-snapshot-restore:hover {
+  background: rgba(239, 68, 68, 0.20);
+  color: #fca5a5;
+}
+
 /* ── Marker type select (T38) ── */
 
 .marker-type-select {
