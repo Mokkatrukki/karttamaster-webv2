@@ -64,6 +64,7 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | V31 | Pätkän luontivaiheessa ensimmäinen klikattu piste visualisoidaan kartalla (väliaikainen markkeri) kunnes toinen piste klikataan tai luonti peruutetaan (Esc). |
 | V32 | Pätkän startDist ja endDist ovat muokattavissa luonnin jälkeen — piste on siirrettävissä kartalla tai numeerisesti panelissa. Poista+redo ei ole ainoa vaihtoehto. |
 | V33 | Kun rooli=talkoolainen JA talkoolainenCode on asetettu: merkki-modaali (☰ Lista) näyttää vain `getMarkersForSegment(seg, markers)` — ei globaalia listaa. Järjestäjälle näytetään aina kaikki. |
+| V34 | Kun järjestäjä tallentaa `assignedCode` segmentille → `POST /api/admin/codes {code, display_name, segment_id}` kutsutaan välittömästi. Kun `assignedCode` poistetaan → `DELETE /api/admin/codes/:code`. `Segment.assignedCode` ja `talkoolainen_codes`-taulu pysyvät synkronissa — koodi löytyy backendistä ennen kuin URL jaetaan. API-virhe → älä päivitä localStoragea, näytä virheviesti. |
 
 ## §T Tasks
 
@@ -127,6 +128,7 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | T56 | ✓ | Pätkän luonti-UX: (a) ensimmäisen klikkauksen jälkeen näytä väliaikainen markkeri kartalla (L.circleMarker, punainen) — häviää kun toinen piste klikataan tai Esc. (b) Pätkärivillä "Muokkaa pisteitä" -nappi → siirrä overlay-pisteet drag-to-reposition -moodiin. `src/ui/segment-panel.ts` + `src/map/segment-overlay.ts`. Playwright (luonti-flow). | V31,V32,T25 |
 | T57 | ✓ | Snapshot-paneeli collapsible: oletuksena supistettu (vain "Varmuuskopiot (N)" -otsikko + expand-nappi). Laajenee klikillä. Tieto-elementit eivät vie tilaa oletuksena. `src/ui/snapshot-panel.ts`. Vitest-jsdom. | T50 |
 | T58 | ✓ | Talkoolaisen marker-modaali filtteröity: `openMarkerModal` `src/main.ts`:ssä — jos `talkoolainenCode` asetettu JA pätkä löytyy, kutsu `renderMarkerList(markerManager, highlightId, segmentMarkerIds)` jossa `segmentMarkerIds = Set<string>` pätkän merkki-id:t. `renderMarkerList` suodattaa: talkoolaiselle näytetään vain pätkän merkit. Vitest-jsdom (renderMarkerList suodatus). | V33,T13,T14,T25 |
+| T59 | ✓ | Assign-sync fix: `segment-panel.ts` `saveBtn`-klikissä kutsu `POST /api/admin/codes {code, display_name, segment_id}` — vasta onnistuneen vastauksen jälkeen kutsu `updateSegment` + `saveSegments`. `Muuta`-napissa kutsu `DELETE /api/admin/codes/:code` — onnistumisen jälkeen `updateSegment(..., {assignedCode: undefined})`. API-virhe → näytä virheviesti assign-osiossa, älä päivitä localStoragea. Vitest-jsdom (fetch-mock: onnistunut save, save epäonnistuu → ei localStorage-muutosta, delete). Käyttäjä: järjestäjä. | V34,T26,T36 |
 
 ## §UX Kenttämuistio
 
@@ -175,3 +177,4 @@ UX-simulaatio 2026-06-07. Kaksi roolia läpikäyty — löydöt kirjattu taskeih
 | B6 | 2026-06-10 | Pätkän luonnissa ensimmäinen klikattu piste ei näy kartalla — ei visuaalista palautetta. Luonnin jälkeen startDist/endDist ei muokattavissa — ainoa vaihtoehto poista+redo. | V31,V32→T56 |
 | B7 | 2026-06-10 | `snapshot-panel.ts` renderöi aina koko listan — vie liikaa tilaa admin-näkymästä kun varmuuskopioita on paljon. | T57 |
 | B8 | 2026-06-10 | `main.ts:186-188` — `openMarkerModal` kutsuu `renderMarkerList(markerManager)` ilman pätkäfiltteriä. Talkoolainen näkee kaikki merkit eikä vain oman pätkän. | V33→T58 |
+| B9 | 2026-06-11 | `segment-panel.ts buildAssignSection()` tallentaa `assignedCode` vain localStorageen — ei kutsu `POST /api/admin/codes`. Backend `talkoolainen_codes`-taulu pysyy tyhjänä → `/api/auth/code-login` palauttaa 401. Talkoolainen ei pääse sisään jaetulla linkillä. | V34→T59 |

@@ -219,6 +219,10 @@ export class SegmentPanel {
     const section = document.createElement('div')
     section.className = 'segment-assign'
 
+    const errorEl = document.createElement('p')
+    errorEl.className = 'assign-error'
+    errorEl.hidden = true
+
     if (seg.assignedCode) {
       const url = `/s/${seg.assignedCode}`
 
@@ -239,12 +243,22 @@ export class SegmentPanel {
       const editBtn = document.createElement('button')
       editBtn.className = 'btn-assign-edit'
       editBtn.textContent = 'Muuta'
-      editBtn.addEventListener('click', () => {
-        updateSegment(this.store, seg.id, { assignedCode: undefined })
-        saveSegments(this.store)
-        this.render()
+      editBtn.addEventListener('click', async () => {
+        const codeToDelete = seg.assignedCode!
+        errorEl.hidden = true
+        try {
+          const resp = await fetch(`/api/admin/codes/${codeToDelete}`, { method: 'DELETE' })
+          if (!resp.ok) throw new Error('delete_failed')
+          updateSegment(this.store, seg.id, { assignedCode: undefined })
+          saveSegments(this.store)
+          this.render()
+        } catch {
+          errorEl.textContent = 'Virhe poistettaessa — yritä uudelleen'
+          errorEl.hidden = false
+        }
       })
       section.appendChild(editBtn)
+      section.appendChild(errorEl)
     } else {
       const codeInput = document.createElement('input')
       codeInput.className = 'input-assign-code'
@@ -260,19 +274,32 @@ export class SegmentPanel {
       const saveBtn = document.createElement('button')
       saveBtn.className = 'btn-assign-save'
       saveBtn.textContent = 'Tallenna'
-      saveBtn.addEventListener('click', () => {
+      saveBtn.addEventListener('click', async () => {
         const code = codeInput.value.trim()
         if (!code) return
         const displayName = nameInput.value.trim() || seg.displayName
-        updateSegment(this.store, seg.id, { assignedCode: code, displayName })
-        saveSegments(this.store)
-        this.render()
-        this.onUpdate()
+        errorEl.hidden = true
+        try {
+          const resp = await fetch('/api/admin/codes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, display_name: displayName ?? code, segment_id: seg.id }),
+          })
+          if (!resp.ok) throw new Error('save_failed')
+          updateSegment(this.store, seg.id, { assignedCode: code, displayName })
+          saveSegments(this.store)
+          this.render()
+          this.onUpdate()
+        } catch {
+          errorEl.textContent = 'Virhe tallennettaessa — yritä uudelleen'
+          errorEl.hidden = false
+        }
       })
 
       section.appendChild(codeInput)
       section.appendChild(nameInput)
       section.appendChild(saveBtn)
+      section.appendChild(errorEl)
     }
 
     return section
