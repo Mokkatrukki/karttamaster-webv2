@@ -4,6 +4,13 @@ import { saveSegments } from '../logic/segment-persistence'
 import type { Segment, SegmentStore } from '../logic/segments'
 import type { RouteConfig } from '../logic/multi-route'
 
+export interface SegmentPanelCallbacks {
+  onFirstPoint?: (lat: number, lon: number) => void
+  onFirstPointClear?: () => void
+  onEnterEditMode?: (seg: Segment, onSave: (startDist: number, endDist: number) => void) => void
+  onExitEditMode?: () => void
+}
+
 type CreationState =
   | { mode: 'idle' }
   | { mode: 'first-click' }
@@ -20,6 +27,7 @@ export class SegmentPanel {
     private readonly routes: RouteConfig[],
     private readonly store: SegmentStore,
     private readonly onUpdate: () => void,
+    private readonly callbacks: SegmentPanelCallbacks = {},
   ) {
     const { panel, statusEl, listEl } = this.build()
     this.statusEl = statusEl
@@ -32,6 +40,13 @@ export class SegmentPanel {
     return this.state.mode !== 'idle'
   }
 
+  cancelCreation(): void {
+    if (this.state.mode === 'idle') return
+    this.state = { mode: 'idle' }
+    this.statusEl.hidden = true
+    this.callbacks.onFirstPointClear?.()
+  }
+
   onMapClick(lat: number, lon: number): void {
     if (this.state.mode === 'idle') return
 
@@ -41,6 +56,7 @@ export class SegmentPanel {
     if (this.state.mode === 'first-click') {
       this.state = { mode: 'second-click', routeId: resolved.routeId, startDist: resolved.distanceFromStart }
       this.statusEl.textContent = 'Klikkaa reittiä: 2. piste'
+      this.callbacks.onFirstPoint?.(resolved.lat, resolved.lon)
       return
     }
 
@@ -70,15 +86,18 @@ export class SegmentPanel {
 
       this.state = { mode: 'idle' }
       this.statusEl.hidden = true
+      this.callbacks.onFirstPointClear?.()
       this.render()
       this.onUpdate()
     }
   }
 
-  private resolveClick(lat: number, lon: number): { routeId: string; distanceFromStart: number } | null {
+  private resolveClick(lat: number, lon: number): { routeId: string; distanceFromStart: number; lat: number; lon: number } | null {
     let bestRouteId = ''
     let bestDist = Infinity
     let bestDistFromStart = 0
+    let bestLat = 0
+    let bestLon = 0
     for (const route of this.routes) {
       const idx = nearestPointIndex(route.routePoints, lat, lon)
       const pt = route.routePoints[idx]
@@ -87,9 +106,11 @@ export class SegmentPanel {
         bestDist = d
         bestRouteId = route.id
         bestDistFromStart = pt.distanceFromStart
+        bestLat = pt.lat
+        bestLon = pt.lon
       }
     }
-    return bestRouteId ? { routeId: bestRouteId, distanceFromStart: bestDistFromStart } : null
+    return bestRouteId ? { routeId: bestRouteId, distanceFromStart: bestDistFromStart, lat: bestLat, lon: bestLon } : null
   }
 
   private build(): { panel: HTMLElement; statusEl: HTMLElement; listEl: HTMLUListElement } {
@@ -162,10 +183,25 @@ export class SegmentPanel {
     info.textContent = `${name} — ${startKm}–${endKm} km`
     main.appendChild(info)
 
+    const editPtsBtn = document.createElement('button')
+    editPtsBtn.className = 'btn-segment-edit-pts'
+    editPtsBtn.title = 'Siirrä aloitus- ja lopetuspistettä'
+    editPtsBtn.textContent = 'Muokkaa pisteitä'
+    editPtsBtn.addEventListener('click', () => {
+      this.callbacks.onEnterEditMode?.(seg, (startDist, endDist) => {
+        updateSegment(this.store, seg.id, { startDist, endDist })
+        saveSegments(this.store)
+        this.render()
+        this.onUpdate()
+      })
+    })
+    main.appendChild(editPtsBtn)
+
     const deleteBtn = document.createElement('button')
     deleteBtn.className = 'btn-segment-delete'
     deleteBtn.textContent = '✕'
     deleteBtn.addEventListener('click', () => {
+      this.callbacks.onExitEditMode?.()
       deleteSegment(this.store, seg.id)
       saveSegments(this.store)
       this.render()

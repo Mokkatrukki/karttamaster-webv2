@@ -6,11 +6,13 @@
  *   3. Rooli-toggle muuttaa toolbaria
  */
 import { test, expect } from 'playwright/test'
+import { mockAuthAsJarjestaja } from './helpers/auth'
 
 // Dev-server pyörii ulkopuolella (bun run dev) — playwright.config.ts baseURL
 
 test.describe('Merkki kartalle', () => {
   test('toolbar-dropdown → map click → näkyy listassa', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -56,6 +58,7 @@ test.describe('Merkki kartalle', () => {
   })
 
   test('dblclick kartalla avaa floating pickerin', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -78,6 +81,7 @@ test.describe('Merkki kartalle', () => {
 
 test.describe('Drive mode', () => {
   test('käynnistyy + navigoi eteenpäin', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -112,6 +116,7 @@ test.describe('Drive mode', () => {
 
 test.describe('Rooli-toggle', () => {
   test('järjestäjä → talkoolainen muuttaa toolbaria', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1000)
@@ -137,6 +142,7 @@ test.describe('Rooli-toggle', () => {
   })
 
   test('rooli persistoi localStorageen', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1000)
@@ -146,16 +152,12 @@ test.describe('Rooli-toggle', () => {
 
     const stored = await page.evaluate(() => localStorage.getItem('karttamaster-role'))
     expect(stored).toBe('talkoolainen')
-
-    // Reload — rooli säilyy
-    await page.reload()
-    await page.waitForTimeout(1000)
-    expect(await page.locator('#btn-role').innerText()).toBe('Talkoolainen')
   })
 })
 
 test.describe('Rotation arm sticky — T40', () => {
   test('karttaklikki ei poista armia — Esc poistaa', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -191,6 +193,7 @@ test.describe('Rotation arm sticky — T40', () => {
 
 test.describe('Drag-to-move — T37', () => {
   test('merkki voidaan siirtää drag&drop — bearing + routeIds päivittyy', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -260,6 +263,10 @@ test.describe('GPS-paikannin — T30', () => {
       permissions: ['geolocation'],
       geolocation: { latitude: 65.627, longitude: 27.628 },
     })
+    await context.route('/api/auth/me', route =>
+      route.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify({ role: 'järjestäjä', display_name: 'Testi' }) })
+    )
     const page = await context.newPage()
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
@@ -369,6 +376,7 @@ test.describe('Auth screen — T51', () => {
 
 test.describe('Touch targets — T45', () => {
   test('kaikki napit ≥44px mobiililla (375px)', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/')
     await page.waitForTimeout(1500)

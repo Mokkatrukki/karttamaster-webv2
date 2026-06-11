@@ -114,11 +114,29 @@ async function init(talkoolainenCode?: string) {
 
   const segmentStore = loadSegments()
   const segmentOverlay = new SegmentOverlay(map, routes)
+
+  let tempCreationMarker: L.CircleMarker | null = null
+
   const segmentPanel = new SegmentPanel(
     document.getElementById('segment-panel-container')!,
     routes,
     segmentStore,
     () => segmentOverlay.update(segmentStore),
+    {
+      onFirstPoint: (lat, lon) => {
+        tempCreationMarker?.remove()
+        tempCreationMarker = L.circleMarker([lat, lon], {
+          radius: 9, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.85, weight: 2,
+          className: 'segment-creation-marker',
+        }).addTo(map)
+      },
+      onFirstPointClear: () => {
+        tempCreationMarker?.remove()
+        tempCreationMarker = null
+      },
+      onEnterEditMode: (seg, onSave) => segmentOverlay.enterEditMode(seg, onSave),
+      onExitEditMode: () => segmentOverlay.exitEditMode(),
+    },
   )
 
   let segmentView: SegmentView | null = null
@@ -237,9 +255,11 @@ async function init(talkoolainenCode?: string) {
 
   document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
-      if (placeMode.isPickerOpen())   { placeMode.closePicker();   return }
-      if (placeMode.isDropdownOpen()) { placeMode.closeDropdown(); return }
-      if (placeMode.isActive())       { placeMode.exit();          return }
+      if (segmentPanel.isCreationMode()) { segmentPanel.cancelCreation(); return }
+      if (segmentOverlay.isEditMode())   { segmentOverlay.exitEditMode(); return }
+      if (placeMode.isPickerOpen())      { placeMode.closePicker();   return }
+      if (placeMode.isDropdownOpen())    { placeMode.closeDropdown(); return }
+      if (placeMode.isActive())          { placeMode.exit();          return }
       if (markerModal.classList.contains('open')) { closeMarkerModal(); return }
       if (driveMode.isActive()) { driveMode.stop(); progressBar.update(0) }
       return

@@ -1,4 +1,5 @@
 import L from 'leaflet'
+import { nearestPointIndex } from '../logic/bearing'
 import type { RoutePoint } from '../logic/types'
 import type { Segment, SegmentStore } from '../logic/segments'
 
@@ -10,6 +11,7 @@ const GAP_COLOR = '#94a3b8'
 
 export class SegmentOverlay {
   private layers: L.Layer[] = []
+  private editMarkers: L.Marker[] = []
 
   constructor(
     private readonly map: L.Map,
@@ -53,6 +55,69 @@ export class SegmentOverlay {
     this.layers.forEach(l => l.remove())
     this.layers = []
   }
+
+  isEditMode(): boolean {
+    return this.editMarkers.length > 0
+  }
+
+  exitEditMode(): void {
+    this.editMarkers.forEach(m => m.remove())
+    this.editMarkers = []
+  }
+
+  // Place draggable start/end markers for the segment. onSave called on each snap.
+  enterEditMode(seg: Segment, onSave: (startDist: number, endDist: number) => void): void {
+    this.exitEditMode()
+    const route = this.routes.find(r => seg.routeIds.includes(r.id))
+    if (!route) return
+
+    let editStartDist = seg.startDist
+    let editEndDist = seg.endDist
+
+    const startPos = routePointAtDist(route.routePoints, seg.startDist)
+    const endPos = routePointAtDist(route.routePoints, seg.endDist)
+
+    const startIcon = L.divIcon({ className: 'segment-edit-marker segment-edit-marker--start', html: 'A', iconSize: [24, 24] })
+    const endIcon = L.divIcon({ className: 'segment-edit-marker segment-edit-marker--end', html: 'B', iconSize: [24, 24] })
+
+    const startMarker = L.marker(startPos, { draggable: true, icon: startIcon, title: 'Aloituspiste (raahaa)' })
+    const endMarker = L.marker(endPos, { draggable: true, icon: endIcon, title: 'Lopetuspiste (raahaa)' })
+
+    startMarker.on('dragend', () => {
+      const { lat, lng } = startMarker.getLatLng()
+      const idx = nearestPointIndex(route.routePoints, lat, lng)
+      const pt = route.routePoints[idx]
+      editStartDist = pt.distanceFromStart
+      startMarker.setLatLng([pt.lat, pt.lon])
+      if (editStartDist < editEndDist) onSave(editStartDist, editEndDist)
+    })
+
+    endMarker.on('dragend', () => {
+      const { lat, lng } = endMarker.getLatLng()
+      const idx = nearestPointIndex(route.routePoints, lat, lng)
+      const pt = route.routePoints[idx]
+      editEndDist = pt.distanceFromStart
+      endMarker.setLatLng([pt.lat, pt.lon])
+      if (editEndDist > editStartDist) onSave(editStartDist, editEndDist)
+    })
+
+    startMarker.addTo(this.map)
+    endMarker.addTo(this.map)
+    this.editMarkers = [startMarker, endMarker]
+  }
+}
+
+function routePointAtDist(routePoints: RoutePoint[], dist: number): [number, number] {
+  let closest = routePoints[0]
+  let minDiff = Math.abs(routePoints[0].distanceFromStart - dist)
+  for (const pt of routePoints) {
+    const diff = Math.abs(pt.distanceFromStart - dist)
+    if (diff < minDiff) {
+      minDiff = diff
+      closest = pt
+    }
+  }
+  return [closest.lat, closest.lon]
 }
 
 function sliceRoutePoints(points: RoutePoint[], startDist: number, endDist: number): [number, number][] {

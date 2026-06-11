@@ -61,8 +61,9 @@ export class SnapshotPanel {
     toggleBtn.style.border = 'none'
     toggleBtn.style.color = 'var(--text-muted)'
     toggleBtn.style.fontSize = '10px'
-    toggleBtn.style.padding = '0 4px'
-    toggleBtn.style.minHeight = '0'
+    toggleBtn.style.padding = '0 8px'
+    toggleBtn.style.minHeight = '44px'
+    toggleBtn.style.minWidth = '44px'
     toggleBtn.style.cursor = 'pointer'
     header.appendChild(toggleBtn)
 

@@ -3,9 +3,11 @@
  * Validoi demo-sprintin featuuret selaimessa.
  */
 import { test, expect } from 'playwright/test'
+import { mockAuthAsJarjestaja } from './helpers/auth'
 
 test.describe('T28 — Status panel (tilannekuva)', () => {
   test('näkyy järjestäjälle toolbarin alla', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -27,6 +29,7 @@ test.describe('T28 — Status panel (tilannekuva)', () => {
   })
 
   test('piilossa talkoolaiselta', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -41,6 +44,7 @@ test.describe('T28 — Status panel (tilannekuva)', () => {
   })
 
   test('päivittyy kun merkki lisätään', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -71,6 +75,7 @@ test.describe('T28 — Status panel (tilannekuva)', () => {
 
 test.describe('T38 — Merkin tyyppi vaihdettavissa', () => {
   test('järjestäjä näkee type-select merkkilistassa', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -102,6 +107,7 @@ test.describe('T38 — Merkin tyyppi vaihdettavissa', () => {
   })
 
   test('talkoolainen ei näe type-selectiä', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -133,6 +139,7 @@ test.describe('T38 — Merkin tyyppi vaihdettavissa', () => {
 
 test.describe('T49 — Kartta-tila badge', () => {
   test('badge-alue on olemassa toolbarissa järjestäjälle', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -145,6 +152,7 @@ test.describe('T49 — Kartta-tila badge', () => {
 
 test.describe('Touch targets — sprint features', () => {
   test('uudet elementit eivät riko 44px touch-vaatimusta', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/')
     await page.waitForTimeout(1500)
