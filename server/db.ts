@@ -78,14 +78,15 @@ function initSchema(db: Database): void {
 
 export function seedAdmin(db: Database): void {
   const username = process.env.ADMIN_USERNAME
-  const passwordHash = process.env.ADMIN_PASSWORD_HASH
-  if (!username || !passwordHash) return
+  const password = process.env.ADMIN_PASSWORD
+  if (!username || !password) return
 
   const exists = db.query<{ id: string }, [string]>(
     'SELECT id FROM users WHERE username = ?'
   ).get(username)
   if (exists) return
 
+  const passwordHash = Bun.password.hashSync(password)
   db.run(
     'INSERT INTO users (id, username, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)',
     [randomUUID(), username, passwordHash, 'admin', new Date().toISOString()]

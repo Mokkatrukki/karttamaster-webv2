@@ -60,21 +60,21 @@ describe('T41: Backend server-perusta', () => {
     test('creates admin user from env', () => {
       const db2 = createDb(':memory:')
       process.env.ADMIN_USERNAME = 'prodadmin'
-      process.env.ADMIN_PASSWORD_HASH = '$2b$10$fakehash'
+      process.env.ADMIN_PASSWORD = 'testpassword'
       seedAdmin(db2)
       const user = db2.query<{ role: string }, [string]>(
         'SELECT role FROM users WHERE username = ?'
       ).get('prodadmin')
       expect(user?.role).toBe('admin')
       delete process.env.ADMIN_USERNAME
-      delete process.env.ADMIN_PASSWORD_HASH
+      delete process.env.ADMIN_PASSWORD
       db2.close()
     })
 
     test('idempotent — does not create duplicate', () => {
       const db2 = createDb(':memory:')
       process.env.ADMIN_USERNAME = 'prodadmin'
-      process.env.ADMIN_PASSWORD_HASH = '$2b$10$fakehash'
+      process.env.ADMIN_PASSWORD = 'testpassword'
       seedAdmin(db2)
       seedAdmin(db2)
       const count = db2.query<{ count: number }, [string]>(
@@ -82,13 +82,13 @@ describe('T41: Backend server-perusta', () => {
       ).get('prodadmin')
       expect(count?.count).toBe(1)
       delete process.env.ADMIN_USERNAME
-      delete process.env.ADMIN_PASSWORD_HASH
+      delete process.env.ADMIN_PASSWORD
       db2.close()
     })
 
     test('no-op when env vars missing', () => {
       delete process.env.ADMIN_USERNAME
-      delete process.env.ADMIN_PASSWORD_HASH
+      delete process.env.ADMIN_PASSWORD
       const db2 = createDb(':memory:')
       expect(() => seedAdmin(db2)).not.toThrow()
       const count = db2.query<{ count: number }, []>(
