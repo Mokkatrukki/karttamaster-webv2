@@ -66,6 +66,31 @@ function initSchema(db: Database): void {
       created_by TEXT NOT NULL,
       trigger TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS segments (
+      id TEXT PRIMARY KEY,
+      route_ids TEXT NOT NULL,
+      start_dist REAL NOT NULL,
+      end_dist REAL NOT NULL,
+      assigned_code TEXT,
+      display_name TEXT,
+      description TEXT,
+      equipment TEXT NOT NULL DEFAULT '[]',
+      phase TEXT NOT NULL DEFAULT 'asettaminen',
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS devfeedback (
+      id TEXT PRIMARY KEY,
+      tag TEXT NOT NULL,
+      description TEXT NOT NULL,
+      dom_path TEXT,
+      element_html TEXT,
+      page_url TEXT NOT NULL,
+      session_path TEXT NOT NULL DEFAULT '[]',
+      status TEXT NOT NULL DEFAULT 'avoin',
+      created_at TEXT NOT NULL
+    );
   `)
 
   const existing = db.query<{ count: number }, []>(

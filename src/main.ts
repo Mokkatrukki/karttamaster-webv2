@@ -278,11 +278,16 @@ async function init(talkoolainenCode?: string) {
   })
 }
 
+if (import.meta.env.DEV) {
+  import('./devtools/feedback-widget').then(({ FeedbackWidget }) => new FeedbackWidget())
+}
+
 const authScreen = new AuthScreen(({ role, code }) => {
   setRole(role)
   new RoleSelector(
     document.getElementById('btn-role') as HTMLButtonElement,
     applyRoleView,
+    role,
   )
   new SnapshotPanel(document.getElementById('snapshot-panel-container')!, role)
   init(code).catch(console.error)
