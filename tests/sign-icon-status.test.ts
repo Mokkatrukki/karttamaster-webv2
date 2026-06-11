@@ -70,6 +70,58 @@ describe('T23: createSignIcon status-visualisointi', () => {
       expect(icon.html).toContain('opacity:0.45')
     })
   })
+})
+
+describe('T70: teardrop-ikoni', () => {
+  function getIcon(type: Parameters<typeof createSignIcon>[0] = 'right') {
+    return createSignIcon(type, 0, 'suunniteltu') as unknown as {
+      html: string
+      iconSize: number[]
+      iconAnchor: number[]
+      popupAnchor: number[]
+    }
+  }
+
+  it('iconSize on [32, 52]', () => {
+    const icon = getIcon()
+    expect(icon.iconSize).toEqual([32, 52])
+  })
+
+  it('iconAnchor on kärjen kärki [16, 52]', () => {
+    const icon = getIcon()
+    expect(icon.iconAnchor).toEqual([16, 52])
+  })
+
+  it('popupAnchor avautuu kärjen yläpuolelle [0, -56]', () => {
+    const icon = getIcon()
+    expect(icon.popupAnchor).toEqual([0, -56])
+  })
+
+  it('HTML sisältää kiinteän tip-SVG:n (ei rotoi)', () => {
+    const html = getIcon().html
+    expect(html).toContain('M8,0 L16,10 L24,0 Z')
+    expect(html).toContain('position:absolute;bottom:0;left:0')
+  })
+
+  it('tip-SVG väri vastaa tyyppiväriä (right=vihreä)', () => {
+    const html = getIcon('right').html
+    const tipIdx = html.indexOf('M8,0 L16,10 L24,0 Z')
+    const tipContext = html.slice(tipIdx, tipIdx + 80)
+    expect(tipContext).toContain('#16a34a')
+  })
+
+  it('status-piste ei ole tip-alueella (bottom:12px eikä bottom:2px)', () => {
+    const html = createSignIcon('right', 0, 'asetettu') as unknown as { html: string }
+    expect(html.html).toContain('bottom:12px')
+    expect(html.html).not.toContain('bottom:2px')
+  })
+
+  it('kaikki 4 tyyppiä renderoituvat virheettä', () => {
+    for (const type of ['right', 'left', 'upcoming-right', 'upcoming-left'] as const) {
+      const icon = createSignIcon(type, 45, 'asetettu') as unknown as { html: string }
+      expect(icon.html).toContain('M8,0 L16,10 L24,0 Z')
+    }
+  })
 
   describe('tyyppiväri säilyy', () => {
     it('right → vihreä #16a34a statuksesta riippumatta', () => {
