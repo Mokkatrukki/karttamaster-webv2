@@ -1,30 +1,46 @@
 # DESIGN.md — Karttamaster design-sopimukset
 
 Ainoa totuus tyyleistä. CSS elää `src/style.css`:ssä (Vite importtaa `main.ts`:stä).
-CSS custom properties: `:root`-lohko tiedoston alussa — muuta tokeneja sieltä, ei hardcoded-hexeistä.
+CSS custom properties: `:root`/`[data-theme]`-lohkot tiedoston alussa — muuta tokeneja sieltä, ei hardcoded-hexeistä.
+Teemavaihto: `<html data-theme="dark|daylight">`. Default = dark.
 Inline SVG-tyylit (dynaamiset, bearing-riippuvaiset): `src/map/icons.ts`.
 
 ---
 
 ## §C Värit
 
-| Token          | Arvo                        | Käyttö                              |
-|----------------|-----------------------------|-------------------------------------|
-| bg-primary     | `#0f172a`                   | Toolbar, route-bar tausta           |
-| bg-card        | `#1e293b`                   | Modaalit, dropdownit, kortit        |
-| text-primary   | `#e2e8f0`                   | Pääteksti, napit, otsikot           |
-| text-muted     | `#94a3b8`                   | Sekundaaritieto, h1, meta-napit     |
-| text-meta      | `#64748b`                   | Metatieto (km-lukema)               |
-| accent         | `#f59e0b`                   | Päänappi "Lisää merkki"             |
-| accent-text    | `#111`                      | Teksti accent-taustan päällä        |
-| danger         | `#ef4444`                   | Poistopainike, place-mode aktiivi   |
-| border-subtle  | `rgba(255,255,255,0.06)`    | Osastojen erottimet                 |
-| border-card    | `rgba(255,255,255,0.08)`    | Listarivien separator               |
-| border-default | `rgba(255,255,255,0.10)`    | Korttirajat, dropdownit             |
-| border-strong  | `rgba(255,255,255,0.12)`    | Napit (btn-list)                    |
-| overlay        | `rgba(0,0,0,0.5)`           | Modaalin backdrop                   |
-| hover-light    | `rgba(255,255,255,0.08)`    | Hover-tila napeilla ja riveillä     |
-| warn-highlight | `rgba(245,158,11,0.12)`     | Uusi/korostettu listakohta          |
+Kaksi teemaa: **dark** (järjestäjä, toimisto) ja **daylight** (talkoolainen, metsä/aurinko).
+
+### Pääteema: dark
+
+| Token           | Arvo (dark)                  | Arvo (daylight)              | Käyttö                              |
+|-----------------|------------------------------|------------------------------|-------------------------------------|
+| surface-app     | `#0f172a`                    | `#ffffff`                    | Toolbar, route-bar, paneelit        |
+| surface-card    | `#1e293b`                    | `#f1f5f9`                    | Modaalit, dropdownit, kortit        |
+| surface-raised  | `#243044`                    | `#f8fafc`                    | Hover-kortit, sisäkkäiset           |
+| text-body       | `#e2e8f0`                    | `#020617`                    | Pääteksti, napit, otsikot           |
+| text-muted      | `#94a3b8`                    | `#334155`                    | Sekundaaritieto, meta-napit         |
+| text-meta       | `#64748b`                    | `#64748b`                    | Metatieto (km-lukema)               |
+| accent          | `#f59e0b`                    | `#f59e0b`                    | Päänappi "Lisää merkki"             |
+| accent-text     | `#111111`                    | `#1a1205`                    | Teksti accent-taustan päällä        |
+| accent-hover    | `#d97706`                    | `#b45309`                    | Accent hover-tila                   |
+| confirm         | `#15803d`                    | `#15803d`                    | Talkoolaisen kuittausnappula        |
+| confirm-hover   | `#166534`                    | `#166534`                    | Confirm hover-tila                  |
+| confirm-text    | `#ffffff`                    | `#ffffff`                    | Teksti confirm-taustan päällä       |
+| danger          | `#ef4444`                    | `#dc2626`                    | Poisto, place-mode aktiivi          |
+| danger-text     | `#f87171`                    | `#b91c1c`                    | Danger-teksti (kirkas bg:llä)       |
+| danger-soft     | `rgba(239,68,68,0.10)`       | `rgba(220,38,38,0.08)`       | Poisto-napin tausta                 |
+| danger-soft-hover | `rgba(239,68,68,0.20)`     | `rgba(220,38,38,0.16)`       | Poisto hover                        |
+| gps-active      | `#1d4ed8`                    | `#1d4ed8`                    | GPS aktiivi -tila                   |
+| border-subtle   | `rgba(255,255,255,0.06)`     | `rgba(15,23,42,0.06)`        | Osastojen erottimet                 |
+| border-card     | `rgba(255,255,255,0.08)`     | `rgba(15,23,42,0.10)`        | Listarivien separator               |
+| border-default  | `rgba(255,255,255,0.10)`     | `rgba(15,23,42,0.14)`        | Korttirajat, dropdownit             |
+| border-strong   | `rgba(255,255,255,0.12)`     | `rgba(15,23,42,0.20)`        | Napit                               |
+| hover           | `rgba(255,255,255,0.08)`     | `rgba(15,23,42,0.05)`        | Hover-tila napeilla ja riveillä     |
+| hover-strong    | `rgba(255,255,255,0.14)`     | `rgba(15,23,42,0.10)`        | Vahvempi hover (aktiivi painallus)  |
+| field-tint      | `rgba(255,255,255,0.06)`     | `rgba(15,23,42,0.05)`        | Input/chip taustasävy               |
+| overlay         | `rgba(0,0,0,0.5)`            | `rgba(15,23,42,0.40)`        | Modaalin backdrop                   |
+| warn-highlight  | `rgba(245,158,11,0.12)`      | `rgba(245,158,11,0.16)`      | Uusi/korostettu listakohta          |
 
 ### Merkki-värit (karttaikonit, src/map/icons.ts)
 
@@ -37,19 +53,17 @@ Inline SVG-tyylit (dynaamiset, bearing-riippuvaiset): `src/map/icons.ts`.
 
 ### Status-värit (merkki-elinkaari, src/ui/marker-list.ts + style.css)
 
-Käytetään tummalla taustalla (bg-card `#1e293b`) — värit valittu WCAG AA -kontrastille pieniä tekstejä varten.
+Kovakoodatut molemmissa teemoissa — domain-värit, ei vaihdeta teeman mukaan.
 
 | Token              | Teksti hex | Taustaopasiteetti | Status           |
 |--------------------|------------|-------------------|------------------|
-| status-suunniteltu | `#94a3b8`  | `rgba(255,255,255,0.06)` | Suunniteltu |
+| status-suunniteltu | `#94a3b8`  | `var(--field-tint)` | Suunniteltu    |
 | status-asetettu    | `#4ade80`  | `rgba(74,222,128,0.10)`  | Asetettu ✓  |
 | status-tarkistettu | `#93c5fd`  | `rgba(147,197,253,0.10)` | Tarkistettu ✓|
 | status-kerätty     | `#6ee7b7`  | `rgba(110,231,183,0.10)` | Kerätty     |
 | status-ei_tarpeen  | `#fbbf24`  | `rgba(251,191,36,0.10)`  | Ei tarpeen  |
 
-Kuittaus-napit (talkoolainen): `btn-status-primary` bg `#15803d` (5.0:1 kontrastisuhde #fff kanssa).
-
-**Sääntö:** Käytä vain yllä olevia arvoja. Älä keksi uusia hex-koodeja suoraan CSS:ään.
+**Sääntö:** Käytä vain yllä olevia tokeneja. Älä keksi uusia hex-koodeja suoraan CSS:ään.
 Jos tarvitaan uusi väri, lisää se ensin tähän taulukkoon.
 
 ---
