@@ -18,5 +18,4 @@ export interface SignMarker {
   routeIds: string[]      // routes this marker belongs to
   status: MarkerStatus    // lifecycle: suunniteltu → asetettu → tarkistettu → kerätty | ei_tarpeen
   locationNote?: string   // vapaa teksti: mihin tarkasti kiinnitetään
-  pendingSync?: boolean   // V19: offline change not yet pushed to server
 }

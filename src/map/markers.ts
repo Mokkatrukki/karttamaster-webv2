@@ -4,7 +4,6 @@ import { nearestPointIndex, bearingAtIndex, haversineDistance } from '../logic/b
 import { createSignIcon } from './icons'
 import { assignRoutesToMarker } from '../logic/multi-route'
 import { ensureRouteIds, FAR_FROM_ROUTE_M } from '../logic/marker-assign'
-import { saveMarkers } from '../logic/persistence'
 import { MarkerInteraction } from './marker-interaction'
 import { DEFAULT_STATUS, transitionStatus } from '../logic/marker-status'
 import type { StatusAction } from '../logic/marker-status'
@@ -33,7 +32,7 @@ export class MarkerManager {
       this.leafletMarkers,
       (id) => this.markers.find((x) => x.id === id),
       (id) => this.remove(id),
-      () => this.save(),
+      (id) => this.saveBearing(id),
       onUpdate,
       (armedId) => this.updateDragStates(armedId),
     )
@@ -44,8 +43,39 @@ export class MarkerManager {
     })
   }
 
-  private save(): void {
-    saveMarkers(this.markers)
+  private apiPost(marker: SignMarker): void {
+    fetch('/api/markers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: marker.id,
+        type: marker.type,
+        lat: marker.lat,
+        lon: marker.lon,
+        bearing: marker.bearing,
+        distance_from_start: marker.distanceFromStart,
+        route_ids: marker.routeIds,
+        status: marker.status,
+        location_note: marker.locationNote ?? null,
+      }),
+    }).catch(() => {})
+  }
+
+  private apiPut(id: string, patch: Record<string, unknown>): void {
+    fetch(`/api/markers/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    }).catch(() => {})
+  }
+
+  private apiDelete(id: string): void {
+    fetch(`/api/markers/${id}`, { method: 'DELETE' }).catch(() => {})
+  }
+
+  private saveBearing(id: string): void {
+    const m = this.markers.find(x => x.id === id)
+    if (m) this.apiPut(m.id, { bearing: m.bearing })
   }
 
   private updateDragStates(armedId: string | null): void {
@@ -80,7 +110,7 @@ export class MarkerManager {
       status: DEFAULT_STATUS,
     }
     this.markers.push(marker)
-    this.save()
+    this.apiPost(marker)
 
     if (marker.routeIds.some((id) => this.visibleRouteIds.includes(id))) {
       this.addLeafletMarker(marker)
@@ -95,7 +125,7 @@ export class MarkerManager {
     const lm = this.leafletMarkers.get(id)
     if (lm) { lm.remove(); this.leafletMarkers.delete(id) }
     this.markers = this.markers.filter((m) => m.id !== id)
-    this.save()
+    this.apiDelete(id)
     this.onUpdate()
   }
 
@@ -147,7 +177,7 @@ export class MarkerManager {
     m.status = transitionStatus(m.status, action)
     const lm = this.leafletMarkers.get(id)
     if (lm) lm.setIcon(createSignIcon(m.type, m.bearing, m.status))
-    this.save()
+    this.apiPut(id, { status: m.status })
     this.onUpdate()
   }
 
@@ -157,7 +187,7 @@ export class MarkerManager {
     m.type = newType
     const lm = this.leafletMarkers.get(id)
     if (lm) lm.setIcon(createSignIcon(newType, m.bearing, m.status))
-    this.save()
+    this.apiPut(id, { type: newType })
     this.onUpdate()
   }
 
@@ -165,7 +195,7 @@ export class MarkerManager {
     const m = this.markers.find((x) => x.id === id)
     if (!m) return
     m.locationNote = note || undefined
-    this.save()
+    this.apiPut(id, { location_note: note || null })
   }
 
   private addLeafletMarker(m: SignMarker): void {
@@ -193,7 +223,13 @@ export class MarkerManager {
       m.distanceFromStart = point.distanceFromStart
       m.routeIds = routeIds
       lm.setIcon(createSignIcon(m.type, bearing, m.status))
-      this.save()
+      this.apiPut(m.id, {
+        lat,
+        lon: lng,
+        bearing,
+        distance_from_start: point.distanceFromStart,
+        route_ids: routeIds,
+      })
       this.onUpdate()
     })
 

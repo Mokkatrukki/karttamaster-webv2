@@ -11,9 +11,7 @@ import { renderMarkerList } from './ui/marker-list'
 import { RoleSelector } from './ui/role-selector'
 import { AuthScreen } from './ui/auth-screen'
 import { TILE_LAYERS } from './logic/tile-layers'
-import { loadMarkers } from './logic/persistence'
-import { syncMarkers, pushPending, SyncError } from './logic/sync'
-import { MapStateBadge, showMapNotReadyBanner } from './ui/map-state-badge'
+import { fetchMarkers } from './logic/sync'
 import { SnapshotPanel } from './ui/snapshot-panel'
 import { StatusPanel } from './ui/status-panel'
 import { calcAllRouteStatus } from './logic/route-status'
@@ -24,7 +22,8 @@ import { SegmentOverlay } from './map/segment-overlay'
 import { SegmentPanel } from './ui/segment-panel'
 import { SegmentView } from './ui/segment-view'
 import { getSegmentForCode, getMarkersForSegment } from './logic/segments'
-import { loadSegments } from './logic/segment-persistence'
+import type { Segment } from './logic/segments'
+import { fetchSegmentByCode, fetchAllSegments } from './logic/segment-sync'
 import type { RouteConfig } from './logic/multi-route'
 
 export const ROUTE_DEFS: Omit<RouteConfig, 'routePoints'>[] = [
@@ -74,16 +73,7 @@ if (btnGps) {
 }
 
 async function init(talkoolainenCode?: string) {
-  // V18: push any offline changes before syncing, then load from server
-  await pushPending().catch(() => {})
-  let initialMarkers = loadMarkers()
-  try {
-    initialMarkers = await syncMarkers()
-  } catch (err) {
-    if (err instanceof SyncError && err.reason === 'map_not_ready') {
-      showMapNotReadyBanner()
-    }
-  }
+  const initialMarkers = await fetchMarkers()
 
   const routes: RouteConfig[] = await Promise.all(
     ROUTE_DEFS.map(async def => {
@@ -112,10 +102,21 @@ async function init(talkoolainenCode?: string) {
     distanceWarningTimer = setTimeout(() => { distanceWarningEl.style.display = 'none' }, 4000)
   }
 
-  const segmentStore = loadSegments()
+  const segmentStore = new Map<string, Segment>()
+  if (talkoolainenCode) {
+    const remote = await fetchSegmentByCode(talkoolainenCode)
+    if (remote) segmentStore.set(remote.id, remote)
+  } else {
+    const all = await fetchAllSegments()
+    for (const seg of all) segmentStore.set(seg.id, seg)
+  }
+
   const segmentOverlay = new SegmentOverlay(map, routes)
 
   let tempCreationMarker: L.CircleMarker | null = null
+
+  const segmentSaveErrorEl = document.getElementById('distance-warning')!
+  const markerManagerRef: { current: MarkerManager | null } = { current: null }
 
   const segmentPanel = new SegmentPanel(
     document.getElementById('segment-panel-container')!,
@@ -136,6 +137,12 @@ async function init(talkoolainenCode?: string) {
       },
       onEnterEditMode: (seg, onSave) => segmentOverlay.enterEditMode(seg, onSave),
       onExitEditMode: () => segmentOverlay.exitEditMode(),
+      onSaveError: () => {
+        segmentSaveErrorEl.textContent = '⚠ Pätkän tallennus epäonnistui (muisti täynnä?)'
+        segmentSaveErrorEl.style.display = 'block'
+        setTimeout(() => { segmentSaveErrorEl.style.display = 'none' }, 5000)
+      },
+      getMarkers: () => markerManagerRef.current?.getAll() ?? [],
     },
   )
 
@@ -150,6 +157,7 @@ async function init(talkoolainenCode?: string) {
       if (seg) segmentView.update(getMarkersForSegment(seg, markerManager.getAll()))
     }
   }, initialMarkers, showDistanceWarning)
+  markerManagerRef.current = markerManager
 
   if (talkoolainenCode) {
     const seg = getSegmentForCode(segmentStore, talkoolainenCode)
@@ -276,7 +284,6 @@ const authScreen = new AuthScreen(({ role, code }) => {
     document.getElementById('btn-role') as HTMLButtonElement,
     applyRoleView,
   )
-  new MapStateBadge(document.getElementById('toolbar')!, role)
   new SnapshotPanel(document.getElementById('snapshot-panel-container')!, role)
   init(code).catch(console.error)
 })

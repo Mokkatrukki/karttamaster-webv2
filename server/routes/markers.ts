@@ -3,7 +3,6 @@ import { randomUUID } from 'crypto'
 import type { Database } from 'bun:sqlite'
 import type { AuthEnv } from '../middleware/auth'
 import { requireAuth, requireRole } from '../middleware/auth'
-import type { SessionData } from '../types'
 
 export const markersRoutes = new Hono<AuthEnv>()
 
@@ -25,22 +24,9 @@ function toJson(row: MarkerRow) {
   return { ...row, route_ids: JSON.parse(row.route_ids) as string[] }
 }
 
-function mapState(db: Database): string {
-  return (
-    db.query<{ value: string }, [string]>('SELECT value FROM map_state WHERE key = ?').get('status')
-      ?.value ?? 'luonnos'
-  )
-}
-
-// GET /api/markers — V22: 403 jos luonnos + talkoolainen
+// GET /api/markers — kaikki autentikoidut käyttäjät näkevät merkit
 markersRoutes.get('/', requireAuth(), (c) => {
   const db: Database = c.get('db')
-  const session: SessionData = c.get('session')
-
-  if (mapState(db) === 'luonnos' && session.role === 'talkoolainen') {
-    return c.json({ error: 'map_not_ready' }, 403)
-  }
-
   const rows = db.query<MarkerRow, []>('SELECT * FROM markers ORDER BY distance_from_start ASC').all()
   return c.json(rows.map(toJson))
 })
@@ -50,6 +36,7 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
   const db: Database = c.get('db')
   const session: SessionData = c.get('session')
   const body = await c.req.json<{
+    id?: string
     type?: string
     lat?: number
     lon?: number
@@ -71,7 +58,7 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
     return c.json({ error: 'missing_fields' }, 400)
   }
 
-  const id = randomUUID()
+  const id = body.id ?? randomUUID()
   const now = new Date().toISOString()
   db.run(
     'INSERT INTO markers (id, type, lat, lon, bearing, distance_from_start, route_ids, status, location_note, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',

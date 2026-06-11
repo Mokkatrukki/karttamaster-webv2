@@ -58,23 +58,6 @@ adminRoutes.delete('/codes/:code', requireAuth(), requireRole('admin', 'järjest
   return c.json({ ok: true })
 })
 
-function getMapStateRow(db: Database, key: string): string | undefined {
-  return db.query<{ value: string }, [string]>('SELECT value FROM map_state WHERE key = ?').get(key)?.value
-}
-
-// GET /api/admin/map-state — V22: current status + approved metadata
-adminRoutes.get('/map-state', requireAuth(), requireRole('admin', 'järjestäjä'), (c) => {
-  const db: Database = c.get('db')
-  const status = getMapStateRow(db, 'status') ?? 'luonnos'
-  const approved_at = getMapStateRow(db, 'approved_at')
-  const approved_by = getMapStateRow(db, 'approved_by')
-  return c.json({
-    status,
-    ...(approved_at !== undefined ? { approved_at } : {}),
-    ...(approved_by !== undefined ? { approved_by } : {}),
-  })
-})
-
 // ── Snapshot helpers ────────────────────────────────────────────────────────
 
 interface MarkerRow {
@@ -171,28 +154,3 @@ adminRoutes.post('/snapshots/:id/restore', requireAuth(), requireRole('admin', '
   return c.json({ ok: true })
 })
 
-// POST /api/admin/map-state — V23: auto-snapshot when transitioning to 'hyväksytty'
-adminRoutes.post('/map-state', requireAuth(), requireRole('admin', 'järjestäjä'), async (c) => {
-  const db: Database = c.get('db')
-  const session: SessionData = c.get('session')
-  const body = await c.req.json<{ status?: string }>()
-  const { status } = body
-
-  if (!status || !['luonnos', 'hyväksytty'].includes(status)) {
-    return c.json({ error: 'invalid_status' }, 400)
-  }
-
-  if (status === 'hyväksytty') {
-    const now = new Date().toISOString()
-    const displayName = session.display_name ?? session.role
-    createSnapshot(db, 'Hyväksytty', displayName, 'auto-hyväksytty')
-    db.run("INSERT OR REPLACE INTO map_state (key, value) VALUES ('approved_at', ?)", [now])
-    db.run("INSERT OR REPLACE INTO map_state (key, value) VALUES ('approved_by', ?)", [displayName])
-  } else {
-    // Revert to luonnos: clear approval metadata
-    db.run("DELETE FROM map_state WHERE key IN ('approved_at', 'approved_by')")
-  }
-
-  db.run("INSERT OR REPLACE INTO map_state (key, value) VALUES ('status', ?)", [status])
-  return c.json({ status })
-})

@@ -1,41 +1,8 @@
 import type { SignMarker } from './types'
-import { DEFAULT_STATUS } from './marker-status'
 
-const LS_KEY = 'karttamaster-markers'
-const VERSION = 1
-
-interface PersistedData {
-  version: number
-  markers: SignMarker[]
-}
-
-export function saveMarkers(markers: SignMarker[]): void {
-  localStorage.setItem(LS_KEY, JSON.stringify({ version: VERSION, markers }))
-}
+// DB is the source of truth. These are kept as no-ops for interface compatibility.
+export function saveMarkers(_markers: SignMarker[]): void {}
 
 export function loadMarkers(): SignMarker[] {
-  const raw = localStorage.getItem(LS_KEY)
-  if (!raw) return []
-  try {
-    const data = JSON.parse(raw) as unknown
-    if (!isValid(data)) {
-      console.warn('[persistence] invalid marker data, resetting')
-      localStorage.removeItem(LS_KEY)
-      return []
-    }
-    return data.markers.map((m) => {
-      const raw = m as Partial<SignMarker> & Omit<SignMarker, 'status'>
-      return { ...raw, status: raw.status ?? DEFAULT_STATUS } as SignMarker
-    })
-  } catch {
-    console.warn('[persistence] parse error, resetting')
-    localStorage.removeItem(LS_KEY)
-    return []
-  }
-}
-
-function isValid(data: unknown): data is PersistedData {
-  if (!data || typeof data !== 'object') return false
-  const d = data as Record<string, unknown>
-  return d.version === VERSION && Array.isArray(d.markers)
+  return []
 }

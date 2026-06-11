@@ -65,26 +65,18 @@ describe('T47: Markers REST API', () => {
       expect(res.status).toBe(401)
     })
 
-    test('admin sees markers when luonnos', async () => {
+    test('admin sees markers', async () => {
       const res = await makeApp(db).request('/api/markers', { headers: authHeaders(db, 'admin') })
       expect(res.status).toBe(200)
       expect(Array.isArray(await res.json())).toBe(true)
     })
 
-    test('järjestäjä sees markers when luonnos', async () => {
+    test('järjestäjä sees markers', async () => {
       const res = await makeApp(db).request('/api/markers', { headers: authHeaders(db, 'järjestäjä') })
       expect(res.status).toBe(200)
     })
 
-    test('V22: talkoolainen blocked when luonnos → 403', async () => {
-      const res = await makeApp(db).request('/api/markers', { headers: authHeaders(db, 'talkoolainen') })
-      expect(res.status).toBe(403)
-      const body = await res.json() as { error: string }
-      expect(body.error).toBe('map_not_ready')
-    })
-
-    test('V22: talkoolainen sees markers when hyväksytty', async () => {
-      db.run("UPDATE map_state SET value = 'hyväksytty' WHERE key = 'status'")
+    test('talkoolainen always sees markers', async () => {
       const res = await makeApp(db).request('/api/markers', { headers: authHeaders(db, 'talkoolainen') })
       expect(res.status).toBe(200)
     })

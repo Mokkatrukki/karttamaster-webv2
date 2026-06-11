@@ -17,6 +17,7 @@ export class MarkerInteraction {
   }
   private readonly handleRotateEnd = () => {
     if (!this.rotatingId) return
+    const savedId = this.rotatingId
     this.rotatingId = null
     this.rotatingCenter = null
     this.map.dragging.enable()
@@ -26,7 +27,7 @@ export class MarkerInteraction {
     c.removeEventListener('touchmove', this.handleTouchMove)
     c.removeEventListener('touchend', this.handleRotateEnd)
     this.disarm()
-    this.onSave()
+    this.onSave(savedId)
     this.onUpdate()
   }
   private readonly handleEscKey = (e: KeyboardEvent) => {
@@ -46,7 +47,7 @@ export class MarkerInteraction {
     private leafletMarkers: Map<string, L.Marker>,
     private getMarker: (id: string) => SignMarker | undefined,
     private onRemove: (id: string) => void,
-    private onSave: () => void,
+    private onSave: (id: string) => void,
     private onUpdate: () => void,
     private onArmChange?: (armedId: string | null) => void,
   ) {

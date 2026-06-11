@@ -24,6 +24,10 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 - `PUT /api/markers/:id` — luo tai päivitä merkki (upsert)
 - `DELETE /api/markers/:id` — poista merkki
 - `GET /api/events/:id` — tapahtuman metatiedot (GPX-polut jne.)
+- `POST /api/segments` — luo/upsert segmentti (järjestäjä+)
+- `PUT /api/segments/:id` — päivitä segmentti (järjestäjä+)
+- `DELETE /api/segments/:id` — poista segmentti (järjestäjä+)
+- `GET /api/segments/by-code/:code` — talkoolaisen oma pätkä (auth vaaditaan)
 - Leaflet tile APIs: MML Taustakartta, MML Maastokartta, OSM
 - `VISION.md` — product vision, luetaan suunnittelun ja testauksen referenssinä
 
@@ -48,23 +52,24 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | V15 | Merkki on drag-siirrettävissä kartalla — siirto laskee bearing + routeIds uudelleen uudesta sijainnista (sama logiikka kuin add) |
 | V16 | Rotation arm ei häviä tahattomalla karttaklikillä — arm pitää poistaa vain explicit dismiss (Esc, toinen merkki, uusi lisäys) |
 | V17 | Merkin tyyppi on vaihdettavissa jälkikäteen ilman delete+redo — kontekstivalikko tai lista |
-| V18 | Kun backend käytössä: server on source of truth. localStorage on cache-only. App yrittää aina serveriltä ensin — localStorage fallback vain verkkovian aikana. |
-| V19 | Offline-muutos saa `pendingSync: true` flagin. Kun yhteys palaa, `pushPending()` lähettää muutokset serverille automaattisesti ennen muuta operaatiota. |
-| V20 | Merge-konflikti (pendingSync > 0 && server muuttunut): käyttäjä päättää — "vaihda kaikki serveriltä" tai "pidä omat muutokset". Ei automaattista merge-logiikkaa per field. |
+| V18 | Backend on ainoa totuus. Merkit kirjoitetaan suoraan `POST/PUT/DELETE /api/markers` — ei localStorage-välivaihetta. `GET /api/markers` palauttaa kaikki merkit kaikille autentikoituneille käyttäjille. |
 | V21 | Merkki jonka routeIds on tyhjä ei saa tallentua hiljaa — `MarkerManager.add()` pakottaa vähintään lähimmän reitin routeIds:ään riippumatta etäisyydestä. Näytetään varoitus jos klikki >500m lähimmältä reitiltä. Ei koskaan hiljainen katoaminen. |
-| V22 | Kartta-tila 'luonnos' → `GET /api/markers` palauttaa 403 talkoolaiselle. Client näyttää "Kartta valmisteilla" -bannerin. Järjestäjä ja admin pääsevät aina. |
-| V23 | Snapshot luodaan automaattisesti aina kun kartta siirtyy 'hyväksytty'-tilaan. Ei voi hyväksyä ilman snapshottia. |
+| V22 | Poistettu — kartta-tila-gate poistettu. Kaikki autentikoidut käyttäjät näkevät merkit aina. Snapshots ovat itsenäinen backup-mekanismi ilman hyväksymiskytkentää. |
 | V24 | Snapshot restore on atominen (SQLite transaction) — kaikki merkit korvataan tai operaatio peruuntuu kokonaan. Restore luo uuden snapshottia ("Palautus: [alkuperäinen label]"). |
 | V25 | Segment kattaa kaikki reitit (routeIds[]) jotka kulkevat sen fyysisen osuuden läpi. Talkoolainen käsittelee merkin kerran — kuittaus koskee koko merkkiä, ei per-route. Merkillä on yksi status riippumatta routeIds-määrästä. |
 | V26 | Pätkällä on `phase: 'asettaminen' \| 'purku'`. Asettaminen ja purku ovat erillisiä pätkäjakoja — sama fyysinen osuus voi olla eri talkoolaisella eri vaiheissa. |
 | V27 | `/s/<koodi>` URL ohjaa talkoolaisen suoraan omaan pätkänäkymään auto-autentikoinnilla — koodi pre-täyttää T51:n kirjautumislomakkeen ja skippaavat manuaalisen syötön. |
 | V28 | Purku bulk-kuittaus on atominen: "merkitse kaikki kerätyksi" siirtää pätkän kaikki ei-terminal-merkit kerätty-tilaan yhdessä operaatiossa tai ei yhtään. |
 | V29 | Auth-screen ei saa kutsua `onAuthenticated` ilman onnistunutta `/api/auth/me`- tai `/api/auth/login`-vastausta. Verkkovirhe tai non-401 → näytä kirjautumislomake. Ei silent skip. Dev-ympäristö ilman backendiä → lomake näkyy, ei ohita. |
-| V30 | Segmentit persistoidaan localStorage:en sessioiden yli — samat säännöt kuin merkeillä (V12). Format: `{version:1, segments:[]}`. Korruptoitunut data → silent reset (V14-sääntö). |
+| V30 | Segmentit persistoidaan backendiin. localStorage ei enää käytetä segmenteille — V36 on koko totuus. |
 | V31 | Pätkän luontivaiheessa ensimmäinen klikattu piste visualisoidaan kartalla (väliaikainen markkeri) kunnes toinen piste klikataan tai luonti peruutetaan (Esc). |
 | V32 | Pätkän startDist ja endDist ovat muokattavissa luonnin jälkeen — piste on siirrettävissä kartalla tai numeerisesti panelissa. Poista+redo ei ole ainoa vaihtoehto. |
 | V33 | Kun rooli=talkoolainen JA talkoolainenCode on asetettu: merkki-modaali (☰ Lista) näyttää vain `getMarkersForSegment(seg, markers)` — ei globaalia listaa. Järjestäjälle näytetään aina kaikki. |
 | V34 | Kun järjestäjä tallentaa `assignedCode` segmentille → `POST /api/admin/codes {code, display_name, segment_id}` kutsutaan välittömästi. Kun `assignedCode` poistetaan → `DELETE /api/admin/codes/:code`. `Segment.assignedCode` ja `talkoolainen_codes`-taulu pysyvät synkronissa — koodi löytyy backendistä ennen kuin URL jaetaan. API-virhe → älä päivitä localStoragea, näytä virheviesti. |
+| V35 | `saveSegments` tallennusvirhe (quota exceeded tai write error) → älä ignoroi hiljaa. Kutsu virhe-callback tai heitä error; UI näyttää varoitusbannerin. Segment-data ei saa hävitä käyttäjältä näkymättömästi. |
+| V36 | Segmentit persistoidaan backendiin (`segments`-taulu). Järjestäjä hallinnoi `/api/admin/segments` CRUD. Talkoolainen hakee oman pätkänsä `GET /api/segments/by-code/:code` auth-cookiella — ei tarvitse clientin localStoragea pätkädatan saamiseen. localStorage on vain cache. |
+| V37 | `SegmentPanel.render()` ei saa nollata käyttäjän avaamaa "Lisätiedot & varusteet" -osiota — expand/collapse-tila säilyy render()-kutsun yli. |
+| V38 | Kaikki segment-kentän muutokset (description, equipment, assignedCode, startDist, endDist) tallentuvat sekä localStorage:en (`saveSegments`) että backendiin (`updateSegmentRemote`) — ei osittaisia tallennuksia. |
 
 ## §T Tasks
 
@@ -96,7 +101,7 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | T24 | ✓ | Talkoolaisen kuittaus-UI: 1 iso nappi (asetettu / ei_tarpeen) — max 2 toimintoa | T10,T12 |
 | T25 | ✓ | SegmentPanel + karttavisualisointi: (a) järjestäjä klikkaa kaksi pistettä reittiviivalta → luo pätkän, pisteitä voi siirtää jälkikäteen; (b) kaikki pätkät värillisinä kaistoina kartalla + talkoolaisen displayName-overlay; (c) aukot (ei-jaetut osuudet) harmaana. Leaflet polyline overlay `src/map/segment-overlay.ts`. Panel `src/ui/segment-panel.ts`. Playwright (karttainteraktio). Käyttäjä: järjestäjä. §K-sopimus lisätään DESIGN.md:hen ennen rakennusta. | T13,V11 |
 | T26 | ✓ | Assign + URL-generointi: järjestäjä syöttää assignedCode + displayName → syntyy URL `/s/<koodi>` + kopiointinappi. Segment.assignedCode + displayName tallennetaan (T13). Assign-flow `src/ui/segment-panel.ts`:ssä (sama paneeli kuin T25). Vitest-jsdom. Käyttäjä: järjestäjä. | T12,T25,V27 |
-| T27 | . | Varustelista: auto-laskuri per SignTemplate + manuaali-rivit + ohjeteksti | T8,T14 |
+| T27 | ✓ | Varustelista: auto-laskuri merkkityypeittäin per pätkä + manuaali-rivit (EquipmentItem[]) + ohjeteksti. Järjestäjä muokkaa `segment-panel.ts` "Lisätiedot & varusteet" -osiossa. Talkoolainen näkee readonly `segment-view.ts`:ssä. Vitest-pure (segment-sync), Vitest-jsdom (segment-persistence). | T8,T14 |
 | T28 | ✓ | Tilannekuva-kartta UI: merkit värikoodattu + % per reitti näkyvissä | T15,T23 |
 | T29 | ✓ | Merkkien persistointi: `src/logic/persistence.ts` — saveMarkers/loadMarkers, tallennus joka add/remove/updateBearing, lataus init:ssä ennen karttaa, format `{version:1,markers:[]}`, routeIds säilyy vaikka reitti puuttuisi | V12,V14,§I |
 | T30 | ✓ | Geolocation API: laitteen sijainti pisteenä kartalla (itselle, ei muille) | §C |
@@ -129,6 +134,13 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | T57 | ✓ | Snapshot-paneeli collapsible: oletuksena supistettu (vain "Varmuuskopiot (N)" -otsikko + expand-nappi). Laajenee klikillä. Tieto-elementit eivät vie tilaa oletuksena. `src/ui/snapshot-panel.ts`. Vitest-jsdom. | T50 |
 | T58 | ✓ | Talkoolaisen marker-modaali filtteröity: `openMarkerModal` `src/main.ts`:ssä — jos `talkoolainenCode` asetettu JA pätkä löytyy, kutsu `renderMarkerList(markerManager, highlightId, segmentMarkerIds)` jossa `segmentMarkerIds = Set<string>` pätkän merkki-id:t. `renderMarkerList` suodattaa: talkoolaiselle näytetään vain pätkän merkit. Vitest-jsdom (renderMarkerList suodatus). | V33,T13,T14,T25 |
 | T59 | ✓ | Assign-sync fix: `segment-panel.ts` `saveBtn`-klikissä kutsu `POST /api/admin/codes {code, display_name, segment_id}` — vasta onnistuneen vastauksen jälkeen kutsu `updateSegment` + `saveSegments`. `Muuta`-napissa kutsu `DELETE /api/admin/codes/:code` — onnistumisen jälkeen `updateSegment(..., {assignedCode: undefined})`. API-virhe → näytä virheviesti assign-osiossa, älä päivitä localStoragea. Vitest-jsdom (fetch-mock: onnistunut save, save epäonnistuu → ei localStorage-muutosta, delete). Käyttäjä: järjestäjä. | V34,T26,T36 |
+| T60 | ✓ | `saveSegments` error handling: `onError?: (err: unknown) => void` callback `saveSegments`-funktioon. Virhe catch-blokissa kutsuu `onError` eikä ignoroi hiljaa. `SegmentPanel` välittää `onSaveError`-callback `main.ts`:stä — virhe näyttää varoitusbannerin. Vitest-pure (saveSegments + onError-mock). | V35,T55 |
+| T61 | ✓ | Segments backend: `segments`-taulu `server/db.ts`:ään. `POST /api/segments` (upsert, järjestäjä+), `PUT /api/segments/:id`, `DELETE /api/segments/:id`. `GET /api/segments/by-code/:code` (talkoolainen). `server/routes/segments.ts`. Bun integraatiotestit (9 testiä). | V36,T41,T36 |
+| T62 | ✓ | Segment sync client: `src/logic/segment-sync.ts` — `fetchSegmentByCode/pushSegment/updateSegmentRemote/deleteSegmentRemote`. `segment-panel.ts` create/update/delete pushes to backend (best-effort). `init(code)` fetchaa segmentin serveriltä, päivittää localStorage-cachen. Vitest-pure (mock fetch, 9 testiä). | V36,T61,T55 |
+| T63 | ✓ | Poista map-state gate: `GET /api/markers` palauttaa merkit kaikille autentikoituneille ilman map-state-tarkistusta. Poistettu: V22 (403-logiikka), `POST /api/admin/map-state`, `GET /api/admin/map-state`, `showMapNotReadyBanner`, `MapStateBadge` approve-nappi. Snapshots säilyy itsenäisenä. | V18,V22 |
+| T64 | ✓ | Markers direct-write: `MarkerManager` kirjoittaa suoraan `POST/PUT/DELETE /api/markers` — ei localStorage-välivaihetta. `add()→POST`, `remove()→DELETE`, `updateStatus/Type/Note/dragend→PUT`. Bearing-tallennus: `MarkerInteraction.onSave(id)` → `PUT {bearing}`. | V18,T63 |
+| T65 | ✓ | Poista localStorage marker/segment-cache: `persistence.ts` + `segment-persistence.ts` ovat no-op stubs. `init()` hakee merkit suoraan `fetchMarkers()`. Järjestäjä hakee kaikki segmentit `GET /api/segments` init:ssä (B16-korjaus). Talkoolainen hakee oman pätkän `fetchSegmentByCode`. | V18,V30,V36,T63 |
+| T66 | ✓ | `fetchAllSegments()` lisätty `segment-sync.ts`:ään. `pendingSync`-kenttä poistettu `SignMarker`-tyypistä. `sync.ts` yksinkertaistettu: vain `fetchMarkers()`. | T65 |
 
 ## §UX Kenttämuistio
 
@@ -178,3 +190,10 @@ UX-simulaatio 2026-06-07. Kaksi roolia läpikäyty — löydöt kirjattu taskeih
 | B7 | 2026-06-10 | `snapshot-panel.ts` renderöi aina koko listan — vie liikaa tilaa admin-näkymästä kun varmuuskopioita on paljon. | T57 |
 | B8 | 2026-06-10 | `main.ts:186-188` — `openMarkerModal` kutsuu `renderMarkerList(markerManager)` ilman pätkäfiltteriä. Talkoolainen näkee kaikki merkit eikä vain oman pätkän. | V33→T58 |
 | B9 | 2026-06-11 | `segment-panel.ts buildAssignSection()` tallentaa `assignedCode` vain localStorageen — ei kutsu `POST /api/admin/codes`. Backend `talkoolainen_codes`-taulu pysyy tyhjänä → `/api/auth/code-login` palauttaa 401. Talkoolainen ei pääse sisään jaetulla linkillä. | V34→T59 |
+| B10 | 2026-06-11 | `segment-persistence.ts saveSegments()` catch {} ignoroi localStorage quota/write virheet hiljaa — käyttäjä ei tiedä tallennuksen epäonnistuneen, pätkädata häviää näkymättömästi. | V35→T60 |
+| B11 | 2026-06-11 | `segments`-taulua ei ole backendissä — segmentit ovat localStorage-only. Talkoolainen eri laitteella avaa `/s/<koodi>` → `loadSegments()` palauttaa tyhjän storen → `getSegmentForCode` → `undefined` → `segmentView` ei luoda → talkoolainen näkee tyhjän kartan ilman pätkänäkymää. | V36→T61,T62 |
+| B12 | 2026-06-11 | `#map-state-banner` oli `position:fixed;top:64px` → peitti talkoolaisen `#segment-view` headerin (nimi, range, description näkymätön). | ✓ siirretty `#segment-view-container`:iin flow-elementtinä |
+| B13 | 2026-06-11 | `SegmentPanel.render()` uudelleenrakentaa koko listan → "Lisätiedot & varusteet" -toggle-tila nollautuu aina — käyttäjä menettää avoimena olevan näkymän esim. assign-tallennuksen yhteydessä. | V37 |
+| B14 | 2026-06-11 | Teksti `#segment-desc-input`:ssä (ei blur vielä) katoaa kun `this.render()` triggeröityy (esim. assign-tallennus) — `change`-event vaatii eksplisiittisen blurin/enterin ennen render-kutsua. Näppäin-flow: kirjoita desc → tallenna koodi heti klikkaamalla → textarea tyhjänä. | V38 |
+| B15 | 2026-06-11 | Järjestäjä-segment-panel visuaalinen ilme on heikko — ei selkeää hierarkiaa, isot tyhjät alueet, kontrollit vaikeasti löydettävissä. | UX-parannustehtävä (ei kriittinen toiminnallisuus) |
+| B16 | 2026-06-11 | `init()` hakee segmentit backendistä (`fetchSegmentByCode`) vain talkoolaiselle — järjestäjä näkee tyhjän pätkälistan uudessa selainistunnossa vaikka backend tietää segmenteistä. V36: localStorage on cache, ei lähde. | V36 — tarvitsee `GET /api/segments` kutsun järjestäjälle sivun latautuessa |
