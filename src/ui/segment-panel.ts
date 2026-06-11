@@ -1,5 +1,5 @@
 import { nearestPointIndex, haversineDistance } from '../logic/bearing'
-import { createSegment, updateSegment, deleteSegment } from '../logic/segments'
+import { createSegment, updateSegment, deleteSegment, getMarkersForSegment } from '../logic/segments'
 import { pushSegment, updateSegmentRemote, deleteSegmentRemote } from '../logic/segment-sync'
 import type { Segment, SegmentStore, EquipmentItem } from '../logic/segments'
 import type { RouteConfig } from '../logic/multi-route'
@@ -19,12 +19,31 @@ type CreationState =
   | { mode: 'first-click' }
   | { mode: 'second-click'; routeId: string; startDist: number }
 
+const STATUS_LABELS: Record<string, string> = {
+  suunniteltu: 'Suunniteltu',
+  asetettu: 'Asetettu ✓',
+  tarkistettu: 'Tarkistettu ✓',
+  kerätty: 'Kerätty',
+  ei_tarpeen: 'Ei tarpeen',
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  right: 'Oikealle',
+  left: 'Vasemmalle',
+  'upcoming-right': 'Tuleva oikealle',
+  'upcoming-left': 'Tuleva vasemmalle',
+}
+
 export class SegmentPanel {
   private readonly statusEl: HTMLElement
   private readonly listEl: HTMLUListElement
+  private readonly titleEl: HTMLElement
+  private readonly toggleBtn: HTMLButtonElement
   private state: CreationState = { mode: 'idle' }
   private segmentCount = 0
-  private expandedDetails = new Set<string>()
+  private collapsed = true
+  private activeModal: HTMLElement | null = null
+  private escHandler: ((e: KeyboardEvent) => void) | null = null
 
   constructor(
     container: HTMLElement,
@@ -33,9 +52,11 @@ export class SegmentPanel {
     private readonly onUpdate: () => void,
     private readonly callbacks: SegmentPanelCallbacks = {},
   ) {
-    const { panel, statusEl, listEl } = this.build()
+    const { panel, statusEl, listEl, titleEl, toggleBtn } = this.build()
     this.statusEl = statusEl
     this.listEl = listEl
+    this.titleEl = titleEl
+    this.toggleBtn = toggleBtn
     container.appendChild(panel)
     this.segmentCount = this.store.size
     this.render()
@@ -49,6 +70,7 @@ export class SegmentPanel {
     if (this.state.mode === 'idle') return
     this.state = { mode: 'idle' }
     this.statusEl.hidden = true
+    this.applyCollapsed()
     this.callbacks.onFirstPointClear?.()
   }
 
@@ -121,16 +143,37 @@ export class SegmentPanel {
     return bestRouteId ? { routeId: bestRouteId, distanceFromStart: bestDistFromStart, lat: bestLat, lon: bestLon } : null
   }
 
-  private build(): { panel: HTMLElement; statusEl: HTMLElement; listEl: HTMLUListElement } {
+  private applyCollapsed(): void {
+    const count = this.store.size
+    this.titleEl.textContent = this.collapsed ? `Pätkäjako (${count})` : 'Pätkäjako'
+    this.toggleBtn.textContent = this.collapsed ? '▶' : '▼'
+    this.listEl.hidden = this.collapsed
+    if (this.collapsed) this.statusEl.hidden = true
+  }
+
+  private build(): { panel: HTMLElement; statusEl: HTMLElement; listEl: HTMLUListElement; titleEl: HTMLElement; toggleBtn: HTMLButtonElement } {
     const panel = document.createElement('div')
     panel.id = 'segment-panel'
 
     const header = document.createElement('div')
     header.className = 'segment-panel-header'
+    header.style.cursor = 'pointer'
+    header.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('#btn-segment-create')) return
+      this.collapsed = !this.collapsed
+      this.applyCollapsed()
+    })
 
-    const title = document.createElement('h3')
-    title.textContent = 'Pätkäjako'
-    header.appendChild(title)
+    const titleEl = document.createElement('h3')
+    titleEl.textContent = 'Pätkäjako (0)'
+    header.appendChild(titleEl)
+
+    const toggleBtn = document.createElement('button')
+    toggleBtn.className = 'btn-segment-toggle'
+    toggleBtn.setAttribute('aria-label', 'Näytä tai piilota pätkäjako')
+    toggleBtn.textContent = '▶'
+    toggleBtn.style.cssText = 'background:transparent;border:none;color:var(--text-muted);font-size:10px;padding:0 8px;min-height:44px;min-width:44px;cursor:pointer'
+    header.appendChild(toggleBtn)
 
     const createBtn = document.createElement('button')
     createBtn.id = 'btn-segment-create'
@@ -151,16 +194,19 @@ export class SegmentPanel {
     listEl.className = 'segment-list'
     panel.appendChild(listEl)
 
-    return { panel, statusEl, listEl }
+    return { panel, statusEl, listEl, titleEl, toggleBtn }
   }
 
   private enterCreationMode(): void {
+    this.collapsed = false
+    this.applyCollapsed()
     this.state = { mode: 'first-click' }
     this.statusEl.hidden = false
     this.statusEl.textContent = 'Klikkaa reittiä: 1. piste'
   }
 
   private render(): void {
+    this.applyCollapsed()
     this.listEl.innerHTML = ''
     const segments = Array.from(this.store.values())
     if (segments.length === 0) {
@@ -210,12 +256,18 @@ export class SegmentPanel {
     })
     main.appendChild(editPtsBtn)
 
+    const detailsBtn = document.createElement('button')
+    detailsBtn.className = 'btn-segment-details-open'
+    detailsBtn.textContent = 'Lisätiedot & varusteet'
+    detailsBtn.setAttribute('aria-label', 'Avaa lisätiedot ja varusteet')
+    detailsBtn.addEventListener('click', () => this.openDetailsModal(seg))
+    main.appendChild(detailsBtn)
+
     const deleteBtn = document.createElement('button')
     deleteBtn.className = 'btn-segment-delete'
     deleteBtn.textContent = '✕'
     deleteBtn.addEventListener('click', () => {
       this.callbacks.onExitEditMode?.()
-      this.expandedDetails.delete(seg.id)
       deleteSegment(this.store, seg.id)
       this.save()
       deleteSegmentRemote(seg.id).catch(() => {})
@@ -225,111 +277,187 @@ export class SegmentPanel {
     main.appendChild(deleteBtn)
     li.appendChild(main)
 
-    li.appendChild(this.buildDetailsSection(seg))
     li.appendChild(this.buildAssignSection(seg))
 
     return li
   }
 
-  private buildDetailsSection(seg: Segment): HTMLElement {
-    const section = document.createElement('div')
-    section.className = 'segment-details'
+  openDetailsModal(seg: Segment): void {
+    this.closeModal()
 
-    const toggle = document.createElement('button')
-    toggle.className = 'btn-segment-details-toggle'
-    toggle.textContent = 'Lisätiedot & varusteet ▸'
-    toggle.setAttribute('aria-expanded', 'false')
-
-    const body = document.createElement('div')
-    body.className = 'segment-details-body'
-    const isExpanded = this.expandedDetails.has(seg.id)
-    body.hidden = !isExpanded
-    toggle.textContent = isExpanded ? 'Lisätiedot & varusteet ▾' : 'Lisätiedot & varusteet ▸'
-    toggle.setAttribute('aria-expanded', String(isExpanded))
-
-    toggle.addEventListener('click', () => {
-      const open = body.hidden
-      body.hidden = !open
-      toggle.textContent = open ? 'Lisätiedot & varusteet ▾' : 'Lisätiedot & varusteet ▸'
-      toggle.setAttribute('aria-expanded', String(open))
-      if (open) this.expandedDetails.add(seg.id)
-      else this.expandedDetails.delete(seg.id)
+    const backdrop = document.createElement('div')
+    backdrop.className = 'segment-details-modal-backdrop'
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) this.closeModal()
     })
 
-    // Description field
+    const modal = document.createElement('div')
+    modal.className = 'segment-details-modal'
+    modal.setAttribute('role', 'dialog')
+    modal.setAttribute('aria-modal', 'true')
+    modal.setAttribute('aria-label', 'Pätkän lisätiedot ja varusteet')
+
+    // Header
+    const header = document.createElement('div')
+    header.className = 'segment-details-modal-header'
+
+    const title = document.createElement('span')
+    title.className = 'segment-details-modal-title'
+    title.textContent = seg.displayName ?? 'Pätkän lisätiedot'
+    header.appendChild(title)
+
+    const closeBtn = document.createElement('button')
+    closeBtn.className = 'segment-details-modal-close'
+    closeBtn.setAttribute('aria-label', 'Sulje')
+    closeBtn.textContent = '✕'
+    closeBtn.addEventListener('click', () => this.closeModal())
+    header.appendChild(closeBtn)
+    modal.appendChild(header)
+
+    // Body
+    const body = document.createElement('div')
+    body.className = 'segment-details-modal-body'
+
+    // (1) displayName
+    const nameSection = document.createElement('div')
+    nameSection.className = 'segment-details-modal-section'
+    const nameLabel = document.createElement('label')
+    nameLabel.className = 'segment-desc-label'
+    nameLabel.textContent = 'Pätkän nimi'
+    nameSection.appendChild(nameLabel)
+    const nameInput = document.createElement('input')
+    nameInput.className = 'segment-details-name-input'
+    nameInput.type = 'text'
+    nameInput.value = seg.displayName ?? ''
+    nameInput.placeholder = 'Esim. Pätkä 1'
+    const saveDisplayName = () => {
+      const val = nameInput.value.trim() || undefined
+      updateSegment(this.store, seg.id, { displayName: val })
+      this.save()
+      updateSegmentRemote(seg.id, { displayName: val ?? null as unknown as string }).catch(() => {})
+      title.textContent = val ?? 'Pätkän lisätiedot'
+      this.render()
+    }
+    nameInput.addEventListener('blur', saveDisplayName)
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        saveDisplayName()
+        nameInput.blur()
+      }
+    })
+    nameSection.appendChild(nameInput)
+    body.appendChild(nameSection)
+
+    // (2) description
+    const descSection = document.createElement('div')
+    descSection.className = 'segment-details-modal-section'
     const descLabel = document.createElement('label')
     descLabel.className = 'segment-desc-label'
     descLabel.textContent = 'Järjestäjän ohjeet'
-    body.appendChild(descLabel)
-
+    descSection.appendChild(descLabel)
     const descInput = document.createElement('textarea')
     descInput.className = 'segment-desc-input'
     descInput.placeholder = 'Esim. Muista parkkipaikka Natura-tien varrella'
     descInput.value = seg.description ?? ''
-    descInput.rows = 2
+    descInput.rows = 3
     descInput.addEventListener('change', () => {
       const desc = descInput.value.trim() || undefined
       updateSegment(this.store, seg.id, { description: desc })
       this.save()
       updateSegmentRemote(seg.id, { description: desc ?? null as unknown as string }).catch(() => {})
     })
-    body.appendChild(descInput)
+    descSection.appendChild(descInput)
+    body.appendChild(descSection)
 
-    // Equipment auto-count (from markers if available)
-    const markers = this.callbacks.getMarkers?.() ?? []
-    body.appendChild(this.buildEquipmentAutoSection(seg, markers))
-
-    // Manual equipment items
-    body.appendChild(this.buildEquipmentManualSection(seg))
-
-    section.appendChild(toggle)
-    section.appendChild(body)
-    return section
-  }
-
-  private buildEquipmentAutoSection(seg: Segment, allMarkers: SignMarker[]): HTMLElement {
-    const container = document.createElement('div')
-    container.className = 'segment-equipment-auto'
-
-    if (allMarkers.length === 0) return container
-
-    // Count markers for this segment by type
-    const { routeIds, startDist, endDist } = seg
-    const routeSet = new Set(routeIds)
-    const segMarkers = allMarkers.filter(
-      m => m.routeIds.some(r => routeSet.has(r)) &&
-           m.distanceFromStart >= startDist &&
-           m.distanceFromStart <= endDist,
-    )
-    if (segMarkers.length === 0) return container
-
-    const counts = new Map<string, number>()
-    for (const m of segMarkers) counts.set(m.type, (counts.get(m.type) ?? 0) + 1)
-
-    const title = document.createElement('p')
-    title.className = 'segment-equipment-title'
-    title.textContent = 'Merkit pätkällä (automaattinen):'
-    container.appendChild(title)
-
-    const list = document.createElement('ul')
-    list.className = 'segment-equipment-auto-list'
-    for (const [type, count] of counts) {
-      const li = document.createElement('li')
-      li.textContent = `${count}× ${type}`
-      list.appendChild(li)
+    // (3) markers readonly list
+    const allMarkers = this.callbacks.getMarkers?.() ?? []
+    const segMarkers = getMarkersForSegment(seg, allMarkers)
+    if (segMarkers.length > 0) {
+      const markerSection = document.createElement('div')
+      markerSection.className = 'segment-details-modal-section'
+      const markerTitle = document.createElement('p')
+      markerTitle.className = 'segment-equipment-title'
+      markerTitle.textContent = `Merkit pätkällä (${segMarkers.length}):`
+      markerSection.appendChild(markerTitle)
+      const markerList = document.createElement('ul')
+      markerList.className = 'segment-details-marker-list'
+      const sorted = [...segMarkers].sort((a, b) => a.distanceFromStart - b.distanceFromStart)
+      for (const m of sorted) {
+        const li = document.createElement('li')
+        li.className = 'segment-details-marker-item'
+        const km = (m.distanceFromStart / 1000).toFixed(1)
+        const typeLabel = TYPE_LABELS[m.type] ?? m.type
+        const statusLabel = STATUS_LABELS[m.status] ?? m.status
+        const info = document.createElement('span')
+        info.className = 'segment-details-marker-info'
+        info.textContent = `${km} km — ${typeLabel}`
+        li.appendChild(info)
+        const badge = document.createElement('span')
+        badge.className = `segment-details-marker-status status-${m.status}`
+        badge.textContent = statusLabel
+        li.appendChild(badge)
+        markerList.appendChild(li)
+      }
+      markerSection.appendChild(markerList)
+      body.appendChild(markerSection)
     }
-    container.appendChild(list)
-    return container
+
+    // (4) equipment
+    body.appendChild(this.buildEquipmentSection(seg))
+
+    modal.appendChild(body)
+    backdrop.appendChild(modal)
+    document.body.appendChild(backdrop)
+    this.activeModal = backdrop
+
+    // Escape closes
+    this.escHandler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') this.closeModal()
+    }
+    document.addEventListener('keydown', this.escHandler)
   }
 
-  private buildEquipmentManualSection(seg: Segment): HTMLElement {
-    const container = document.createElement('div')
-    container.className = 'segment-equipment-manual'
+  private closeModal(): void {
+    if (this.activeModal) {
+      this.activeModal.remove()
+      this.activeModal = null
+    }
+    if (this.escHandler) {
+      document.removeEventListener('keydown', this.escHandler)
+      this.escHandler = null
+    }
+  }
 
-    const title = document.createElement('p')
-    title.className = 'segment-equipment-title'
-    title.textContent = 'Lisävarusteet:'
-    container.appendChild(title)
+  private buildEquipmentSection(seg: Segment): HTMLElement {
+    const container = document.createElement('div')
+    container.className = 'segment-details-modal-section'
+
+    // Auto-count from markers
+    const allMarkers = this.callbacks.getMarkers?.() ?? []
+    const segMarkers = getMarkersForSegment(seg, allMarkers)
+    if (segMarkers.length > 0) {
+      const counts = new Map<string, number>()
+      for (const m of segMarkers) counts.set(m.type, (counts.get(m.type) ?? 0) + 1)
+      const autoTitle = document.createElement('p')
+      autoTitle.className = 'segment-equipment-title'
+      autoTitle.textContent = 'Merkit pätkällä (automaattinen):'
+      container.appendChild(autoTitle)
+      const autoList = document.createElement('ul')
+      autoList.className = 'segment-equipment-auto-list'
+      for (const [type, count] of counts) {
+        const li = document.createElement('li')
+        li.textContent = `${count}× ${type}`
+        autoList.appendChild(li)
+      }
+      container.appendChild(autoList)
+    }
+
+    // Manual items
+    const manualTitle = document.createElement('p')
+    manualTitle.className = 'segment-equipment-title'
+    manualTitle.textContent = 'Lisävarusteet:'
+    container.appendChild(manualTitle)
 
     const listEl = document.createElement('ul')
     listEl.className = 'segment-equipment-manual-list'
@@ -504,7 +632,6 @@ export class SegmentPanel {
           if (!resp.ok) throw new Error('save_failed')
           updateSegment(this.store, seg.id, { assignedCode: code, displayName })
           this.save()
-          // Sync updated segment (with code) to backend
           const updated = this.store.get(seg.id)
           if (updated) updateSegmentRemote(seg.id, { assignedCode: code, displayName }).catch(() => {})
           this.render()

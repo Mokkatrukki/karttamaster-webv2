@@ -38,7 +38,7 @@ html, body {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding-bottom: 122px;
+  padding-bottom: 84px;
 }
 
 /* ── Toolbar ── */
@@ -47,7 +47,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 10px;
+  padding: 6px 8px;
   background: var(--bg-primary);
   color: var(--text-primary);
   flex-shrink: 0;
@@ -56,14 +56,58 @@ html, body {
   border-bottom: 1px solid var(--border-subtle);
 }
 
-#toolbar h1 {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-  margin-right: 4px;
-  text-transform: uppercase;
+#toolbar-menu {
+  position: fixed;
+  top: 56px;
+  right: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 6px;
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 200px;
+  z-index: 2001;
 }
+#toolbar-menu.open { display: flex; }
+#toolbar-menu button {
+  justify-content: flex-start;
+  text-align: left;
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  min-height: 44px;
+  padding: 8px 12px;
+  transition: background 0.1s;
+}
+#toolbar-menu button:hover { background: var(--hover-light); }
+
+.menu-sep {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 2px 0;
+}
+
+body[data-role="talkoolainen"] #btn-segment-panel,
+body[data-role="talkoolainen"] #btn-snapshot-panel {
+  display: none;
+}
+
+#btn-menu {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  padding: 0;
+  width: 44px;
+  min-height: 44px;
+  font-size: 18px;
+  letter-spacing: 0;
+  margin-left: auto;
+}
+#btn-menu:hover { color: var(--text-primary); }
 
 button {
   padding: 6px 12px;
@@ -183,9 +227,15 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   z-index: 2000;
   display: flex;
   flex-direction: column;
-  padding: 10px 12px 12px;
-  gap: 8px;
+  padding: 8px 12px 10px;
+  gap: 6px;
   box-shadow: 0 -1px 0 var(--border-subtle), 0 -8px 24px rgba(0, 0, 0, 0.3);
+}
+
+#route-bar-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* ── Route tabs ── */
@@ -260,6 +310,7 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
 /* ── Progress row ── */
 
 #route-bar-top {
+  flex: 1;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -482,14 +533,22 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
 }
 #btn-role:hover:not(.role-active) { background: var(--hover-light); }
 
-#btn-layer {
+#toolbar #btn-layer {
   background: var(--hover-light) !important;
   color: var(--text-muted) !important;
   border: 1px solid var(--border-default) !important;
   font-size: 11px !important;
   margin-left: auto;
 }
-#btn-layer:hover { background: rgba(255, 255, 255, 0.14) !important; }
+#toolbar #btn-layer:hover { background: rgba(255, 255, 255, 0.14) !important; }
+
+#toolbar-menu #btn-layer {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  border: none !important;
+  font-size: 13px !important;
+  margin-left: 0 !important;
+}
 
 #btn-gps { background: transparent; color: var(--text-muted); border: 1px solid var(--border-default); font-size: 12px; }
 #btn-gps.gps-active { background: #1d4ed8; color: #fff; border-color: transparent; }
@@ -824,16 +883,30 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   flex-shrink: 0;
 }
 
-/* ── Snapshot panel (T50) — järjestäjä only ── */
+/* ── Snapshot panel (T50) — floating overlay, toggle via menu ── */
 
 #snapshot-panel-container {
-  flex-shrink: 0;
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  z-index: 1100;
+  display: none;
+  max-height: calc(70vh - 56px);
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid var(--border-default);
+}
+
+#snapshot-panel-container.open {
+  display: block;
 }
 
 #snapshot-panel {
   display: none;
   background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-subtle);
+  max-height: calc(70vh - 56px);
+  overflow-y: auto;
 }
 
 [data-role="järjestäjä"] #snapshot-panel,
@@ -918,16 +991,30 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   color: #fca5a5;
 }
 
-/* ── Segment panel (T25) — järjestäjä only ── */
+/* ── Segment panel (T25) — floating overlay, toggle via menu ── */
 
 #segment-panel-container {
-  flex-shrink: 0;
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  z-index: 1100;
+  display: none;
+  max-height: calc(70vh - 56px);
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid var(--border-default);
+}
+
+#segment-panel-container.open {
+  display: block;
 }
 
 #segment-panel {
   display: none;
   background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-subtle);
+  max-height: calc(70vh - 56px);
+  overflow-y: auto;
 }
 
 [data-role="järjestäjä"] #segment-panel,
@@ -1071,7 +1158,7 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
 
 .segment-list {
   list-style: none;
-  max-height: 160px;
+  max-height: 220px;
   overflow-y: auto;
   border-top: 1px solid var(--border-subtle);
 }
@@ -1139,11 +1226,19 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
 
 .segment-info {
   flex: 1;
-  color: var(--text-muted);
-  font-size: 11px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.segment-info .segment-km {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 4px;
 }
 
 .segment-empty {
@@ -1205,6 +1300,343 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
 .btn-segment-delete:hover {
   background: rgba(239, 68, 68, 0.20);
   color: #fca5a5;
+}
+
+/* ── Segment details (T27: equipment + description) ── */
+
+.segment-details {
+  border-top: 1px solid var(--border-card);
+  margin-top: 2px;
+}
+
+.btn-segment-details-toggle {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-card);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 0 8px;
+  min-height: 36px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  margin-top: 4px;
+}
+
+.btn-segment-details-toggle:hover {
+  background: var(--hover-light);
+  color: var(--text-primary);
+}
+
+.segment-details-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 0 4px;
+}
+
+.segment-desc-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+  display: block;
+}
+
+.segment-desc-input {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  font-size: 11px;
+  font-family: var(--font-ui);
+  resize: vertical;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 52px;
+}
+
+.segment-desc-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.segment-equipment-auto,
+.segment-equipment-manual {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.segment-equipment-title {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.segment-equipment-auto-list,
+.segment-equipment-manual-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.segment-equipment-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.equipment-count-input {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  border-radius: 4px;
+  padding: 6px 6px;
+  font-size: 12px;
+  width: 56px;
+  min-height: 36px;
+  text-align: center;
+}
+
+.equipment-name-input {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 12px;
+  flex: 1;
+  min-height: 36px;
+}
+
+.equipment-count-input:focus,
+.equipment-name-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.btn-equipment-remove {
+  background: rgba(239, 68, 68, 0.10);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.20);
+  border-radius: 4px;
+  font-size: 11px;
+  padding: 4px 8px;
+  min-height: 36px;
+  flex-shrink: 0;
+}
+
+.btn-equipment-remove:hover {
+  background: rgba(239, 68, 68, 0.20);
+}
+
+.segment-equipment-add {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.btn-equipment-add {
+  background: rgba(255,255,255,0.06);
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  font-size: 11px;
+  padding: 4px 12px;
+  min-height: 36px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-equipment-add:hover {
+  background: var(--hover-light);
+  color: var(--text-primary);
+}
+
+/* ── Segment details open button ── */
+
+.btn-segment-details-open {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-card);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 0 8px;
+  min-height: 36px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-segment-details-open:hover {
+  background: var(--hover-light);
+  color: var(--text-primary);
+}
+
+/* ── Segment details modal (T69) ── */
+
+.segment-details-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: var(--overlay);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.segment-details-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+  width: min(480px, 92vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.segment-details-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.segment-details-modal-title {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.segment-details-modal-close {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+  min-height: 44px;
+  min-width: 44px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.segment-details-modal-close:hover {
+  background: var(--hover-light);
+  color: var(--text-primary);
+}
+
+.segment-details-modal-body {
+  overflow-y: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.segment-details-modal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.segment-details-name-input {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: var(--font-ui);
+  min-height: 44px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.segment-details-name-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.segment-details-marker-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.segment-details-marker-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  border-radius: 4px;
+  border-bottom: 1px solid var(--border-card);
+}
+
+.segment-details-marker-info {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.segment-details-marker-status {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+/* Equipment in talkoolainen view */
+.segment-view-equipment {
+  padding: 6px 0;
+  border-top: 1px solid var(--border-card);
+  margin-top: 2px;
+}
+
+.segment-view-equipment-title {
+  font-size: 10px;
+  color: var(--text-meta);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 4px;
+}
+
+.segment-view-equipment-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.equipment-auto-item,
+.equipment-manual-item {
+  font-size: 12px;
+  color: var(--text-primary);
+  padding: 2px 0;
+}
+
+.equipment-auto-item {
+  color: var(--text-muted);
 }
 
 /* ── Segment label (Leaflet tooltip) ── */

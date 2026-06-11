@@ -111,10 +111,19 @@ metsässä, hanskat kädessä.
 ## §K Komponentit
 
 ### Toolbar (`#toolbar`)
-- Kiinteä yläreuna, `z-index: 200`
+- Kiinteä yläreuna, `z-index: 200`, korkeus ~56px
 - Tausta: `bg-primary`, alaraja: `border-bottom: 1px solid border-subtle`
-- Napit: `padding: 6px 12px`, `border-radius: 6px`, `font-size: 12px`, `font-weight: 600`
-- ⚠️ **Puute:** toolbar-napeilla ei `min-height: 44px` — korjattava
+- Padding: `6px 8px` (4px-grid)
+- Näkyvät napit: `+ Merkki` (admin), `📍 GPS`, role-toggle, `⋯`-valikko
+- `⋯ #btn-menu`: 44×44px, `border: 1px solid border-strong`, `margin-left: auto`
+- Ei h1-otsikkoa toolbarissa — poistettu tilan säästämiseksi
+
+### Toolbar-menu (`#toolbar-menu`)
+- `position: fixed; top: 56px; right: 8px` — avautuu toolbarin alta oikeasta reunasta
+- `bg-card`, `border-default`, `border-radius-md`, `box-shadow: 0 8px 24px rgba(0,0,0,0.4)`
+- `z-index: 2001` (yli route-barin 2000)
+- Toggle: `.open`-class — avaa `display: flex`, sulkee document-click
+- Sisältö: `☰ Lista` (avaa marker-modal) + karttakerros-toggle (label päivittyy)
 
 ### Role-toggle (`#btn-role`)
 - Toolbarissa, toolbar-nappi tyyli
@@ -184,9 +193,24 @@ metsässä, hanskat kädessä.
 - Tausta: `bg-primary`, bottom-border: `border-subtle`
 - Header: `11px uppercase text-muted`, "Luo uusi pätkä" -nappi `min-height: 44px` (§R pakollinen)
 - Luomistila: `12px text-muted`, "Klikkaa reittiä: 1. / 2. piste" — kaksi klikkausta reitillä → luo pätkän
-- Lista: `max-height: 160px`, scrollable, `border-card`-separaattorit
+- Lista: `max-height: 220px`, scrollable, `border-card`-separaattorit
 - Segmenttirivi: `padding: 6px 10px`, nimi `text-primary 12px`, km-väli `text-muted 11px`
 - Poista-nappi: `rgba(239,68,68,0.10)` tausta, `#f87171` teksti — vaarallinen toiminto
+- "Lisätiedot & varusteet" -nappi: `min-height: 44px`, avaa `SegmentDetailsModal` (alla)
+
+### SegmentDetailsModal (`.segment-details-modal`)
+- Avautuu "Lisätiedot & varusteet" -napista pätkärivillä — vain järjestäjälle
+- DOM: `document.body`-lapsi, `position:fixed; inset:0; z-index:3000`
+- Backdrop: `background: overlay; backdrop-filter: blur(2px)` — klikki sulkee
+- Modaalikehys: `bg-card`, `border: 1px solid border-default`, `border-radius: 14px`, `box-shadow: 0 16px 48px rgba(0,0,0,0.5)`
+- Leveys: `min(480px, 92vw)`, `max-height: 80vh`, scrollable sisältö
+- Otsikko-rivi: pätkän nimi `text-primary 14px bold`, ✕-nappi `aria-label:"Sulje"` `min-height:44px min-width:44px`
+- Sulkeminen: ✕-nappi / Escape / backdrop-klikki — auto-save on change, ei hylkäysdialogi
+- Kentät:
+  - `displayName`: `<input>`, auto-save blur/Enter, `min-height: 44px`
+  - kuvaus: `<textarea>`, 3 riviä, auto-save change, `min-height: 44px`
+  - merkit readonly-lista: `text-muted 12px`, status-badge §C-väreillä, `max-height: 160px` scrollable
+  - varusteet: add/remove/edit-rivi, `min-height: 44px` kaikille inputeille ja napeille
 
 ### SegmentView (`#segment-view`, `src/ui/segment-view.ts`)
 - Vain talkoolaiselle jolla on assignedCode matchaava pätkä
@@ -236,14 +260,20 @@ metsässä, hanskat kädessä.
 | U7  | `SnapshotPanel` ei reagoi rooli-togglelle — pysyi näkyvissä talkoolaisena | Korkea | ✓ korjattu |
 | U8  | Paneelien toimintopainikkeet 28px: `.btn-segment-delete`, `.btn-copy-url`, `.btn-assign-edit`, `.btn-assign-save`, `.btn-snapshot-restore`, `.btn-approve` | Korkea | ✓ korjattu 2026-06-10 |
 | U9  | Segment assign -inputit 28px korkeus, 90px leveys — liian pieni | Korkea | ✓ korjattu 2026-06-10 |
-| U10 | Toolbar: 5 nappia ilman visuaalista hierarkiaa — sekundäärit (GPS, kartta) erottuvat huonosti | Suuri | auki |
-| U11 | Snapshot-paneeli aina auki — vie karttatilaa (T57 korjaa) | Suuri | auki |
+| U10 | Toolbar: 5 nappia ilman visuaalista hierarkiaa — sekundäärit (GPS, kartta) erottuvat huonosti | Suuri | ✓ korjattu 2026-06-11: Lista + Layer → overflow-valikko, h1 poistettu |
+| U11 | Snapshot-paneeli aina auki — vie karttatilaa (T57 korjaa) | Suuri | ✓ korjattu 2026-06-11: backupBtn aina näkyvissä, toggle piilossa kun count=0 |
 | U12 | Segment-paneeli: ei visuaalista palautetta 1. klikin jälkeen luonnissa (T56 korjaa) | Suuri | auki |
 | U13 | `.marker-type-select` 28px — alle touch-targetin | Keski | ✓ korjattu 2026-06-10 |
 | U14 | Talkoolaisen Lista-modaali näyttää kaikki merkit eikä vain pätkän (B8 → T58) | Suuri | auki |
 | U15 | Segment-view merkkirivit liian pienet mobiilissa (4px padding, 11px font) | Keski | ✓ korjattu 2026-06-10 |
 | U16 | Progress track handle 20px — alle 44px (kasvatettu 28px) | Keski | ✓ korjattu 2026-06-10 |
 | U17 | GPS-drive: 3 nappia ahtaana 320px näytöllä | Pieni | auki |
+| U18 | `.btn-segment-details-toggle` touch target ~20px (padding:4px 0) → alle 44px | Korkea | ✓ korjattu 2026-06-11 (36px) |
+| U19 | Equipment inputs/napit min-height:32px → alle 44px; `.segment-desc-label`, `.segment-equipment-title` 10px font | Korkea | ✓ korjattu 2026-06-11 (36px + 11px) |
+| U20 | `.segment-info` väri text-muted 11px — DESIGN.md §K sanoo text-primary 12px | Suuri | ✓ korjattu 2026-06-11 |
+| U21 | `.segment-list` max-height:160px liian lyhyt useilla pätkillä | Pieni | ✓ korjattu 2026-06-11 (220px) |
+| U22 | Segment-panel korkeus ei ole rajoitettu kun "Lisätiedot & varusteet" on auki — koko paneeli näkyy, kartta painuu pitkälle alas. | Suuri | osittain ✓ 2026-06-11: paneeli alkaa nyt suljettuna (collapsed=true), lista piilossa |
+| U23 | SegmentPanel ei ollut collapsible — "Pätkäjako"-lista aina auki, vie karttatilaa | Suuri | ✓ korjattu 2026-06-11: collapse toggle lisätty, alkaa suljettuna |
 
 ---
 
