@@ -1471,7 +1471,7 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   color: var(--text-muted);
   font-size: 11px;
   padding: 0 8px;
-  min-height: 36px;
+  min-height: 44px;
   cursor: pointer;
   white-space: nowrap;
 }
