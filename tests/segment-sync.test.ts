@@ -1,0 +1,83 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { fetchSegmentByCode, pushSegment, updateSegmentRemote, deleteSegmentRemote } from '../src/logic/segment-sync'
+import type { Segment } from '../src/logic/segments'
+
+const SEG: Segment = {
+  id: 'seg-1',
+  routeIds: ['35km'],
+  startDist: 5000,
+  endDist: 12000,
+  equipment: [{ name: 'nauhaa', count: 2 }],
+  phase: 'asettaminen',
+  displayName: 'Pätkä 1',
+}
+
+describe('T62: segment-sync — V36', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  describe('fetchSegmentByCode', () => {
+    it('returns segment on 200', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => SEG,
+      }))
+      const result = await fetchSegmentByCode('JUKKA')
+      expect(result).toEqual(SEG)
+      expect(fetch).toHaveBeenCalledWith('/api/segments/by-code/JUKKA')
+    })
+
+    it('returns null on 404', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+      const result = await fetchSegmentByCode('JUKKA')
+      expect(result).toBeNull()
+    })
+
+    it('returns null on network error', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')))
+      const result = await fetchSegmentByCode('JUKKA')
+      expect(result).toBeNull()
+    })
+  })
+
+  describe('pushSegment', () => {
+    it('returns true on 200/201', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
+      expect(await pushSegment(SEG)).toBe(true)
+      expect(fetch).toHaveBeenCalledWith('/api/segments', expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify(SEG),
+      }))
+    })
+
+    it('returns false on server error', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+      expect(await pushSegment(SEG)).toBe(false)
+    })
+
+    it('returns false on network error', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')))
+      expect(await pushSegment(SEG)).toBe(false)
+    })
+  })
+
+  describe('updateSegmentRemote', () => {
+    it('calls PUT with patch', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
+      await updateSegmentRemote('seg-1', { description: 'ohje' })
+      expect(fetch).toHaveBeenCalledWith('/api/segments/seg-1', expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ description: 'ohje' }),
+      }))
+    })
+  })
+
+  describe('deleteSegmentRemote', () => {
+    it('calls DELETE', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
+      expect(await deleteSegmentRemote('seg-1')).toBe(true)
+      expect(fetch).toHaveBeenCalledWith('/api/segments/seg-1', { method: 'DELETE' })
+    })
+  })
+})
