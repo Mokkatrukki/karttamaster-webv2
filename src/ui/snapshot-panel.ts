@@ -9,7 +9,6 @@ export interface SnapshotEntry {
 export class SnapshotPanel {
   private readonly panel: HTMLElement
   private readonly titleEl: HTMLElement
-  private readonly backupBtn: HTMLButtonElement
   private readonly toggleBtn: HTMLButtonElement
   private listEl: HTMLElement | null = null
   private collapsed = true
@@ -22,7 +21,6 @@ export class SnapshotPanel {
     const built = this.build()
     this.panel = built.panel
     this.titleEl = built.titleEl
-    this.backupBtn = built.backupBtn
     this.toggleBtn = built.toggleBtn
     container.appendChild(this.panel)
     this.applyCollapsed()
@@ -35,7 +33,7 @@ export class SnapshotPanel {
     return this.role === 'järjestäjä' || this.role === 'admin'
   }
 
-  private build(): { panel: HTMLElement; titleEl: HTMLElement; backupBtn: HTMLButtonElement; toggleBtn: HTMLButtonElement } {
+  private build(): { panel: HTMLElement; titleEl: HTMLElement; toggleBtn: HTMLButtonElement } {
     const el = document.createElement('div')
     el.id = 'snapshot-panel'
 
@@ -84,7 +82,7 @@ export class SnapshotPanel {
     this.listEl.className = 'snapshot-list'
     el.appendChild(this.listEl)
 
-    return { panel: el, titleEl, backupBtn, toggleBtn }
+    return { panel: el, titleEl, toggleBtn }
   }
 
   private applyCollapsed(): void {
@@ -93,8 +91,9 @@ export class SnapshotPanel {
       ? `Varmuuskopiot (${count})`
       : 'Varmuuskopiot'
     this.toggleBtn.textContent = this.collapsed ? '▶' : '▼'
-    if (this.listEl) this.listEl.hidden = this.collapsed
-    this.backupBtn.hidden = this.collapsed
+    this.toggleBtn.hidden = count === 0
+    if (this.listEl) this.listEl.hidden = this.collapsed || count === 0
+    // backupBtn always visible — järjestäjä needs to create first backup
   }
 
   async refresh(): Promise<void> {

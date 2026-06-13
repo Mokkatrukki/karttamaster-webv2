@@ -5,7 +5,7 @@ export type AuthResult = { role: Role; displayName: string; code?: string }
 // V27: extract talkoolainen code from /s/<koodi> deep-link
 export function extractSegmentCode(pathname: string): string | null {
   const m = pathname.match(/^\/s\/([a-z0-9_-]+)$/i)
-  return m ? m[1] : null
+  return m ? m[1].toUpperCase() : null
 }
 
 export class AuthScreen {
@@ -24,31 +24,30 @@ export class AuthScreen {
   }
 
   async start(): Promise<void> {
+    // V40: show overlay before any fetch — map must not be visible during auth check
+    this.show()
     const pathCode = extractSegmentCode(window.location.pathname)
     try {
       const resp = await fetch('/api/auth/me')
       if (resp.ok) {
         const data = await resp.json() as { role: Role; display_name: string }
+        this.hide()
         this.onAuthenticated({ role: data.role, displayName: data.display_name, code: pathCode ?? undefined })
         return
       }
       if (resp.status === 401) {
         if (pathCode) {
-          this.show()
           this.switchTab('talkoolainen')
           const codeInput = this.overlay.querySelector('#auth-code') as HTMLInputElement
           codeInput.value = pathCode
           this.talkoolainenForm.dispatchEvent(new Event('submit', { cancelable: true }))
           return
         }
-        this.show()
         return
       }
-      // Non-401 error (e.g. 404, 500) → show login form (V29: no silent skip)
-      this.show()
+      // Non-401 error (e.g. 404, 500) → keep login form visible (V29: no silent skip)
     } catch {
-      // Network error → show login form (V29: no silent skip)
-      this.show()
+      // Network error → keep login form visible (V29: no silent skip)
     }
   }
 

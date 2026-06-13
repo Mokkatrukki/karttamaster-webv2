@@ -21,6 +21,7 @@ const STATUS_LABELS: Record<string, string> = {
 export class SegmentView {
   private readonly markerListEl: HTMLUListElement
   private readonly bulkBtn: HTMLButtonElement
+  private readonly equipmentSection: HTMLElement
   private currentMarkers: SignMarker[] = []
 
   constructor(
@@ -28,9 +29,10 @@ export class SegmentView {
     private segment: Segment,
     private readonly onBulkCollect?: (updated: SignMarker[]) => void,
   ) {
-    const { panel, markerListEl, bulkBtn } = this.build()
+    const { panel, markerListEl, bulkBtn, equipmentSection } = this.build()
     this.markerListEl = markerListEl
     this.bulkBtn = bulkBtn
+    this.equipmentSection = equipmentSection
     container.appendChild(panel)
   }
 
@@ -39,6 +41,7 @@ export class SegmentView {
     this.currentMarkers = markers
     this.renderMarkers(markers)
     this.updateBulkBtn(markers)
+    this.renderEquipment(markers)
   }
 
   private updateBulkBtn(markers: SignMarker[]): void {
@@ -46,7 +49,7 @@ export class SegmentView {
     this.bulkBtn.hidden = this.segment.phase !== 'purku' || !hasNonTerminal
   }
 
-  private build(): { panel: HTMLElement; markerListEl: HTMLUListElement; bulkBtn: HTMLButtonElement } {
+  private build(): { panel: HTMLElement; markerListEl: HTMLUListElement; bulkBtn: HTMLButtonElement; equipmentSection: HTMLElement } {
     const panel = document.createElement('div')
     panel.id = 'segment-view'
 
@@ -74,6 +77,10 @@ export class SegmentView {
       panel.appendChild(desc)
     }
 
+    const equipmentSection = document.createElement('div')
+    equipmentSection.className = 'segment-view-equipment'
+    panel.appendChild(equipmentSection)
+
     const bulkBtn = document.createElement('button')
     bulkBtn.className = 'btn-bulk-collect'
     bulkBtn.textContent = '✓ Merkitse kaikki kerätyksi'
@@ -88,7 +95,46 @@ export class SegmentView {
     markerListEl.className = 'segment-view-list'
     panel.appendChild(markerListEl)
 
-    return { panel, markerListEl, bulkBtn }
+    return { panel, markerListEl, bulkBtn, equipmentSection }
+  }
+
+  private renderEquipment(markers: SignMarker[]): void {
+    this.equipmentSection.innerHTML = ''
+
+    // Auto-count: markers per type
+    const counts = new Map<string, number>()
+    for (const m of markers) counts.set(m.type, (counts.get(m.type) ?? 0) + 1)
+
+    const hasAuto = counts.size > 0
+    const hasManual = this.segment.equipment.length > 0
+
+    if (!hasAuto && !hasManual) return
+
+    const title = document.createElement('p')
+    title.className = 'segment-view-equipment-title'
+    title.textContent = 'Varusteet:'
+    this.equipmentSection.appendChild(title)
+
+    const list = document.createElement('ul')
+    list.className = 'segment-view-equipment-list'
+
+    if (hasAuto) {
+      for (const [type, count] of counts) {
+        const li = document.createElement('li')
+        li.className = 'equipment-auto-item'
+        li.textContent = `${count}× ${type}`
+        list.appendChild(li)
+      }
+    }
+
+    for (const item of this.segment.equipment) {
+      const li = document.createElement('li')
+      li.className = 'equipment-manual-item'
+      li.textContent = `${item.count}× ${item.name}`
+      list.appendChild(li)
+    }
+
+    this.equipmentSection.appendChild(list)
   }
 
   private renderMarkers(markers: SignMarker[]): void {

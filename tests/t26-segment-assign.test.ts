@@ -217,7 +217,7 @@ describe('T59 — Assign-sync: backend API calls (V34)', () => {
     editBtn.click()
     await flush()
 
-    expect(fetchMock).toHaveBeenLastCalledWith('/api/admin/codes/tiimi1', { method: 'DELETE' })
+    expect(fetchMock).toHaveBeenCalledWith('/api/admin/codes/tiimi1', { method: 'DELETE' })
     const seg = Array.from(store.values())[0]
     expect(seg.assignedCode).toBeUndefined()
   })

@@ -142,11 +142,11 @@ describe('T50 — SnapshotPanel', () => {
       expect(container.querySelector('#snapshot-list')?.hasAttribute('hidden')).toBe(true)
     })
 
-    it('backup button hidden by default', async () => {
+    it('backup button always visible (collapsed or not)', async () => {
       mockFetch({ 'GET /api/admin/snapshots': [] })
       new SnapshotPanel(container, 'järjestäjä')
       await vi.waitFor(() => expect(fetch).toHaveBeenCalled())
-      expect(container.querySelector<HTMLElement>('#btn-snapshot-create')?.hidden).toBe(true)
+      expect(container.querySelector<HTMLElement>('#btn-snapshot-create')?.hidden).toBe(false)
     })
 
     it('title shows count when collapsed', async () => {

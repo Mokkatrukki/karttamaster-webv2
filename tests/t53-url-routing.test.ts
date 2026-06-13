@@ -25,11 +25,11 @@ function mockFetchCodeLogin(role = 'talkoolainen', displayName = 'Talkoolainen 1
 
 describe('T53 — extractSegmentCode (URL-parsinta, V27)', () => {
   it('poimii koodin /s/<koodi>-polusta', () => {
-    expect(extractSegmentCode('/s/matti123')).toBe('matti123')
+    expect(extractSegmentCode('/s/matti123')).toBe('MATTI123')
   })
 
   it('poimii koodin jossa on viiva ja alaviiva', () => {
-    expect(extractSegmentCode('/s/matti-123_abc')).toBe('matti-123_abc')
+    expect(extractSegmentCode('/s/matti-123_abc')).toBe('MATTI-123_ABC')
   })
 
   it('palauttaa null juuripolusta', () => {
@@ -77,7 +77,7 @@ describe('T53 — AuthScreen URL-reititys', () => {
     await new Promise(r => setTimeout(r, 20))
 
     const codeInput = document.querySelector('#auth-code') as HTMLInputElement
-    expect(codeInput.value).toBe('matti123')
+    expect(codeInput.value).toBe('MATTI123')
   })
 
   it('401 + /s/<koodi> → kutsuu code-login automaattisesti', async () => {
@@ -92,7 +92,7 @@ describe('T53 — AuthScreen URL-reititys', () => {
     expect(onAuthenticated).toHaveBeenCalledWith({
       role: 'talkoolainen',
       displayName: 'Talkoolainen 1',
-      code: 'matti123',
+      code: 'MATTI123',
     })
   })
 
@@ -107,7 +107,7 @@ describe('T53 — AuthScreen URL-reititys', () => {
     expect(onAuthenticated).toHaveBeenCalledWith({
       role: 'talkoolainen',
       displayName: 'Pekka',
-      code: 'pekkanen',
+      code: 'PEKKANEN',
     })
   })
 

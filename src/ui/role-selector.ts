@@ -7,8 +7,15 @@ export class RoleSelector {
   constructor(
     private readonly btn: HTMLButtonElement,
     private readonly onChange?: (role: Role) => void,
+    lockedRole?: Role,
   ) {
-    this.role = getRole()
+    this.role = lockedRole ?? getRole()
+    if (lockedRole === 'talkoolainen') {
+      btn.hidden = true
+      this.updateBtn()
+      this.onChange?.(this.role)
+      return
+    }
     this.updateBtn()
     this.onChange?.(this.role)
     btn.addEventListener('click', () => {

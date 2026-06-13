@@ -29,12 +29,24 @@ describe('T51 — AuthScreen', () => {
   })
 
   describe('start() — /api/auth/me', () => {
-    it('200 → onAuthenticated called immediately, overlay not shown', async () => {
+    it('200 → onAuthenticated called, overlay hidden after auth resolves', async () => {
       vi.stubGlobal('fetch', mockFetchMe(200, { role: 'järjestäjä', display_name: 'Admin' }))
       const screen = new AuthScreen(onAuthenticated)
       await screen.start()
       expect(onAuthenticated).toHaveBeenCalledWith({ role: 'järjestäjä', displayName: 'Admin' })
       expect(document.getElementById('auth-screen')?.classList.contains('open')).toBe(false)
+    })
+
+    it('T68/V40: overlay näkyy ennen kuin fetch resolvoituu', async () => {
+      let resolveFetch!: (v: Response) => void
+      const pendingFetch = new Promise<Response>(r => { resolveFetch = r })
+      vi.stubGlobal('fetch', vi.fn().mockReturnValueOnce(pendingFetch))
+      const screen = new AuthScreen(onAuthenticated)
+      const startPromise = screen.start()
+      // overlay must be open before fetch resolves
+      expect(document.getElementById('auth-screen')?.classList.contains('open')).toBe(true)
+      resolveFetch({ ok: false, status: 401, json: async () => ({}) } as Response)
+      await startPromise
     })
 
     it('401 → overlay shown, onAuthenticated not called yet', async () => {

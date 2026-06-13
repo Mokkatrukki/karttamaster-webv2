@@ -58,6 +58,36 @@ if (btnLayer) {
   })
 }
 
+const toolbarMenu = document.getElementById('toolbar-menu')!
+const segmentPanelContainer = document.getElementById('segment-panel-container')!
+const snapshotPanelContainer = document.getElementById('snapshot-panel-container')!
+
+// Clicks inside floating panels must not bubble to document close-handler
+segmentPanelContainer.addEventListener('click', e => e.stopPropagation())
+snapshotPanelContainer.addEventListener('click', e => e.stopPropagation())
+
+document.getElementById('btn-menu')?.addEventListener('click', e => {
+  e.stopPropagation()
+  toolbarMenu.classList.toggle('open')
+})
+document.getElementById('btn-segment-panel')?.addEventListener('click', e => {
+  e.stopPropagation()
+  segmentPanelContainer.classList.toggle('open')
+  snapshotPanelContainer.classList.remove('open')
+  toolbarMenu.classList.remove('open')
+})
+document.getElementById('btn-snapshot-panel')?.addEventListener('click', e => {
+  e.stopPropagation()
+  snapshotPanelContainer.classList.toggle('open')
+  segmentPanelContainer.classList.remove('open')
+  toolbarMenu.classList.remove('open')
+})
+document.addEventListener('click', () => {
+  toolbarMenu.classList.remove('open')
+  segmentPanelContainer.classList.remove('open')
+  snapshotPanelContainer.classList.remove('open')
+})
+
 const gpsNavigator = new GpsNavigator(map)
 const btnGps = document.getElementById('btn-gps')
 if (btnGps) {

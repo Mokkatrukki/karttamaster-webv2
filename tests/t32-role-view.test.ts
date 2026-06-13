@@ -64,4 +64,45 @@ describe('T32 — rooli-näkymävalinta', () => {
       expect(document.body.dataset.role).toBe('talkoolainen')
     })
   })
+
+  describe('T67 — V39: lockedRole tietoturva', () => {
+    it('lockedRole=talkoolainen → nappi piilotettu (hidden=true)', () => {
+      new RoleSelector(btn, undefined, 'talkoolainen')
+      expect(btn.hidden).toBe(true)
+    })
+
+    it('lockedRole=talkoolainen → rooli pysyy talkoolaisena, klikki ei muuta', () => {
+      const onChange = vi.fn()
+      const sel = new RoleSelector(btn, onChange, 'talkoolainen')
+      btn.click()
+      expect(sel.getRole()).toBe('talkoolainen')
+      expect(onChange).toHaveBeenCalledTimes(1)
+      expect(onChange).toHaveBeenCalledWith('talkoolainen')
+    })
+
+    it('lockedRole=talkoolainen → onChange fires talkoolainen init:ssä', () => {
+      const onChange = vi.fn()
+      new RoleSelector(btn, onChange, 'talkoolainen')
+      expect(onChange).toHaveBeenCalledWith('talkoolainen')
+    })
+
+    it('lockedRole=järjestäjä → nappi näkyvissä, toggle toimii', () => {
+      const onChange = vi.fn()
+      new RoleSelector(btn, onChange, 'järjestäjä')
+      expect(btn.hidden).toBe(false)
+      btn.click()
+      expect(onChange).toHaveBeenLastCalledWith('talkoolainen')
+    })
+
+    it('ilman lockedRole → nappi näkyvissä (vanha käyttäytyminen säilyy)', () => {
+      new RoleSelector(btn)
+      expect(btn.hidden).toBe(false)
+    })
+
+    it('lockedRole=talkoolainen → localStorage ei ylikirjoitu järjestäjäksi klikillä', () => {
+      new RoleSelector(btn, undefined, 'talkoolainen')
+      btn.click()
+      expect(store['karttamaster-role']).not.toBe('järjestäjä')
+    })
+  })
 })

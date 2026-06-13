@@ -73,7 +73,8 @@ export function getSegmentForCode(
   store: SegmentStore,
   code: string,
 ): Segment | undefined {
-  return Array.from(store.values()).find(s => s.assignedCode === code)
+  const upper = code.toUpperCase()
+  return Array.from(store.values()).find(s => s.assignedCode?.toUpperCase() === upper)
 }
 
 // V25: include marker if routeIds intersects AND distanceFromStart in [startDist, endDist].

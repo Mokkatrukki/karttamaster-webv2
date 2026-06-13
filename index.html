@@ -9,13 +9,19 @@
   <body>
     <div id="app">
       <div id="toolbar">
-        <h1>Karttamaster</h1>
         <button id="btn-add-sign">+ Merkki</button>
         <span class="place-mode-label" id="place-mode-label">Napauta karttaa · Esc peruuttaa</span>
-        <button id="btn-list">☰ Lista</button>
-        <button id="btn-role">Järjestäjä</button>
         <button id="btn-gps">📍 GPS</button>
-        <button id="btn-layer" style="margin-left:auto">MML Taustakartta</button>
+        <button id="btn-role">Järjestäjä</button>
+        <button id="btn-menu" aria-label="Lisää toimintoja">⋯</button>
+      </div>
+      <div id="toolbar-menu">
+        <button id="btn-list">Lista</button>
+        <div class="menu-sep"></div>
+        <button id="btn-segment-panel">Paatkajakoa</button>
+        <button id="btn-snapshot-panel">Varmuuskopiot</button>
+        <div class="menu-sep"></div>
+        <button id="btn-layer">Karttakerros</button>
       </div>
       <div id="status-panel"></div>
       <div id="snapshot-panel-container"></div>
@@ -25,12 +31,14 @@
     </div>
 
     <div id="route-bar">
-      <div id="route-selector"></div>
-      <div id="route-bar-top">
-        <span id="route-km">0.00 / 0.0 km</span>
-        <div id="route-drive-controls">
-          <button id="btn-route-prev">◀</button>
-          <button id="btn-route-next">▶</button>
+      <div id="route-bar-main">
+        <div id="route-selector"></div>
+        <div id="route-bar-top">
+          <span id="route-km">0.00 / 0.0 km</span>
+          <div id="route-drive-controls">
+            <button id="btn-route-prev">◀</button>
+            <button id="btn-route-next">▶</button>
+          </div>
         </div>
       </div>
       <div id="route-track">

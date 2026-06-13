@@ -52,12 +52,14 @@ server/       ← Hono + Bun + SQLite (tulossa)
 | RoleSelector | `src/ui/role-selector.ts` | ✓ T12 | critical-paths: "Rooli-toggle" | [ui.md](docs/components/ui.md) |
 | SegmentPanel | `src/ui/segment-panel.ts` | ○ T25 | — | [ui.md](docs/components/ui.md) |
 | SituationDashboard | `src/ui/situation-dashboard.ts` | ○ T28 | — | [ui.md](docs/components/ui.md) |
-| EquipmentList | `src/ui/equipment-list.ts` | ○ T27 | — | [ui.md](docs/components/ui.md) |
+| EquipmentList | `src/ui/segment-panel.ts` + `src/ui/segment-view.ts` | ✓ T27 | — | [ui.md](docs/components/ui.md) |
+| SegmentSync | `src/logic/segment-sync.ts` | ✓ T62 | — | [logic.md](docs/components/logic.md) |
 | AuthScreen | `src/ui/auth-screen.ts` | ○ T51 | — | [ui.md](docs/components/ui.md) |
 | MapStateBadge | `src/ui/map-state-badge.ts` | ○ T49 | — | [ui.md](docs/components/ui.md) |
 | SnapshotPanel | `src/ui/snapshot-panel.ts` | ✓ T50 | — | [ui.md](docs/components/ui.md) |
 | GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30 | critical-paths: "GPS-paikannin" | [map.md](docs/components/map.md) |
-| BackendServer | `server/index.ts` | ○ T41 | — | [backend.md](docs/components/backend.md) |
+| BackendServer | `server/index.ts` | ✓ T41 | — | [backend.md](docs/components/backend.md) |
+| SegmentsAPI | `server/routes/segments.ts` | ✓ T61 | — | [backend.md](docs/components/backend.md) |
 | AuthRoutes | `server/routes/auth.ts` | ✓ T36 | — | [backend.md](docs/components/backend.md) |
 | AdminRoutes | `server/routes/admin.ts` | ✓ T36 (users/invites/codes) | — | [backend.md](docs/components/backend.md) |
 | MarkersAPI | `server/routes/markers.ts` | ✓ T47 | — | [backend.md](docs/components/backend.md) |
