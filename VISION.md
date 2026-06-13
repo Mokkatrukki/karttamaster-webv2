@@ -7,32 +7,56 @@ Työkalu SyöteMTB 2026 -tapahtuman reittimerkintöjen suunnitteluun, toteutukse
 ## Käyttäjät
 
 ### Tapahtumajärjestäjä
-**Konteksti:** toimisto tai koti, iso näyttö, hiiri, hyvä nettiyhteys, rauhallinen tilanne.
 
-- Lataa GPX-reitit, rakentaa merkkikirjaston
-- Suunnittelee kaikki merkit kartalle, jakaa pätkät talkoolaisille
-- Näkee kokonaistilannekuvan koko ajan
-- Suunnittelunäkymässä enemmän työkaluja: merkkikirjasto, pätkäjako, tilannekuva
+**Persoona:** Kokeneempi tyyppi joka tuntee reitin. Tietää jo ennen kuin avaa sovelluksen suunnilleen minne merkit tulee — sovellus on paikka tehdä se näkyväksi ja jakaa muille. Tekee työtä omassa tahdissaan, useassa sessiossa, kotona tai toimistolla. Ei stressiä, mutta haluaa että asiat pysyvät järjestyksessä ja kaikki tietävät missä mennään.
 
-**Mitä järjestäjä tarvitsee:** tarkkuus ja hallinta. Haluaa nähdä kaikki reitit yhtä aikaa, tehdä muutoksia nopeasti, delegoida selkeästi.
+**Konteksti:** toimisto tai koti, iso näyttö (laptop/desktop), hiiri, hyvä nettiyhteys, rauhallinen tilanne. Ei kiirettä mutta paljon yksityiskohtia hallittavana.
 
-**Suunnittelunäkymä on järjestäjälle** koska sen täytyy tarjota kaikki työkalut — talkoolainen ei tarvitse niitä kaikkia ja ne voisivat sekoittaa metsässä.
+**Mitä järjestäjä tekee:**
+- Lataa GPX-reitit (gravel + MTB, osin päällekkäiset). GPX voi päivittyä — merkit säilyvät, koska ne eivät ole sidottuja GPX-pisteisiin vaan kartalla itsenäisesti.
+- Rakentaa merkkikirjaston: "Huoltopiste 25km", "Alueella pyöräkilpailu", nuolet jne.
+- Käy reittiä osissa läpi ja merkkaa kylttejä — sessioiden välinen työ säilyy.
+- Luo erikoismerkkejä: huoltoalueet (nimi + kuvaus/kuva/aukioloaika), noutopisteet, pudotuspisteet.
+- Jakaa reitin pätkiin talkoolaisille — näkyy kartalla värillisinä kaistoina.
+- Seuraa edistymistä kartalta: pätkien värit/statusit kertovat tilanteen ilman mittareita.
+- Voi itse merkata yksittäisen merkin laitetuksi.
+
+**Mitä järjestäjä tarvitsee:** selkeys ja hallinta. Kaikki reitit näkyvissä yhtä aikaa. Muutokset nopeasti. Delegointi selkeästi. Tilannekuva ilman numeropaneeleja — kartalta näkee.
+
+**Näkymä:** Täysin oma näkymä ja flow. Ei rooli-togglea. Järjestäjä ei näe talkoolaisen UI:ta eikä toisinpäin — eri URL, eri autentikaatio, eri layout.
+
+**Mitä järjestäjä EI tarvitse:** valmiusprosenttimittareita, drive mode (nice-to-have), talkoolaisen kuittaus-UI.
+
+**UX-testi järjestäjälle:** "Näenkö kartalta yhdellä silmäyksellä missä vaiheessa mikäkin pätkä on? Voinko tehdä muutoksen kolmella klikkauksella?"
 
 ### Talkoolainen
-**Konteksti:** metsässä tai autossa, Android-puhelin, hanskat kädessä mahdollisesti, huono tai ei ollenkaan nettiyhteys, kiireinen tilanne, akku hupenemassa.
 
-- Saa oman pätkän + automaattisen varustelistan
-- Navigoi GPS-avusteisesti pätkää pitkin
-- Kuittaa merkit asetetuiksi yhdellä napilla
-- Tekee huomioita, lisää merkkejä tarvittaessa
-- Purkuvaiheessa kerää merkit samaa logiikkaa käyttäen
+**Persoona:** Talkoolainen tietää mitä pitää tehdä — hän on saanut tehtävän, tuntee alueen, ja menee maastoon tekemään sen. Sovellus on väline raportoida miten pätkä meni: mitä tehtiin, mitä muutettiin, mitä huomattiin. Ei tarvitse järjestäjän kokonaiskuvaa — oma pätkä riittää.
 
-**Mitä talkoolainen tarvitsee:** yksinkertaisuus ja nopeus. Yksi iso nappi kuittaukseen. Ei turhia valikkoja. Toimii vaikka netti ei toimi. Virhetilanteessa ei hätäänny — voi aina jälkikäteen korjata.
+**Konteksti:** metsässä tai autossa. Android-puhelin. Hanskat kädessä mahdollisesti. Huono tai ei ollenkaan nettiyhteys. Akku hupenemassa. Muut talkoolaiset odottavat tai ovat omilla pätkillään — koordinointi WhatsAppissa.
 
-**Talkoolaiselle kaikki kriittiset toiminnot** ovat max 2 napin päässä. Jos vaatii enemmän, se on arkkitehtuurivirhe.
+**Mitä talkoolainen tekee:**
+- Vastaanottaa pätkän hash-URL:n (WhatsApp tai QR-koodi) — avaa suoraan omaan näkymään
+- Tarkistaa tehtävälistan ja varustelistan, päivittää tarvittaessa ennen lähtöä
+- Navigoi merkiltä merkille, kuittaa tehdyksi
+- Bulk-kuittaa useita merkkejä kerralla kun on selvää mitä tehtiin
+- Siirtää tai poistaa merkin jos maasto vaatii
+- Lisää merkin jota ei suunniteltu, tai huomion/kommentin (ikoni + teksti)
+- Muokkaa pätkän pituutta kentällä — voi laajentaa tai lyhentää
+- Kirjaa materiaalit: "otin 10 keppiä mukaan", merkkaa kasan kartalle
+- Merkkaa pätkä valmiiksi
 
-### Koordinaattori / tarkastaja (rooli, ei erillinen käyttäjätunnus)
-Sama kuin talkoolainen mutta ajaa autolla tai pyöräilee tehden tarkastuksen. Käyttää samoja työkaluja mutta eri tilassa. Voi muokata merkkejä metsässä.
+**Mitä talkoolainen tarvitsee:** nopea raportointi omasta pätkästä. Kriittiset toiminnot max 2 napin päässä. Toimii huonolla netillä. Voi korjata jälkikäteen — virhe ei ole katastrofi.
+
+**Mitä talkoolainen EI tarvitse:** järjestäjän kokonaiskuvaa, merkkikirjaston hallintaa, muiden pätkien tietoja, rooli-valikointia.
+
+**Näkymä:** Täysin oma näkymä ja flow. Avautuu suoraan omaan pätkään hash-URL:sta. Ei järjestäjän UI:ta näkyvissä.
+
+**UX-testi talkoolaiselle:** "Saako oman pätkän tilanteen raportoitua nopeasti ja tarkasti? Toimiiko metsässä puhelimella huonolla netillä?"
+
+### Koordinaattori / tarkastaja
+
+Sama flow kuin talkoolaisella — eri pätkä, tarkastusvaihe. Ajaa autolla tai pyöräilee, merkitsee että on tarkastanut, voi lisätä huomioita tai kylttejä. Ei erillinen rooli tai tunnus — talkoolainen eri tehtävässä.
 
 Sama henkilö voi tehdä useita pätkiä eri vaiheissa. Kaikki näkevät kaikkien statuksen — avoimuus on tarkoituksellista.
 
@@ -124,8 +148,116 @@ Jos feature on teknisesti oikein mutta ei läpäise käyttäjätestiä, se on ke
 - Live tracking v1: oma GPS-sijainti näkyvissä itselle, ei muille
 - Ei PDF-tulostusta
 
+## Järjestäjän käyttäjätarinat
+
+### GPX & karttapohja
+
+- Lataan GPX-tiedostot (gravel + MTB, osin päällekkäiset reitit).
+- GPX voi päivittyä milloin tahansa — merkit säilyvät, koska ne eivät ole sidottuja GPX-pisteisiin. Merkit ovat kartalla itsenäisesti.
+- Nykyinen kartan siirto/zoom toimii hyvin, säilytetään.
+
+### Merkkien suunnittelu
+
+- Käyn reittiä läpi osissa, merkkaan kylttejä järjestyksessä alusta eteenpäin.
+- Voin keskeyttää ja jatkaa myöhemmin — työ säilyy sessioiden välillä.
+- Merkkikirjasto on laajennettavissa: "Huoltopiste 25km", "Alueella pyöräkilpailu", nuolet jne. — helposti lisättäviä uusia tyyppejä.
+- Näkymällä tarvitsen vain kartan + merkit. Ei mittareita, ei paneeleja täyttämään ruutua.
+- Drive mode on nice-to-have järjestäjälle, ei kriittinen.
+- Voin itse merkata yksittäisen merkin laitetuksi (ei vain talkoolaisen toiminto).
+
+### Erikoismerkit / POI
+
+- **Huoltoalue** = "laatikko" tai custom karttamerkki (ei pelkkä pin). Sisältää: nimi + vapaamuotoinen teksti + kuva(t) + aukioloaika. Rich content, ei pelkkä teksti.
+- **Noutopiste / pudotuspiste** = custom karttamerkki joka kertoo mistä tullaan hakemaan / mihin pudotetaan tarvikkeet. Näkyy kartalla omana symbolinaan.
+- Tulevaisuudessa: huoltoalue jaettavissa huoltohenkilöille omana näkymänä.
+
+### Pätkäjako kartalla
+
+- Jokainen pätkä omalla värillä kartalla — kokonaiskuva silmäiltävissä yhdellä vilkaisulla.
+- Pätkän status luettavissa kartalta suoraan (väri/visuaalinen) — ei tarvitse avata listaa.
+- Pätkä klikattavissa kartalta → avautuu modaalina kartan päälle. Modaalissa: kuka tekee, mitä tehty, talkoolaisen merkinnät.
+- Talkoolaisen merkinnät näkyvät järjestäjälle reaaliajassa: "ei tarvittu merkki X", "lisätty merkit → ja →". Myös nämä lisätyt merkit näkyvät kartalla.
+- Uudelle talkoolaiselle: näytetään mitä pätkällä pitää tehdä + noutopiste + pudotuspiste.
+
+### Näkymäfilosofia — ero nykytilaan
+
+- **Järjestäjä ja talkoolainen ovat täysin erilliset näkymät ja flow.** Eri URL, eri autentikaatio, eri layout. Ei rooli-togglea. Järjestäjä ei näe talkoolaisen UI:ta lainkaan.
+- Tilannekuva luetaan kartalta pätkien värien ja statusten kautta — ei numeromittareita.
+- Reaaliaikainen sync: talkoolaisen muutokset näkyvät järjestäjälle kartalla heti.
+
+### Vaiheistus (event lifecycle)
+
+```
+1. Suunnittelu    → GPX sisään, merkit kartalle, merkkikirjasto rakennetaan
+2. Pätkäjako      → alueet jaetaan talkoolaisille värillisinä kaistoina kartalla
+3. Tarkastus      → järjestäjä merkkaa kartan "merkatuksi"
+                    → tarkastuskierros: sama talkoolainen-flow, tarkastaja = talkoolainen eri pätkällä
+                    → merkitään tarkastetuksi pätkä kerrallaan
+4. Purku          → uudet pätkät purkamista varten (eri jako kuin asettaminen)
+```
+
+---
+
+## Talkoolaisen käyttäjätarinat
+
+### Pätkän vastaanotto
+
+- Kuuntelee tehtävänjakoa (WhatsApp / suullinen), ilmoittaa "otan tämän".
+- Avaa pätkänäkymän linkistä → näkee tehtävälistan + varustelistan.
+- Voi päivittää varustelistan ennen lähtöä: "otetaan 3 lisäkylttiä, 1 vasara, 5 rullaa nauhaa, 50 keppiä".
+
+### Kenttätyö — navigointi ja kuittaus
+
+- Näkee kartalla missä eka merkki on — navigoi sinne.
+- Klikkaa merkkiä → näkee järjestäjän ohjeet jos merkille on kirjoitettu.
+- "Seuraava merkki" -toiminto: hyppy ilman drive modea.
+- **Bulk-kuittaus:** voi merkitä monta merkkiä tehdyksi kerralla — ei halua olla koko ajan puhelimella, tietää mitä piti tehdä.
+- Voi kliksutella listasta kaikki tässä alueen merkit tehdyiksi.
+- Jos GPS päällä: merkki asettuu siihen missä seisoo, sijainti säädettävissä jälkikäteen.
+
+### Muutokset kentällä
+
+- **Merkin siirto:** paikka oli parempi toisaalla — siirtää kartalla tai GPS-paikalla.
+- **Merkin poisto:** ei tarvittu — merkitään "ei tarpeen" + syy.
+- **Uusi merkki:** tässä olisi hyvä olla merkki jota ei ollut suunnitelmassa.
+- **Kommentti/huomio (yleinen systeemi):** kuka tahansa voi lisätä kommentin mihin tahansa karttakohteeseen (merkki, pätkä, vapaa piste). Kommentilla voi olla ikoni (valinnaisesti). Nimi valinnainen mutta suositeltava. Geneerinen — ei erillisiä kenttiä eri tilanteille. "Puu kaatuu tänne", "blokattiin polku", "hyvä parkkipaikka tässä" — kaikki samaan systeemiin.
+- **Este/blokki:** toteutetaan kommentti+ikoni-yhdistelmänä, ei erillinen merkki. Karttamerkki-järjestelmä suunnitellaan erikseen.
+
+### Pätkän päättäminen
+
+- Merkkaa pätkä tehdyksi + mahdolliset kommentit.
+- **Pätkän muokkaus kentällä:** nappi "muokkaa pätkän pituutta" — talkoolainen voi siirtää päätepistettä kartalla, myös pidemmälle kuin järjestäjä alun perin asetti. Järjestäjä voi yliajaa jälkikäteen. Käyttää samoja yleiskäyttöisiä komponentteja kuin järjestäjän pätkämuokkaus.
+- "Käyn purkamassa tämän alueen" — impromptu-jako, avoin kysymys toteutuksesta.
+
+### Tarkastusvaihe (talkoolainen tarkastajana)
+
+- Sama flow kuin asettamisessa — eri pätkä, tarkastus-rooli.
+- Merkitsee että on tarkastanut pätkän.
+- Voi lisätä kylttejä, merkitä huomioita yksittäisille merkeille.
+
+### Purku
+
+- Ottaa merkin pois maastosta → merkitsee otetuksi yhdellä klikillä.
+- Näkymä näyttää laskurin: "tällä pätkällä 30 merkkiä, otettu 12".
+- Merkkaa pätkä puretuksi kun valmis.
+- **Materiaalit:** "täällä oli 10 keppiä jotka otin mukaan" — helppo kirjata paljonko materiaalia otettu mukaan.
+- **Kasa:** merkitsee kasapaikan kartalle (kepit/nastat/nauhat). Toinen talkoolainen tai järjestäjä merkitsee "keräsin kasan pois".
+
+### Tietoturva ja URL-jako
+
+- Kaikki talkoolaisten URL:t ovat **hash-pohjaisia** — ei arvattavissa, ei sekvenssimäisiä.
+- Jako: WhatsApp-viesti tai QR-koodi (esim. tulostettu tai näytöllä järjestäjän laitteessa).
+- Talkoolaiset toimivat yhteisymmärryksessä keskenään — voivat koordinoida ilman järjestäjää.
+- **Järjestäjä voi yliajaa kaiken** — pätkärajat, statusit, kommentit, assignoinnit.
+
+---
+
 ## Avoimet (selvitetään ennen toteutusta)
 
-1. **Ikonilähde**: mist�� merkkikirjaston ikonit — Lucide, Heroicons, oma SVG-lataus?
-2. **Auth-flow**: kutsukoodi ��� oma tunnus tekninen toteutus, admin-generointi
-3. **GPX-päivitys**: mitä tapahtuu olemassa oleville merkeille kun GPX korvataan?
+1. **Ikonilähde**: Lucide — selvitetty (T9 ✓)
+2. **Auth-flow**: hash-URL talkoolaiselle (V27 ✓), invite-flow järjestäjälle (T36 ✓)
+3. **GPX-päivitys**: mitä tapahtuu olemassa oleville merkeille kun GPX korvataan? (T34, auki)
+4. **Impromptu-pätkäjako:** "käyn purkamassa tämän alueen" — miten talkoolainen ottaa alueen ilman järjestäjää? Hash-URL generointi talkoolaiselle itse?
+5. **Kasa-kuittaus:** kuka voi merkata kasan otetuksi — vain assignattu, vai kaikki autentikoidut?
+6. **Kommentti-systeemi:** yleiskäyttöinen (merkki + pätkä + vapaa piste), ikoni valinnaisesti, nimi valinnaisesti. Suunnitellaan ennen toteutusta — vaikuttaa tietomalliin laajasti.
+7. **Karttamerkki-järjestelmä (POI/este/kasa):** custom karttamerkkien tyypit ja tietomalli suunnittelematta. Eri asia kuin reittimerkki (SignMarker).
