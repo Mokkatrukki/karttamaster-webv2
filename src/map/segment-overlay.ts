@@ -12,11 +12,16 @@ const GAP_COLOR = '#94a3b8'
 export class SegmentOverlay {
   private layers: L.Layer[] = []
   private editMarkers: L.Marker[] = []
+  private onSegmentClick?: (seg: Segment) => void
 
   constructor(
     private readonly map: L.Map,
     private readonly routes: RouteRef[],
   ) {}
+
+  setOnSegmentClick(cb: (seg: Segment) => void): void {
+    this.onSegmentClick = cb
+  }
 
   update(store: SegmentStore): void {
     this.clear()
@@ -44,6 +49,13 @@ export class SegmentOverlay {
         const line = L.polyline(pts, { color, weight: 8, opacity: 0.7 })
         if (seg.displayName) {
           line.bindTooltip(seg.displayName, { permanent: true, className: 'segment-label', direction: 'center' })
+        }
+        if (this.onSegmentClick) {
+          const clickedSeg = seg
+          line.on('click', (e: L.LeafletMouseEvent) => {
+            L.DomEvent.stopPropagation(e)
+            this.onSegmentClick!(clickedSeg)
+          })
         }
         line.addTo(this.map)
         this.layers.push(line)

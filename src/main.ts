@@ -160,6 +160,10 @@ async function init(talkoolainenCode?: string) {
     },
   )
 
+  if (!talkoolainenCode) {
+    segmentOverlay.setOnSegmentClick(seg => segmentPanel.openDetailsModal(seg))
+  }
+
   let segmentView: SegmentView | null = null
 
   const markerManager = new MarkerManager(map, routes, () => {

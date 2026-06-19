@@ -183,6 +183,89 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(editBtn).toHaveText('Muokkaa pisteitä')
   })
 
+  test('T77 — klikkaus pätkän polylineen avaa SegmentDetailsModal', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    // Luo pätkä
+    await page.click('#btn-segment-create')
+    await page.waitForTimeout(200)
+
+    const routePath = page.locator('.leaflet-overlay-pane path').first()
+    const routeBox = await routePath.boundingBox()
+    const mapBox = await page.locator('#map').boundingBox()
+    expect(routeBox).not.toBeNull()
+    expect(mapBox).not.toBeNull()
+
+    const midY = Math.round(routeBox!.y + routeBox!.height * 0.5 - mapBox!.y)
+
+    await page.click('#map', { position: {
+      x: Math.round(routeBox!.x + routeBox!.width * 0.20 - mapBox!.x),
+      y: midY,
+    }})
+    await page.waitForTimeout(300)
+    await page.click('#map', { position: {
+      x: Math.round(routeBox!.x + routeBox!.width * 0.60 - mapBox!.x),
+      y: midY,
+    }})
+    await page.waitForTimeout(500)
+
+    // Pätkä luotu — dispatch click suoraan segment-overlay-pathin kautta
+    // (polyline on SVG-path, coordinate-based click ei osu luotettavasti 8px stroukeen)
+    await page.evaluate(() => {
+      const paths = document.querySelectorAll<SVGPathElement>('.leaflet-overlay-pane path')
+      // Segment overlay lisää omat pathit viimeisenä — colored stripe on viimeisin
+      const last = paths[paths.length - 1]
+      if (last) last.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+    await page.waitForTimeout(400)
+
+    await expect(page.locator('.segment-details-modal-backdrop')).toBeVisible()
+    await expect(page.locator('.segment-details-modal')).toBeVisible()
+  })
+
+  test('T77 — Esc sulkee SegmentDetailsModal', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await page.click('#btn-segment-create')
+    await page.waitForTimeout(200)
+
+    const routePath = page.locator('.leaflet-overlay-pane path').first()
+    const routeBox = await routePath.boundingBox()
+    const mapBox = await page.locator('#map').boundingBox()
+    const midY = Math.round(routeBox!.y + routeBox!.height * 0.5 - mapBox!.y)
+
+    await page.click('#map', { position: {
+      x: Math.round(routeBox!.x + routeBox!.width * 0.20 - mapBox!.x),
+      y: midY,
+    }})
+    await page.waitForTimeout(300)
+    await page.click('#map', { position: {
+      x: Math.round(routeBox!.x + routeBox!.width * 0.60 - mapBox!.x),
+      y: midY,
+    }})
+    await page.waitForTimeout(500)
+
+    await page.evaluate(() => {
+      const paths = document.querySelectorAll<SVGPathElement>('.leaflet-overlay-pane path')
+      const last = paths[paths.length - 1]
+      if (last) last.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+    await page.waitForTimeout(400)
+
+    await expect(page.locator('.segment-details-modal-backdrop')).toBeVisible()
+
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(300)
+
+    await expect(page.locator('.segment-details-modal-backdrop')).not.toBeVisible()
+  })
+
   test('pätkän voi poistaa listasta', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
