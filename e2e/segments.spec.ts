@@ -3,7 +3,7 @@
  * Validates: 2-click creation flow, segment list, delete
  */
 import { test, expect } from 'playwright/test'
-import { mockAuthAsJarjestaja } from './helpers/auth'
+import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen } from './helpers/auth'
 
 test.describe('T25 — SegmentPanel', () => {
   test('segment-panel on DOM ja näkyy järjestäjälle', async ({ page }) => {
@@ -12,29 +12,28 @@ test.describe('T25 — SegmentPanel', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    // Järjestäjä on default rooli
-    await expect(page.locator('#btn-role')).toHaveText('Järjestäjä')
-
-    // Panel on olemassa
+    // Panel on olemassa — collapsed by default (T73)
     const panel = page.locator('#segment-panel')
     await expect(panel).toBeAttached()
     await expect(panel).toBeVisible()
+
+    // Avaa panel klikkaamalla header
+    await page.locator('.segment-panel-header').click()
+    await page.waitForTimeout(200)
 
     // Tyhjä tila näyttää ohjeen
     const emptyEl = panel.locator('.segment-empty')
     await expect(emptyEl).toBeVisible()
   })
 
-  test('talkoolaiselta panel piilotettu', async ({ page }) => {
-    await mockAuthAsJarjestaja(page)
+  test('talkoolaiselta segment-panel piilotettu (V13)', async ({ page }) => {
+    // V13: talkoolainen ei näe järjestäjän UI:ta — autentikoi suoraan talkoolaisena
+    await mockAuthAsTalkoolainen(page)
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    // Vaihda talkoolaiseksi
-    await page.click('#btn-role')
-    await expect(page.locator('#btn-role')).toHaveText('Talkoolainen')
-
+    // Talkoolaisella ei segment-panel näkyvissä (data-role="talkoolainen")
     const panel = page.locator('#segment-panel')
     await expect(panel).not.toBeVisible()
   })
