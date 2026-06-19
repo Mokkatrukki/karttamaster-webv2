@@ -252,6 +252,35 @@ describe('T22 SignLibraryPanel — V10', () => {
     })
   })
 
+  describe('XSS-suojaus (B19/V44)', () => {
+    it('label jossa HTML-tagi ei luo DOM-elementtiä', () => {
+      const container = setup()
+      const lib = createSignLibrary()
+      createTemplate(lib, { label: '<img src=x id="xss-label">', shortLabel: 'X', color: '#000', description: '', favorite: false })
+      new SignLibraryPanel(container, lib, vi.fn())
+      expect(document.getElementById('xss-label')).toBeNull()
+    })
+
+    it('shortLabel jossa HTML-tagi ei luo DOM-elementtiä', () => {
+      const container = setup()
+      const lib = createSignLibrary()
+      createTemplate(lib, { label: 'Ok', shortLabel: '<img src=x id="xss-short">', color: '#000', description: '', favorite: false })
+      new SignLibraryPanel(container, lib, vi.fn())
+      expect(document.getElementById('xss-short')).toBeNull()
+    })
+
+    it('description jossa HTML-tagi ei luo DOM-elementtiä lomakkeessa', () => {
+      const container = setup()
+      const lib = createSignLibrary()
+      createTemplate(lib, { label: 'Ok', shortLabel: 'O', color: '#000', description: '<img src=x id="xss-desc">', favorite: false })
+      new SignLibraryPanel(container, lib, vi.fn())
+      // avaa muokkauslomake nähdäkseen description
+      const editBtn = container.querySelector<HTMLButtonElement>('.sign-lib-edit-btn:last-of-type')!
+      editBtn.click()
+      expect(document.getElementById('xss-desc')).toBeNull()
+    })
+  })
+
   describe('poista custom-malli', () => {
     function addCustom(container: HTMLElement, lib: ReturnType<typeof createSignLibrary>, onChange = vi.fn()) {
       new SignLibraryPanel(container, lib, onChange)
