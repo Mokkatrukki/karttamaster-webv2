@@ -70,6 +70,29 @@ describe('T23: createSignIcon status-visualisointi', () => {
       expect(icon.html).toContain('opacity:0.45')
     })
   })
+
+  describe('T84: custom type — fallback color/shortLabel', () => {
+    it('tuntematon type käyttää fallback-väriä #94a3b8', () => {
+      const html = getHtml('custom-uuid-123', 'suunniteltu')
+      expect(html).toContain('#94a3b8')
+    })
+
+    it('tuntematon type käyttää shortLabel "?"', () => {
+      const html = getHtml('custom-uuid-123', 'suunniteltu')
+      expect(html).toContain('?')
+    })
+
+    it('custom type: color override toimii', () => {
+      const icon = createSignIcon('my-type', 0, 'suunniteltu', '#ff0000', 'X') as unknown as { html: string }
+      expect(icon.html).toContain('#ff0000')
+      expect(icon.html).toContain('X')
+    })
+
+    it('custom type: ei upcoming-dashia', () => {
+      const html = getHtml('custom-type', 'suunniteltu')
+      expect(html).not.toContain('stroke-dasharray')
+    })
+  })
 })
 
 describe('T70: teardrop-ikoni', () => {
