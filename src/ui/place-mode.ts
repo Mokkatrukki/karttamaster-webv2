@@ -3,6 +3,10 @@ import { listFavorites, type SignLibrary } from '../logic/sign-library'
 import type { MarkerType } from '../logic/types'
 import type { MarkerManager } from '../map/markers'
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
 export class PlaceMode {
   private pendingDblClick: { lat: number; lon: number } | null = null
   private readonly floatingPicker: HTMLElement
@@ -20,9 +24,9 @@ export class PlaceMode {
   openPicker(lat: number, lon: number, clientX: number, clientY: number): void {
     this.pendingDblClick = { lat, lon }
     this.floatingPicker.innerHTML = listFavorites(this.library).map(t => `
-      <button class="sign-type-btn" data-type="${t.id}" data-color="${t.color}" data-short="${t.shortLabel}">
-        <span class="sign-swatch" style="background:${t.color}">${t.shortLabel}</span>
-        ${t.label}
+      <button class="sign-type-btn" data-type="${escapeHtml(t.id)}" data-color="${escapeHtml(t.color)}" data-short="${escapeHtml(t.shortLabel)}">
+        <span class="sign-swatch" style="background:${escapeHtml(t.color)}">${escapeHtml(t.shortLabel)}</span>
+        ${escapeHtml(t.label)}
       </button>`).join('')
     this.floatingPicker.classList.add('open')
     requestAnimationFrame(() => {
