@@ -60,26 +60,16 @@ if (btnLayer) {
 }
 
 const toolbarMenu = document.getElementById('toolbar-menu')!
-const snapshotPanelContainer = document.getElementById('snapshot-panel-container')!
 
 const leftPanelEl = document.getElementById('left-panel')
 const leftPanel = leftPanelEl ? new LeftPanel(leftPanelEl) : null
-
-// Clicks inside floating panels must not bubble to document close-handler
-snapshotPanelContainer.addEventListener('click', e => e.stopPropagation())
 
 document.getElementById('btn-menu')?.addEventListener('click', e => {
   e.stopPropagation()
   toolbarMenu.classList.toggle('open')
 })
-document.getElementById('btn-snapshot-panel')?.addEventListener('click', e => {
-  e.stopPropagation()
-  snapshotPanelContainer.classList.toggle('open')
-  toolbarMenu.classList.remove('open')
-})
 document.addEventListener('click', () => {
   toolbarMenu.classList.remove('open')
-  snapshotPanelContainer.classList.remove('open')
 })
 
 const gpsNavigator = new GpsNavigator(map)
@@ -320,7 +310,12 @@ const authScreen = new AuthScreen(({ role, code }) => {
     applyRoleView,
     role,
   )
-  new SnapshotPanel(document.getElementById('snapshot-panel-container')!, role)
+  const snapshotPanel = new SnapshotPanel(role)
+  document.getElementById('btn-snapshot-panel')?.addEventListener('click', (e) => {
+    e.stopPropagation()
+    snapshotPanel.open()
+    toolbarMenu.classList.remove('open')
+  })
   init(code).catch(console.error)
 })
 authScreen.start().catch(console.error)

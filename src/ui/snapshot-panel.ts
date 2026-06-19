@@ -7,23 +7,25 @@ export interface SnapshotEntry {
 }
 
 export class SnapshotPanel {
-  private readonly panel: HTMLElement
-  private readonly titleEl: HTMLElement
-  private readonly toggleBtn: HTMLButtonElement
-  private listEl: HTMLElement | null = null
-  private collapsed = true
+  private readonly backdrop: HTMLElement
+  private readonly listEl: HTMLElement
+  private readonly countEl: HTMLElement
   private snapshotCount = 0
 
-  constructor(
-    container: HTMLElement,
-    private readonly role: string,
-  ) {
-    const built = this.build()
-    this.panel = built.panel
-    this.titleEl = built.titleEl
-    this.toggleBtn = built.toggleBtn
-    container.appendChild(this.panel)
-    this.applyCollapsed()
+  constructor(private readonly role: string) {
+    const { backdrop, listEl, countEl } = this.build()
+    this.backdrop = backdrop
+    this.listEl = listEl
+    this.countEl = countEl
+    document.body.appendChild(backdrop)
+
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) this.close()
+    })
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.isOpen()) this.close()
+    })
+
     if (this.isAllowed()) {
       this.refresh().catch(console.error)
     }
@@ -33,85 +35,83 @@ export class SnapshotPanel {
     return this.role === 'järjestäjä' || this.role === 'admin'
   }
 
-  private build(): { panel: HTMLElement; titleEl: HTMLElement; toggleBtn: HTMLButtonElement } {
-    const el = document.createElement('div')
-    el.id = 'snapshot-panel'
-
-    const header = document.createElement('div')
-    header.className = 'snapshot-header'
-    header.style.cursor = 'pointer'
-    header.addEventListener('click', (e) => {
-      // Don't toggle when clicking backup button
-      if ((e.target as HTMLElement).closest('#btn-snapshot-create')) return
-      this.collapsed = !this.collapsed
-      this.applyCollapsed()
-    })
-
-    const titleEl = document.createElement('h3')
-    titleEl.textContent = 'Varmuuskopiot'
-    header.appendChild(titleEl)
-
-    const toggleBtn = document.createElement('button')
-    toggleBtn.className = 'btn-snapshot-toggle'
-    toggleBtn.setAttribute('aria-label', 'Näytä tai piilota varmuuskopiot')
-    toggleBtn.textContent = '▶'
-    toggleBtn.style.background = 'transparent'
-    toggleBtn.style.border = 'none'
-    toggleBtn.style.color = 'var(--text-muted)'
-    toggleBtn.style.fontSize = '10px'
-    toggleBtn.style.padding = '0 8px'
-    toggleBtn.style.minHeight = '44px'
-    toggleBtn.style.minWidth = '44px'
-    toggleBtn.style.cursor = 'pointer'
-    header.appendChild(toggleBtn)
-
-    const backupBtn = document.createElement('button')
-    backupBtn.id = 'btn-snapshot-create'
-    backupBtn.textContent = 'Luo varmuuskopio'
-    backupBtn.className = 'btn-snapshot-create'
-    backupBtn.addEventListener('click', (e) => {
-      e.stopPropagation()
-      this.handleCreate().catch(console.error)
-    })
-    header.appendChild(backupBtn)
-
-    el.appendChild(header)
-
-    this.listEl = document.createElement('ul')
-    this.listEl.id = 'snapshot-list'
-    this.listEl.className = 'snapshot-list'
-    el.appendChild(this.listEl)
-
-    return { panel: el, titleEl, toggleBtn }
+  private isOpen(): boolean {
+    return this.backdrop.classList.contains('open')
   }
 
-  private applyCollapsed(): void {
-    const count = this.snapshotCount
-    this.titleEl.textContent = this.collapsed
-      ? `Varmuuskopiot (${count})`
-      : 'Varmuuskopiot'
-    this.toggleBtn.textContent = this.collapsed ? '▶' : '▼'
-    this.toggleBtn.hidden = count === 0
-    if (this.listEl) this.listEl.hidden = this.collapsed || count === 0
-    // backupBtn always visible — järjestäjä needs to create first backup
+  open(): void {
+    if (!this.isAllowed()) return
+    this.backdrop.classList.add('open')
+    this.refresh().catch(console.error)
+  }
+
+  close(): void {
+    this.backdrop.classList.remove('open')
+  }
+
+  private build(): { backdrop: HTMLElement; listEl: HTMLElement; countEl: HTMLElement } {
+    const backdrop = document.createElement('div')
+    backdrop.id = 'snapshot-modal-backdrop'
+    backdrop.className = 'snapshot-modal-backdrop'
+
+    const modal = document.createElement('div')
+    modal.id = 'snapshot-modal'
+    modal.className = 'snapshot-modal'
+    modal.addEventListener('click', (e) => e.stopPropagation())
+
+    const header = document.createElement('div')
+    header.className = 'snapshot-modal-header'
+
+    const titleWrap = document.createElement('h3')
+    titleWrap.className = 'snapshot-modal-title'
+    titleWrap.textContent = 'Varmuuskopiot ('
+    const countEl = document.createElement('span')
+    countEl.textContent = '0'
+    titleWrap.appendChild(countEl)
+    titleWrap.appendChild(document.createTextNode(')'))
+    header.appendChild(titleWrap)
+
+    const closeBtn = document.createElement('button')
+    closeBtn.className = 'btn-snapshot-modal-close'
+    closeBtn.setAttribute('aria-label', 'Sulje')
+    closeBtn.textContent = '✕'
+    closeBtn.addEventListener('click', () => this.close())
+    header.appendChild(closeBtn)
+
+    modal.appendChild(header)
+
+    const createBtn = document.createElement('button')
+    createBtn.id = 'btn-snapshot-create'
+    createBtn.textContent = 'Luo varmuuskopio'
+    createBtn.className = 'btn-snapshot-create'
+    createBtn.addEventListener('click', () => { this.handleCreate().catch(console.error) })
+    modal.appendChild(createBtn)
+
+    const listEl = document.createElement('ul')
+    listEl.id = 'snapshot-list'
+    listEl.className = 'snapshot-list'
+    modal.appendChild(listEl)
+
+    backdrop.appendChild(modal)
+
+    return { backdrop, listEl, countEl }
   }
 
   async refresh(): Promise<void> {
-    if (!this.listEl || !this.isAllowed()) return
+    if (!this.isAllowed()) return
     try {
       const res = await fetch('/api/admin/snapshots')
       if (!res.ok) return
       const snapshots = await res.json() as SnapshotEntry[]
       this.snapshotCount = snapshots.length
+      this.countEl.textContent = String(this.snapshotCount)
       this.render(snapshots)
-      this.applyCollapsed()
     } catch {
       // network error — leave list as-is
     }
   }
 
   private render(snapshots: SnapshotEntry[]): void {
-    if (!this.listEl) return
     this.listEl.innerHTML = ''
     if (snapshots.length === 0) {
       const empty = document.createElement('li')

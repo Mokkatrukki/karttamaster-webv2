@@ -24,51 +24,101 @@ function mockFetch(responses: Record<string, unknown>) {
       const method = (opts?.method ?? 'GET').toUpperCase()
       const key = `${method} ${url}`
       const data = responses[key] ?? responses[url] ?? []
-      return {
-        ok: true,
-        status: 200,
-        json: async () => data,
-      }
+      return { ok: true, status: 200, json: async () => data }
     }),
   )
 }
 
-function setupContainer() {
-  const el = document.createElement('div')
-  document.body.appendChild(el)
-  return el
-}
+afterEach(() => {
+  document.body.innerHTML = ''
+  vi.restoreAllMocks()
+})
 
-describe('T50 — SnapshotPanel', () => {
-  let container: HTMLElement
+describe('T82 — SnapshotPanel modal pattern', () => {
+  describe('DOM mounting', () => {
+    it('mounts backdrop at document.body, not inline', () => {
+      new SnapshotPanel('järjestäjä')
+      expect(document.getElementById('snapshot-modal-backdrop')).not.toBeNull()
+      expect(document.getElementById('snapshot-panel-container')).toBeNull()
+    })
 
-  beforeEach(() => {
-    container = setupContainer()
+    it('modal hidden initially', () => {
+      new SnapshotPanel('järjestäjä')
+      const backdrop = document.getElementById('snapshot-modal-backdrop')!
+      expect(backdrop.classList.contains('open')).toBe(false)
+    })
   })
 
-  afterEach(() => {
-    document.body.innerHTML = ''
-    vi.restoreAllMocks()
-  })
+  describe('open/close', () => {
+    it('open() shows modal for järjestäjä', () => {
+      const panel = new SnapshotPanel('järjestäjä')
+      panel.open()
+      expect(document.getElementById('snapshot-modal-backdrop')!.classList.contains('open')).toBe(true)
+    })
 
-  describe('role gate', () => {
-    // CSS [data-role] handles visual visibility — test fetch gating behavior
+    it('open() does nothing for talkoolainen', () => {
+      const panel = new SnapshotPanel('talkoolainen')
+      panel.open()
+      expect(document.getElementById('snapshot-modal-backdrop')!.classList.contains('open')).toBe(false)
+    })
 
-    it('talkoolainen — ei fetch (CSS piilottaa paneelin)', () => {
+    it('open() does nothing for admin', async () => {
+      // admin is allowed
       mockFetch({ 'GET /api/admin/snapshots': [] })
-      new SnapshotPanel(container, 'talkoolainen')
+      const panel = new SnapshotPanel('admin')
+      panel.open()
+      expect(document.getElementById('snapshot-modal-backdrop')!.classList.contains('open')).toBe(true)
+    })
+
+    it('close() hides modal', () => {
+      const panel = new SnapshotPanel('järjestäjä')
+      panel.open()
+      panel.close()
+      expect(document.getElementById('snapshot-modal-backdrop')!.classList.contains('open')).toBe(false)
+    })
+
+    it('backdrop click closes modal', () => {
+      const panel = new SnapshotPanel('järjestäjä')
+      panel.open()
+      const backdrop = document.getElementById('snapshot-modal-backdrop')!
+      backdrop.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      expect(backdrop.classList.contains('open')).toBe(false)
+    })
+
+    it('click inside modal does not close it', () => {
+      const panel = new SnapshotPanel('järjestäjä')
+      panel.open()
+      const modal = document.getElementById('snapshot-modal')!
+      modal.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      expect(document.getElementById('snapshot-modal-backdrop')!.classList.contains('open')).toBe(true)
+    })
+
+    it('Esc key closes open modal', () => {
+      const panel = new SnapshotPanel('järjestäjä')
+      panel.open()
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+      expect(document.getElementById('snapshot-modal-backdrop')!.classList.contains('open')).toBe(false)
+    })
+
+    it('close button (✕) closes modal', () => {
+      const panel = new SnapshotPanel('järjestäjä')
+      panel.open()
+      const closeBtn = document.querySelector<HTMLButtonElement>('.btn-snapshot-modal-close')!
+      closeBtn.click()
+      expect(document.getElementById('snapshot-modal-backdrop')!.classList.contains('open')).toBe(false)
+    })
+  })
+
+  describe('role gate — fetch', () => {
+    it('talkoolainen — ei fetch', () => {
+      mockFetch({ 'GET /api/admin/snapshots': [] })
+      new SnapshotPanel('talkoolainen')
       expect(fetch).not.toHaveBeenCalled()
     })
 
     it('järjestäjä — fetches snapshot-lista', async () => {
       mockFetch({ 'GET /api/admin/snapshots': [] })
-      new SnapshotPanel(container, 'järjestäjä')
-      await vi.waitFor(() => expect(fetch).toHaveBeenCalled())
-    })
-
-    it('admin — fetches snapshot-lista', async () => {
-      mockFetch({ 'GET /api/admin/snapshots': [] })
-      new SnapshotPanel(container, 'admin')
+      new SnapshotPanel('järjestäjä')
       await vi.waitFor(() => expect(fetch).toHaveBeenCalled())
     })
   })
@@ -76,38 +126,41 @@ describe('T50 — SnapshotPanel', () => {
   describe('list rendering', () => {
     it('shows empty message when no snapshots', async () => {
       mockFetch({ 'GET /api/admin/snapshots': [] })
-      new SnapshotPanel(container, 'järjestäjä')
-      await vi.waitFor(() => {
-        expect(container.querySelector('.snapshot-empty')).not.toBeNull()
-      })
+      const panel = new SnapshotPanel('järjestäjä')
+      await panel.refresh()
+      expect(document.querySelector('.snapshot-empty')).not.toBeNull()
     })
 
     it('renders snapshot items', async () => {
       mockFetch({ 'GET /api/admin/snapshots': [SNAP1, SNAP2] })
-      new SnapshotPanel(container, 'järjestäjä')
-      await vi.waitFor(() => {
-        expect(container.querySelectorAll('.snapshot-item').length).toBe(2)
-      })
+      const panel = new SnapshotPanel('järjestäjä')
+      await panel.refresh()
+      expect(document.querySelectorAll('.snapshot-item').length).toBe(2)
     })
 
     it('each item has "Palauta tämä versio" button', async () => {
       mockFetch({ 'GET /api/admin/snapshots': [SNAP1] })
-      new SnapshotPanel(container, 'järjestäjä')
-      await vi.waitFor(() => {
-        const btn = container.querySelector('.btn-snapshot-restore') as HTMLButtonElement
-        expect(btn).not.toBeNull()
-        expect(btn.textContent).toBe('Palauta tämä versio')
-      })
+      const panel = new SnapshotPanel('järjestäjä')
+      await panel.refresh()
+      const btn = document.querySelector<HTMLButtonElement>('.btn-snapshot-restore')
+      expect(btn).not.toBeNull()
+      expect(btn!.textContent).toBe('Palauta tämä versio')
     })
 
     it('item info includes label and created_by', async () => {
       mockFetch({ 'GET /api/admin/snapshots': [SNAP1] })
-      new SnapshotPanel(container, 'järjestäjä')
-      await vi.waitFor(() => {
-        const info = container.querySelector('.snapshot-info')!.textContent ?? ''
-        expect(info).toContain('Versio 1')
-        expect(info).toContain('Testi Järjestäjä')
-      })
+      const panel = new SnapshotPanel('järjestäjä')
+      await panel.refresh()
+      const info = document.querySelector('.snapshot-info')!.textContent ?? ''
+      expect(info).toContain('Versio 1')
+      expect(info).toContain('Testi Järjestäjä')
+    })
+
+    it('count updates in modal title', async () => {
+      mockFetch({ 'GET /api/admin/snapshots': [SNAP1, SNAP2] })
+      const panel = new SnapshotPanel('järjestäjä')
+      await panel.refresh()
+      expect(document.querySelector('.snapshot-modal-title')!.textContent).toContain('2')
     })
   })
 
@@ -121,70 +174,18 @@ describe('T50 — SnapshotPanel', () => {
       })
       vi.stubGlobal('fetch', fetchMock)
 
-      new SnapshotPanel(container, 'järjestäjä')
-      await vi.waitFor(() => expect(container.querySelector('#btn-snapshot-create')).not.toBeNull())
+      const panel = new SnapshotPanel('järjestäjä')
+      await vi.waitFor(() => expect(document.querySelector('#btn-snapshot-create')).not.toBeNull())
 
-      const btn = container.querySelector<HTMLButtonElement>('#btn-snapshot-create')!
+      const btn = document.querySelector<HTMLButtonElement>('#btn-snapshot-create')!
       btn.click()
 
       await vi.waitFor(() => {
         const calls = fetchMock.mock.calls as Array<[string, RequestInit?]>
-        expect(calls.some(([url, opts]) => url === '/api/admin/snapshots' && opts?.method === 'POST')).toBe(true)
+        expect(calls.some(([url, opts]) =>
+          url === '/api/admin/snapshots' && opts?.method === 'POST',
+        )).toBe(true)
       })
-    })
-  })
-
-  describe('T57 — collapsible (default collapsed)', () => {
-    it('list hidden by default', async () => {
-      mockFetch({ 'GET /api/admin/snapshots': [SNAP1] })
-      new SnapshotPanel(container, 'järjestäjä')
-      await vi.waitFor(() => expect(container.querySelector('.snapshot-item')).not.toBeNull())
-      expect(container.querySelector('#snapshot-list')?.hasAttribute('hidden')).toBe(true)
-    })
-
-    it('backup button always visible (collapsed or not)', async () => {
-      mockFetch({ 'GET /api/admin/snapshots': [] })
-      new SnapshotPanel(container, 'järjestäjä')
-      await vi.waitFor(() => expect(fetch).toHaveBeenCalled())
-      expect(container.querySelector<HTMLElement>('#btn-snapshot-create')?.hidden).toBe(false)
-    })
-
-    it('title shows count when collapsed', async () => {
-      mockFetch({ 'GET /api/admin/snapshots': [SNAP1, SNAP2] })
-      new SnapshotPanel(container, 'järjestäjä')
-      await vi.waitFor(() => {
-        const h3 = container.querySelector('h3')!.textContent ?? ''
-        expect(h3).toContain('2')
-      })
-    })
-
-    it('header click expands panel', async () => {
-      mockFetch({ 'GET /api/admin/snapshots': [SNAP1] })
-      new SnapshotPanel(container, 'järjestäjä')
-      await vi.waitFor(() => expect(container.querySelector('.snapshot-item')).not.toBeNull())
-      const header = container.querySelector('.snapshot-header') as HTMLElement
-      header.click()
-      expect(container.querySelector('#snapshot-list')?.hasAttribute('hidden')).toBe(false)
-      expect(container.querySelector<HTMLElement>('#btn-snapshot-create')?.hidden).toBe(false)
-    })
-
-    it('header click again collapses panel', async () => {
-      mockFetch({ 'GET /api/admin/snapshots': [SNAP1] })
-      new SnapshotPanel(container, 'järjestäjä')
-      await vi.waitFor(() => expect(container.querySelector('.snapshot-item')).not.toBeNull())
-      const header = container.querySelector('.snapshot-header') as HTMLElement
-      header.click() // expand
-      header.click() // collapse
-      expect(container.querySelector('#snapshot-list')?.hasAttribute('hidden')).toBe(true)
-    })
-
-    it('title shows "Varmuuskopiot" without count when expanded', async () => {
-      mockFetch({ 'GET /api/admin/snapshots': [SNAP1, SNAP2] })
-      new SnapshotPanel(container, 'järjestäjä')
-      await vi.waitFor(() => expect(container.querySelector('.snapshot-item')).not.toBeNull())
-      const header = container.querySelector('.snapshot-header') as HTMLElement
-      header.click()
-      expect(container.querySelector('h3')!.textContent).toBe('Varmuuskopiot')
     })
   })
 
@@ -199,10 +200,10 @@ describe('T50 — SnapshotPanel', () => {
       })
       vi.stubGlobal('fetch', fetchMock)
 
-      new SnapshotPanel(container, 'järjestäjä')
-      await vi.waitFor(() => expect(container.querySelector('.btn-snapshot-restore')).not.toBeNull())
+      const panel = new SnapshotPanel('järjestäjä')
+      await panel.refresh()
 
-      const btn = container.querySelector<HTMLButtonElement>('.btn-snapshot-restore')!
+      const btn = document.querySelector<HTMLButtonElement>('.btn-snapshot-restore')!
       btn.click()
 
       await vi.waitFor(() => {
@@ -220,15 +221,14 @@ describe('T50 — SnapshotPanel', () => {
       }))
       vi.stubGlobal('fetch', fetchMock)
 
-      new SnapshotPanel(container, 'järjestäjä')
-      await vi.waitFor(() => expect(container.querySelector('.btn-snapshot-restore')).not.toBeNull())
+      const panel = new SnapshotPanel('järjestäjä')
+      await panel.refresh()
 
       const initialCallCount = fetchMock.mock.calls.length
-      const btn = container.querySelector<HTMLButtonElement>('.btn-snapshot-restore')!
+      const btn = document.querySelector<HTMLButtonElement>('.btn-snapshot-restore')!
       btn.click()
 
       await new Promise(r => setTimeout(r, 50))
-      // No new POST calls
       const postCalls = (fetchMock.mock.calls as Array<[string, RequestInit?]>)
         .slice(initialCallCount)
         .filter(([, opts]) => opts?.method === 'POST')

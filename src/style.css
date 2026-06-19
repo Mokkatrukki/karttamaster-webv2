@@ -971,51 +971,65 @@ body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
   flex-shrink: 0;
 }
 
-/* ── Snapshot panel (T50) — floating overlay, toggle via menu ── */
+/* ── Snapshot modal (T82) — body-level modal, open/close via SnapshotPanel.open() ── */
 
-#snapshot-panel-container {
+.snapshot-modal-backdrop {
+  display: none;
   position: fixed;
-  top: 56px;
-  left: 0;
-  right: 0;
-  z-index: 1100;
-  display: none;
-  max-height: calc(70vh - 56px);
-  overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid var(--border-default);
+  inset: 0;
+  background: var(--overlay);
+  backdrop-filter: blur(2px);
+  z-index: 4000;
+  align-items: center;
+  justify-content: center;
 }
 
-#snapshot-panel-container.open {
-  display: block;
+.snapshot-modal-backdrop.open {
+  display: flex;
 }
 
-#snapshot-panel {
-  display: none;
-  background: var(--surface-app);
-  max-height: calc(70vh - 56px);
+.snapshot-modal {
+  background: var(--surface-card);
+  border-radius: var(--radius-lg);
+  width: min(480px, 92vw);
+  max-height: 80vh;
   overflow-y: auto;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--border-default);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-[data-role="järjestäjä"] #snapshot-panel,
-[data-role="admin"] #snapshot-panel {
-  display: block;
-}
-
-.snapshot-header {
+.snapshot-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 10px;
   gap: 8px;
 }
 
-.snapshot-header h3 {
-  font-size: 11px;
+.snapshot-modal-title {
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  color: var(--text-body);
+}
+
+.btn-snapshot-modal-close {
+  background: transparent;
+  border: none;
   color: var(--text-muted);
+  font-size: 16px;
+  min-height: 44px;
+  min-width: 44px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-snapshot-modal-close:hover {
+  color: var(--text-body);
 }
 
 .btn-snapshot-create {

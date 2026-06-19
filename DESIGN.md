@@ -158,14 +158,17 @@ metsässä, hanskat kädessä.
 - Shadow: `0 8px 24px rgba(0,0,0,0.4)`
 - `z-index: 1003–2000` (floating-picker alempana)
 
-### SnapshotPanel (`#snapshot-panel`, `#snapshot-panel-container`)
-- Vain järjestäjälle — `hidden`-attribuutti talkoolaiselle (component-tason gate)
-- Sijainti: `#app`:n sisällä `#status-panel`:in jälkeen, ennen karttaa
-- Tausta: `bg-primary`, bottom-border: `border-subtle`
-- Header: `11px uppercase text-muted`, "Luo varmuuskopio" -nappi `min-height: 44px` (§R pakollinen)
-- Lista: `max-height: 160px`, scrollable, `border-card`-separaattorit
-- Listarivi: `padding: 6px 10px`, teksti `text-muted`, `11px`
-- Palauta-nappi: `rgba(239,68,68,0.10)` tausta, `#f87171` teksti — vaarallinen toiminto = punainen
+### SnapshotModal (`#snapshot-modal`, `.snapshot-modal-backdrop`) — T82
+- Vain järjestäjälle — `SnapshotPanel.open()` tarkistaa roolin ennen avaamista
+- Sijainti: `document.body`-lapsi, `position:fixed`, ei vie karttatilaa
+- Avautuu: `⋯`-valikko → Varmuuskopiot → `btn-snapshot-panel` → `panel.open()`
+- Backdrop: `.snapshot-modal-backdrop`, `var(--overlay)`, `backdrop-filter:blur(2px)`, `z-index:4000`
+- Sulkeutuu: ✕-nappi, backdrop-klikki, Esc
+- Modal: `background:surface-card`, `border-radius:radius-lg (14px)`, `width:min(480px,92vw)`, `max-height:80vh` scrollable
+- Header: `14px 700` otsikko + ✕-nappi `min-height:44px`
+- "Luo varmuuskopio" -nappi `min-height:44px` (§R pakollinen)
+- Lista: scrollable, `border-card`-separaattorit, `11px text-muted`
+- Palauta-nappi: `danger-soft` tausta, `danger-text` — vaarallinen toiminto = punainen
 
 ### Marker-modaali (`#marker-modal`)
 - Tausta: `bg-card`, border: `border-default`, `border-radius: 14px`
@@ -201,6 +204,20 @@ metsässä, hanskat kädessä.
   - `kerätty`: `#6ee7b7`
   - `ei_tarpeen`: `#fbbf24`
 - Ei tekstiä merkillä, ei status-perusteista muotomuutosta — muoto on aina teardrop, tyyppiväri pysyy tunnistimena
+
+### LeftPanel (`#left-panel`)
+- Vain järjestäjälle — `body[data-role="talkoolainen"] #left-panel { display: none }`
+- Sijainti: `#app-main`:n flex-row vasempi lapsi, ennen `#map-area`
+- Leveys auki: 240px sisältö + 44px toggle = 284px total; kiinni: 44px toggle strip
+- Tausta: `bg-app` (surface-app), oikea reuna: `border-subtle`
+- Toggle-nappi (`#left-panel-toggle`): `44×44px`, `position: sticky; top: 0`, `bg-raised`, `color: text-muted`
+  - Auki: `◀`, `aria-label: "Sulje paneeli"`; kiinni: `▶`, `aria-label: "Avaa paneeli"`
+  - Hover: `hover-strong` bg, `text-body` väri
+- Sisältö (`#left-panel-content`): `flex column`, `overflow-y: auto`, piilotetaan `hidden`-attribuutilla kun kiinni
+- Osiot (`.left-panel-section`): border-bottom `border-subtle`; otsikko `11px uppercase text-muted`
+- `#sign-type-dropdown` paneelissa: `position: static; display: flex` — aina näkyvissä, ei floating
+- `#segment-panel-container` paneelissa: `position: static; display: block; max-height: none`
+- `+ Merkki` toolbarissa: klikkaus avaa panelin (`LeftPanel.open()`) järjestäjä-moodissa
 
 ### SegmentPanel (`#segment-panel`)
 - Vain järjestäjälle (`hidden` muille)

@@ -57,6 +57,7 @@ server/       ← Hono + Bun + SQLite (tulossa)
 | AuthScreen | `src/ui/auth-screen.ts` | ○ T51 | — | [ui.md](docs/components/ui.md) |
 | MapStateBadge | `src/ui/map-state-badge.ts` | ○ T49 | — | [ui.md](docs/components/ui.md) |
 | SnapshotPanel | `src/ui/snapshot-panel.ts` | ✓ T50 | — | [ui.md](docs/components/ui.md) |
+| LeftPanel | `src/ui/left-panel.ts` | ✓ T73 | critical-paths: "Left panel" | [ui.md](docs/components/ui.md) |
 | GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30 | critical-paths: "GPS-paikannin" | [map.md](docs/components/map.md) |
 | BackendServer | `server/index.ts` | ✓ T41 | — | [backend.md](docs/components/backend.md) |
 | SegmentsAPI | `server/routes/segments.ts` | ✓ T61 | — | [backend.md](docs/components/backend.md) |
