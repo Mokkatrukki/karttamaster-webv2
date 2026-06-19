@@ -1,5 +1,6 @@
 import L from 'leaflet'
 import type { MarkerStatus } from '../logic/types'
+import { getIconById } from '../logic/icon-set'
 
 const W = 32
 const H = 52
@@ -14,7 +15,7 @@ const STATUS_DOT_COLOR: Partial<Record<MarkerStatus, string>> = {
   ei_tarpeen:  '#fbbf24',
 }
 
-function circleSvg(type: string, bearing: number, status: MarkerStatus, colorOverride?: string, shortLabelOverride?: string): string {
+function circleSvg(type: string, bearing: number, status: MarkerStatus, colorOverride?: string, shortLabelOverride?: string, iconId?: string): string {
   let arrow: string
   let color: string
   let shortLabel: string
@@ -27,7 +28,6 @@ function circleSvg(type: string, bearing: number, status: MarkerStatus, colorOve
     case 'upcoming-left':  arrow = '↰'; color = '#7c3aed'; shortLabel = 'TV'; isUpcoming = true; break
     default:               arrow = shortLabelOverride ?? '?'; color = colorOverride ?? '#94a3b8'; shortLabel = shortLabelOverride ?? '?'; break
   }
-  const opacity = status === 'suunniteltu' ? 0.45 : 1.0
   const dotColor = STATUS_DOT_COLOR[status]
   const dotHtml = dotColor
     ? `<span style="position:absolute;bottom:12px;right:0px;width:8px;height:8px;border-radius:50%;background:${dotColor};border:1.5px solid #fff;pointer-events:none"></span>`
@@ -35,8 +35,17 @@ function circleSvg(type: string, bearing: number, status: MarkerStatus, colorOve
 
   const tipHtml = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="10" viewBox="0 0 32 10" style="position:absolute;bottom:0;left:0;pointer-events:none;display:block"><path d="M8,0 L16,10 L24,0 Z" fill="${color}" stroke="white" stroke-width="1.5" stroke-linejoin="round"/></svg>`
 
+  // V50: if iconId given and known, embed Lucide SVG paths in circle instead of text
+  const iconEntry = (type === 'right' || type === 'left' || type === 'upcoming-right' || type === 'upcoming-left')
+    ? null
+    : (iconId ? getIconById(iconId) : null)
+
+  const circleContent = iconEntry
+    ? `<g transform="translate(6, 18) scale(0.833)" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none">${iconEntry.svgContent}</g>`
+    : `<text x="${CX}" y="${CY + 5}" text-anchor="middle" font-size="13" fill="white" font-family="sans-serif" font-weight="bold">${arrow}</text>`
+
   return `
-    <div style="position:relative;width:${W}px;height:${H}px;opacity:${opacity}">
+    <div style="position:relative;width:${W}px;height:${H}px">
       <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"
            viewBox="0 0 ${W} ${H}"
            style="transform:rotate(${bearing}deg);transform-origin:${CX}px ${CY}px;display:block;overflow:visible">
@@ -49,10 +58,11 @@ function circleSvg(type: string, bearing: number, status: MarkerStatus, colorOve
         </g>
         ${isUpcoming
           ? `<circle cx="${CX}" cy="${CY}" r="${R}" fill="${color}" stroke="white" stroke-width="2" stroke-dasharray="4 2" opacity="0.9"/>`
-          : `<circle cx="${CX}" cy="${CY}" r="${R}" fill="${color}" stroke="white" stroke-width="2"/>`
+          : status === 'suunniteltu'
+            ? `<circle cx="${CX}" cy="${CY}" r="${R}" fill="${color}" fill-opacity="0.55" stroke="white" stroke-width="2" stroke-dasharray="4 2"/>`
+            : `<circle cx="${CX}" cy="${CY}" r="${R}" fill="${color}" stroke="white" stroke-width="2"/>`
         }
-        <text x="${CX}" y="${CY + 5}" text-anchor="middle"
-              font-size="13" fill="white" font-family="sans-serif" font-weight="bold">${arrow}</text>
+        ${circleContent}
       </svg>
       <span style="position:absolute;top:16px;right:-4px;background:${color};color:#fff;border-radius:6px;min-width:12px;height:12px;font-size:8px;font-weight:900;display:flex;align-items:center;justify-content:center;border:1.5px solid #fff;padding:0 2px;line-height:1;pointer-events:none">${shortLabel}</span>
       ${dotHtml}
@@ -60,9 +70,9 @@ function circleSvg(type: string, bearing: number, status: MarkerStatus, colorOve
     </div>`
 }
 
-export function createSignIcon(type: string, bearing: number, status: MarkerStatus = 'suunniteltu', color?: string, shortLabel?: string): L.DivIcon {
+export function createSignIcon(type: string, bearing: number, status: MarkerStatus = 'suunniteltu', color?: string, shortLabel?: string, iconId?: string): L.DivIcon {
   return L.divIcon({
-    html: circleSvg(type, bearing, status, color, shortLabel),
+    html: circleSvg(type, bearing, status, color, shortLabel, iconId),
     className: '',
     iconSize: [W, H],
     iconAnchor: [CX, H],

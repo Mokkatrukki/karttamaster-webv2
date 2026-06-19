@@ -14,27 +14,37 @@ function getHtml(type: Parameters<typeof createSignIcon>[0], status: Parameters<
 }
 
 describe('T23: createSignIcon status-visualisointi', () => {
-  describe('opacity', () => {
-    it('suunniteltu → opacity 0.45', () => {
-      expect(getHtml('right', 'suunniteltu')).toContain('opacity:0.45')
+  describe('V51: suunniteltu-erottelu (dasharray + fill-opacity)', () => {
+    it('suunniteltu → stroke-dasharray "4 2"', () => {
+      expect(getHtml('right', 'suunniteltu')).toContain('stroke-dasharray="4 2"')
     })
 
-    it('asetettu → opacity 1', () => {
-      const html = getHtml('right', 'asetettu')
-      expect(html).toContain('opacity:1')
-      expect(html).not.toContain('opacity:0.45')
+    it('suunniteltu → fill-opacity 0.55', () => {
+      expect(getHtml('right', 'suunniteltu')).toContain('fill-opacity="0.55"')
     })
 
-    it('tarkistettu → opacity 1', () => {
-      expect(getHtml('left', 'tarkistettu')).toContain('opacity:1')
+    it('suunniteltu → ei opacity:0.45 wrapperissa', () => {
+      expect(getHtml('right', 'suunniteltu')).not.toContain('opacity:0.45')
     })
 
-    it('kerätty → opacity 1', () => {
-      expect(getHtml('upcoming-right', 'kerätty')).toContain('opacity:1')
+    it('asetettu → ei stroke-dasharray', () => {
+      expect(getHtml('right', 'asetettu')).not.toContain('stroke-dasharray')
     })
 
-    it('ei_tarpeen → opacity 1', () => {
-      expect(getHtml('upcoming-left', 'ei_tarpeen')).toContain('opacity:1')
+    it('asetettu → ei fill-opacity 0.55', () => {
+      expect(getHtml('right', 'asetettu')).not.toContain('fill-opacity="0.55"')
+    })
+
+    it('tarkistettu → ei stroke-dasharray', () => {
+      expect(getHtml('left', 'tarkistettu')).not.toContain('stroke-dasharray')
+    })
+
+    it('kerätty → ei stroke-dasharray', () => {
+      expect(getHtml('right', 'kerätty')).not.toContain('stroke-dasharray')
+    })
+
+    it('ei_tarpeen → ei stroke-dasharray', () => {
+      expect(getHtml('right', 'ei_tarpeen')).not.toContain('stroke-dasharray')
     })
   })
 
@@ -65,9 +75,9 @@ describe('T23: createSignIcon status-visualisointi', () => {
   })
 
   describe('default status', () => {
-    it('ilman status-param → suunniteltu (opacity 0.45)', () => {
+    it('ilman status-param → suunniteltu (stroke-dasharray)', () => {
       const icon = createSignIcon('right', 0) as unknown as { html: string }
-      expect(icon.html).toContain('opacity:0.45')
+      expect(icon.html).toContain('stroke-dasharray="4 2"')
     })
   })
 
@@ -88,8 +98,8 @@ describe('T23: createSignIcon status-visualisointi', () => {
       expect(icon.html).toContain('X')
     })
 
-    it('custom type: ei upcoming-dashia', () => {
-      const html = getHtml('custom-type', 'suunniteltu')
+    it('custom type asetettu: ei stroke-dasharray (vain suunniteltu saa dasharray)', () => {
+      const html = getHtml('custom-type', 'asetettu')
       expect(html).not.toContain('stroke-dasharray')
     })
   })
