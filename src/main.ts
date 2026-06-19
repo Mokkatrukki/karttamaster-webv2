@@ -229,7 +229,7 @@ async function init(talkoolainenCode?: string) {
     new SignLibraryPanel(signLibraryContainer, signLibrary, () => {})
   }
 
-  const placeMode = new PlaceMode(markerManager, leftPanel ? () => leftPanel.open() : undefined)
+  const placeMode = new PlaceMode(markerManager, signLibrary, leftPanel ? () => leftPanel.open() : undefined)
 
   // Marker modal
   const markerModalBackdrop = document.getElementById('marker-modal-backdrop')!

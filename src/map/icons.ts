@@ -1,5 +1,5 @@
 import L from 'leaflet'
-import type { MarkerType, MarkerStatus } from '../logic/types'
+import type { MarkerStatus } from '../logic/types'
 
 const W = 32
 const H = 52
@@ -14,19 +14,19 @@ const STATUS_DOT_COLOR: Partial<Record<MarkerStatus, string>> = {
   ei_tarpeen:  '#fbbf24',
 }
 
-function circleSvg(type: MarkerType, bearing: number, status: MarkerStatus): string {
+function circleSvg(type: string, bearing: number, status: MarkerStatus, colorOverride?: string, shortLabelOverride?: string): string {
   let arrow: string
   let color: string
   let shortLabel: string
+  let isUpcoming = false
 
   switch (type) {
     case 'right':          arrow = '→'; color = '#16a34a'; shortLabel = 'O';  break
     case 'left':           arrow = '←'; color = '#2563eb'; shortLabel = 'V';  break
-    case 'upcoming-right': arrow = '↱'; color = '#b45309'; shortLabel = 'TO'; break
-    case 'upcoming-left':  arrow = '↰'; color = '#7c3aed'; shortLabel = 'TV'; break
+    case 'upcoming-right': arrow = '↱'; color = '#b45309'; shortLabel = 'TO'; isUpcoming = true; break
+    case 'upcoming-left':  arrow = '↰'; color = '#7c3aed'; shortLabel = 'TV'; isUpcoming = true; break
+    default:               arrow = '→'; color = colorOverride ?? '#94a3b8'; shortLabel = shortLabelOverride ?? '?'; break
   }
-
-  const isUpcoming = type === 'upcoming-left' || type === 'upcoming-right'
   const opacity = status === 'suunniteltu' ? 0.45 : 1.0
   const dotColor = STATUS_DOT_COLOR[status]
   const dotHtml = dotColor
@@ -60,9 +60,9 @@ function circleSvg(type: MarkerType, bearing: number, status: MarkerStatus): str
     </div>`
 }
 
-export function createSignIcon(type: MarkerType, bearing: number, status: MarkerStatus = 'suunniteltu'): L.DivIcon {
+export function createSignIcon(type: string, bearing: number, status: MarkerStatus = 'suunniteltu', color?: string, shortLabel?: string): L.DivIcon {
   return L.divIcon({
-    html: circleSvg(type, bearing, status),
+    html: circleSvg(type, bearing, status, color, shortLabel),
     className: '',
     iconSize: [W, H],
     iconAnchor: [CX, H],

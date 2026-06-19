@@ -57,7 +57,7 @@ test.describe('Merkki kartalle', () => {
     expect(listText).not.toContain('Ei merkkejä')
   })
 
-  test('dblclick kartalla avaa floating pickerin', async ({ page }) => {
+  test('dblclick kartalla avaa floating pickerin kirjaston suosikeilla', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
@@ -66,8 +66,10 @@ test.describe('Merkki kartalle', () => {
     await page.dblclick('#map', { position: { x: 460, y: 260 } })
     await page.waitForTimeout(500)
 
-    // Floating picker näkyy
+    // Floating picker näkyy kirjaston suosikeilla (default 4 ovat favorite:true)
     await expect(page.locator('#floating-picker')).toHaveClass(/open/)
+    const pickerBtns = page.locator('#floating-picker .sign-type-btn')
+    await expect(pickerBtns).toHaveCount(4)
     const pickerText = await page.locator('#floating-picker').innerText()
     expect(pickerText).toContain('Oikealle')
     expect(pickerText).toContain('Vasemmalle')

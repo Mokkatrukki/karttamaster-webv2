@@ -1,14 +1,7 @@
-import { positionPicker, SIGN_TYPES } from '../logic/sign-picker'
+import { positionPicker } from '../logic/sign-picker'
+import { listFavorites, type SignLibrary } from '../logic/sign-library'
 import type { MarkerType } from '../logic/types'
 import type { MarkerManager } from '../map/markers'
-
-function buildSignTypeButtons(): string {
-  return SIGN_TYPES.map(s => `
-    <button class="sign-type-btn" data-type="${s.type}">
-      <span class="sign-swatch" style="background:${s.color}">${s.shortLabel}</span>
-      ${s.label}
-    </button>`).join('')
-}
 
 export class PlaceMode {
   private placeType: MarkerType | null = null
@@ -22,6 +15,7 @@ export class PlaceMode {
 
   constructor(
     private readonly markerManager: MarkerManager,
+    private readonly library: SignLibrary,
     private readonly onOpenPanel?: () => void,
   ) {
     this.mapEl            = document.getElementById('map')!
@@ -29,8 +23,6 @@ export class PlaceMode {
     this.btnAddSign       = document.getElementById('btn-add-sign')!
     this.signTypeDropdown = document.getElementById('sign-type-dropdown')!
     this.floatingPicker   = document.getElementById('floating-picker')!
-
-    this.floatingPicker.innerHTML   = buildSignTypeButtons()
 
     this.bindEvents()
   }
@@ -65,6 +57,11 @@ export class PlaceMode {
 
   openPicker(lat: number, lon: number, clientX: number, clientY: number): void {
     this.pendingDblClick = { lat, lon }
+    this.floatingPicker.innerHTML = listFavorites(this.library).map(t => `
+      <button class="sign-type-btn" data-type="${t.id}" data-color="${t.color}" data-short="${t.shortLabel}">
+        <span class="sign-swatch" style="background:${t.color}">${t.shortLabel}</span>
+        ${t.label}
+      </button>`).join('')
     this.floatingPicker.classList.add('open')
     requestAnimationFrame(() => {
       const { offsetWidth: w, offsetHeight: h } = this.floatingPicker

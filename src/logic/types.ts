@@ -1,4 +1,4 @@
-export type MarkerType = 'right' | 'left' | 'upcoming-right' | 'upcoming-left'
+export type MarkerType = string
 
 export type MarkerStatus = 'suunniteltu' | 'asetettu' | 'tarkistettu' | 'kerätty' | 'ei_tarpeen'
 
