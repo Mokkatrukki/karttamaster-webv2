@@ -212,13 +212,15 @@ async function init(talkoolainenCode?: string) {
   )
   progressBar.update(0)
 
-  gpsDrivePanel = new GpsDrivePanel(
-    document.getElementById('gps-drive-panel')!,
-    driveMode,
-    markerManager,
-    () => routeBar.getActiveRoute().id,
-  )
-  gpsDrivePanel.update(0)
+  if (talkoolainenCode) {
+    gpsDrivePanel = new GpsDrivePanel(
+      document.getElementById('gps-drive-panel')!,
+      driveMode,
+      markerManager,
+      () => routeBar.getActiveRoute().id,
+    )
+    gpsDrivePanel.update(0)
+  }
 
   statusPanel = new StatusPanel(document.getElementById('status-panel')!)
   statusPanel.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
