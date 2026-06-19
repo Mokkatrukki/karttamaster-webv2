@@ -75,6 +75,7 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | V41 | GPX-tiedostot voivat päivittyä milloin tahansa — reittimerkki (SignMarker) ei ole sidottu GPX-pisteisiin. Merkit säilyvät GPX-päivityksessä. `distanceFromStart` ja `bearing` lasketaan uudelleen uudesta GPX:stä (snap lähimpään pisteeseen). |
 | V42 | Kaikki talkoolaisten URL:t ovat hash-pohjaisia — ei sekvenssimäisiä, ei arvattavissa. `/s/<hash>` pre-täyttää auth-screen koodi-kentän ja triggeraa auto-login. Järjestäjä generoi hash:n, jakaa WhatsAppilla tai QR-koodina. |
 | V43 | Talkoolainen voi muokata hänelle assignatun pätkän `startDist`/`endDist` kentällä — laajentaa tai lyhentää. Järjestäjä voi yliajaa muutoksen milloin tahansa. Muutos tallentuu backendiin (`PUT /api/segments/:id`). |
+| V44 | Käyttäjäsyöte (templatejen label, shortLabel, description) ei interpoloida suoraan `innerHTML`-stringeihin — käytetään aina `escapeHtml()`-sanitointia tai DOM-assign (`textContent`/`.value`). Koskee kaikkia UI-komponentteja jotka renderöivät käyttäjän syöttämää tekstiä. |
 
 ## §T Tasks
 
@@ -220,3 +221,4 @@ UX-simulaatio 2026-06-07. Kaksi roolia läpikäyty — löydöt kirjattu taskeih
 | B16 | 2026-06-11 | `init()` hakee segmentit backendistä (`fetchSegmentByCode`) vain talkoolaiselle — järjestäjä näkee tyhjän pätkälistan uudessa selainistunnossa vaikka backend tietää segmenteistä. V36: localStorage on cache, ei lähde. | V36 — tarvitsee `GET /api/segments` kutsun järjestäjälle sivun latautuessa |
 | B17 | 2026-06-11 | `RoleSelector` toggle-nappi näkyy kaikille — talkoolainen voi klikata järjestäjä-rooliin ja saada admin-UI:n (merkkien poisto, segment-hallinta, snapshots). `setRole()` kirjoittaa vain localStorage:n eikä tarkista backend-sessiota. Kriittinen tietoturvariski. | V39 → T67 |
 | B18 | 2026-06-11 | `#auth-screen { display:none }` + `start()` kutsuu `fetch` ennen `show()` → karttanäkymä välähtää 100–300ms ennen kirjautumislomaketta. `main.ts:34` alustaa Leaflet-kartan moduulitasolla heti — kartta renderöityy ennen kuin auth ratkeaa. | V40 → T68 |
+| B19 | 2026-06-19 | `sign-library-panel.ts buildRow()/buildForm()` interpoloi `t.label`, `t.shortLabel`, `t.description` suoraan `innerHTML`-templateen — XSS. Esim. label `<img src=x onerror=alert(1)>` suoritetaan. T11:ssä ennakkotapaus: "XSS-safe (DOM-assign)". | V44 → korjaa escapeHtml() |

@@ -10,6 +10,10 @@ import {
 
 const DEFAULT_IDS = new Set(['right', 'left', 'upcoming-right', 'upcoming-left'])
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
 function seedDefaults(library: SignLibrary): void {
   if (library.size > 0) return
   createTemplate(library, { label: 'Vasemmalle', shortLabel: 'V', color: '#2563eb', description: 'Käänny vasemmalle' }, 'left')
@@ -58,12 +62,12 @@ export class SignLibraryPanel {
 
     const placeBtn = isDefault
       ? `<button class="sign-type-btn sign-lib-place-btn" data-type="${t.id}" style="flex:1;min-height:44px;display:flex;align-items:center;gap:8px;padding:6px 8px;background:none;border:none;color:var(--text-body);font-size:13px;cursor:pointer;text-align:left;border-radius:var(--radius-sm)">
-           <span class="sign-swatch" style="background:${t.color};color:#fff;border-radius:var(--radius-sm);min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900">${t.shortLabel}</span>
-           ${t.label}
+           <span class="sign-swatch" style="background:${escapeHtml(t.color)};color:#fff;border-radius:var(--radius-sm);min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900">${escapeHtml(t.shortLabel)}</span>
+           ${escapeHtml(t.label)}
          </button>`
       : `<div class="sign-lib-custom-item" style="flex:1;display:flex;align-items:center;gap:8px;padding:6px 8px;min-height:44px">
-           <span class="sign-swatch" style="background:${t.color};color:#fff;border-radius:var(--radius-sm);min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900">${t.shortLabel}</span>
-           <span style="font-size:13px;color:var(--text-body)">${t.label}</span>
+           <span class="sign-swatch" style="background:${escapeHtml(t.color)};color:#fff;border-radius:var(--radius-sm);min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900">${escapeHtml(t.shortLabel)}</span>
+           <span style="font-size:13px;color:var(--text-body)">${escapeHtml(t.label)}</span>
          </div>`
 
     const deleteBtn = isDefault ? '' :
@@ -78,14 +82,14 @@ export class SignLibraryPanel {
 
   private buildForm(t: SignTemplate | null): string {
     const id = t?.id ?? ''
-    const label = t?.label ?? ''
-    const shortLabel = t?.shortLabel ?? ''
-    const color = t?.color ?? '#f59e0b'
-    const description = t?.description ?? ''
+    const label = escapeHtml(t?.label ?? '')
+    const shortLabel = escapeHtml(t?.shortLabel ?? '')
+    const color = escapeHtml(t?.color ?? '#f59e0b')
+    const description = escapeHtml(t?.description ?? '')
     const isDefault = t ? DEFAULT_IDS.has(t.id) : false
     const title = t ? 'Muokkaa mallia' : 'Uusi malli'
 
-    return `<div class="sign-lib-form" data-id="${id}" style="padding:10px 8px;border-bottom:1px solid var(--border-card);background:var(--surface-raised);border-radius:var(--radius-md)">
+    return `<div class="sign-lib-form" data-id="${escapeHtml(id)}" style="padding:10px 8px;border-bottom:1px solid var(--border-card);background:var(--surface-raised);border-radius:var(--radius-md)">
       <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">${title}</div>
       <div style="display:flex;flex-direction:column;gap:6px">
         <input class="sign-lib-label-input" placeholder="Nimi (esim. Huoltopiste 25km)" value="${label}"
