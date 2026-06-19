@@ -47,7 +47,7 @@ export class PlaceMode {
       const btn = (e.target as HTMLElement).closest('.sign-type-btn') as HTMLElement | null
       if (!btn || !this.pendingDblClick) return
       const { lat, lon } = this.pendingDblClick
-      this.markerManager.add(lat, lon, btn.dataset.type as MarkerType)
+      this.markerManager.add(lat, lon, btn.dataset.type as MarkerType, btn.dataset.color, btn.dataset.short)
       this.closePicker()
     })
 

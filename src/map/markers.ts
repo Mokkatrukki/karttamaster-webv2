@@ -57,6 +57,8 @@ export class MarkerManager {
         route_ids: marker.routeIds,
         status: marker.status,
         location_note: marker.locationNote ?? null,
+        color: marker.color ?? null,
+        short_label: marker.shortLabel ?? null,
       }),
     }).catch(() => {})
   }
@@ -88,7 +90,7 @@ export class MarkerManager {
     })
   }
 
-  add(lat: number, lon: number, type: MarkerType): SignMarker {
+  add(lat: number, lon: number, type: MarkerType, color?: string, shortLabel?: string): SignMarker {
     let bestIdx = 0, bestRouteIdx = 0, bestDist = Infinity
     this.routes.forEach((r, ri) => {
       const idx = nearestPointIndex(r.routePoints, lat, lon)
@@ -108,6 +110,8 @@ export class MarkerManager {
       distanceFromStart: point.distanceFromStart,
       routeIds,
       status: DEFAULT_STATUS,
+      ...(color ? { color } : {}),
+      ...(shortLabel ? { shortLabel } : {}),
     }
     this.markers.push(marker)
     this.apiPost(marker)
@@ -134,7 +138,7 @@ export class MarkerManager {
     if (!m) return
     m.bearing = bearing
     const lm = this.leafletMarkers.get(id)
-    if (lm) lm.setIcon(createSignIcon(m.type, bearing, m.status))
+    if (lm) lm.setIcon(createSignIcon(m.type, bearing, m.status, m.color, m.shortLabel))
   }
 
   /** Returns markers visible under current visibleRouteIds, sorted by distanceFromStart */
@@ -176,7 +180,7 @@ export class MarkerManager {
     if (!m) return
     m.status = transitionStatus(m.status, action)
     const lm = this.leafletMarkers.get(id)
-    if (lm) lm.setIcon(createSignIcon(m.type, m.bearing, m.status))
+    if (lm) lm.setIcon(createSignIcon(m.type, m.bearing, m.status, m.color, m.shortLabel))
     this.apiPut(id, { status: m.status })
     this.onUpdate()
   }
@@ -186,7 +190,7 @@ export class MarkerManager {
     if (!m) return
     m.type = newType
     const lm = this.leafletMarkers.get(id)
-    if (lm) lm.setIcon(createSignIcon(newType, m.bearing, m.status))
+    if (lm) lm.setIcon(createSignIcon(newType, m.bearing, m.status, m.color, m.shortLabel))
     this.apiPut(id, { type: newType })
     this.onUpdate()
   }
@@ -199,7 +203,7 @@ export class MarkerManager {
   }
 
   private addLeafletMarker(m: SignMarker): void {
-    const icon = createSignIcon(m.type, m.bearing, m.status)
+    const icon = createSignIcon(m.type, m.bearing, m.status, m.color, m.shortLabel)
     const lm = L.marker([m.lat, m.lon], { icon, draggable: true }).addTo(this.map)
     this.leafletMarkers.set(m.id, lm)
 
@@ -222,7 +226,7 @@ export class MarkerManager {
       m.bearing = bearing
       m.distanceFromStart = point.distanceFromStart
       m.routeIds = routeIds
-      lm.setIcon(createSignIcon(m.type, bearing, m.status))
+      lm.setIcon(createSignIcon(m.type, bearing, m.status, m.color, m.shortLabel))
       this.apiPut(m.id, {
         lat,
         lon: lng,

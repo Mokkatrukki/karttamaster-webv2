@@ -256,6 +256,21 @@ metsässä, hanskat kädessä.
 - `[data-role="talkoolainen"] #segment-view { display: block }` — muille hidden
 - Ei purku-bulk-nappia vielä (T52 lisää)
 
+### SignLibraryPanel (`src/ui/sign-library-panel.ts`)
+- Vain järjestäjälle — sijaitsee `#left-panel-content`:ssä
+- Rivit (`.sign-lib-row`): `display:flex;align-items:center;gap:4px`, border-bottom `border-card`
+- Swatch: `22×22px`, `border-radius:radius-sm`, `font-size:10px;font-weight:900;color:#fff`
+- Suosikki-nappi (`.sign-lib-fav-btn`): `min-width:44px;min-height:44px` (§R pakollinen)
+- Muokkaa-nappi (`.sign-lib-edit-btn`): `min-width:44px;min-height:44px`
+- Poista-nappi (`.sign-lib-delete-btn`): `min-width:44px;min-height:44px`, `danger-soft` tausta, `danger-text` väri
+- "Uusi malli" -nappi (`.sign-lib-add-btn`): `min-height:44px;width:100%`, `field-tint` tausta, `border-default`
+- **Lomake (`.sign-lib-form`):**
+  - Tausta: `surface-raised`, `border-radius:radius-md`, padding `10px 8px`
+  - Kaikki kentät: `min-height:44px`, `field-tint` tausta, `border-default`, `radius-sm`
+  - Lyhenne+väri rivi: `display:flex;gap:6px` — lyhenne-input `flex:1;min-width:0`, color-input `width:44px;height:44px` ilman tekstilabelia (§R: color-picker on itsessään selvä)
+  - Tallenna-nappi: `confirm` tausta, `confirm-text`, `min-height:44px`, `flex:1`
+  - Peruuta-nappi: `field-tint` tausta, `border-default`, `min-height:44px`
+
 ### SegmentOverlay (Leaflet-layer, `src/map/segment-overlay.ts`)
 - Pätkäkaista: `weight: 8, opacity: 0.7`, väri rotaatiosta SEGMENT_COLORS (alla)
 - DisplayName: pysyvä tooltip `permanent: true`, CSS-class `segment-label`

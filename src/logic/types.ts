@@ -18,4 +18,6 @@ export interface SignMarker {
   routeIds: string[]      // routes this marker belongs to
   status: MarkerStatus    // lifecycle: suunniteltu → asetettu → tarkistettu → kerätty | ei_tarpeen
   locationNote?: string   // vapaa teksti: mihin tarkasti kiinnitetään
+  color?: string          // custom template color (ei default-4 tyypeille)
+  shortLabel?: string     // custom template lyhenne
 }

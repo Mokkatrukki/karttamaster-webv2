@@ -16,6 +16,8 @@ interface MarkerRow {
   route_ids: string
   status: string
   location_note: string | null
+  color: string | null
+  short_label: string | null
   updated_at: string
   updated_by: string | null
 }
@@ -45,6 +47,8 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
     route_ids?: string[]
     status?: string
     location_note?: string
+    color?: string | null
+    short_label?: string | null
   }>()
 
   if (
@@ -61,7 +65,7 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
   const id = body.id ?? randomUUID()
   const now = new Date().toISOString()
   db.run(
-    'INSERT INTO markers (id, type, lat, lon, bearing, distance_from_start, route_ids, status, location_note, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO markers (id, type, lat, lon, bearing, distance_from_start, route_ids, status, location_note, color, short_label, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       id,
       body.type,
@@ -72,6 +76,8 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
       JSON.stringify(body.route_ids),
       body.status ?? 'suunniteltu',
       body.location_note ?? null,
+      body.color ?? null,
+      body.short_label ?? null,
       now,
       session.display_name,
     ],

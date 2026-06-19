@@ -4,6 +4,8 @@ import {
   updateTemplate,
   deleteTemplate,
   listTemplates,
+  saveLibrary,
+  loadLibrary,
   type SignLibrary,
   type SignTemplate,
 } from '../logic/sign-library'
@@ -23,6 +25,8 @@ function seedDefaults(library: SignLibrary): void {
 }
 
 export function createSignLibrary(): SignLibrary {
+  const loaded = loadLibrary()
+  if (loaded && loaded.size > 0) return loaded
   const lib = createLibrary()
   seedDefaults(lib)
   return lib
@@ -100,12 +104,9 @@ export class SignLibraryPanel {
                style="padding:8px 10px;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-body);font-size:13px">
         <div style="display:flex;gap:6px">
           <input class="sign-lib-short-input" placeholder="Lyhenne (1-3 merkkiä)" value="${shortLabel}" maxlength="3"
-                 style="flex:1;padding:8px 10px;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-body);font-size:13px">
-          ${isDefault ? '' : `<div style="display:flex;align-items:center;gap:6px">
-            <span style="font-size:11px;color:var(--text-muted)">Väri</span>
-            <input type="color" class="sign-lib-color-input" value="${color}"
-                   style="width:44px;height:44px;border:1px solid var(--border-default);border-radius:var(--radius-sm);cursor:pointer;background:none;padding:2px">
-          </div>`}
+                 style="flex:1;min-width:0;padding:8px 10px;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-body);font-size:13px">
+          ${isDefault ? '' : `<input type="color" class="sign-lib-color-input" value="${color}"
+                 style="width:44px;height:44px;border:1px solid var(--border-default);border-radius:var(--radius-sm);cursor:pointer;background:none;padding:2px;flex-shrink:0">`}
         </div>
         <input class="sign-lib-desc-input" placeholder="Kuvaus (valinnainen)" value="${description}"
                style="padding:8px 10px;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-body);font-size:13px">
@@ -180,7 +181,7 @@ export class SignLibraryPanel {
     if (!label || !shortLabel) return
 
     if (!id) {
-      createTemplate(this.library, { label, shortLabel, color, description, favorite: false })
+      createTemplate(this.library, { label, shortLabel, color, description, favorite: true })
     } else {
       const patch: Partial<Omit<SignTemplate, 'id'>> = { label, shortLabel, description }
       if (form.querySelector('.sign-lib-color-input')) patch.color = color

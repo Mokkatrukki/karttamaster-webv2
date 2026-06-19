@@ -238,7 +238,7 @@ describe('T22 SignLibraryPanel — V10', () => {
       expect(favs).toHaveLength(4)
     })
 
-    it('uusi custom-malli ei ole suosikki', () => {
+    it('uusi custom-malli on automaattisesti suosikki (T91)', () => {
       const container = setup()
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn())
@@ -248,7 +248,7 @@ describe('T22 SignLibraryPanel — V10', () => {
       container.querySelector<HTMLButtonElement>('.sign-lib-save-btn')!.click()
       const templates = listTemplates(lib)
       const custom = templates.find(t => t.label === 'Uusi')!
-      expect(custom.favorite).toBe(false)
+      expect(custom.favorite).toBe(true)
     })
   })
 

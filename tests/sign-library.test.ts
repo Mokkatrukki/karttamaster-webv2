@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import {
   createLibrary,
   createTemplate,
@@ -6,6 +6,8 @@ import {
   deleteTemplate,
   listTemplates,
   listFavorites,
+  saveLibrary,
+  loadLibrary,
   type SignTemplate,
   type SignLibrary,
 } from '../src/logic/sign-library'
@@ -106,6 +108,57 @@ describe('sign-library', () => {
     it('luo templaten favorite:false', () => {
       const t = createTemplate(lib, { label: 'A', shortLabel: 'A', color: '#fff', description: '', favorite: false })
       expect(t.favorite).toBe(false)
+    })
+  })
+
+  describe('saveLibrary / loadLibrary (V46)', () => {
+    beforeEach(() => {
+      let store: Record<string, string> = {}
+      vi.stubGlobal('localStorage', {
+        getItem: (k: string) => store[k] ?? null,
+        setItem: (k: string, v: string) => { store[k] = v },
+        removeItem: (k: string) => { delete store[k] },
+        clear: () => { store = {} },
+      })
+    })
+
+    it('save/load roundtrip säilyttää kaikki kentät', () => {
+      createTemplate(lib, { label: 'Testi', shortLabel: 'T', color: '#ff0000', description: 'kuvaus', favorite: true }, 'test-id')
+      saveLibrary(lib)
+      const loaded = loadLibrary()
+      expect(loaded).not.toBeNull()
+      expect(loaded!.size).toBe(1)
+      const t = loaded!.get('test-id')!
+      expect(t.label).toBe('Testi')
+      expect(t.shortLabel).toBe('T')
+      expect(t.color).toBe('#ff0000')
+      expect(t.favorite).toBe(true)
+    })
+
+    it('tyhjä localStorage → null', () => {
+      expect(loadLibrary()).toBeNull()
+    })
+
+    it('korruptoitunut JSON → null + avain poistettu (V14-pattern)', () => {
+      localStorage.setItem('karttamaster-sign-library', 'not-json{{')
+      expect(loadLibrary()).toBeNull()
+      expect(localStorage.getItem('karttamaster-sign-library')).toBeNull()
+    })
+
+    it('väärä versio → null + avain poistettu', () => {
+      localStorage.setItem('karttamaster-sign-library', JSON.stringify({ version: 99, templates: [] }))
+      expect(loadLibrary()).toBeNull()
+      expect(localStorage.getItem('karttamaster-sign-library')).toBeNull()
+    })
+
+    it('useat templatet tallennetaan ja palautetaan', () => {
+      createTemplate(lib, { label: 'A', shortLabel: 'a', color: '#111', description: '', favorite: false }, 'id-a')
+      createTemplate(lib, { label: 'B', shortLabel: 'b', color: '#222', description: '', favorite: true }, 'id-b')
+      saveLibrary(lib)
+      const loaded = loadLibrary()!
+      expect(loaded.size).toBe(2)
+      expect(loaded.get('id-a')?.label).toBe('A')
+      expect(loaded.get('id-b')?.favorite).toBe(true)
     })
   })
 

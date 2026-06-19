@@ -25,7 +25,7 @@ function circleSvg(type: string, bearing: number, status: MarkerStatus, colorOve
     case 'left':           arrow = '←'; color = '#2563eb'; shortLabel = 'V';  break
     case 'upcoming-right': arrow = '↱'; color = '#b45309'; shortLabel = 'TO'; isUpcoming = true; break
     case 'upcoming-left':  arrow = '↰'; color = '#7c3aed'; shortLabel = 'TV'; isUpcoming = true; break
-    default:               arrow = '→'; color = colorOverride ?? '#94a3b8'; shortLabel = shortLabelOverride ?? '?'; break
+    default:               arrow = shortLabelOverride ?? '?'; color = colorOverride ?? '#94a3b8'; shortLabel = shortLabelOverride ?? '?'; break
   }
   const opacity = status === 'suunniteltu' ? 0.45 : 1.0
   const dotColor = STATUS_DOT_COLOR[status]
