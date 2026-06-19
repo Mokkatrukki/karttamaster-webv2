@@ -110,6 +110,7 @@ export class MarkerManager {
       distanceFromStart: point.distanceFromStart,
       routeIds,
       status: DEFAULT_STATUS,
+      bearingManual: false,
       ...(color ? { color } : {}),
       ...(shortLabel ? { shortLabel } : {}),
     }
@@ -137,6 +138,7 @@ export class MarkerManager {
     const m = this.markers.find((x) => x.id === id)
     if (!m) return
     m.bearing = bearing
+    m.bearingManual = true
     const lm = this.leafletMarkers.get(id)
     if (lm) lm.setIcon(createSignIcon(m.type, bearing, m.status, m.color, m.shortLabel))
   }
@@ -216,11 +218,12 @@ export class MarkerManager {
         if (dist < bestDist) { bestDist = dist; bestIdx = idx; bestRouteIdx = ri }
       })
       const primaryRoute = this.routes[bestRouteIdx]
-      const bearing = bearingAtIndex(primaryRoute.routePoints, bestIdx)
       const point = primaryRoute.routePoints[bestIdx]
       const rawRouteIds = assignRoutesToMarker(lat, lng, this.routes)
       const routeIds = ensureRouteIds(rawRouteIds, primaryRoute.id)
       if (bestDist > FAR_FROM_ROUTE_M) this.onFarFromRoute?.(bestDist)
+      // V52: jos käyttäjä on manuaalisesti kääntänyt merkkiä, säilytä bearing
+      const bearing = m.bearingManual ? m.bearing : bearingAtIndex(primaryRoute.routePoints, bestIdx)
       m.lat = lat
       m.lon = lng
       m.bearing = bearing
@@ -231,6 +234,7 @@ export class MarkerManager {
         lat,
         lon: lng,
         bearing,
+        bearing_manual: m.bearingManual ?? false,
         distance_from_start: point.distanceFromStart,
         route_ids: routeIds,
       })
