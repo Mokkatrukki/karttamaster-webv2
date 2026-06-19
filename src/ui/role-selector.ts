@@ -10,7 +10,7 @@ export class RoleSelector {
     lockedRole?: Role,
   ) {
     this.role = lockedRole ?? getRole()
-    if (lockedRole === 'talkoolainen') {
+    if (lockedRole !== undefined) {
       btn.hidden = true
       this.updateBtn()
       this.onChange?.(this.role)

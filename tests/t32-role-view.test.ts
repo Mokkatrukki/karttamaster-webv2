@@ -86,12 +86,14 @@ describe('T32 — rooli-näkymävalinta', () => {
       expect(onChange).toHaveBeenCalledWith('talkoolainen')
     })
 
-    it('lockedRole=järjestäjä → nappi näkyvissä, toggle toimii', () => {
+    it('lockedRole=järjestäjä → nappi hidden, ei togglea (V13: ei rooli-togglea kummallekaan)', () => {
       const onChange = vi.fn()
       new RoleSelector(btn, onChange, 'järjestäjä')
-      expect(btn.hidden).toBe(false)
+      expect(btn.hidden).toBe(true)
       btn.click()
-      expect(onChange).toHaveBeenLastCalledWith('talkoolainen')
+      // klikki ei vaihda roolia — onChange kutsuttu vain kerran (init)
+      expect(onChange).toHaveBeenCalledTimes(1)
+      expect(onChange).toHaveBeenCalledWith('järjestäjä')
     })
 
     it('ilman lockedRole → nappi näkyvissä (vanha käyttäytyminen säilyy)', () => {

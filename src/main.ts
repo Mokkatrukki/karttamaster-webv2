@@ -312,8 +312,15 @@ if (import.meta.env.DEV) {
   import('./devtools/feedback-widget').then(({ FeedbackWidget }) => new FeedbackWidget())
 }
 
+function applyRoleHide(role: string): void {
+  document.querySelectorAll<HTMLElement>('[data-role-hide]').forEach(el => {
+    if (el.dataset.roleHide === role) el.hidden = true
+  })
+}
+
 const authScreen = new AuthScreen(({ role, code }) => {
   setRole(role)
+  applyRoleHide(role)
   new RoleSelector(
     document.getElementById('btn-role') as HTMLButtonElement,
     applyRoleView,
