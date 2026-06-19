@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { createSignLibrary, SignLibraryPanel } from '../src/ui/sign-library-panel'
-import { listTemplates } from '../src/logic/sign-library'
+import { createTemplate, listTemplates, listFavorites } from '../src/logic/sign-library'
 
 function setup() {
   const container = document.createElement('div')
@@ -195,6 +195,60 @@ describe('T22 SignLibraryPanel — V10', () => {
       container.querySelector<HTMLButtonElement>('.sign-lib-save-btn')!.click()
       const deleteBtns = container.querySelectorAll('.sign-lib-delete-btn')
       expect(deleteBtns.length).toBe(1)
+    })
+  })
+
+  describe('suosikki-toggle (T83)', () => {
+    it('jokaisella rivillä on fav-nappi', () => {
+      const container = setup()
+      const lib = createSignLibrary()
+      new SignLibraryPanel(container, lib, vi.fn())
+      const favBtns = container.querySelectorAll('.sign-lib-fav-btn')
+      expect(favBtns.length).toBe(4)
+    })
+
+    it('toggle vaihtaa favorite false→true ja kutsuu onChange', () => {
+      const container = setup()
+      const lib = createSignLibrary()
+      const t = createTemplate(lib, { label: 'Testi', shortLabel: 'T', color: '#000', description: '', favorite: false })
+      const onChange = vi.fn()
+      new SignLibraryPanel(container, lib, onChange)
+      const btn = container.querySelector<HTMLButtonElement>(`.sign-lib-fav-btn[data-id="${t.id}"]`)!
+      expect(btn).toBeTruthy()
+      btn.click()
+      expect(lib.get(t.id)?.favorite).toBe(true)
+      expect(onChange).toHaveBeenCalledOnce()
+    })
+
+    it('toggle vaihtaa favorite true→false', () => {
+      const container = setup()
+      const lib = createSignLibrary()
+      // default templates have favorite:true, toggle first one
+      const lib_templates = listTemplates(lib)
+      const firstId = lib_templates[0].id
+      new SignLibraryPanel(container, lib, vi.fn())
+      const btn = container.querySelector<HTMLButtonElement>(`.sign-lib-fav-btn[data-id="${firstId}"]`)!
+      btn.click()
+      expect(lib.get(firstId)?.favorite).toBe(false)
+    })
+
+    it('default-mallit ovat suosikkeja seedDefaults jälkeen', () => {
+      const lib = createSignLibrary()
+      const favs = listFavorites(lib)
+      expect(favs).toHaveLength(4)
+    })
+
+    it('uusi custom-malli ei ole suosikki', () => {
+      const container = setup()
+      const lib = createSignLibrary()
+      new SignLibraryPanel(container, lib, vi.fn())
+      container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
+      container.querySelector<HTMLInputElement>('.sign-lib-label-input')!.value = 'Uusi'
+      container.querySelector<HTMLInputElement>('.sign-lib-short-input')!.value = 'U'
+      container.querySelector<HTMLButtonElement>('.sign-lib-save-btn')!.click()
+      const templates = listTemplates(lib)
+      const custom = templates.find(t => t.label === 'Uusi')!
+      expect(custom.favorite).toBe(false)
     })
   })
 

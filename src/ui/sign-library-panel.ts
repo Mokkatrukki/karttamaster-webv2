@@ -16,10 +16,10 @@ function escapeHtml(s: string): string {
 
 function seedDefaults(library: SignLibrary): void {
   if (library.size > 0) return
-  createTemplate(library, { label: 'Vasemmalle', shortLabel: 'V', color: '#2563eb', description: 'Käänny vasemmalle' }, 'left')
-  createTemplate(library, { label: 'Oikealle', shortLabel: 'O', color: '#16a34a', description: 'Käänny oikealle' }, 'right')
-  createTemplate(library, { label: 'Tuleva vasemmalle', shortLabel: 'TV', color: '#7c3aed', description: '' }, 'upcoming-left')
-  createTemplate(library, { label: 'Tuleva oikealle', shortLabel: 'TO', color: '#b45309', description: '' }, 'upcoming-right')
+  createTemplate(library, { label: 'Vasemmalle', shortLabel: 'V', color: '#2563eb', description: 'Käänny vasemmalle', favorite: true }, 'left')
+  createTemplate(library, { label: 'Oikealle', shortLabel: 'O', color: '#16a34a', description: 'Käänny oikealle', favorite: true }, 'right')
+  createTemplate(library, { label: 'Tuleva vasemmalle', shortLabel: 'TV', color: '#7c3aed', description: '', favorite: true }, 'upcoming-left')
+  createTemplate(library, { label: 'Tuleva oikealle', shortLabel: 'TO', color: '#b45309', description: '', favorite: true }, 'upcoming-right')
 }
 
 export function createSignLibrary(): SignLibrary {
@@ -73,8 +73,12 @@ export class SignLibraryPanel {
     const deleteBtn = isDefault ? '' :
       `<button class="sign-lib-delete-btn" data-id="${t.id}" aria-label="Poista malli" style="min-width:44px;min-height:44px;background:var(--danger-soft);border:none;border-radius:var(--radius-sm);color:var(--danger-text);font-size:14px;cursor:pointer">×</button>`
 
+    const favIcon = t.favorite ? '⭐' : '☆'
+    const favBtn = `<button class="sign-lib-fav-btn" data-id="${t.id}" aria-label="Suosikki-toggle" style="min-width:44px;min-height:44px;background:none;border:none;border-radius:var(--radius-sm);font-size:16px;cursor:pointer;line-height:1">${favIcon}</button>`
+
     return `<div class="sign-lib-row" style="display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--border-card);padding:0">
       ${placeBtn}
+      ${favBtn}
       <button class="sign-lib-edit-btn" data-id="${t.id}" aria-label="Muokkaa mallia" style="min-width:44px;min-height:44px;background:none;border:none;border-radius:var(--radius-sm);color:var(--text-muted);font-size:13px;cursor:pointer">✎</button>
       ${deleteBtn}
     </div>`
@@ -114,6 +118,18 @@ export class SignLibraryPanel {
   }
 
   private bindEvents(): void {
+    this.container.querySelectorAll<HTMLButtonElement>('.sign-lib-fav-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id
+        if (!id) return
+        const t = this.library.get(id)
+        if (!t) return
+        updateTemplate(this.library, id, { favorite: !t.favorite })
+        this.render()
+        this.onChange()
+      })
+    })
+
     this.container.querySelectorAll<HTMLButtonElement>('.sign-lib-edit-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         this.editingId = btn.dataset.id ?? null
@@ -164,7 +180,7 @@ export class SignLibraryPanel {
     if (!label || !shortLabel) return
 
     if (!id) {
-      createTemplate(this.library, { label, shortLabel, color, description })
+      createTemplate(this.library, { label, shortLabel, color, description, favorite: false })
     } else {
       const patch: Partial<Omit<SignTemplate, 'id'>> = { label, shortLabel, description }
       if (form.querySelector('.sign-lib-color-input')) patch.color = color

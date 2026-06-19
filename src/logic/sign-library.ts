@@ -4,6 +4,7 @@ export interface SignTemplate {
   shortLabel: string  // compact label for map icons, e.g. "O"
   color: string       // hex color for icon and swatch
   description: string // free text, e.g. "Käänny oikealle"
+  favorite: boolean
 }
 
 export type SignLibrary = Map<string, SignTemplate>
@@ -40,4 +41,8 @@ export function deleteTemplate(library: SignLibrary, id: string): boolean {
 
 export function listTemplates(library: SignLibrary): SignTemplate[] {
   return Array.from(library.values())
+}
+
+export function listFavorites(library: SignLibrary): SignTemplate[] {
+  return Array.from(library.values()).filter(t => t.favorite)
 }
