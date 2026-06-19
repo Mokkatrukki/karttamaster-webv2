@@ -30,7 +30,6 @@ export class PlaceMode {
     this.signTypeDropdown = document.getElementById('sign-type-dropdown')!
     this.floatingPicker   = document.getElementById('floating-picker')!
 
-    this.signTypeDropdown.innerHTML = buildSignTypeButtons()
     this.floatingPicker.innerHTML   = buildSignTypeButtons()
 
     this.bindEvents()

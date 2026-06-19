@@ -22,6 +22,7 @@ import { SegmentOverlay } from './map/segment-overlay'
 import { SegmentPanel } from './ui/segment-panel'
 import { SegmentView } from './ui/segment-view'
 import { LeftPanel } from './ui/left-panel'
+import { SignLibraryPanel, createSignLibrary } from './ui/sign-library-panel'
 import { getSegmentForCode, getMarkersForSegment } from './logic/segments'
 import type { Segment } from './logic/segments'
 import { fetchSegmentByCode, fetchAllSegments } from './logic/segment-sync'
@@ -221,6 +222,12 @@ async function init(talkoolainenCode?: string) {
 
   statusPanel = new StatusPanel(document.getElementById('status-panel')!)
   statusPanel.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
+
+  const signLibrary = createSignLibrary()
+  const signLibraryContainer = document.getElementById('sign-type-dropdown')
+  if (signLibraryContainer) {
+    new SignLibraryPanel(signLibraryContainer, signLibrary, () => {})
+  }
 
   const placeMode = new PlaceMode(markerManager, leftPanel ? () => leftPanel.open() : undefined)
 

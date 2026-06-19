@@ -48,7 +48,7 @@ server/       ← Hono + Bun + SQLite (tulossa)
 | RoleController | `src/logic/role.ts` | ✓ T12 | critical-paths: "Rooli-toggle" | [logic.md](docs/components/logic.md) |
 | SituationLogic | `src/logic/situation.ts` | ○ T15 | — | [logic.md](docs/components/logic.md) |
 | NavigationLogic | `src/logic/navigation.ts` | ✓ T16 | — | [logic.md](docs/components/logic.md) |
-| SignLibraryPanel | `src/ui/sign-library-panel.ts` | ○ T22 | — | [ui.md](docs/components/ui.md) |
+| SignLibraryPanel | `src/ui/sign-library-panel.ts` | ✓ T22 | — | [ui.md](docs/components/ui.md) |
 | RoleSelector | `src/ui/role-selector.ts` | ✓ T12 | critical-paths: "Rooli-toggle" | [ui.md](docs/components/ui.md) |
 | SegmentPanel | `src/ui/segment-panel.ts` | ○ T25 | — | [ui.md](docs/components/ui.md) |
 | SituationDashboard | `src/ui/situation-dashboard.ts` | ○ T28 | — | [ui.md](docs/components/ui.md) |
