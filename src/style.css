@@ -209,21 +209,11 @@ button {
   letter-spacing: 0.01em;
 }
 
-#btn-add-sign { background: var(--accent); color: var(--accent-text); }
-#btn-add-sign.place-mode { background: var(--danger); color: #fff; }
 #btn-list {
   background: var(--field-tint);
   color: var(--text-body);
   border: 1px solid var(--border-strong);
 }
-
-.place-mode-label {
-  font-size: 11px;
-  color: #fcd34d;
-  display: none;
-  white-space: nowrap;
-}
-.place-mode-label.active { display: inline; }
 
 /* ── Sign type dropdown (toolbar) ── */
 
@@ -293,9 +283,6 @@ button {
 }
 
 /* ── Rooli-näkymä ── */
-
-body[data-role="talkoolainen"] #btn-add-sign { display: none; }
-body[data-role="talkoolainen"] .place-mode-label { display: none !important; }
 
 /* ── Map ── */
 

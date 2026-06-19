@@ -11,46 +11,30 @@ import { mockAuthAsJarjestaja } from './helpers/auth'
 // Dev-server pyörii ulkopuolella (bun run dev) — playwright.config.ts baseURL
 
 test.describe('Merkki kartalle', () => {
-  test('toolbar-dropdown → map click → näkyy listassa', async ({ page }) => {
+  test('dblclick kartalla → picker → tyyppi valitaan → merkki näkyy listassa (T85)', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    // Avaa dropdown
-    await page.click('#btn-add-sign')
-    await page.waitForTimeout(300)
+    // Ei btn-add-sign toolbarissa (T85)
+    await expect(page.locator('#btn-add-sign')).toHaveCount(0)
 
-    // Valitse tyyppi
-    await page.click('.sign-type-btn[data-type="right"]')
-    await page.waitForTimeout(300)
+    // dblclick kartalla avaa floating pickerin
+    await page.dblclick('#map', { position: { x: 460, y: 260 } })
+    await page.waitForTimeout(500)
+    await expect(page.locator('#floating-picker')).toHaveClass(/open/)
 
-    // Odota place mode (cursor muuttuu crosshairiksi)
-    await expect(page.locator('#map')).toHaveClass(/place-mode/)
-
-    // Klikkaa suoraan SVG-reittipolun päälle (Leaflet polyline)
-    // Ensimmäinen SVG path = orange 55km reitti — bounding box antaa koordinaatin
-    const routePath = page.locator('.leaflet-overlay-pane path').first()
-    const routeBox = await routePath.boundingBox()
-    expect(routeBox).not.toBeNull()
-    const mapBox = await page.locator('#map').boundingBox()
-    expect(mapBox).not.toBeNull()
-    // Klikkaa reitin bounding boxin vasenta puolta (missä viiva kulkee)
-    const clickX = Math.round(routeBox!.x + routeBox!.width * 0.15 - mapBox!.x)
-    const clickY = Math.round(routeBox!.y + routeBox!.height * 0.5 - mapBox!.y)
-    await page.click('#map', { position: { x: clickX, y: clickY }, timeout: 10000 })
+    // Valitse "Oikealle" (right) pickeristä
+    await page.click('#floating-picker .sign-type-btn[data-type="right"]')
     await page.waitForTimeout(800)
 
-    // Tarkista localStorage — merkki tallennettu
-    const ls = await page.evaluate(() => localStorage.getItem('karttamaster-markers'))
-    const data = ls ? JSON.parse(ls) : { markers: [] }
-    expect(data.markers.length).toBeGreaterThan(0)
+    // Picker sulkeutuu merkityksen jälkeen
+    await expect(page.locator('#floating-picker')).not.toHaveClass(/open/)
 
-    const marker = data.markers[0]
-    // T44 ✓: routeIds aina non-empty (V21 — ensureRouteIds fallback)
-    expect(marker.routeIds.length).toBeGreaterThan(0)
-
-    // Lista näyttää merkin (T44 ✓)
+    // Avaa overflow-valikko → Lista
+    await page.click('#btn-menu')
+    await page.waitForTimeout(200)
     await page.click('#btn-list')
     await page.waitForTimeout(300)
     const listText = await page.locator('#marker-modal').innerText()
@@ -164,17 +148,10 @@ test.describe('Rotation arm sticky — T40', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    // Lisää merkki — se on heti armed
-    await page.click('#btn-add-sign')
-    await page.waitForTimeout(300)
-    await page.click('.sign-type-btn[data-type="right"]')
-    await page.waitForTimeout(300)
-    const routePath = page.locator('.leaflet-overlay-pane path').first()
-    const routeBox = await routePath.boundingBox()
-    const mapBox = await page.locator('#map').boundingBox()
-    const clickX = Math.round(routeBox!.x + routeBox!.width * 0.15 - mapBox!.x)
-    const clickY = Math.round(routeBox!.y + routeBox!.height * 0.5 - mapBox!.y)
-    await page.click('#map', { position: { x: clickX, y: clickY }, timeout: 10000 })
+    // Lisää merkki dblclick-pickerillä — se on heti armed
+    await page.dblclick('#map', { position: { x: 460, y: 260 } })
+    await page.waitForTimeout(500)
+    await page.click('#floating-picker .sign-type-btn[data-type="right"]')
     await page.waitForTimeout(800)
 
     // Merkki on armed (marker-armed class)

@@ -229,7 +229,7 @@ async function init(talkoolainenCode?: string) {
     new SignLibraryPanel(signLibraryContainer, signLibrary, () => {})
   }
 
-  const placeMode = new PlaceMode(markerManager, signLibrary, leftPanel ? () => leftPanel.open() : undefined)
+  const placeMode = new PlaceMode(markerManager, signLibrary)
 
   // Marker modal
   const markerModalBackdrop = document.getElementById('marker-modal-backdrop')!
@@ -262,26 +262,16 @@ async function init(talkoolainenCode?: string) {
 
   // Map events
   map.doubleClickZoom.disable()
-  let clickTimer: ReturnType<typeof setTimeout> | null = null
 
   map.on('click', (e: L.LeafletMouseEvent) => {
     if (segmentPanel.isCreationMode()) {
       segmentPanel.onMapClick(e.latlng.lat, e.latlng.lng)
       return
     }
-    if (placeMode.isPickerOpen())   { placeMode.closePicker();   return }
-    if (placeMode.isDropdownOpen()) { placeMode.closeDropdown(); return }
-    if (clickTimer !== null) { clearTimeout(clickTimer); clickTimer = null; return }
-    clickTimer = setTimeout(() => {
-      clickTimer = null
-      placeMode.onMapClick(e.latlng.lat, e.latlng.lng)
-    }, 250)
+    if (placeMode.isPickerOpen()) { placeMode.closePicker(); return }
   })
 
   map.on('dblclick', (e: L.LeafletMouseEvent) => {
-    if (clickTimer !== null) { clearTimeout(clickTimer); clickTimer = null }
-    placeMode.exit()
-    placeMode.closeDropdown()
     const orig = (e as any).originalEvent as MouseEvent
     placeMode.openPicker(e.latlng.lat, e.latlng.lng, orig.clientX, orig.clientY)
   })
@@ -291,8 +281,6 @@ async function init(talkoolainenCode?: string) {
       if (segmentPanel.isCreationMode()) { segmentPanel.cancelCreation(); return }
       if (segmentOverlay.isEditMode())   { segmentOverlay.exitEditMode(); return }
       if (placeMode.isPickerOpen())      { placeMode.closePicker();   return }
-      if (placeMode.isDropdownOpen())    { placeMode.closeDropdown(); return }
-      if (placeMode.isActive())          { placeMode.exit();          return }
       if (markerModal.classList.contains('open')) { closeMarkerModal(); return }
       if (driveMode.isActive()) { driveMode.stop(); progressBar.update(0) }
       return
