@@ -125,17 +125,7 @@ export class MarkerInteraction {
       this.arm(m.id)
     })
 
-    const deleteBtn = document.createElement('button')
-    deleteBtn.className = 'marker-ctx-delete'
-    deleteBtn.textContent = '✕'
-    deleteBtn.addEventListener('click', (e) => {
-      e.stopPropagation()
-      this.hideContextMenu()
-      this.onRemove(m.id)
-    })
-
     menu.appendChild(rotateBtn)
-    menu.appendChild(deleteBtn)
     document.body.appendChild(menu)
     this.contextMenu = menu
     this._contextMenuMarkerId = m.id
@@ -180,7 +170,6 @@ export class MarkerInteraction {
         white-space: nowrap;
       }
       .marker-ctx-rotate { background: #f59e0b; color: #111; }
-      .marker-ctx-delete { background: #ef4444; color: #fff; }
       .sign-handle { display: none; }
       .marker-armed .sign-handle { display: block; }
       .marker-armed { cursor: grab !important; }
