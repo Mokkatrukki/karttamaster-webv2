@@ -400,3 +400,50 @@ test.describe('Touch targets — T45', () => {
     expect(violations).toHaveLength(0)
   })
 })
+
+test.describe('Left panel — T73', () => {
+  test('paneeli auki → kartta-alue pienempi; toggle → kartta täyttää leveyden', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    // Paneeli auki oletuksena
+    const panelContent = page.locator('#left-panel-content')
+    await expect(panelContent).toBeVisible()
+
+    const mapBoxOpen = await page.locator('#map-area').boundingBox()
+    expect(mapBoxOpen).not.toBeNull()
+
+    // Toggle sulkee paneelin
+    await page.click('#left-panel-toggle')
+    await page.waitForTimeout(200)
+
+    await expect(panelContent).not.toBeVisible()
+
+    const mapBoxClosed = await page.locator('#map-area').boundingBox()
+    expect(mapBoxClosed).not.toBeNull()
+
+    // Kartta-alue leveämpi kun paneeli kiinni (V13: map fills width)
+    expect(mapBoxClosed!.width).toBeGreaterThan(mapBoxOpen!.width)
+
+    // Toggle uudelleen → paneeli aukeaa
+    await page.click('#left-panel-toggle')
+    await page.waitForTimeout(200)
+    await expect(panelContent).toBeVisible()
+
+    const mapBoxReopened = await page.locator('#map-area').boundingBox()
+    expect(mapBoxReopened!.width).toBeLessThan(mapBoxClosed!.width)
+  })
+
+  test('merkkikirjasto-grid näkyy paneelissa', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    // Sign type buttons näkyvät left panelissa
+    const signTypeBtn = page.locator('#left-panel #sign-type-dropdown .sign-type-btn').first()
+    await expect(signTypeBtn).toBeVisible()
+  })
+})

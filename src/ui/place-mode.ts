@@ -20,7 +20,10 @@ export class PlaceMode {
   private readonly signTypeDropdown: HTMLElement
   private readonly floatingPicker: HTMLElement
 
-  constructor(private readonly markerManager: MarkerManager) {
+  constructor(
+    private readonly markerManager: MarkerManager,
+    private readonly onOpenPanel?: () => void,
+  ) {
     this.mapEl            = document.getElementById('map')!
     this.placeModeLabel   = document.getElementById('place-mode-label')!
     this.btnAddSign       = document.getElementById('btn-add-sign')!
@@ -34,7 +37,10 @@ export class PlaceMode {
   }
 
   isActive(): boolean { return this.placeType !== null }
-  isDropdownOpen(): boolean { return this.signTypeDropdown.classList.contains('open') }
+  isDropdownOpen(): boolean {
+    if (this.onOpenPanel) return false
+    return this.signTypeDropdown.classList.contains('open')
+  }
   isPickerOpen(): boolean { return this.floatingPicker.classList.contains('open') }
 
   enter(type: MarkerType): void {
@@ -54,6 +60,7 @@ export class PlaceMode {
   }
 
   closeDropdown(): void {
+    if (this.onOpenPanel) return
     this.signTypeDropdown.classList.remove('open')
   }
 
@@ -81,6 +88,10 @@ export class PlaceMode {
   }
 
   private openDropdown(): void {
+    if (this.onOpenPanel) {
+      this.onOpenPanel()
+      return
+    }
     const rect = this.btnAddSign.getBoundingClientRect()
     this.signTypeDropdown.style.top  = `${rect.bottom + 4}px`
     this.signTypeDropdown.style.left = `${rect.left}px`
@@ -112,7 +123,9 @@ export class PlaceMode {
 
     document.addEventListener('mousedown', e => {
       const target = e.target as HTMLElement
-      if (!this.signTypeDropdown.contains(target) && !this.btnAddSign.contains(target)) {
+      if (!this.onOpenPanel &&
+          !this.signTypeDropdown.contains(target) &&
+          !this.btnAddSign.contains(target)) {
         this.closeDropdown()
       }
       if (!this.floatingPicker.contains(target)) this.closePicker()

@@ -21,6 +21,7 @@ import { GpsDrivePanel } from './ui/gps-drive-panel'
 import { SegmentOverlay } from './map/segment-overlay'
 import { SegmentPanel } from './ui/segment-panel'
 import { SegmentView } from './ui/segment-view'
+import { LeftPanel } from './ui/left-panel'
 import { getSegmentForCode, getMarkersForSegment } from './logic/segments'
 import type { Segment } from './logic/segments'
 import { fetchSegmentByCode, fetchAllSegments } from './logic/segment-sync'
@@ -59,32 +60,25 @@ if (btnLayer) {
 }
 
 const toolbarMenu = document.getElementById('toolbar-menu')!
-const segmentPanelContainer = document.getElementById('segment-panel-container')!
 const snapshotPanelContainer = document.getElementById('snapshot-panel-container')!
 
+const leftPanelEl = document.getElementById('left-panel')
+const leftPanel = leftPanelEl ? new LeftPanel(leftPanelEl) : null
+
 // Clicks inside floating panels must not bubble to document close-handler
-segmentPanelContainer.addEventListener('click', e => e.stopPropagation())
 snapshotPanelContainer.addEventListener('click', e => e.stopPropagation())
 
 document.getElementById('btn-menu')?.addEventListener('click', e => {
   e.stopPropagation()
   toolbarMenu.classList.toggle('open')
 })
-document.getElementById('btn-segment-panel')?.addEventListener('click', e => {
-  e.stopPropagation()
-  segmentPanelContainer.classList.toggle('open')
-  snapshotPanelContainer.classList.remove('open')
-  toolbarMenu.classList.remove('open')
-})
 document.getElementById('btn-snapshot-panel')?.addEventListener('click', e => {
   e.stopPropagation()
   snapshotPanelContainer.classList.toggle('open')
-  segmentPanelContainer.classList.remove('open')
   toolbarMenu.classList.remove('open')
 })
 document.addEventListener('click', () => {
   toolbarMenu.classList.remove('open')
-  segmentPanelContainer.classList.remove('open')
   snapshotPanelContainer.classList.remove('open')
 })
 
@@ -234,7 +228,7 @@ async function init(talkoolainenCode?: string) {
   statusPanel = new StatusPanel(document.getElementById('status-panel')!)
   statusPanel.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
 
-  const placeMode = new PlaceMode(markerManager)
+  const placeMode = new PlaceMode(markerManager, leftPanel ? () => leftPanel.open() : undefined)
 
   // Marker modal
   const markerModalBackdrop = document.getElementById('marker-modal-backdrop')!

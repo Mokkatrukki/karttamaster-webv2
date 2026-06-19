@@ -18,16 +18,32 @@
       <div id="toolbar-menu">
         <button id="btn-list">Lista</button>
         <div class="menu-sep"></div>
-        <button id="btn-segment-panel">Paatkajakoa</button>
         <button id="btn-snapshot-panel">Varmuuskopiot</button>
         <div class="menu-sep"></div>
         <button id="btn-layer">Karttakerros</button>
       </div>
-      <div id="status-panel"></div>
-      <div id="snapshot-panel-container"></div>
-      <div id="segment-panel-container"></div>
-      <div id="segment-view-container"></div>
-      <div id="map"></div>
+
+      <div id="app-main">
+        <div id="left-panel">
+          <div id="left-panel-content">
+            <div class="left-panel-section">
+              <div class="left-panel-section-title">Merkkikirjasto</div>
+              <div id="sign-type-dropdown"></div>
+            </div>
+            <div class="left-panel-section">
+              <div id="segment-panel-container"></div>
+            </div>
+          </div>
+          <button id="left-panel-toggle" aria-label="Sulje paneeli">◀</button>
+        </div>
+
+        <div id="map-area">
+          <div id="status-panel"></div>
+          <div id="snapshot-panel-container"></div>
+          <div id="segment-view-container"></div>
+          <div id="map"></div>
+        </div>
+      </div>
     </div>
 
     <div id="route-bar">
@@ -67,7 +83,6 @@
       <div id="marker-modal-items"></div>
     </div>
 
-    <div id="sign-type-dropdown"></div>
     <div id="floating-picker"></div>
     <div id="distance-warning" style="display:none;position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:3000;background:#b45309;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;pointer-events:none"></div>
     <script type="module" src="/src/main.ts"></script>
