@@ -128,6 +128,7 @@ async function init(talkoolainenCode?: string) {
   }
 
   const segmentOverlay = new SegmentOverlay(map, routes)
+  segmentOverlay.update(segmentStore)
 
   let tempCreationMarker: L.CircleMarker | null = null
 

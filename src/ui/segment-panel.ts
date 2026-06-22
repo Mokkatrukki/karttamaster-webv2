@@ -1,5 +1,5 @@
 import { nearestPointIndex, haversineDistance } from '../logic/bearing'
-import { createSegment, updateSegment, deleteSegment, getMarkersForSegment, getSegmentProgress, validateNoOverlap } from '../logic/segments'
+import { createSegment, updateSegment, deleteSegment, getMarkersForSegment, validateNoOverlap } from '../logic/segments'
 import { pushSegment, updateSegmentRemote, deleteSegmentRemote } from '../logic/segment-sync'
 import type { Segment, SegmentStore, EquipmentItem } from '../logic/segments'
 import type { RouteConfig } from '../logic/multi-route'
@@ -398,78 +398,36 @@ export class SegmentPanel {
       this.listEl.appendChild(empty)
       return
     }
-    const markers = this.callbacks.getMarkers?.() ?? []
     for (const seg of segments) {
-      this.listEl.appendChild(this.buildSegmentRow(seg, markers))
+      this.listEl.appendChild(this.buildSegmentRow(seg))
     }
   }
 
-  private buildSegmentRow(seg: Segment, markers: SignMarker[] = []): HTMLLIElement {
+  private buildSegmentRow(seg: Segment): HTMLLIElement {
     const li = document.createElement('li')
     li.className = 'segment-item'
     li.dataset.id = seg.id
 
-    const main = document.createElement('div')
-    main.className = 'segment-row-main'
-
     const info = document.createElement('span')
     info.className = 'segment-info'
-    const startKm = (seg.startDist / 1000).toFixed(1)
-    const endKm = (seg.endDist / 1000).toFixed(1)
     const name = seg.displayName ?? `(#${seg.id.slice(0, 6)})`
     info.textContent = name
+
     const kmSpan = document.createElement('span')
     kmSpan.className = 'segment-km'
+    const startKm = (seg.startDist / 1000).toFixed(1)
+    const endKm = (seg.endDist / 1000).toFixed(1)
     kmSpan.textContent = `${startKm}–${endKm} km`
-    info.appendChild(kmSpan)
-    if (markers.length > 0) {
-      const progress = getSegmentProgress(seg, markers)
-      const progressSpan = document.createElement('span')
-      progressSpan.className = 'segment-progress'
-      progressSpan.textContent = `${progress}%`
-      progressSpan.style.cssText = 'font-size:11px;color:var(--text-muted);margin-left:4px'
-      info.appendChild(progressSpan)
-    }
-    main.appendChild(info)
-
-    const editPtsBtn = document.createElement('button')
-    editPtsBtn.className = 'btn-segment-edit-pts'
-    editPtsBtn.title = 'Siirrä aloitus- ja lopetuspistettä'
-    editPtsBtn.textContent = 'Muokkaa pisteitä'
-    editPtsBtn.addEventListener('click', () => {
-      this.callbacks.onEnterEditMode?.(seg, (startDist, endDist) => {
-        updateSegment(this.store, seg.id, { startDist, endDist })
-        this.save()
-        updateSegmentRemote(seg.id, { startDist, endDist }).catch(() => {})
-        this.render()
-        this.onUpdate()
-      })
-    })
-    main.appendChild(editPtsBtn)
 
     const detailsBtn = document.createElement('button')
     detailsBtn.className = 'btn-segment-details-open'
-    detailsBtn.textContent = 'Lisätiedot & varusteet'
-    detailsBtn.setAttribute('aria-label', 'Avaa lisätiedot ja varusteet')
+    detailsBtn.setAttribute('aria-label', `Avaa ${name} asetukset`)
+    detailsBtn.textContent = '···'
     detailsBtn.addEventListener('click', () => this.openDetailsModal(seg))
-    main.appendChild(detailsBtn)
 
-    const deleteBtn = document.createElement('button')
-    deleteBtn.className = 'btn-segment-delete'
-    deleteBtn.textContent = '✕'
-    deleteBtn.addEventListener('click', () => {
-      this.callbacks.onExitEditMode?.()
-      deleteSegment(this.store, seg.id)
-      this.save()
-      deleteSegmentRemote(seg.id).catch(() => {})
-      this.render()
-      this.onUpdate()
-    })
-    main.appendChild(deleteBtn)
-    li.appendChild(main)
-
-    li.appendChild(this.buildAssignSection(seg))
-
+    li.appendChild(info)
+    li.appendChild(kmSpan)
+    li.appendChild(detailsBtn)
     return li
   }
 
@@ -597,7 +555,48 @@ export class SegmentPanel {
     // (4) equipment
     body.appendChild(this.buildEquipmentSection(seg))
 
+    // (5) assign — talkoolaisen linkki
+    body.appendChild(this.buildAssignSectionModal(seg))
+
+    // (6) muokkaa pisteitä
+    const editPtsSection = document.createElement('div')
+    editPtsSection.className = 'segment-details-modal-section'
+    const editPtsBtn = document.createElement('button')
+    editPtsBtn.className = 'btn-segment-edit-pts-modal'
+    editPtsBtn.textContent = 'Muokkaa pisteitä kartalla'
+    editPtsBtn.addEventListener('click', () => {
+      this.closeModal()
+      this.callbacks.onEnterEditMode?.(seg, (startDist, endDist) => {
+        updateSegment(this.store, seg.id, { startDist, endDist })
+        this.save()
+        updateSegmentRemote(seg.id, { startDist, endDist }).catch(() => {})
+        this.render()
+        this.onUpdate()
+      })
+    })
+    editPtsSection.appendChild(editPtsBtn)
+    body.appendChild(editPtsSection)
+
     modal.appendChild(body)
+
+    // Danger zone — poisto
+    const dangerZone = document.createElement('div')
+    dangerZone.className = 'segment-modal-danger-zone'
+    const deleteBtn = document.createElement('button')
+    deleteBtn.className = 'btn-segment-delete-modal'
+    deleteBtn.textContent = 'Poista pätkä'
+    deleteBtn.addEventListener('click', () => {
+      this.closeModal()
+      this.callbacks.onExitEditMode?.()
+      deleteSegment(this.store, seg.id)
+      this.save()
+      deleteSegmentRemote(seg.id).catch(() => {})
+      this.render()
+      this.onUpdate()
+    })
+    dangerZone.appendChild(deleteBtn)
+    modal.appendChild(dangerZone)
+
     backdrop.appendChild(modal)
     document.body.appendChild(backdrop)
     this.activeModal = backdrop
@@ -749,9 +748,14 @@ export class SegmentPanel {
     return container
   }
 
-  private buildAssignSection(seg: Segment): HTMLElement {
+  private buildAssignSectionModal(seg: Segment): HTMLElement {
     const section = document.createElement('div')
-    section.className = 'segment-assign'
+    section.className = 'segment-details-modal-section'
+
+    const title = document.createElement('p')
+    title.className = 'segment-equipment-title'
+    title.textContent = 'Talkoolaisen linkki:'
+    section.appendChild(title)
 
     const errorEl = document.createElement('p')
     errorEl.className = 'assign-error'
@@ -759,72 +763,69 @@ export class SegmentPanel {
 
     if (seg.assignedCode) {
       const url = `/s/${seg.assignedCode}`
+      const row = document.createElement('div')
+      row.className = 'segment-assign-modal-row'
 
       const urlSpan = document.createElement('span')
       urlSpan.className = 'segment-url'
       urlSpan.textContent = url
-      section.appendChild(urlSpan)
+      row.appendChild(urlSpan)
 
       const copyBtn = document.createElement('button')
       copyBtn.className = 'btn-copy-url'
       copyBtn.textContent = '📋 Kopioi'
       copyBtn.addEventListener('click', () => {
-        const fullUrl = `${window.location.origin}${url}`
-        navigator.clipboard.writeText(fullUrl).catch(() => {})
+        navigator.clipboard.writeText(`${window.location.origin}${url}`).catch(() => {})
       })
-      section.appendChild(copyBtn)
+      row.appendChild(copyBtn)
 
       const editBtn = document.createElement('button')
       editBtn.className = 'btn-assign-edit'
       editBtn.textContent = 'Muuta'
       editBtn.addEventListener('click', async () => {
-        const codeToDelete = seg.assignedCode!
         errorEl.hidden = true
         try {
-          const resp = await fetch(`/api/admin/codes/${codeToDelete}`, { method: 'DELETE' })
+          const resp = await fetch(`/api/admin/codes/${seg.assignedCode!}`, { method: 'DELETE' })
           if (!resp.ok) throw new Error('delete_failed')
           updateSegment(this.store, seg.id, { assignedCode: undefined })
           this.save()
           updateSegmentRemote(seg.id, { assignedCode: null as unknown as string }).catch(() => {})
+          this.closeModal()
           this.render()
         } catch {
           errorEl.textContent = 'Virhe poistettaessa — yritä uudelleen'
           errorEl.hidden = false
         }
       })
-      section.appendChild(editBtn)
-      section.appendChild(errorEl)
+      row.appendChild(editBtn)
+      section.appendChild(row)
     } else {
+      const form = document.createElement('div')
+      form.className = 'segment-assign-modal-form'
+
       const codeInput = document.createElement('input')
       codeInput.className = 'input-assign-code'
       codeInput.placeholder = 'Koodi'
       codeInput.setAttribute('aria-label', 'Talkoolaisen koodi')
 
-      const nameInput = document.createElement('input')
-      nameInput.className = 'input-assign-name'
-      nameInput.placeholder = 'Nimi (valinnainen)'
-      nameInput.value = seg.displayName ?? ''
-      nameInput.setAttribute('aria-label', 'Pätkän nimi')
-
       const saveBtn = document.createElement('button')
       saveBtn.className = 'btn-assign-save'
-      saveBtn.textContent = 'Tallenna'
+      saveBtn.textContent = 'Tallenna linkki'
       saveBtn.addEventListener('click', async () => {
         const code = codeInput.value.trim()
         if (!code) return
-        const displayName = nameInput.value.trim() || seg.displayName
         errorEl.hidden = true
         try {
           const resp = await fetch('/api/admin/codes', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code, display_name: displayName ?? code, segment_id: seg.id }),
+            body: JSON.stringify({ code, display_name: seg.displayName ?? code, segment_id: seg.id }),
           })
           if (!resp.ok) throw new Error('save_failed')
-          updateSegment(this.store, seg.id, { assignedCode: code, displayName })
+          updateSegment(this.store, seg.id, { assignedCode: code })
           this.save()
-          const updated = this.store.get(seg.id)
-          if (updated) updateSegmentRemote(seg.id, { assignedCode: code, displayName }).catch(() => {})
+          updateSegmentRemote(seg.id, { assignedCode: code }).catch(() => {})
+          this.closeModal()
           this.render()
           this.onUpdate()
         } catch {
@@ -833,12 +834,12 @@ export class SegmentPanel {
         }
       })
 
-      section.appendChild(codeInput)
-      section.appendChild(nameInput)
-      section.appendChild(saveBtn)
-      section.appendChild(errorEl)
+      form.appendChild(codeInput)
+      form.appendChild(saveBtn)
+      section.appendChild(form)
     }
 
+    section.appendChild(errorEl)
     return section
   }
 }

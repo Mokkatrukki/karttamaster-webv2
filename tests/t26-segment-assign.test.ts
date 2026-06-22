@@ -30,6 +30,11 @@ function setup() {
   return { container, store, panel }
 }
 
+function openModal(container: HTMLElement): void {
+  const detailsBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+  detailsBtn.click()
+}
+
 describe('T26 — Segment assign flow', () => {
   beforeEach(() => {
     document.body.innerHTML = ''
@@ -47,32 +52,32 @@ describe('T26 — Segment assign flow', () => {
     vi.unstubAllGlobals()
   })
 
-  it('näyttää assign-lomake kun pätkä ei ole jaettu', () => {
+  it('näyttää assign-lomake modaalissa kun pätkä ei ole jaettu', () => {
     const { container } = setup()
-    const codeInput = container.querySelector('.input-assign-code') as HTMLInputElement
+    openModal(container)
+    const codeInput = document.body.querySelector('.input-assign-code') as HTMLInputElement
     expect(codeInput).not.toBeNull()
     expect(codeInput.placeholder).toBe('Koodi')
   })
 
-  it('tallentaa assignedCode + displayName kun Tallenna klikataan', async () => {
+  it('tallentaa assignedCode kun Tallenna linkki klikataan', async () => {
     const { container, store } = setup()
-    const codeInput = container.querySelector('.input-assign-code') as HTMLInputElement
-    const nameInput = container.querySelector('.input-assign-name') as HTMLInputElement
-    const saveBtn = container.querySelector('.btn-assign-save') as HTMLButtonElement
+    openModal(container)
+    const codeInput = document.body.querySelector('.input-assign-code') as HTMLInputElement
+    const saveBtn = document.body.querySelector('.btn-assign-save') as HTMLButtonElement
 
     codeInput.value = 'matti123'
-    nameInput.value = 'Matin pätkä'
     saveBtn.click()
     await flush()
 
     const seg = Array.from(store.values())[0]
     expect(seg.assignedCode).toBe('matti123')
-    expect(seg.displayName).toBe('Matin pätkä')
   })
 
   it('ei tallenna kun koodi on tyhjä', async () => {
     const { container, store } = setup()
-    const saveBtn = container.querySelector('.btn-assign-save') as HTMLButtonElement
+    openModal(container)
+    const saveBtn = document.body.querySelector('.btn-assign-save') as HTMLButtonElement
     saveBtn.click()
     await flush()
 
@@ -80,57 +85,69 @@ describe('T26 — Segment assign flow', () => {
     expect(seg.assignedCode).toBeUndefined()
   })
 
-  it('näyttää URL ja kopiointinappi kun assignedCode on asetettu', async () => {
+  it('näyttää URL ja kopiointinappi modaalissa kun assignedCode on asetettu', async () => {
     const { container } = setup()
-    const codeInput = container.querySelector('.input-assign-code') as HTMLInputElement
-    const saveBtn = container.querySelector('.btn-assign-save') as HTMLButtonElement
+    openModal(container)
+    const codeInput = document.body.querySelector('.input-assign-code') as HTMLInputElement
+    const saveBtn = document.body.querySelector('.btn-assign-save') as HTMLButtonElement
 
     codeInput.value = 'matti123'
     saveBtn.click()
     await flush()
 
-    const urlSpan = container.querySelector('.segment-url')
-    const copyBtn = container.querySelector('.btn-copy-url')
+    // modal sulkeutuu tallennettuaan — avaa uudelleen
+    openModal(container)
+    const urlSpan = document.body.querySelector('.segment-url')
+    const copyBtn = document.body.querySelector('.btn-copy-url')
     expect(urlSpan?.textContent).toBe('/s/matti123')
     expect(copyBtn).not.toBeNull()
   })
 
   it('URL muotoa /s/<koodi> (V27)', async () => {
     const { container } = setup()
-    const codeInput = container.querySelector('.input-assign-code') as HTMLInputElement
-    const saveBtn = container.querySelector('.btn-assign-save') as HTMLButtonElement
+    openModal(container)
+    const codeInput = document.body.querySelector('.input-assign-code') as HTMLInputElement
+    const saveBtn = document.body.querySelector('.btn-assign-save') as HTMLButtonElement
 
     codeInput.value = 'pekkanen'
     saveBtn.click()
     await flush()
 
-    const urlSpan = container.querySelector('.segment-url')
+    openModal(container)
+    const urlSpan = document.body.querySelector('.segment-url')
     expect(urlSpan?.textContent).toMatch(/^\/s\/[a-z0-9]+$/)
     expect(urlSpan?.textContent).toBe('/s/pekkanen')
   })
 
   it('Muuta-nappi poistaa assignedCode ja näyttää lomakkeen uudelleen', async () => {
     const { container, store } = setup()
-    const codeInput = container.querySelector('.input-assign-code') as HTMLInputElement
-    const saveBtn = container.querySelector('.btn-assign-save') as HTMLButtonElement
+    openModal(container)
+    const codeInput = document.body.querySelector('.input-assign-code') as HTMLInputElement
+    const saveBtn = document.body.querySelector('.btn-assign-save') as HTMLButtonElement
 
     codeInput.value = 'matti123'
     saveBtn.click()
     await flush()
 
-    const editBtn = container.querySelector('.btn-assign-edit') as HTMLButtonElement
+    // modal sulkeutuu, avaa uudelleen
+    openModal(container)
+    const editBtn = document.body.querySelector('.btn-assign-edit') as HTMLButtonElement
     editBtn.click()
     await flush()
 
     const seg = Array.from(store.values())[0]
     expect(seg.assignedCode).toBeUndefined()
-    const newCodeInput = container.querySelector('.input-assign-code')
+
+    // modal sulkeutui Muuta:n jälkeen, avaa uudelleen ja tarkista lomake
+    openModal(container)
+    const newCodeInput = document.body.querySelector('.input-assign-code')
     expect(newCodeInput).not.toBeNull()
   })
 
-  it('käyttää segment displayName kenttäarvona nimen inputissa', () => {
+  it('pätkän nimi näkyy modaalin nimi-kentässä', () => {
     const { container } = setup()
-    const nameInput = container.querySelector('.input-assign-name') as HTMLInputElement
+    openModal(container)
+    const nameInput = document.body.querySelector('.segment-details-name-input') as HTMLInputElement
     expect(nameInput.value).toBe('Pätkä 1')
   })
 })
@@ -161,8 +178,9 @@ describe('T59 — Assign-sync: backend API calls (V34)', () => {
     createSegment(store, { routeIds: ['35km'], startDist: 5000, endDist: 12000, equipment: [], phase: 'asettaminen', displayName: 'Pätkä 1' })
     new SegmentPanel(container, [], store, vi.fn())
 
-    const codeInput = container.querySelector('.input-assign-code') as HTMLInputElement
-    const saveBtn = container.querySelector('.btn-assign-save') as HTMLButtonElement
+    openModal(container)
+    const codeInput = document.body.querySelector('.input-assign-code') as HTMLInputElement
+    const saveBtn = document.body.querySelector('.btn-assign-save') as HTMLButtonElement
     codeInput.value = 'tiimi1'
     saveBtn.click()
     await flush()
@@ -184,15 +202,16 @@ describe('T59 — Assign-sync: backend API calls (V34)', () => {
     createSegment(store, { routeIds: ['35km'], startDist: 5000, endDist: 12000, equipment: [], phase: 'asettaminen' })
     new SegmentPanel(container, [], store, vi.fn())
 
-    const codeInput = container.querySelector('.input-assign-code') as HTMLInputElement
-    const saveBtn = container.querySelector('.btn-assign-save') as HTMLButtonElement
+    openModal(container)
+    const codeInput = document.body.querySelector('.input-assign-code') as HTMLInputElement
+    const saveBtn = document.body.querySelector('.btn-assign-save') as HTMLButtonElement
     codeInput.value = 'tiimi1'
     saveBtn.click()
     await flush()
 
     const seg = Array.from(store.values())[0]
     expect(seg.assignedCode).toBeUndefined()
-    const errorEl = container.querySelector('.assign-error') as HTMLElement
+    const errorEl = document.body.querySelector('.assign-error') as HTMLElement
     expect(errorEl.hidden).toBe(false)
     expect(errorEl.textContent).toContain('Virhe')
   })
@@ -207,13 +226,16 @@ describe('T59 — Assign-sync: backend API calls (V34)', () => {
     createSegment(store, { routeIds: ['35km'], startDist: 5000, endDist: 12000, equipment: [], phase: 'asettaminen', displayName: 'Pätkä 1' })
     new SegmentPanel(container, [], store, vi.fn())
 
-    const codeInput = container.querySelector('.input-assign-code') as HTMLInputElement
-    const saveBtn = container.querySelector('.btn-assign-save') as HTMLButtonElement
+    openModal(container)
+    const codeInput = document.body.querySelector('.input-assign-code') as HTMLInputElement
+    const saveBtn = document.body.querySelector('.btn-assign-save') as HTMLButtonElement
     codeInput.value = 'tiimi1'
     saveBtn.click()
     await flush()
 
-    const editBtn = container.querySelector('.btn-assign-edit') as HTMLButtonElement
+    // modal sulkeutuu — avaa uudelleen Muuta-nappia varten
+    openModal(container)
+    const editBtn = document.body.querySelector('.btn-assign-edit') as HTMLButtonElement
     editBtn.click()
     await flush()
 
@@ -231,15 +253,16 @@ describe('T59 — Assign-sync: backend API calls (V34)', () => {
     createSegment(store, { routeIds: ['35km'], startDist: 5000, endDist: 12000, equipment: [], phase: 'asettaminen' })
     new SegmentPanel(container, [], store, vi.fn())
 
-    const codeInput = container.querySelector('.input-assign-code') as HTMLInputElement
-    const saveBtn = container.querySelector('.btn-assign-save') as HTMLButtonElement
+    openModal(container)
+    const codeInput = document.body.querySelector('.input-assign-code') as HTMLInputElement
+    const saveBtn = document.body.querySelector('.btn-assign-save') as HTMLButtonElement
     codeInput.value = 'tiimi1'
     saveBtn.click()
     await flush()
 
     const seg = Array.from(store.values())[0]
     expect(seg.assignedCode).toBeUndefined()
-    const errorEl = container.querySelector('.assign-error') as HTMLElement
+    const errorEl = document.body.querySelector('.assign-error') as HTMLElement
     expect(errorEl.hidden).toBe(false)
   })
 })

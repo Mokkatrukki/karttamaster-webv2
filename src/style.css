@@ -1254,12 +1254,11 @@ button {
 
 .segment-item {
   display: flex;
-  flex-direction: column;
-  padding: 6px 10px;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 4px 10px;
   border-bottom: 1px solid var(--border-card);
-  font-size: 11px;
-  color: var(--text-body);
-  gap: 4px;
+  min-width: 0;
 }
 
 .segment-row-main {
@@ -1315,6 +1314,7 @@ button {
 
 .segment-info {
   flex: 1;
+  min-width: 0;
   color: var(--text-body);
   font-size: 12px;
   font-weight: 600;
@@ -1323,11 +1323,12 @@ button {
   white-space: nowrap;
 }
 
-.segment-info .segment-km {
+.segment-km {
   font-size: 11px;
   font-weight: 400;
   color: var(--text-muted);
-  margin-left: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .segment-empty {
@@ -1554,20 +1555,21 @@ button {
 /* ── Segment details open button ── */
 
 .btn-segment-details-open {
-  background: var(--field-tint);
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
   color: var(--text-muted);
-  font-size: 11px;
-  padding: 0 8px;
+  font-size: 16px;
   min-height: 44px;
+  min-width: 44px;
+  flex-shrink: 0;
+  letter-spacing: 0.1em;
   cursor: pointer;
-  white-space: nowrap;
 }
 
 .btn-segment-details-open:hover {
-  background: var(--hover);
   color: var(--text-body);
+  background: var(--hover);
+  border-radius: var(--radius-sm);
 }
 
 /* ── Segment details modal (T69) ── */
@@ -1642,6 +1644,63 @@ button {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.segment-assign-modal-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.segment-assign-modal-form {
+  display: flex;
+  gap: 6px;
+}
+
+.segment-assign-modal-form .input-assign-code {
+  flex: 1;
+  min-width: 0;
+}
+
+.btn-segment-edit-pts-modal {
+  background: var(--field-tint);
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  padding: 0 16px;
+  min-height: 44px;
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+}
+
+.btn-segment-edit-pts-modal:hover {
+  background: var(--hover);
+  color: var(--text-body);
+}
+
+.segment-modal-danger-zone {
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.btn-segment-delete-modal {
+  background: var(--danger-soft);
+  color: var(--danger-text);
+  border: 1px solid rgba(239,68,68,0.25);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 44px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.btn-segment-delete-modal:hover {
+  background: var(--danger-soft-hover);
+  color: #fca5a5;
 }
 
 .segment-details-name-input {
