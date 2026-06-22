@@ -1,9 +1,32 @@
 /**
  * T25 — SegmentPanel + segment-overlay E2E
- * Validates: 2-click creation flow, segment list, delete
+ * Validates: 2-click creation flow (T94: modal-based), segment list, delete
+ * T94 note: after two map clicks the creation modal enters 'tiedot' phase —
+ *           must click "Tallenna" to actually create the segment.
  */
 import { test, expect } from 'playwright/test'
 import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen } from './helpers/auth'
+
+/** Helper: create a segment via 2-click modal flow + Tallenna */
+async function createSegmentViaModal(page: import('playwright/test').Page) {
+  await page.click('#btn-segment-create')
+  await page.waitForTimeout(200)
+
+  const routePath = page.locator('.leaflet-overlay-pane path').first()
+  const routeBox = await routePath.boundingBox()
+  const mapBox = await page.locator('#map').boundingBox()
+  if (!routeBox || !mapBox) throw new Error('route path or map not found')
+
+  const midY = Math.round(routeBox.y + routeBox.height * 0.5 - mapBox.y)
+  await page.click('#map', { position: { x: Math.round(routeBox.x + routeBox.width * 0.20 - mapBox.x), y: midY } })
+  await page.waitForTimeout(300)
+  await page.click('#map', { position: { x: Math.round(routeBox.x + routeBox.width * 0.60 - mapBox.x), y: midY } })
+  await page.waitForTimeout(300)
+
+  // T94: now in 'tiedot' phase — click Tallenna to confirm
+  await page.click('.btn-segment-creation-save')
+  await page.waitForTimeout(400)
+}
 
 test.describe('T25 — SegmentPanel', () => {
   test('segment-panel on DOM ja näkyy järjestäjälle', async ({ page }) => {
@@ -38,61 +61,53 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(panel).not.toBeVisible()
   })
 
-  test('kaksi klikkausta reitillä luo pätkän', async ({ page }) => {
+  test('kaksi klikkausta + Tallenna luo pätkän (T94 modal flow)', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    // Järjestäjärooli varmistettu
     await expect(page.locator('#btn-role')).toHaveText('Järjestäjä')
 
-    // Aloita luomismoodi
+    // Avaa luontimodaali
     await page.click('#btn-segment-create')
     await page.waitForTimeout(200)
 
-    // Statusviesti näkyy: "1. piste"
-    const status = page.locator('.segment-panel-status')
-    await expect(status).toBeVisible()
-    await expect(status).toContainText('1. piste')
+    // T94: luontimodaali avautuu heti
+    await expect(page.locator('[data-testid="creation-modal"]')).toBeVisible()
+    await expect(page.locator('.segment-creation-modal')).toContainText('Klikkaa kartalta aloituspiste')
 
-    // Hae reittipolun bounding box ensimmäistä klikkausta varten
     const routePath = page.locator('.leaflet-overlay-pane path').first()
     const routeBox = await routePath.boundingBox()
     expect(routeBox).not.toBeNull()
     const mapBox = await page.locator('#map').boundingBox()
     expect(mapBox).not.toBeNull()
 
-    // Ensimmäinen klikkaus reitillä (20% leveydestä)
-    const click1X = Math.round(routeBox!.x + routeBox!.width * 0.20 - mapBox!.x)
-    const click1Y = Math.round(routeBox!.y + routeBox!.height * 0.5 - mapBox!.y)
-    await page.click('#map', { position: { x: click1X, y: click1Y } })
+    const midY = Math.round(routeBox!.y + routeBox!.height * 0.5 - mapBox!.y)
+
+    // Ensimmäinen klikkaus — vaihe2
+    await page.click('#map', { position: { x: Math.round(routeBox!.x + routeBox!.width * 0.20 - mapBox!.x), y: midY } })
     await page.waitForTimeout(300)
+    await expect(page.locator('.segment-creation-modal')).toContainText('Klikkaa kartalta lopetuspiste')
 
-    // Statusviesti päivittynyt: "2. piste"
-    await expect(status).toContainText('2. piste')
-
-    // Toinen klikkaus reitillä (50% leveydestä)
-    const click2X = Math.round(routeBox!.x + routeBox!.width * 0.50 - mapBox!.x)
-    const click2Y = Math.round(routeBox!.y + routeBox!.height * 0.5 - mapBox!.y)
-    await page.click('#map', { position: { x: click2X, y: click2Y } })
+    // Toinen klikkaus — tiedot-vaihe
+    await page.click('#map', { position: { x: Math.round(routeBox!.x + routeBox!.width * 0.60 - mapBox!.x), y: midY } })
     await page.waitForTimeout(300)
+    await expect(page.locator('.btn-segment-creation-save')).toBeVisible()
 
-    // Statusviesti piilotettu (creation done)
-    await expect(status).not.toBeVisible()
+    // Tallenna
+    await page.click('.btn-segment-creation-save')
+    await page.waitForTimeout(400)
 
-    // Pätkä ilmestyy listaan
-    const list = page.locator('#segment-list')
-    await expect(list).toBeVisible()
-    const items = list.locator('.segment-item')
+    // Modaali suljettu, pätkä listassa
+    await expect(page.locator('[data-testid="creation-modal"]')).not.toBeAttached()
+    const items = page.locator('#segment-list .segment-item')
     await expect(items).toHaveCount(1)
-
-    // Pätkä-rivi sisältää km-tiedon
     const infoText = await items.first().locator('.segment-info').innerText()
     expect(infoText).toContain('km')
   })
 
-  test('T56a — ensimmäisen klikkauksen jälkeen circleMarker kartalla', async ({ page }) => {
+  test('T56a — ensimmäisen klikkauksen jälkeen circleMarker kartalla (T94)', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
@@ -101,64 +116,7 @@ test.describe('T25 — SegmentPanel', () => {
     await page.click('#btn-segment-create')
     await page.waitForTimeout(200)
 
-    // Ennen klikkausta ei creation-markeria
     await expect(page.locator('.segment-creation-marker')).toHaveCount(0)
-
-    const routePath = page.locator('.leaflet-overlay-pane path').first()
-    const routeBox = await routePath.boundingBox()
-    const mapBox = await page.locator('#map').boundingBox()
-
-    const click1X = Math.round(routeBox!.x + routeBox!.width * 0.20 - mapBox!.x)
-    const click1Y = Math.round(routeBox!.y + routeBox!.height * 0.5 - mapBox!.y)
-    await page.click('#map', { position: { x: click1X, y: click1Y } })
-    await page.waitForTimeout(300)
-
-    // Statusviesti: "2. piste" (ensimmäinen ok)
-    await expect(page.locator('.segment-panel-status')).toContainText('2. piste')
-
-    // CircleMarker ilmestyi
-    await expect(page.locator('.segment-creation-marker')).toHaveCount(1)
-  })
-
-  test('T56a — Esc peruuttaa luonnin ja poistaa circleMarkerin', async ({ page }) => {
-    await mockAuthAsJarjestaja(page)
-    await page.setViewportSize({ width: 1280, height: 720 })
-    await page.goto('/')
-    await page.waitForTimeout(1500)
-
-    await page.click('#btn-segment-create')
-    await page.waitForTimeout(200)
-
-    const routePath = page.locator('.leaflet-overlay-pane path').first()
-    const routeBox = await routePath.boundingBox()
-    const mapBox = await page.locator('#map').boundingBox()
-
-    const click1X = Math.round(routeBox!.x + routeBox!.width * 0.20 - mapBox!.x)
-    const click1Y = Math.round(routeBox!.y + routeBox!.height * 0.5 - mapBox!.y)
-    await page.click('#map', { position: { x: click1X, y: click1Y } })
-    await page.waitForTimeout(300)
-
-    // Creation marker näkyy
-    await expect(page.locator('.segment-creation-marker')).toHaveCount(1)
-
-    // Esc peruuttaa
-    await page.keyboard.press('Escape')
-    await page.waitForTimeout(200)
-
-    await expect(page.locator('.segment-panel-status')).not.toBeVisible()
-    // CircleMarker poistettu
-    await expect(page.locator('.segment-creation-marker')).toHaveCount(0)
-  })
-
-  test('T56b — "Muokkaa pisteitä" -nappi näkyy pätkärivillä', async ({ page }) => {
-    await mockAuthAsJarjestaja(page)
-    await page.setViewportSize({ width: 1280, height: 720 })
-    await page.goto('/')
-    await page.waitForTimeout(1500)
-
-    // Luo pätkä
-    await page.click('#btn-segment-create')
-    await page.waitForTimeout(200)
 
     const routePath = page.locator('.leaflet-overlay-pane path').first()
     const routeBox = await routePath.boundingBox()
@@ -170,13 +128,49 @@ test.describe('T25 — SegmentPanel', () => {
     }})
     await page.waitForTimeout(300)
 
+    // T94: modal now shows vaihe2 instruction
+    await expect(page.locator('.segment-creation-modal')).toContainText('Klikkaa kartalta lopetuspiste')
+    await expect(page.locator('.segment-creation-marker')).toHaveCount(1)
+  })
+
+  test('T56a — Esc peruuttaa luonnin ja sulkee modaalin (T94)', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await page.click('#btn-segment-create')
+    await page.waitForTimeout(200)
+
+    await expect(page.locator('[data-testid="creation-modal"]')).toBeVisible()
+
+    const routePath = page.locator('.leaflet-overlay-pane path').first()
+    const routeBox = await routePath.boundingBox()
+    const mapBox = await page.locator('#map').boundingBox()
+
     await page.click('#map', { position: {
-      x: Math.round(routeBox!.x + routeBox!.width * 0.50 - mapBox!.x),
+      x: Math.round(routeBox!.x + routeBox!.width * 0.20 - mapBox!.x),
       y: Math.round(routeBox!.y + routeBox!.height * 0.5 - mapBox!.y),
     }})
     await page.waitForTimeout(300)
 
-    // Pätkä luotu — tarkista nappi
+    await expect(page.locator('.segment-creation-marker')).toHaveCount(1)
+
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(200)
+
+    await expect(page.locator('[data-testid="creation-modal"]')).not.toBeAttached()
+    await expect(page.locator('.segment-creation-marker')).toHaveCount(0)
+  })
+
+  test('T56b — "Muokkaa pisteitä" -nappi näkyy pätkärivillä', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await createSegmentViaModal(page)
+
     const editBtn = page.locator('.btn-segment-edit-pts')
     await expect(editBtn).toBeVisible()
     await expect(editBtn).toHaveText('Muokkaa pisteitä')
@@ -188,34 +182,10 @@ test.describe('T25 — SegmentPanel', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    // Luo pätkä
-    await page.click('#btn-segment-create')
-    await page.waitForTimeout(200)
+    await createSegmentViaModal(page)
 
-    const routePath = page.locator('.leaflet-overlay-pane path').first()
-    const routeBox = await routePath.boundingBox()
-    const mapBox = await page.locator('#map').boundingBox()
-    expect(routeBox).not.toBeNull()
-    expect(mapBox).not.toBeNull()
-
-    const midY = Math.round(routeBox!.y + routeBox!.height * 0.5 - mapBox!.y)
-
-    await page.click('#map', { position: {
-      x: Math.round(routeBox!.x + routeBox!.width * 0.20 - mapBox!.x),
-      y: midY,
-    }})
-    await page.waitForTimeout(300)
-    await page.click('#map', { position: {
-      x: Math.round(routeBox!.x + routeBox!.width * 0.60 - mapBox!.x),
-      y: midY,
-    }})
-    await page.waitForTimeout(500)
-
-    // Pätkä luotu — dispatch click suoraan segment-overlay-pathin kautta
-    // (polyline on SVG-path, coordinate-based click ei osu luotettavasti 8px stroukeen)
     await page.evaluate(() => {
       const paths = document.querySelectorAll<SVGPathElement>('.leaflet-overlay-pane path')
-      // Segment overlay lisää omat pathit viimeisenä — colored stripe on viimeisin
       const last = paths[paths.length - 1]
       if (last) last.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
@@ -231,24 +201,7 @@ test.describe('T25 — SegmentPanel', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    await page.click('#btn-segment-create')
-    await page.waitForTimeout(200)
-
-    const routePath = page.locator('.leaflet-overlay-pane path').first()
-    const routeBox = await routePath.boundingBox()
-    const mapBox = await page.locator('#map').boundingBox()
-    const midY = Math.round(routeBox!.y + routeBox!.height * 0.5 - mapBox!.y)
-
-    await page.click('#map', { position: {
-      x: Math.round(routeBox!.x + routeBox!.width * 0.20 - mapBox!.x),
-      y: midY,
-    }})
-    await page.waitForTimeout(300)
-    await page.click('#map', { position: {
-      x: Math.round(routeBox!.x + routeBox!.width * 0.60 - mapBox!.x),
-      y: midY,
-    }})
-    await page.waitForTimeout(500)
+    await createSegmentViaModal(page)
 
     await page.evaluate(() => {
       const paths = document.querySelectorAll<SVGPathElement>('.leaflet-overlay-pane path')
@@ -271,32 +224,13 @@ test.describe('T25 — SegmentPanel', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    // Luo pätkä (duplikoi luontiflow)
-    await page.click('#btn-segment-create')
-    await page.waitForTimeout(200)
+    await createSegmentViaModal(page)
 
-    const routePath = page.locator('.leaflet-overlay-pane path').first()
-    const routeBox = await routePath.boundingBox()
-    const mapBox = await page.locator('#map').boundingBox()
-
-    const click1X = Math.round(routeBox!.x + routeBox!.width * 0.20 - mapBox!.x)
-    const click1Y = Math.round(routeBox!.y + routeBox!.height * 0.5 - mapBox!.y)
-    await page.click('#map', { position: { x: click1X, y: click1Y } })
-    await page.waitForTimeout(300)
-
-    const click2X = Math.round(routeBox!.x + routeBox!.width * 0.50 - mapBox!.x)
-    const click2Y = Math.round(routeBox!.y + routeBox!.height * 0.5 - mapBox!.y)
-    await page.click('#map', { position: { x: click2X, y: click2Y } })
-    await page.waitForTimeout(300)
-
-    // Pätkä luotu
     await expect(page.locator('.segment-item')).toHaveCount(1)
 
-    // Poista
     await page.click('.btn-segment-delete')
     await page.waitForTimeout(200)
 
-    // Lista tyhjä taas
     await expect(page.locator('.segment-empty')).toBeVisible()
   })
 })
