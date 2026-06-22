@@ -89,6 +89,7 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | V55 | `SegmentOverlay.update(store)` kutsutaan heti `new SegmentOverlay(...)` -konstruktorin jälkeen `src/main.ts`:ssä — pätkät näkyvät kartalla myös sivun refreshin jälkeen ilman käyttäjäinteraktiota. |
 | V56 | `openDetailsModal()` save-nappi kutsuu `this.onUpdate()` tallennuksen jälkeen — `segmentOverlay.update(segmentStore)` triggeröityy ja kartta päivittyy välittömästi. |
 | V57 | Pätkän poisto modaalissa vaatii `window.confirm()`-varmistuksen ennen `deleteSegment()`-kutsua. |
+| V58 | Merkin poisto vaatii `window.confirm('Poistetaanko merkki?')` -varmistuksen ennen `manager.remove()`-kutsua. Koskee kaikkia delete-nappeja: `marker-list.ts` (nyt) ja T105 `MarkerDetailModal` (myöhemmin). |
 
 ## §T Tasks
 

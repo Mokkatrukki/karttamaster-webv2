@@ -56,7 +56,7 @@ function updateBulkCheckinBtns(listEl: HTMLElement, modal: HTMLElement | null): 
   }
 }
 
-export function renderMarkerList(manager: MarkerManager, highlightId?: string, segmentMarkerIds?: Set<string>, _library?: SignLibrary | null, onOpenDetail?: (id: string) => void): void {
+export function renderMarkerList(manager: MarkerManager, highlightId?: string, segmentMarkerIds?: Set<string>, library?: SignLibrary | null, onOpenDetail?: (id: string) => void): void {
   const allMarkers = manager.getAll()
   // V33: talkoolainen sees only their segment's markers when segmentMarkerIds provided
   const markers = segmentMarkerIds ? allMarkers.filter(m => segmentMarkerIds.has(m.id)) : allMarkers
@@ -114,7 +114,8 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
         const info = typeInfo(m.type)
         const displayColor = m.color ?? info.color
         const displayShortLabel = m.shortLabel ?? info.shortLabel
-        const displayLabel = m.shortLabel ?? info.label
+        const templateLabel = library?.get(m.type)?.label
+        const displayLabel = templateLabel ?? info.label
         const km = (m.distanceFromStart / 1000).toFixed(2)
         const highlighted = m.id === highlightId ? ' marker-item--new' : ''
         const statusBadge = `<span class="marker-status marker-status--${m.status}">${STATUS_LABELS[m.status]}</span>`
@@ -127,10 +128,10 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
         return `
           <div class="marker-item${highlighted}" data-id="${m.id}">
             ${checkbox}
-            <span class="marker-icon" style="color:${displayColor}">${displayShortLabel[0] ?? info.label[0]}</span>
+            <span class="marker-icon" style="color:${displayColor}">${displayShortLabel}</span>
+            <span class="marker-type-label">${displayLabel}</span>
             <span class="marker-km">${km} km</span>
             ${statusBadge}
-            <span class="marker-type-label">${displayLabel}</span>
             ${deleteBtn}
           </div>`
       }).join('')
@@ -154,7 +155,7 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
     btn.addEventListener('click', (e) => {
       e.stopPropagation()
       const id = btn.dataset.id ?? ''
-      if (id) manager.remove(id)
+      if (id && window.confirm('Poistetaanko merkki?')) manager.remove(id)
     })
   })
 
