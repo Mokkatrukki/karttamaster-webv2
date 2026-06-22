@@ -147,8 +147,24 @@ describe('MarkerDetailModal', () => {
     )
     modal.open('test-id')
     expect(document.querySelector('.marker-detail-type-select')).not.toBeNull()
-    expect(document.querySelector('.marker-detail-rotate-btn')).not.toBeNull()
-    expect(document.querySelector('.marker-detail-delete-btn')).not.toBeNull()
+    expect(document.querySelector('.modal-btn-secondary')).not.toBeNull() // ↻ Käännä
+    expect(document.querySelector('.modal-btn-destructive')).not.toBeNull() // Poista
+  })
+
+  it('järjestäjä näkee Tallenna-nappin footerissa', () => {
+    const marker = makeMarker()
+    const manager = makeMockManager(marker)
+    const modal = new MarkerDetailModal(
+      manager as any,
+      () => null,
+      () => 'järjestäjä',
+      () => null,
+      vi.fn(),
+      vi.fn(),
+    )
+    modal.open('test-id')
+    expect(document.querySelector('.modal-btn-primary')).not.toBeNull()
+    expect(document.querySelector('.modal-btn-primary')?.textContent).toBe('Tallenna')
   })
 
   it('talkoolainen ei näe type-select eikä delete-nappia', () => {
@@ -164,10 +180,10 @@ describe('MarkerDetailModal', () => {
     )
     modal.open('test-id')
     expect(document.querySelector('.marker-detail-type-select')).toBeNull()
-    expect(document.querySelector('.marker-detail-delete-btn')).toBeNull()
+    expect(document.querySelector('.modal-btn-destructive')).toBeNull()
   })
 
-  it('talkoolainen näkee status-napit', () => {
+  it('talkoolainen näkee status-napit footerissa', () => {
     const marker = makeMarker({ status: 'suunniteltu' })
     const manager = makeMockManager(marker)
     const modal = new MarkerDetailModal(
@@ -179,7 +195,7 @@ describe('MarkerDetailModal', () => {
       vi.fn(),
     )
     modal.open('test-id')
-    const btns = document.querySelectorAll('.marker-detail-status-btn')
+    const btns = document.querySelectorAll('.modal-btn-primary')
     expect(btns.length).toBeGreaterThan(0)
   })
 
@@ -195,7 +211,7 @@ describe('MarkerDetailModal', () => {
       vi.fn(),
     )
     modal.open('test-id')
-    const btns = document.querySelectorAll('.marker-detail-status-btn')
+    const btns = document.querySelectorAll('.modal-btn-primary')
     expect(btns.length).toBeGreaterThan(0)
   })
 
@@ -212,7 +228,7 @@ describe('MarkerDetailModal', () => {
       vi.fn(),
     )
     modal.open('test-id')
-    const deleteBtn = document.querySelector<HTMLButtonElement>('.marker-detail-delete-btn')
+    const deleteBtn = document.querySelector<HTMLButtonElement>('.modal-btn-destructive')
     deleteBtn!.click()
     expect(manager.remove).not.toHaveBeenCalled()
     expect(document.querySelector('.marker-detail-modal')).not.toBeNull()
@@ -231,7 +247,7 @@ describe('MarkerDetailModal', () => {
       vi.fn(),
     )
     modal.open('test-id')
-    const deleteBtn = document.querySelector<HTMLButtonElement>('.marker-detail-delete-btn')
+    const deleteBtn = document.querySelector<HTMLButtonElement>('.modal-btn-destructive')
     deleteBtn!.click()
     expect(manager.remove).toHaveBeenCalledWith('test-id')
     expect(document.querySelector('.marker-detail-modal')).toBeNull()
@@ -250,7 +266,7 @@ describe('MarkerDetailModal', () => {
       vi.fn(),
     )
     modal.open('test-id')
-    const rotateBtn = document.querySelector<HTMLButtonElement>('.marker-detail-rotate-btn')
+    const rotateBtn = document.querySelector<HTMLButtonElement>('.modal-btn-secondary')
     rotateBtn!.click()
     expect(onArmRequest).toHaveBeenCalledWith('test-id')
     expect(document.querySelector('.marker-detail-modal')).toBeNull()

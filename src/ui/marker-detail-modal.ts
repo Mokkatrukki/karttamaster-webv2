@@ -130,6 +130,7 @@ export class MarkerDetailModal {
     noteInput.rows = 3
     // V44: use .value, not innerHTML
     noteInput.value = marker.locationNote ?? ''
+    // auto-save on blur as belt-and-suspenders
     noteInput.addEventListener('blur', () => {
       this.manager.updateNote(marker.id, noteInput.value)
       this.onUpdate()
@@ -144,21 +145,23 @@ export class MarkerDetailModal {
     descPlaceholder.textContent = 'Kuvaus tulossa (T103)'
     body.appendChild(descPlaceholder)
 
+    frag.appendChild(body)
+
+    // Footer — modal-footer-pattern
     if (isJarjestaja) {
-      body.appendChild(this.buildJarjestajaSection(marker, library))
+      frag.appendChild(this.buildJarjestajaFooter(marker, library, noteInput))
     } else if (role === 'talkoolainen') {
-      body.appendChild(this.buildTalkoolainenSection(marker))
+      frag.appendChild(this.buildTalkoolainenFooter(marker))
     }
 
-    frag.appendChild(body)
     return frag
   }
 
-  private buildJarjestajaSection(marker: SignMarker, library: SignLibrary | null): HTMLElement {
-    const section = document.createElement('div')
-    section.className = 'marker-detail-actions'
+  private buildJarjestajaFooter(marker: SignMarker, library: SignLibrary | null, noteInput: HTMLTextAreaElement): HTMLElement {
+    const footer = document.createElement('div')
+    footer.className = 'modal-footer marker-detail-actions'
 
-    // Type select
+    // Type select above footer actions
     const typeLabel = document.createElement('label')
     typeLabel.className = 'marker-detail-label'
     typeLabel.textContent = 'Tyyppi'
@@ -193,26 +196,41 @@ export class MarkerDetailModal {
       this.onUpdate()
     })
 
-    section.appendChild(typeLabel)
-    section.appendChild(typeSelect)
+    footer.appendChild(typeLabel)
+    footer.appendChild(typeSelect)
 
-    const btnRow = document.createElement('div')
-    btnRow.className = 'marker-detail-btn-row'
+    // Primary + secondary actions
+    const actions = document.createElement('div')
+    actions.className = 'modal-footer-actions'
 
-    // Rotate button — arms marker, closes modal
+    const saveBtn = document.createElement('button')
+    saveBtn.className = 'modal-btn-primary'
+    saveBtn.textContent = 'Tallenna'
+    saveBtn.addEventListener('click', () => {
+      this.manager.updateNote(marker.id, noteInput.value)
+      this.onUpdate()
+      this.close()
+    })
+    actions.appendChild(saveBtn)
+
     const rotateBtn = document.createElement('button')
-    rotateBtn.className = 'marker-detail-rotate-btn'
+    rotateBtn.className = 'modal-btn-secondary'
     rotateBtn.textContent = '↻ Käännä'
     rotateBtn.addEventListener('click', () => {
       this.onArmRequest(marker.id)
       this.close()
     })
-    btnRow.appendChild(rotateBtn)
+    actions.appendChild(rotateBtn)
 
-    // Delete button — V58: requires confirm
+    footer.appendChild(actions)
+
+    // Destructive — V58: small text button, requires confirm
+    const destructiveRow = document.createElement('div')
+    destructiveRow.className = 'modal-footer-destructive'
+
     const deleteBtn = document.createElement('button')
-    deleteBtn.className = 'marker-detail-delete-btn'
-    deleteBtn.textContent = 'Poista'
+    deleteBtn.className = 'modal-btn-destructive'
+    deleteBtn.textContent = 'Poista merkki'
     deleteBtn.addEventListener('click', () => {
       if (window.confirm('Poistetaanko merkki?')) {
         this.close()
@@ -220,30 +238,33 @@ export class MarkerDetailModal {
         this.onUpdate()
       }
     })
-    btnRow.appendChild(deleteBtn)
+    destructiveRow.appendChild(deleteBtn)
+    footer.appendChild(destructiveRow)
 
-    section.appendChild(btnRow)
-    return section
+    return footer
   }
 
-  private buildTalkoolainenSection(marker: SignMarker): HTMLElement {
-    const section = document.createElement('div')
-    section.className = 'marker-detail-actions'
+  private buildTalkoolainenFooter(marker: SignMarker): HTMLElement {
+    const footer = document.createElement('div')
+    footer.className = 'modal-footer'
 
-    const actions = validActions(marker.status)
-    actions.forEach(action => {
+    const actions = document.createElement('div')
+    actions.className = 'modal-footer-actions'
+
+    validActions(marker.status).forEach(action => {
       if (!canTransition(marker.status, action)) return
       const btn = document.createElement('button')
-      btn.className = action === 'peru' ? 'marker-detail-status-btn marker-detail-status-btn--secondary' : 'marker-detail-status-btn'
+      btn.className = action === 'peru' ? 'modal-btn-secondary' : 'modal-btn-primary'
       btn.textContent = ACTION_LABELS[action] ?? action
       btn.addEventListener('click', () => {
         this.manager.updateStatus(marker.id, action)
         this.onUpdate()
         this.close()
       })
-      section.appendChild(btn)
+      actions.appendChild(btn)
     })
 
-    return section
+    footer.appendChild(actions)
+    return footer
   }
 }

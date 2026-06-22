@@ -285,6 +285,37 @@ metsässä, hanskat kädessä.
   - merkit readonly-lista: `text-muted 12px`, status-badge §C-väreillä, `max-height: 160px` scrollable
   - varusteet: add/remove/edit-rivi, `min-height: 44px` kaikille inputeille ja napeille
 
+### Modal footer -pattern (KAIKKI modaalit noudattavat)
+
+Kolme roolia, kolme tasoa:
+
+| Taso | Elementti | Tyyli | Koko |
+|------|-----------|-------|------|
+| Primary | Tallenna / Vahvista | `confirm` bg, `confirm-text`, `flex:1` | `min-height:44px` |
+| Secondary | Peruuta / Sulje | `field-tint` bg, `border-default` | `min-height:44px` |
+| Destructive | Poista / Palauta | **ei taustaa**, `danger-text` väri, `font-size:12px` | `min-height:32px` |
+
+Rakenne:
+```
+[modal-footer]                     ← sticky bottom, border-top border-subtle, surface-card bg
+  [footer-actions]                 ← flex row, gap 8px
+    [Tallenna]  [Peruuta]          ← primary + secondary rinnakkain
+  [footer-destructive]             ← erillinen rivi alle, text-center
+    [Poista merkki]                ← pieni tekstinappi, ei blokki
+```
+
+CSS-luokat:
+- `.modal-footer` — `position:sticky;bottom:0;padding:12px 14px;border-top:1px solid border-subtle;background:surface-card;display:flex;flex-direction:column;gap:8px`
+- `.modal-footer-actions` — `display:flex;gap:8px`
+- `.modal-btn-primary` — `flex:1;min-height:44px;background:confirm;color:confirm-text;border:none;border-radius:radius-sm;font-size:13px;font-weight:600`
+- `.modal-btn-secondary` — `min-height:44px;padding:0 16px;background:field-tint;border:1px solid border-default;border-radius:radius-sm;color:text-muted;font-size:13px`
+- `.modal-btn-destructive` — `min-height:32px;padding:4px 8px;background:transparent;border:none;color:danger-text;font-size:12px;cursor:pointer;align-self:center` — **ei isoa punaista blokkia**
+- `.modal-footer-destructive` — `display:flex;justify-content:center`
+
+**Sääntö:** Poista-nappi ei koskaan `danger-soft`-taustalla isona blokkina. Se on aina pieni teksti footerin omalla rivillään.
+
+**Auto-save vs explicit save:** Modaaleissa joissa on useita kenttiä (segment details, marker details) — kentät auto-save blurilla TAI explicit footer-Tallenna. **Molemmat hyväksytään**, mutta MarkerDetailModal käyttää explicit Tallennaa koska metsässä sormella kirjoitettu kommentti ei saa kadota vahingossa sulkemalla.
+
 ### MarkerDetailModal (`.marker-detail-modal`, T105)
 - Avautuu kahdelta triggeriltä — molemmat roolit:
   - **Merkkilistarivin klikki** (olemassa T104)
@@ -295,10 +326,12 @@ metsässä, hanskat kädessä.
 - Kehys: `bg-card`, `border:1px solid border-default`, `border-radius:14px`, `box-shadow:0 16px 48px rgba(0,0,0,0.5)`
 - Leveys: `min(480px,92vw)`, `max-height:80vh`, scrollable sisältö
 - Otsikko-rivi: type-label + km `text-primary 14px bold`, ✕-nappi `min-height:44px min-width:44px`
-- `locationNote`: `<textarea>` (ei `<input>`) auto-save blur, `min-height:80px`, `field-tint`, placeholder `"Lisää kommentti... (esim: kiinnitä puuhun)"` — kirjoiteltavissa myös talkoolaiselle omalla pätkällä
+- `locationNote`: `<textarea>` `min-height:80px`, `field-tint`, placeholder `"Lisää kommentti... (esim: kiinnitä puuhun)"` — auto-save blurilla + eksplisiittinen "Tallenna"-nappi footerissa
 - Kuvaus-osio: placeholder `text-muted 12px "Kuvaus tulossa (T103)"` kunnes T103 valmis
-- Järjestäjä-lisät: type-select `min-height:44px` + "↻ Käännä" -nappi `field-tint` (`arm(id)` + sulje modal) + delete-nappi `danger-soft`
-- Talkoolainen-lisät: status-napit (aseta / ei tarpeen) `min-height:44px`, `confirm`-tausta
+- Footer (Modal footer -pattern):
+  - Talkoolainen: `[Aseta] [Ei tarpeen]` — primary + secondary
+  - Järjestäjä: `[Tallenna] [↻ Käännä]` + footer-destructive rivillä `[Poista merkki]` (pieni, `danger-text`)
+- `[Poista merkki]` = `.modal-btn-destructive`, confirm vaaditaan (V58)
 
 ### SegmentView (`#segment-view`, `src/ui/segment-view.ts`)
 - Vain talkoolaiselle jolla on assignedCode matchaava pätkä
