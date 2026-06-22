@@ -12,20 +12,21 @@
     "test:ui": "vitest --reporter=verbose 2>&1 | tail -30",
     "test:ci": "vitest run --reporter=dot",
     "test:server": "bun test server/",
-    "server": "bun server/index.ts"
+    "server": "bun server/index.ts",
+    "dev:all": "bun run server & bun run dev"
   },
   "dependencies": {
-    "hono": "^4.12.23",
+    "hono": "^4.12.26",
     "leaflet": "^1.9.4"
   },
   "devDependencies": {
-    "@types/jsdom": "^21.1.7",
+    "@types/jsdom": "^28.0.3",
     "@types/leaflet": "^1.9.14",
-    "@vitest/coverage-v8": "^3.1.2",
-    "jsdom": "^26.1.0",
-    "playwright": "^1.59.1",
-    "typescript": "^5.7.2",
-    "vite": "^6.3.2",
-    "vitest": "^3.1.2"
+    "@vitest/coverage-v8": "^4.1.9",
+    "jsdom": "^29.1.1",
+    "playwright": "^1.61.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.9"
   }
 }

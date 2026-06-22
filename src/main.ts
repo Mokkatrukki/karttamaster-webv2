@@ -64,7 +64,7 @@ if (btnLayer) {
 const toolbarMenu = document.getElementById('toolbar-menu')!
 
 const leftPanelEl = document.getElementById('left-panel')
-const leftPanel = leftPanelEl ? new LeftPanel(leftPanelEl) : null
+if (leftPanelEl) new LeftPanel(leftPanelEl)
 
 document.getElementById('btn-menu')?.addEventListener('click', e => {
   e.stopPropagation()
