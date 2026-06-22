@@ -513,6 +513,58 @@ button {
   overflow: hidden;
 }
 #marker-modal.open { display: flex; }
+#marker-modal.modal--järjestäjä { width: min(560px, 92vw); max-height: 82vh; }
+
+/* Bulk status toolbar */
+.bulk-status-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.bulk-status-select {
+  flex: 1;
+  min-height: 44px;
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 0 8px;
+  cursor: pointer;
+}
+.btn-bulk-apply {
+  min-height: 44px;
+  min-width: 120px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 12px;
+  transition: background 0.1s;
+}
+.btn-bulk-apply:not(:disabled) {
+  background: var(--confirm);
+  color: var(--confirm-text);
+}
+.btn-bulk-apply:disabled {
+  background: var(--field-tint);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+.marker-item-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
 
 #marker-modal-header {
   display: flex;

@@ -174,7 +174,26 @@ metsässä, hanskat kädessä.
 - Tausta: `bg-card`, border: `border-default`, `border-radius: 14px`
 - Shadow: `0 16px 48px rgba(0,0,0,0.5)`
 - Backdrop: `overlay` + `backdrop-filter: blur(2px)`
-- Leveys: `min(340px, 92vw)`, `max-height: 60vh`
+- Leveys järjestäjä: `min(560px, 92vw)`, `max-height: 82vh`
+- Leveys talkoolainen: `min(340px, 92vw)`, `max-height: 60vh` (tai T74 bottom sheet)
+
+### BulkStatusToolbar (`.bulk-status-toolbar`, järjestäjä-modal sisällä)
+- Sijainti: `#marker-modal-header`:n jälkeen, ennen listaa — `position: sticky; top: 0`
+- Tausta: `surface-raised`, `border-bottom: border-subtle`, padding `8px 14px`
+- Kolme elementtiä flex-row: `[☐ Valitse kaikki]` + `[status-dropdown]` + `[Aseta-nappi]`
+- "Valitse kaikki" checkbox: `22×22px`, `accent-color: var(--accent)`, label `12px text-muted`
+- Status-dropdown: `<select>`, `min-height: 44px`, `flex: 1`, kaikki 5 statusta
+- "Aseta valituille (N)" -nappi: `min-height: 44px`, `min-width: 120px`
+  - N > 0: `background: confirm`, `color: confirm-text`
+  - N = 0: `background: field-tint`, `color: text-muted`, `cursor: not-allowed`
+- Vain järjestäjälle: piilossa `[data-role="talkoolainen"]`
+
+### BulkActionBar talkoolainen (`.bulk-action-bar`, T17)
+- Sijainti: `#marker-modal`:n alaosa — `position: sticky; bottom: 0`
+- Tausta: `surface-card`, `border-top: border-subtle`, padding `10px 14px`
+- Sisältö: `[☐ Valitse kaikki]` + oikealla `[✓ Aseta valituille] [Ei tarpeen]`
+- Napit `min-height: 44px`, disabled-tila `field-tint` kun 0 valittuna
+- Vain talkoolaiselle: piilossa järjestäjällä
 
 ### Listarivit (`.marker-item`)
 - Padding: `10px 14px`, separator: `border-card`

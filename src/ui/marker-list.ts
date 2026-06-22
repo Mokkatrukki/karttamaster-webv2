@@ -30,6 +30,29 @@ const STATUS_LABELS: Record<MarkerStatus, string> = {
 
 const SECONDARY_ACTIONS: StatusAction[] = ['peru', 'ohita']
 
+const ALL_STATUSES: { value: MarkerStatus; label: string }[] = [
+  { value: 'suunniteltu', label: 'Suunniteltu' },
+  { value: 'asetettu', label: 'Asetettu' },
+  { value: 'tarkistettu', label: 'Tarkistettu' },
+  { value: 'kerätty', label: 'Kerätty' },
+  { value: 'ei_tarpeen', label: 'Ei tarpeen' },
+]
+
+function updateBulkApplyBtn(listEl: HTMLElement, modal: HTMLElement | null): void {
+  const checkboxes = listEl.querySelectorAll<HTMLInputElement>('.marker-item-checkbox[data-id]')
+  const checked = Array.from(checkboxes).filter((cb) => cb.checked)
+  const applyBtn = modal?.querySelector<HTMLButtonElement>('#btn-bulk-apply')
+  const selectAll = modal?.querySelector<HTMLInputElement>('#bulk-select-all')
+  if (applyBtn) {
+    applyBtn.textContent = `Aseta (${checked.length})`
+    applyBtn.disabled = checked.length === 0
+  }
+  if (selectAll) {
+    selectAll.indeterminate = checked.length > 0 && checked.length < checkboxes.length
+    selectAll.checked = checkboxes.length > 0 && checked.length === checkboxes.length
+  }
+}
+
 function renderStatusActions(markerId: string, status: MarkerStatus): string {
   if (isTerminal(status)) return ''
   const actions = validActions(status)
@@ -53,6 +76,31 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
   if (!countEl || !listEl) return
 
   const isTalkoolainen = getRole() === 'talkoolainen'
+  const modal = document.getElementById('marker-modal')
+
+  // Wider modal + bulk toolbar for järjestäjä
+  if (!isTalkoolainen) {
+    modal?.classList.add('modal--järjestäjä')
+    let toolbar = document.getElementById('marker-bulk-toolbar')
+    if (!toolbar) {
+      toolbar = document.createElement('div')
+      toolbar.id = 'marker-bulk-toolbar'
+      toolbar.className = 'bulk-status-toolbar'
+      listEl.parentElement?.insertBefore(toolbar, listEl)
+    }
+    toolbar.innerHTML = `
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex-shrink:0">
+        <input type="checkbox" id="bulk-select-all" class="marker-item-checkbox">
+        <span style="font-size:12px;color:var(--text-muted)">Valitse kaikki</span>
+      </label>
+      <select class="bulk-status-select" id="bulk-status-select">
+        ${ALL_STATUSES.map((s) => `<option value="${s.value}">${s.label}</option>`).join('')}
+      </select>
+      <button class="btn-bulk-apply" id="btn-bulk-apply" disabled>Aseta (0)</button>`
+  } else {
+    modal?.classList.remove('modal--järjestäjä')
+    document.getElementById('marker-bulk-toolbar')?.remove()
+  }
 
   countEl.textContent = String(markers.length)
   listEl.innerHTML = markers.length === 0
@@ -71,8 +119,12 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
               libraryTemplates.map((t) => `<option value="${t.id}" data-color="${t.color}" data-short="${t.shortLabel}"${t.id === m.type ? ' selected' : ''}>${t.label}</option>`).join('')
             }</optgroup>` : ''}</select>`
           : ''
+        const checkbox = !isTalkoolainen
+          ? `<input type="checkbox" class="marker-item-checkbox" data-id="${m.id}" aria-label="Valitse merkki">`
+          : ''
         return `
           <div class="marker-item${highlighted}" data-id="${m.id}">
+            ${checkbox}
             <span class="marker-icon" style="color:${info.color}">${info.label[0]}</span>
             <div class="marker-info">
               <div>${info.label}</div>
@@ -129,6 +181,7 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
       if (target.classList.contains('btn-status-primary')) return
       if (target.classList.contains('btn-status-secondary')) return
       if (target.classList.contains('marker-type-select')) return
+      if (target.classList.contains('marker-item-checkbox')) return
       manager.panTo((el as HTMLElement).dataset.id ?? '')
     })
   })
@@ -138,6 +191,35 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
       manager.remove((btn as HTMLElement).dataset.id ?? '')
     })
   })
+
+  // Bulk toolbar event handlers (järjestäjä only)
+  if (!isTalkoolainen) {
+    const toolbar = document.getElementById('marker-bulk-toolbar')
+    const selectAllCb = toolbar?.querySelector<HTMLInputElement>('#bulk-select-all')
+    const applyBtn = toolbar?.querySelector<HTMLButtonElement>('#btn-bulk-apply')
+
+    listEl.querySelectorAll<HTMLInputElement>('.marker-item-checkbox[data-id]').forEach((cb) => {
+      cb.addEventListener('change', () => updateBulkApplyBtn(listEl, modal))
+    })
+
+    selectAllCb?.addEventListener('change', () => {
+      const checked = selectAllCb.checked
+      listEl.querySelectorAll<HTMLInputElement>('.marker-item-checkbox[data-id]').forEach((cb) => {
+        cb.checked = checked
+      })
+      updateBulkApplyBtn(listEl, modal)
+    })
+
+    applyBtn?.addEventListener('click', () => {
+      const statusSel = toolbar?.querySelector<HTMLSelectElement>('#bulk-status-select')
+      const status = (statusSel?.value ?? 'suunniteltu') as MarkerStatus
+      const ids = Array.from(listEl.querySelectorAll<HTMLInputElement>('.marker-item-checkbox[data-id]'))
+        .filter((cb) => cb.checked)
+        .map((cb) => cb.dataset.id ?? '')
+        .filter(Boolean)
+      if (ids.length > 0) manager.bulkSetStatus(ids, status)
+    })
+  }
 }
 
 export function renderSignDots(

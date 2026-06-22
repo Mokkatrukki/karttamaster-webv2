@@ -7,6 +7,7 @@ import { ensureRouteIds, FAR_FROM_ROUTE_M } from '../logic/marker-assign'
 import { MarkerInteraction } from './marker-interaction'
 import { DEFAULT_STATUS, transitionStatus } from '../logic/marker-status'
 import type { StatusAction } from '../logic/marker-status'
+import type { MarkerStatus } from '../logic/types'
 
 interface RouteRef { id: string; routePoints: RoutePoint[] }
 
@@ -185,6 +186,18 @@ export class MarkerManager {
     if (lm) lm.setIcon(createSignIcon(m.type, m.bearing, m.status, m.color, m.shortLabel))
     this.apiPut(id, { status: m.status })
     this.onUpdate()
+  }
+
+  bulkSetStatus(ids: string[], status: MarkerStatus): void {
+    ids.forEach((id) => {
+      const m = this.markers.find((x) => x.id === id)
+      if (!m) return
+      m.status = status
+      const lm = this.leafletMarkers.get(id)
+      if (lm) lm.setIcon(createSignIcon(m.type, m.bearing, m.status, m.color, m.shortLabel))
+      this.apiPut(id, { status })
+    })
+    if (ids.length > 0) this.onUpdate()
   }
 
   updateType(id: string, newType: MarkerType, color?: string, shortLabel?: string): void {
