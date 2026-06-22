@@ -569,11 +569,16 @@ button {
 /* Bulk action bar — talkoolainen, sticky bottom */
 .bulk-action-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
   background: var(--surface-card);
   border-top: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.bulk-action-bar > label {
+  width: 100%;
   flex-shrink: 0;
 }
 .btn-bulk-checkin-aseta,

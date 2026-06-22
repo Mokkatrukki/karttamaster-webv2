@@ -191,7 +191,9 @@ metsässä, hanskat kädessä.
 ### BulkActionBar talkoolainen (`.bulk-action-bar`, T17)
 - Sijainti: `#marker-modal`:n alaosa — `position: sticky; bottom: 0`
 - Tausta: `surface-card`, `border-top: border-subtle`, padding `10px 14px`
-- Sisältö: `[☐ Valitse kaikki]` + oikealla `[✓ Aseta valituille] [Ei tarpeen]`
+- Layout: `flex-wrap: wrap` — kaksirivinen 340px modaalissa:
+  - Rivi 1: `[☐ Valitse kaikki]` (`label { width: 100% }` pakottaa omalle riville)
+  - Rivi 2: `[✓ Aseta valituille]` + `[Ei tarpeen]` (molemmat `flex:1`)
 - Napit `min-height: 44px`, disabled-tila `field-tint` kun 0 valittuna
 - Vain talkoolaiselle: piilossa järjestäjällä
 
