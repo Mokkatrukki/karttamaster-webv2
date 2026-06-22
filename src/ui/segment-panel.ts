@@ -579,13 +579,32 @@ export class SegmentPanel {
 
     modal.appendChild(body)
 
-    // Danger zone — poisto
+    // Footer — tallenna muutokset
+    const footer = document.createElement('div')
+    footer.className = 'segment-details-modal-footer'
+    const saveBtn = document.createElement('button')
+    saveBtn.className = 'btn-segment-modal-save'
+    saveBtn.textContent = 'Tallenna muutokset'
+    saveBtn.addEventListener('click', () => {
+      saveDisplayName()
+      const desc = descInput.value.trim() || undefined
+      updateSegment(this.store, seg.id, { description: desc })
+      this.save()
+      updateSegmentRemote(seg.id, { description: desc ?? null as unknown as string }).catch(() => {})
+      this.closeModal()
+    })
+    footer.appendChild(saveBtn)
+    modal.appendChild(footer)
+
+    // Danger zone — poisto (pienempi, varmistus)
     const dangerZone = document.createElement('div')
     dangerZone.className = 'segment-modal-danger-zone'
     const deleteBtn = document.createElement('button')
     deleteBtn.className = 'btn-segment-delete-modal'
     deleteBtn.textContent = 'Poista pätkä'
     deleteBtn.addEventListener('click', () => {
+      const name = seg.displayName ?? seg.id.slice(0, 6)
+      if (!confirm(`Poistetaanko pätkä "${name}"? Toimintoa ei voi peruuttaa.`)) return
       this.closeModal()
       this.callbacks.onExitEditMode?.()
       deleteSegment(this.store, seg.id)

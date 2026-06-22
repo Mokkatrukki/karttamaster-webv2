@@ -1681,15 +1681,15 @@ button {
   color: var(--text-body);
 }
 
-.segment-modal-danger-zone {
-  padding: 12px 20px 16px;
+.segment-details-modal-footer {
+  padding: 12px 20px;
   border-top: 1px solid var(--border-subtle);
 }
 
-.btn-segment-delete-modal {
-  background: var(--danger-soft);
-  color: var(--danger-text);
-  border: 1px solid rgba(239,68,68,0.25);
+.btn-segment-modal-save {
+  background: var(--confirm);
+  color: var(--confirm-text);
+  border: none;
   border-radius: var(--radius-sm);
   font-size: 13px;
   font-weight: 600;
@@ -1698,9 +1698,30 @@ button {
   cursor: pointer;
 }
 
+.btn-segment-modal-save:hover {
+  background: var(--confirm-hover);
+}
+
+.segment-modal-danger-zone {
+  padding: 4px 20px 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-segment-delete-modal {
+  background: transparent;
+  color: var(--danger-text);
+  border: none;
+  font-size: 11px;
+  padding: 4px 8px;
+  min-height: 32px;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
 .btn-segment-delete-modal:hover {
-  background: var(--danger-soft-hover);
-  color: #fca5a5;
+  opacity: 1;
+  text-decoration: underline;
 }
 
 .segment-details-name-input {
