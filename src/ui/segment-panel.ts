@@ -592,6 +592,7 @@ export class SegmentPanel {
       this.save()
       updateSegmentRemote(seg.id, { description: desc ?? null as unknown as string }).catch(() => {})
       this.closeModal()
+      this.onUpdate()
     })
     footer.appendChild(saveBtn)
     modal.appendChild(footer)
