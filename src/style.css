@@ -566,6 +566,46 @@ button {
   flex-shrink: 0;
 }
 
+/* Bulk action bar — talkoolainen, sticky bottom */
+.bulk-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--surface-card);
+  border-top: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.btn-bulk-checkin-aseta,
+.btn-bulk-checkin-ohita {
+  min-height: 44px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 12px;
+  transition: background 0.1s;
+  flex: 1;
+}
+.btn-bulk-checkin-aseta:not(:disabled) {
+  background: var(--confirm);
+  color: var(--confirm-text);
+}
+.btn-bulk-checkin-ohita:not(:disabled) {
+  background: var(--field-tint);
+  color: var(--text-body);
+  border: 1px solid var(--border-default);
+}
+.btn-bulk-checkin-aseta:disabled,
+.btn-bulk-checkin-ohita:disabled {
+  background: var(--field-tint);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  border: none;
+}
+
 #marker-modal-header {
   display: flex;
   justify-content: space-between;

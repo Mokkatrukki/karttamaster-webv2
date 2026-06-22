@@ -53,6 +53,21 @@ function updateBulkApplyBtn(listEl: HTMLElement, modal: HTMLElement | null): voi
   }
 }
 
+function updateBulkCheckinBtns(listEl: HTMLElement, modal: HTMLElement | null): void {
+  const checkboxes = listEl.querySelectorAll<HTMLInputElement>('.marker-checkin-cb[data-id]')
+  const checked = Array.from(checkboxes).filter((cb) => cb.checked)
+  const asetaBtn = modal?.querySelector<HTMLButtonElement>('#btn-bulk-checkin-aseta')
+  const ohitaBtn = modal?.querySelector<HTMLButtonElement>('#btn-bulk-checkin-ohita')
+  const selectAll = modal?.querySelector<HTMLInputElement>('#bulk-checkin-select-all')
+  const n = checked.length
+  if (asetaBtn) { asetaBtn.textContent = `✓ Aseta (${n})`; asetaBtn.disabled = n === 0 }
+  if (ohitaBtn) { ohitaBtn.textContent = `Ei tarpeen (${n})`; ohitaBtn.disabled = n === 0 }
+  if (selectAll) {
+    selectAll.indeterminate = n > 0 && n < checkboxes.length
+    selectAll.checked = checkboxes.length > 0 && n === checkboxes.length
+  }
+}
+
 function renderStatusActions(markerId: string, status: MarkerStatus): string {
   if (isTerminal(status)) return ''
   const actions = validActions(status)
@@ -100,6 +115,21 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
   } else {
     modal?.classList.remove('modal--järjestäjä')
     document.getElementById('marker-bulk-toolbar')?.remove()
+    // BulkActionBar for talkoolainen (sticky bottom)
+    let actionBar = document.getElementById('marker-bulk-action-bar')
+    if (!actionBar) {
+      actionBar = document.createElement('div')
+      actionBar.id = 'marker-bulk-action-bar'
+      actionBar.className = 'bulk-action-bar'
+      listEl.parentElement?.appendChild(actionBar)
+    }
+    actionBar.innerHTML = `
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex-shrink:0">
+        <input type="checkbox" id="bulk-checkin-select-all" class="marker-item-checkbox">
+        <span style="font-size:12px;color:var(--text-muted)">Valitse kaikki</span>
+      </label>
+      <button class="btn-bulk-checkin-aseta" id="btn-bulk-checkin-aseta" disabled>✓ Aseta (0)</button>
+      <button class="btn-bulk-checkin-ohita" id="btn-bulk-checkin-ohita" disabled>Ei tarpeen (0)</button>`
   }
 
   countEl.textContent = String(markers.length)
@@ -121,7 +151,7 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
           : ''
         const checkbox = !isTalkoolainen
           ? `<input type="checkbox" class="marker-item-checkbox" data-id="${m.id}" aria-label="Valitse merkki">`
-          : ''
+          : (!isTerminal(m.status) ? `<input type="checkbox" class="marker-checkin-cb" data-id="${m.id}" aria-label="Valitse merkki">` : '')
         return `
           <div class="marker-item${highlighted}" data-id="${m.id}">
             ${checkbox}
@@ -182,6 +212,7 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
       if (target.classList.contains('btn-status-secondary')) return
       if (target.classList.contains('marker-type-select')) return
       if (target.classList.contains('marker-item-checkbox')) return
+      if (target.classList.contains('marker-checkin-cb')) return
       manager.panTo((el as HTMLElement).dataset.id ?? '')
     })
   })
@@ -218,6 +249,40 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
         .map((cb) => cb.dataset.id ?? '')
         .filter(Boolean)
       if (ids.length > 0) manager.bulkSetStatus(ids, status)
+    })
+  } else {
+    // BulkActionBar event handlers (talkoolainen only)
+    const actionBar = document.getElementById('marker-bulk-action-bar')
+    const selectAllCb = actionBar?.querySelector<HTMLInputElement>('#bulk-checkin-select-all')
+    const asetaBtn = actionBar?.querySelector<HTMLButtonElement>('#btn-bulk-checkin-aseta')
+    const ohitaBtn = actionBar?.querySelector<HTMLButtonElement>('#btn-bulk-checkin-ohita')
+
+    listEl.querySelectorAll<HTMLInputElement>('.marker-checkin-cb[data-id]').forEach((cb) => {
+      cb.addEventListener('change', () => updateBulkCheckinBtns(listEl, modal))
+    })
+
+    selectAllCb?.addEventListener('change', () => {
+      const checked = selectAllCb.checked
+      listEl.querySelectorAll<HTMLInputElement>('.marker-checkin-cb[data-id]').forEach((cb) => {
+        cb.checked = checked
+      })
+      updateBulkCheckinBtns(listEl, modal)
+    })
+
+    asetaBtn?.addEventListener('click', () => {
+      const ids = Array.from(listEl.querySelectorAll<HTMLInputElement>('.marker-checkin-cb[data-id]'))
+        .filter((cb) => cb.checked)
+        .map((cb) => cb.dataset.id ?? '')
+        .filter(Boolean)
+      if (ids.length > 0) manager.bulkSetStatus(ids, 'asetettu')
+    })
+
+    ohitaBtn?.addEventListener('click', () => {
+      const ids = Array.from(listEl.querySelectorAll<HTMLInputElement>('.marker-checkin-cb[data-id]'))
+        .filter((cb) => cb.checked)
+        .map((cb) => cb.dataset.id ?? '')
+        .filter(Boolean)
+      if (ids.length > 0) manager.bulkSetStatus(ids, 'ei_tarpeen')
     })
   }
 }
