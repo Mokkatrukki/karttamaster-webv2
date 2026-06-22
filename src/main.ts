@@ -153,6 +153,10 @@ async function init(talkoolainenCode?: string) {
       },
       onEnterEditMode: (seg, onSave) => segmentOverlay.enterEditMode(seg, onSave),
       onExitEditMode: () => segmentOverlay.exitEditMode(),
+      onEnterCreationMode: () => { map.getContainer().style.cursor = 'crosshair' },
+      onExitCreationMode: () => { map.getContainer().style.cursor = '' },
+      onShowSnapMarkers: (onSnap) => segmentOverlay.showCreationSnapMarkers(segmentStore, onSnap),
+      onHideSnapMarkers: () => segmentOverlay.hideCreationSnapMarkers(),
       onSaveError: () => {
         segmentSaveErrorEl.textContent = '⚠ Pätkän tallennus epäonnistui (muisti täynnä?)'
         segmentSaveErrorEl.style.display = 'block'

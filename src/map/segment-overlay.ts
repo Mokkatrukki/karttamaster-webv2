@@ -12,6 +12,7 @@ const GAP_COLOR = '#94a3b8'
 export class SegmentOverlay {
   private layers: L.Layer[] = []
   private editMarkers: L.Marker[] = []
+  private snapMarkers: L.CircleMarker[] = []
   private onSegmentClick?: (seg: Segment) => void
 
   constructor(
@@ -75,6 +76,34 @@ export class SegmentOverlay {
   exitEditMode(): void {
     this.editMarkers.forEach(m => m.remove())
     this.editMarkers = []
+  }
+
+  showCreationSnapMarkers(
+    store: SegmentStore,
+    onSnap: (routeId: string, dist: number, lat: number, lon: number) => void,
+  ): void {
+    this.hideCreationSnapMarkers()
+    for (const seg of store.values()) {
+      for (const routeId of seg.routeIds) {
+        const route = this.routes.find(r => r.id === routeId)
+        if (!route) continue
+        for (const [dist, color] of [[seg.startDist, '#f59e0b'], [seg.endDist, '#10b981']] as [number, string][]) {
+          const pos = routePointAtDist(route.routePoints, dist)
+          const m = L.circleMarker(pos, { radius: 8, color, fillColor: color, fillOpacity: 0.9, weight: 2 })
+          m.on('click', (e: L.LeafletMouseEvent) => {
+            L.DomEvent.stopPropagation(e)
+            onSnap(routeId, dist, pos[0], pos[1])
+          })
+          m.addTo(this.map)
+          this.snapMarkers.push(m)
+        }
+      }
+    }
+  }
+
+  hideCreationSnapMarkers(): void {
+    this.snapMarkers.forEach(m => m.remove())
+    this.snapMarkers = []
   }
 
   // Place draggable start/end markers for the segment. onSave called on each snap.

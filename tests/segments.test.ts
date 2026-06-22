@@ -7,6 +7,7 @@ import {
   getSegmentsForPhase,
   getSegmentForCode,
   getMarkersForSegment,
+  validateNoOverlap,
   type Segment,
   type SegmentStore,
 } from '../src/logic/segments'
@@ -201,6 +202,47 @@ describe('segments', () => {
     it('palauttaa tyhjän taulukon jos ei osumia', () => {
       const segment = createSegment(store, baseSegment)
       expect(getMarkersForSegment(segment, [])).toEqual([])
+    })
+  })
+
+  // V49: no overlap on same route
+  describe('validateNoOverlap', () => {
+    beforeEach(() => {
+      createSegment(store, { ...baseSegment, routeIds: ['r1'], startDist: 1000, endDist: 5000 }, 'existing')
+    })
+
+    it('palauttaa true jos ei overlapia (ennen olemassa olevaa)', () => {
+      expect(validateNoOverlap(store, 'r1', 0, 999)).toBe(true)
+    })
+
+    it('palauttaa true jos ei overlapia (jälkeen olemassa olevan)', () => {
+      expect(validateNoOverlap(store, 'r1', 5001, 8000)).toBe(true)
+    })
+
+    it('palauttaa false täydellä overlapilla', () => {
+      expect(validateNoOverlap(store, 'r1', 500, 6000)).toBe(false)
+    })
+
+    it('palauttaa false osittaisella overlapilla (alkupää)', () => {
+      expect(validateNoOverlap(store, 'r1', 500, 2000)).toBe(false)
+    })
+
+    it('palauttaa false osittaisella overlapilla (loppupää)', () => {
+      expect(validateNoOverlap(store, 'r1', 4000, 7000)).toBe(false)
+    })
+
+    it('palauttaa true vierekkäisille pätkille (exact touch)', () => {
+      // startDist2 == endDist1: ei overlap koska overlap = startDist2 < endDist1
+      expect(validateNoOverlap(store, 'r1', 5000, 8000)).toBe(true)
+      expect(validateNoOverlap(store, 'r1', 0, 1000)).toBe(true)
+    })
+
+    it('palauttaa true eri routeId:llä vaikka sama distRange', () => {
+      expect(validateNoOverlap(store, 'r2', 1000, 5000)).toBe(true)
+    })
+
+    it('excludeId ohittaa oman segmentin (muokkaus)', () => {
+      expect(validateNoOverlap(store, 'r1', 1000, 5000, 'existing')).toBe(true)
     })
   })
 })

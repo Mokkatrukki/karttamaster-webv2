@@ -87,6 +87,22 @@ export function getSegmentProgress(segment: Segment, markers: SignMarker[]): num
   return Math.round((done / segMarkers.length) * 100)
 }
 
+// V49: overlap = startDist2 < endDist1 && startDist1 < endDist2. excludeId skips own segment on edit.
+export function validateNoOverlap(
+  store: SegmentStore,
+  routeId: string,
+  startDist: number,
+  endDist: number,
+  excludeId?: string,
+): boolean {
+  for (const seg of store.values()) {
+    if (seg.id === excludeId) continue
+    if (!seg.routeIds.includes(routeId)) continue
+    if (startDist < seg.endDist && seg.startDist < endDist) return false
+  }
+  return true
+}
+
 // V25: include marker if routeIds intersects AND distanceFromStart in [startDist, endDist].
 // Deduplication is implicit — each marker id is unique.
 export function getMarkersForSegment(

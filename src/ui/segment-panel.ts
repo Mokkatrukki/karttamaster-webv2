@@ -1,5 +1,5 @@
 import { nearestPointIndex, haversineDistance } from '../logic/bearing'
-import { createSegment, updateSegment, deleteSegment, getMarkersForSegment, getSegmentProgress } from '../logic/segments'
+import { createSegment, updateSegment, deleteSegment, getMarkersForSegment, getSegmentProgress, validateNoOverlap } from '../logic/segments'
 import { pushSegment, updateSegmentRemote, deleteSegmentRemote } from '../logic/segment-sync'
 import type { Segment, SegmentStore, EquipmentItem } from '../logic/segments'
 import type { RouteConfig } from '../logic/multi-route'
@@ -12,12 +12,17 @@ export interface SegmentPanelCallbacks {
   onExitEditMode?: () => void
   onSaveError?: (err: unknown) => void
   getMarkers?: () => SignMarker[]
+  onEnterCreationMode?: () => void
+  onExitCreationMode?: () => void
+  onShowSnapMarkers?: (onSnap: (routeId: string, dist: number, lat: number, lon: number) => void) => void
+  onHideSnapMarkers?: () => void
 }
 
 type CreationState =
   | { mode: 'idle' }
-  | { mode: 'first-click' }
-  | { mode: 'second-click'; routeId: string; startDist: number }
+  | { mode: 'vaihe1' }
+  | { mode: 'vaihe2'; routeId: string; startDist: number }
+  | { mode: 'tiedot'; routeIds: string[]; startDist: number; endDist: number }
 
 const STATUS_LABELS: Record<string, string> = {
   suunniteltu: 'Suunniteltu',
@@ -43,7 +48,9 @@ export class SegmentPanel {
   private segmentCount = 0
   private collapsed = true
   private activeModal: HTMLElement | null = null
+  private creationModal: HTMLElement | null = null
   private escHandler: ((e: KeyboardEvent) => void) | null = null
+  private creationEscHandler: ((e: KeyboardEvent) => void) | null = null
 
   constructor(
     container: HTMLElement,
@@ -70,53 +77,57 @@ export class SegmentPanel {
     if (this.state.mode === 'idle') return
     this.state = { mode: 'idle' }
     this.statusEl.hidden = true
-    this.applyCollapsed()
+    this.closeCreationModal()
     this.callbacks.onFirstPointClear?.()
+    this.callbacks.onHideSnapMarkers?.()
+    this.callbacks.onExitCreationMode?.()
+    this.applyCollapsed()
   }
 
   onMapClick(lat: number, lon: number): void {
-    if (this.state.mode === 'idle') return
+    if (this.state.mode === 'idle' || this.state.mode === 'tiedot') return
 
     const resolved = this.resolveClick(lat, lon)
     if (!resolved) return
 
-    if (this.state.mode === 'first-click') {
-      this.state = { mode: 'second-click', routeId: resolved.routeId, startDist: resolved.distanceFromStart }
-      this.statusEl.textContent = 'Klikkaa reittiä: 2. piste'
-      this.callbacks.onFirstPoint?.(resolved.lat, resolved.lon)
+    this.receivePoint(resolved.routeId, resolved.distanceFromStart, resolved.lat, resolved.lon)
+  }
+
+  onSnapClick(routeId: string, dist: number, lat: number, lon: number): void {
+    if (this.state.mode === 'idle' || this.state.mode === 'tiedot') return
+    this.receivePoint(routeId, dist, lat, lon)
+  }
+
+  private receivePoint(routeId: string, dist: number, lat: number, lon: number): void {
+    if (this.state.mode === 'vaihe1') {
+      this.state = { mode: 'vaihe2', routeId, startDist: dist }
+      this.callbacks.onFirstPoint?.(lat, lon)
+      this.updateCreationModalPhase()
       return
     }
 
-    if (this.state.mode === 'second-click') {
+    if (this.state.mode === 'vaihe2') {
       const first = this.state
-      const startDist = Math.min(first.startDist, resolved.distanceFromStart)
-      const endDist = Math.max(first.startDist, resolved.distanceFromStart)
+      const startDist = Math.min(first.startDist, dist)
+      const endDist = Math.max(first.startDist, dist)
 
       if (endDist - startDist < 1) {
-        this.statusEl.textContent = 'Pisteet liian lähellä — klikkaa kauempaa'
+        this.setCreationModalError('Pisteet liian lähellä — klikkaa kauempaa')
+        return
+      }
+
+      if (!validateNoOverlap(this.store, first.routeId, startDist, endDist)) {
+        this.setCreationModalError('Pätkä menee päällekkäin — valitse eri pisteet')
         return
       }
 
       const routeIds = [first.routeId]
-      if (resolved.routeId !== first.routeId) routeIds.push(resolved.routeId)
+      if (routeId !== first.routeId) routeIds.push(routeId)
 
-      this.segmentCount++
-      const seg = createSegment(this.store, {
-        routeIds,
-        startDist,
-        endDist,
-        equipment: [],
-        phase: 'asettaminen',
-        displayName: `Pätkä ${this.segmentCount}`,
-      })
-      this.save()
-      pushSegment(seg).catch(() => {})
-
-      this.state = { mode: 'idle' }
-      this.statusEl.hidden = true
+      this.state = { mode: 'tiedot', routeIds, startDist, endDist }
       this.callbacks.onFirstPointClear?.()
-      this.render()
-      this.onUpdate()
+      this.callbacks.onHideSnapMarkers?.()
+      this.updateCreationModalPhase()
     }
   }
 
@@ -200,9 +211,174 @@ export class SegmentPanel {
   private enterCreationMode(): void {
     this.collapsed = false
     this.applyCollapsed()
-    this.state = { mode: 'first-click' }
-    this.statusEl.hidden = false
-    this.statusEl.textContent = 'Klikkaa reittiä: 1. piste'
+    this.state = { mode: 'vaihe1' }
+    this.callbacks.onEnterCreationMode?.()
+    this.callbacks.onShowSnapMarkers?.((routeId, dist, lat, lon) => this.onSnapClick(routeId, dist, lat, lon))
+    this.openCreationModal()
+  }
+
+  private openCreationModal(): void {
+    this.closeCreationModal()
+
+    const backdrop = document.createElement('div')
+    backdrop.className = 'segment-creation-modal-backdrop'
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) this.cancelCreation()
+    })
+
+    const modal = document.createElement('div')
+    modal.className = 'segment-creation-modal'
+    modal.setAttribute('role', 'dialog')
+    modal.setAttribute('aria-modal', 'true')
+    modal.setAttribute('aria-label', 'Luo uusi pätkä')
+    modal.dataset.testid = 'creation-modal'
+
+    backdrop.appendChild(modal)
+    document.body.appendChild(backdrop)
+    this.creationModal = backdrop
+
+    this.creationEscHandler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') this.cancelCreation()
+    }
+    document.addEventListener('keydown', this.creationEscHandler)
+
+    this.updateCreationModalPhase()
+  }
+
+  private updateCreationModalPhase(): void {
+    const backdrop = this.creationModal
+    if (!backdrop) return
+    const modal = backdrop.querySelector('.segment-creation-modal') as HTMLElement
+    if (!modal) return
+    modal.innerHTML = ''
+
+    const header = document.createElement('div')
+    header.className = 'segment-creation-modal-header'
+    const title = document.createElement('span')
+    title.className = 'segment-creation-modal-title'
+    title.textContent = 'Luo uusi pätkä'
+    header.appendChild(title)
+    const cancelBtn = document.createElement('button')
+    cancelBtn.className = 'segment-creation-modal-cancel'
+    cancelBtn.setAttribute('aria-label', 'Peruuta')
+    cancelBtn.textContent = '✕'
+    cancelBtn.addEventListener('click', () => this.cancelCreation())
+    header.appendChild(cancelBtn)
+    modal.appendChild(header)
+
+    if (this.state.mode === 'vaihe1' || this.state.mode === 'vaihe2') {
+      const step = this.state.mode === 'vaihe1' ? 1 : 2
+      const progress = document.createElement('div')
+      progress.className = 'segment-creation-progress'
+      progress.innerHTML = `<span class="step ${step >= 1 ? 'active' : ''}">1</span><span class="step-sep">—</span><span class="step ${step >= 2 ? 'active' : ''}">2</span><span class="step-sep">—</span><span class="step">3</span>`
+      modal.appendChild(progress)
+
+      const instruction = document.createElement('p')
+      instruction.className = 'segment-creation-instruction'
+      instruction.textContent = step === 1 ? 'Klikkaa kartalta aloituspiste' : 'Klikkaa kartalta lopetuspiste'
+      modal.appendChild(instruction)
+
+      if (this.state.mode === 'vaihe2') {
+        const info = document.createElement('p')
+        info.className = 'segment-creation-info'
+        info.textContent = `Aloituspiste: ${(this.state.startDist / 1000).toFixed(1)} km`
+        modal.appendChild(info)
+      }
+
+      const errorEl = document.createElement('p')
+      errorEl.className = 'segment-creation-error'
+      errorEl.hidden = true
+      errorEl.dataset.errorEl = 'true'
+      modal.appendChild(errorEl)
+    } else if (this.state.mode === 'tiedot') {
+      const progress = document.createElement('div')
+      progress.className = 'segment-creation-progress'
+      progress.innerHTML = '<span class="step active">1</span><span class="step-sep">—</span><span class="step active">2</span><span class="step-sep">—</span><span class="step active">3</span>'
+      modal.appendChild(progress)
+
+      const { routeIds, startDist, endDist } = this.state
+
+      const nameSection = document.createElement('div')
+      nameSection.className = 'segment-creation-modal-section'
+      const nameLabel = document.createElement('label')
+      nameLabel.textContent = 'Pätkän nimi'
+      nameSection.appendChild(nameLabel)
+      const nameInput = document.createElement('input')
+      nameInput.className = 'segment-creation-name-input'
+      nameInput.type = 'text'
+      this.segmentCount++
+      nameInput.value = `Pätkä ${this.segmentCount}`
+      nameInput.placeholder = 'Esim. Pätkä 1'
+      nameSection.appendChild(nameInput)
+      modal.appendChild(nameSection)
+
+      const descSection = document.createElement('div')
+      descSection.className = 'segment-creation-modal-section'
+      const descLabel = document.createElement('label')
+      descLabel.textContent = 'Järjestäjän ohjeet'
+      descSection.appendChild(descLabel)
+      const descInput = document.createElement('textarea')
+      descInput.className = 'segment-creation-desc-input'
+      descInput.placeholder = 'Esim. Muista parkkipaikka Natura-tien varrella'
+      descInput.rows = 3
+      descSection.appendChild(descInput)
+      modal.appendChild(descSection)
+
+      const footer = document.createElement('div')
+      footer.className = 'segment-creation-modal-footer'
+
+      const saveBtn = document.createElement('button')
+      saveBtn.className = 'btn-segment-creation-save'
+      saveBtn.textContent = 'Tallenna'
+      saveBtn.addEventListener('click', () => {
+        const displayName = nameInput.value.trim() || `Pätkä ${this.segmentCount}`
+        const description = descInput.value.trim() || undefined
+        const seg = createSegment(this.store, {
+          routeIds,
+          startDist,
+          endDist,
+          equipment: [],
+          phase: 'asettaminen',
+          displayName,
+          description,
+        })
+        this.save()
+        pushSegment(seg).catch(() => {})
+        this.state = { mode: 'idle' }
+        this.closeCreationModal()
+        this.callbacks.onExitCreationMode?.()
+        this.render()
+        this.onUpdate()
+      })
+      footer.appendChild(saveBtn)
+
+      const cancelFooterBtn = document.createElement('button')
+      cancelFooterBtn.className = 'btn-segment-creation-cancel'
+      cancelFooterBtn.textContent = 'Peruuta'
+      cancelFooterBtn.addEventListener('click', () => this.cancelCreation())
+      footer.appendChild(cancelFooterBtn)
+
+      modal.appendChild(footer)
+    }
+  }
+
+  private setCreationModalError(msg: string): void {
+    const errorEl = this.creationModal?.querySelector('[data-error-el]') as HTMLElement | null
+    if (errorEl) {
+      errorEl.textContent = msg
+      errorEl.hidden = false
+    }
+  }
+
+  private closeCreationModal(): void {
+    if (this.creationModal) {
+      this.creationModal.remove()
+      this.creationModal = null
+    }
+    if (this.creationEscHandler) {
+      document.removeEventListener('keydown', this.creationEscHandler)
+      this.creationEscHandler = null
+    }
   }
 
   private render(): void {
