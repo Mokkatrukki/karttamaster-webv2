@@ -23,7 +23,7 @@ import { SegmentPanel } from './ui/segment-panel'
 import { SegmentView } from './ui/segment-view'
 import { LeftPanel } from './ui/left-panel'
 import { SignLibraryPanel, createSignLibrary } from './ui/sign-library-panel'
-import { saveLibrary } from './logic/sign-library'
+import { saveLibrary, type SignLibrary } from './logic/sign-library'
 import { getSegmentForCode, getMarkersForSegment } from './logic/segments'
 import type { Segment } from './logic/segments'
 import { fetchSegmentByCode, fetchAllSegments } from './logic/segment-sync'
@@ -167,9 +167,10 @@ async function init(talkoolainenCode?: string) {
   }
 
   let segmentView: SegmentView | null = null
+  let signLibrary: SignLibrary | null = null
 
   const markerManager = new MarkerManager(map, routes, () => {
-    renderMarkerList(markerManager)
+    renderMarkerList(markerManager, undefined, undefined, signLibrary)
     progressBar.refreshDots()
     statusPanel?.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
     if (segmentView) {
@@ -226,7 +227,7 @@ async function init(talkoolainenCode?: string) {
   statusPanel = new StatusPanel(document.getElementById('status-panel')!)
   statusPanel.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
 
-  const signLibrary = createSignLibrary()
+  signLibrary = createSignLibrary()
   const signLibraryContainer = document.getElementById('sign-type-dropdown')
   if (signLibraryContainer) {
     new SignLibraryPanel(signLibraryContainer, signLibrary, () => saveLibrary(signLibrary))
@@ -246,7 +247,7 @@ async function init(talkoolainenCode?: string) {
         segmentMarkerIds = new Set(getMarkersForSegment(seg, markerManager.getAll()).map(m => m.id))
       }
     }
-    renderMarkerList(markerManager, highlightId, segmentMarkerIds)
+    renderMarkerList(markerManager, highlightId, segmentMarkerIds, signLibrary)
     markerModalBackdrop.classList.add('open')
     markerModal.classList.add('open')
   }

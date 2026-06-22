@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderMarkerList } from '../src/ui/marker-list'
 import type { SignMarker, MarkerType } from '../src/logic/types'
+import { createLibrary, createTemplate } from '../src/logic/sign-library'
 
 function makeMarker(id: string, type: MarkerType): SignMarker {
   return {
@@ -92,7 +93,7 @@ describe('T38 — type select (V17)', () => {
     const sel = document.querySelector<HTMLSelectElement>('.marker-type-select')!
     sel.value = 'left'
     sel.dispatchEvent(new Event('change', { bubbles: true }))
-    expect(manager.updateType).toHaveBeenCalledWith('m1', 'left')
+    expect(manager.updateType).toHaveBeenCalledWith('m1', 'left', undefined, undefined)
   })
 
   it('select carries marker data-id', () => {
@@ -101,5 +102,49 @@ describe('T38 — type select (V17)', () => {
     renderMarkerList(manager as any)
     const sel = document.querySelector<HTMLSelectElement>('.marker-type-select')!
     expect(sel.dataset.id).toBe('marker-abc')
+  })
+})
+
+describe('T92 — updateType color/shortLabel (V47, V48)', () => {
+  it('changing to library template passes color and shortLabel to updateType', () => {
+    vi.stubGlobal('localStorage', makeLocalStorageMock('järjestäjä'))
+    const library = createLibrary()
+    const tmpl = createTemplate(library, {
+      label: 'Testi',
+      shortLabel: 'T',
+      color: '#ff0000',
+      description: '',
+      favorite: true,
+    })
+    const manager = makeManager([makeMarker('m1', 'right')])
+    renderMarkerList(manager as any, undefined, undefined, library)
+    const sel = document.querySelector<HTMLSelectElement>('.marker-type-select')!
+    // select the library template option
+    sel.value = tmpl.id
+    sel.dispatchEvent(new Event('change', { bubbles: true }))
+    expect(manager.updateType).toHaveBeenCalledWith('m1', tmpl.id, '#ff0000', 'T')
+  })
+
+  it('changing to built-in type passes no color/shortLabel', () => {
+    vi.stubGlobal('localStorage', makeLocalStorageMock('järjestäjä'))
+    const library = createLibrary()
+    createTemplate(library, { label: 'Testi', shortLabel: 'T', color: '#ff0000', description: '', favorite: true })
+    const manager = makeManager([makeMarker('m1', 'right')])
+    renderMarkerList(manager as any, undefined, undefined, library)
+    const sel = document.querySelector<HTMLSelectElement>('.marker-type-select')!
+    sel.value = 'left'
+    sel.dispatchEvent(new Event('change', { bubbles: true }))
+    expect(manager.updateType).toHaveBeenCalledWith('m1', 'left', undefined, undefined)
+  })
+
+  it('select shows library templates under optgroup when library provided', () => {
+    vi.stubGlobal('localStorage', makeLocalStorageMock('järjestäjä'))
+    const library = createLibrary()
+    createTemplate(library, { label: 'Oma malli', shortLabel: 'OM', color: '#aabbcc', description: '', favorite: false })
+    const manager = makeManager([makeMarker('m1', 'right')])
+    renderMarkerList(manager as any, undefined, undefined, library)
+    const optgroup = document.querySelector<HTMLOptGroupElement>('optgroup[label="Omat mallit"]')
+    expect(optgroup).not.toBeNull()
+    expect(optgroup!.querySelectorAll('option')).toHaveLength(1)
   })
 })

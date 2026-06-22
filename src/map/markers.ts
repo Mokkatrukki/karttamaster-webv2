@@ -187,13 +187,15 @@ export class MarkerManager {
     this.onUpdate()
   }
 
-  updateType(id: string, newType: MarkerType): void {
+  updateType(id: string, newType: MarkerType, color?: string, shortLabel?: string): void {
     const m = this.markers.find((x) => x.id === id)
     if (!m) return
     m.type = newType
+    m.color = color ?? undefined
+    m.shortLabel = shortLabel ?? undefined
     const lm = this.leafletMarkers.get(id)
     if (lm) lm.setIcon(createSignIcon(newType, m.bearing, m.status, m.color, m.shortLabel))
-    this.apiPut(id, { type: newType })
+    this.apiPut(id, { type: newType, color: color ?? null, short_label: shortLabel ?? null })
     this.onUpdate()
   }
 

@@ -2,6 +2,8 @@ import type { MarkerManager } from '../map/markers'
 import { routePositionPct, nearestPointIndex } from '../logic/bearing'
 import type { MarkerType, RoutePoint, MarkerStatus } from '../logic/types'
 import { SIGN_TYPES } from '../logic/sign-picker'
+import type { SignLibrary } from '../logic/sign-library'
+import { listTemplates } from '../logic/sign-library'
 import { getRole } from '../logic/role'
 import { validActions, isTerminal } from '../logic/marker-status'
 import type { StatusAction } from '../logic/marker-status'
@@ -42,7 +44,7 @@ function renderStatusActions(markerId: string, status: MarkerStatus): string {
   return `<div class="marker-actions">${primaryBtns}${secondaryBtns}</div>`
 }
 
-export function renderMarkerList(manager: MarkerManager, highlightId?: string, segmentMarkerIds?: Set<string>): void {
+export function renderMarkerList(manager: MarkerManager, highlightId?: string, segmentMarkerIds?: Set<string>, library?: SignLibrary | null): void {
   const allMarkers = manager.getAll()
   // V33: talkoolainen sees only their segment's markers when segmentMarkerIds provided
   const markers = segmentMarkerIds ? allMarkers.filter(m => segmentMarkerIds.has(m.id)) : allMarkers
@@ -61,10 +63,13 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
         const highlighted = m.id === highlightId ? ' marker-item--new' : ''
         const statusBadge = `<span class="marker-status marker-status--${m.status}">${STATUS_LABELS[m.status]}</span>`
         const actions = isTalkoolainen ? renderStatusActions(m.id, m.status) : ''
+        const libraryTemplates = library ? listTemplates(library) : []
         const typeSelect = !isTalkoolainen
           ? `<select class="marker-type-select" data-id="${m.id}" title="Vaihda tyyppi">${
               SIGN_TYPES.map((t) => `<option value="${t.type}"${t.type === m.type ? ' selected' : ''}>${t.label}</option>`).join('')
-            }</select>`
+            }${libraryTemplates.length > 0 ? `<optgroup label="Omat mallit">${
+              libraryTemplates.map((t) => `<option value="${t.id}" data-color="${t.color}" data-short="${t.shortLabel}"${t.id === m.type ? ' selected' : ''}>${t.label}</option>`).join('')
+            }</optgroup>` : ''}</select>`
           : ''
         return `
           <div class="marker-item${highlighted}" data-id="${m.id}">
@@ -109,7 +114,10 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
   listEl.querySelectorAll<HTMLSelectElement>('.marker-type-select').forEach((sel) => {
     sel.addEventListener('change', (e) => {
       e.stopPropagation()
-      manager.updateType(sel.dataset.id ?? '', sel.value as MarkerType)
+      const selectedOption = sel.options[sel.selectedIndex]
+      const color = selectedOption?.dataset.color
+      const shortLabel = selectedOption?.dataset.short
+      manager.updateType(sel.dataset.id ?? '', sel.value as MarkerType, color, shortLabel)
     })
   })
 
