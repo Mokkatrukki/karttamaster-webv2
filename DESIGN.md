@@ -198,9 +198,13 @@ metsässä, hanskat kädessä.
 - Vain talkoolaiselle: piilossa järjestäjällä
 
 ### Listarivit (`.marker-item`)
-- Padding: `10px 14px`, separator: `border-card`
-- Hover: `hover-light`
-- Uusi kohta: `warn-highlight` background
+- Layout: kompakti yksirivinen flex-row — `[checkbox?][icon][km][status-badge][type-label]`
+- Padding: `10px 14px`, **min-height: 44px** (§R touch-target pakollinen)
+- Separator: `border-card`, hover: `hover`, uusi kohta: `warn-highlight`
+- `marker-type-label`: `flex:1`, `12px text-muted`, truncated (ellipsis)
+- `marker-km`: `11px text-meta`, `flex-shrink:0`
+- `marker-icon`: `18px`, `flex-shrink:0`
+- Rivin klikkaus → avaa `MarkerDetailModal` (T105) — ei toimintopainikkeita listarivillä
 
 ### Sign-type-napit (`.sign-type-btn`)
 - `min-height: 44px` ✓ (touch-target OK)
@@ -279,6 +283,18 @@ metsässä, hanskat kädessä.
   - kuvaus: `<textarea>`, 3 riviä, auto-save change, `min-height: 44px`
   - merkit readonly-lista: `text-muted 12px`, status-badge §C-väreillä, `max-height: 160px` scrollable
   - varusteet: add/remove/edit-rivi, `min-height: 44px` kaikille inputeille ja napeille
+
+### MarkerDetailModal (`.marker-detail-modal`, T105)
+- Avautuu merkkilistarivin klikistä — molemmat roolit
+- DOM: `document.body`-lapsi, `position:fixed; inset:0; z-index:3000`
+- Backdrop: `overlay; backdrop-filter:blur(2px)` — klikki sulkee
+- Kehys: `bg-card`, `border:1px solid border-default`, `border-radius:14px`, `box-shadow:0 16px 48px rgba(0,0,0,0.5)`
+- Leveys: `min(480px,92vw)`, `max-height:80vh`, scrollable sisältö
+- Otsikko-rivi: type-label + km `text-primary 14px bold`, ✕-nappi `min-height:44px min-width:44px`
+- `locationNote`: `<input>` auto-save blur/Enter, `min-height:44px`, `field-tint`
+- Kuvaus-osio: placeholder `text-muted 12px "Kuvaus tulossa (T103)"` kunnes T103 valmis
+- Järjestäjä-lisät: type-select `min-height:44px` + delete-nappi `danger-soft`
+- Talkoolainen-lisät: status-napit (aseta / ei tarpeen) `min-height:44px`, `confirm`-tausta
 
 ### SegmentView (`#segment-view`, `src/ui/segment-view.ts`)
 - Vain talkoolaiselle jolla on assignedCode matchaava pätkä
