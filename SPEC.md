@@ -90,6 +90,7 @@ SyöteMTB 2026 merkintätyökalu — suunnittelu, kenttätyö, purku yhdessä so
 | V56 | `openDetailsModal()` save-nappi kutsuu `this.onUpdate()` tallennuksen jälkeen — `segmentOverlay.update(segmentStore)` triggeröityy ja kartta päivittyy välittömästi. |
 | V57 | Pätkän poisto modaalissa vaatii `window.confirm()`-varmistuksen ennen `deleteSegment()`-kutsua. |
 | V58 | Merkin poisto vaatii `window.confirm('Poistetaanko merkki?')` -varmistuksen ennen `manager.remove()`-kutsua. Koskee kaikkia delete-nappeja: `marker-list.ts` (nyt) ja T105 `MarkerDetailModal` (myöhemmin). |
+| V59 | `MarkerDetailModal` talkoolainen-osio (status-napit) renderöidään kun `role === 'talkoolainen'` — ei `getTalkoolainenCode() !== null`. Segmenttikoodi ei ole ehto status-toiminnoille. Talkoolainen ilman pätkäkoodia saa silti kuitata merkit. |
 
 ## §T Tasks
 
@@ -270,3 +271,4 @@ UX-simulaatio 2026-06-07. Kaksi roolia läpikäyty — löydöt kirjattu taskeih
 | B28 | 2026-06-22 | `openDetailsModal()` save-nappi (`btn-segment-modal-save`) ei kutsunut `this.onUpdate()` — `segmentOverlay.update()` ei triggeröitynyt nimen/kuvauksen tallennuksen jälkeen. Kartta ei päivittynyt (esim. pätkälabel pysyi vanhana). Fix: `this.onUpdate()` save-handlerin loppuun. | V56 |
 | B29 | 2026-06-22 | `renderMarkerList` ja `renderSignDots` käyttivät `typeInfo(m.type)` SIGN_TYPES-fallbackia custom-kirjastomerkeille — `m.color`/`m.shortLabel` ignoroitu. Kirjastomerkit näkyivät väärällä värillä ja labelilla listassa ja alapalkissa. Fix: `displayColor = m.color ?? info.color`, `displayShortLabel = m.shortLabel ?? info.shortLabel` kummassakin funktiossa. `src/ui/marker-list.ts`. | ✓ V47,V48 |
 | B30 | 2026-06-22 | Merkin poisto mahdoton: T98 poisti `btn-delete` context-menusta, T104 poisti `btn-delete` `marker-list.ts`:stä (siirtyi T105:een), T105 rakentamatta → poisto katosi kokonaan. Fix: `btn-delete`-nappi palautettu järjestäjälle kompaktiin merkkiriviin `marker-list.ts`:ssä (siirretään T105:een kun rakennetaan). `src/ui/marker-list.ts`. | ✓ V53 |
+| B31 | 2026-06-22 | `MarkerDetailModal.buildContent()` rivi 149: `else if (talkoolainenCode)` — talkoolainen ilman pätkäkoodia (kirjautunut, ei segmenttiä) ei näe status-nappeja. Korjaus: `else if (role === 'talkoolainen')`. | V59 |

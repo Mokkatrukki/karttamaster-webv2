@@ -146,7 +146,7 @@ export class MarkerDetailModal {
 
     if (isJarjestaja) {
       body.appendChild(this.buildJarjestajaSection(marker, library))
-    } else if (talkoolainenCode) {
+    } else if (role === 'talkoolainen') {
       body.appendChild(this.buildTalkoolainenSection(marker))
     }
 
