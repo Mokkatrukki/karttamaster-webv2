@@ -174,8 +174,10 @@ async function init(talkoolainenCode?: string) {
   let segmentView: SegmentView | null = null
   let signLibrary: SignLibrary | null = null
 
+  const onOpenMarkerDetail = (id: string) => markerManager.panTo(id)
+
   const markerManager = new MarkerManager(map, routes, () => {
-    renderMarkerList(markerManager, undefined, undefined, signLibrary)
+    renderMarkerList(markerManager, undefined, undefined, signLibrary, onOpenMarkerDetail)
     progressBar.refreshDots()
     statusPanel?.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
     if (segmentView) {
@@ -252,7 +254,7 @@ async function init(talkoolainenCode?: string) {
         segmentMarkerIds = new Set(getMarkersForSegment(seg, markerManager.getAll()).map(m => m.id))
       }
     }
-    renderMarkerList(markerManager, highlightId, segmentMarkerIds, signLibrary)
+    renderMarkerList(markerManager, highlightId, segmentMarkerIds, signLibrary, onOpenMarkerDetail)
     markerModalBackdrop.classList.add('open')
     markerModal.classList.add('open')
   }

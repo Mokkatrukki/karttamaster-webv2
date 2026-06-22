@@ -1,23 +1,13 @@
 import type { MarkerManager } from '../map/markers'
 import { routePositionPct, nearestPointIndex } from '../logic/bearing'
-import type { MarkerType, RoutePoint, MarkerStatus } from '../logic/types'
+import type { RoutePoint, MarkerStatus } from '../logic/types'
 import { SIGN_TYPES } from '../logic/sign-picker'
 import type { SignLibrary } from '../logic/sign-library'
-import { listTemplates } from '../logic/sign-library'
 import { getRole } from '../logic/role'
-import { validActions, isTerminal } from '../logic/marker-status'
-import type { StatusAction } from '../logic/marker-status'
+import { isTerminal } from '../logic/marker-status'
 
-function typeInfo(type: MarkerType) {
+function typeInfo(type: string) {
   return SIGN_TYPES.find((s) => s.type === type) ?? SIGN_TYPES[0]
-}
-
-const ACTION_LABELS: Record<StatusAction, string> = {
-  aseta: '✓ Aseta',
-  ohita: 'Ei tarpeen',
-  tarkista: '✓ Tarkista',
-  kerää: '✓ Kerää',
-  peru: '↩ Peru',
 }
 
 const STATUS_LABELS: Record<MarkerStatus, string> = {
@@ -27,8 +17,6 @@ const STATUS_LABELS: Record<MarkerStatus, string> = {
   kerätty: 'Kerätty',
   ei_tarpeen: 'Ei tarpeen',
 }
-
-const SECONDARY_ACTIONS: StatusAction[] = ['peru', 'ohita']
 
 const ALL_STATUSES: { value: MarkerStatus; label: string }[] = [
   { value: 'suunniteltu', label: 'Suunniteltu' },
@@ -68,21 +56,7 @@ function updateBulkCheckinBtns(listEl: HTMLElement, modal: HTMLElement | null): 
   }
 }
 
-function renderStatusActions(markerId: string, status: MarkerStatus): string {
-  if (isTerminal(status)) return ''
-  const actions = validActions(status)
-  const primary = actions.filter((a) => !SECONDARY_ACTIONS.includes(a))
-  const secondary = actions.filter((a) => SECONDARY_ACTIONS.includes(a))
-  const primaryBtns = primary
-    .map((a) => `<button class="btn-status-primary" data-id="${markerId}" data-action="${a}">${ACTION_LABELS[a]}</button>`)
-    .join('')
-  const secondaryBtns = secondary
-    .map((a) => `<button class="btn-status-secondary" data-id="${markerId}" data-action="${a}">${ACTION_LABELS[a]}</button>`)
-    .join('')
-  return `<div class="marker-actions">${primaryBtns}${secondaryBtns}</div>`
-}
-
-export function renderMarkerList(manager: MarkerManager, highlightId?: string, segmentMarkerIds?: Set<string>, library?: SignLibrary | null): void {
+export function renderMarkerList(manager: MarkerManager, highlightId?: string, segmentMarkerIds?: Set<string>, _library?: SignLibrary | null, onOpenDetail?: (id: string) => void): void {
   const allMarkers = manager.getAll()
   // V33: talkoolainen sees only their segment's markers when segmentMarkerIds provided
   const markers = segmentMarkerIds ? allMarkers.filter(m => segmentMarkerIds.has(m.id)) : allMarkers
@@ -141,15 +115,6 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
         const km = (m.distanceFromStart / 1000).toFixed(2)
         const highlighted = m.id === highlightId ? ' marker-item--new' : ''
         const statusBadge = `<span class="marker-status marker-status--${m.status}">${STATUS_LABELS[m.status]}</span>`
-        const actions = isTalkoolainen ? renderStatusActions(m.id, m.status) : ''
-        const libraryTemplates = library ? listTemplates(library) : []
-        const typeSelect = !isTalkoolainen
-          ? `<select class="marker-type-select" data-id="${m.id}" title="Vaihda tyyppi">${
-              SIGN_TYPES.map((t) => `<option value="${t.type}"${t.type === m.type ? ' selected' : ''}>${t.label}</option>`).join('')
-            }${libraryTemplates.length > 0 ? `<optgroup label="Omat mallit">${
-              libraryTemplates.map((t) => `<option value="${t.id}" data-color="${t.color}" data-short="${t.shortLabel}"${t.id === m.type ? ' selected' : ''}>${t.label}</option>`).join('')
-            }</optgroup>` : ''}</select>`
-          : ''
         const checkbox = !isTalkoolainen
           ? `<input type="checkbox" class="marker-item-checkbox" data-id="${m.id}" aria-label="Valitse merkki">`
           : (!isTerminal(m.status) ? `<input type="checkbox" class="marker-checkin-cb" data-id="${m.id}" aria-label="Valitse merkki">` : '')
@@ -157,70 +122,23 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
           <div class="marker-item${highlighted}" data-id="${m.id}">
             ${checkbox}
             <span class="marker-icon" style="color:${info.color}">${info.label[0]}</span>
-            <div class="marker-info">
-              <div>${info.label}</div>
-              <div class="marker-km">${km} km · ${Math.round(m.bearing)}°</div>
-              ${statusBadge}
-              ${typeSelect}
-              <input class="marker-note" data-id="${m.id}" type="text" placeholder="Paikkaohjeet..." maxlength="200">
-              ${actions}
-            </div>
-            <button class="btn-delete" data-id="${m.id}" title="Poista">✕</button>
+            <span class="marker-km">${km} km</span>
+            ${statusBadge}
+            <span class="marker-type-label">${info.label}</span>
           </div>`
       }).join('')
-
-  // Set note values via DOM to avoid XSS
-  markers.forEach((m) => {
-    const input = listEl.querySelector<HTMLInputElement>(`.marker-note[data-id="${m.id}"]`)
-    if (input && m.locationNote) input.value = m.locationNote
-  })
-
-  listEl.querySelectorAll<HTMLInputElement>('.marker-note').forEach((input) => {
-    input.addEventListener('click', (e) => e.stopPropagation())
-    input.addEventListener('blur', () => {
-      manager.updateNote(input.dataset.id ?? '', input.value.trim())
-    })
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') input.blur()
-    })
-  })
-
-  listEl.querySelectorAll<HTMLButtonElement>('.btn-status-primary, .btn-status-secondary').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation()
-      const id = btn.dataset.id ?? ''
-      const action = btn.dataset.action as StatusAction
-      manager.updateStatus(id, action)
-    })
-  })
-
-  listEl.querySelectorAll<HTMLSelectElement>('.marker-type-select').forEach((sel) => {
-    sel.addEventListener('change', (e) => {
-      e.stopPropagation()
-      const selectedOption = sel.options[sel.selectedIndex]
-      const color = selectedOption?.dataset.color
-      const shortLabel = selectedOption?.dataset.short
-      manager.updateType(sel.dataset.id ?? '', sel.value as MarkerType, color, shortLabel)
-    })
-  })
 
   listEl.querySelectorAll('.marker-item').forEach((el) => {
     el.addEventListener('click', (e) => {
       const target = e.target as HTMLElement
-      if (target.classList.contains('btn-delete')) return
-      if (target.classList.contains('marker-note')) return
-      if (target.classList.contains('btn-status-primary')) return
-      if (target.classList.contains('btn-status-secondary')) return
-      if (target.classList.contains('marker-type-select')) return
       if (target.classList.contains('marker-item-checkbox')) return
       if (target.classList.contains('marker-checkin-cb')) return
-      manager.panTo((el as HTMLElement).dataset.id ?? '')
-    })
-  })
-
-  listEl.querySelectorAll('.btn-delete').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      manager.remove((btn as HTMLElement).dataset.id ?? '')
+      const id = (el as HTMLElement).dataset.id ?? ''
+      if (onOpenDetail) {
+        onOpenDetail(id)
+      } else {
+        manager.panTo(id)
+      }
     })
   })
 
