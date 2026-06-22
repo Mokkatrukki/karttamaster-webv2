@@ -4,11 +4,11 @@ import {
   updateTemplate,
   deleteTemplate,
   listTemplates,
-  saveLibrary,
   loadLibrary,
   type SignLibrary,
   type SignTemplate,
 } from '../logic/sign-library'
+import { CURATED_ICONS, getIconById, renderIconSvg } from '../logic/icon-set'
 
 const DEFAULT_IDS = new Set(['right', 'left', 'upcoming-right', 'upcoming-left'])
 
@@ -33,7 +33,8 @@ export function createSignLibrary(): SignLibrary {
 }
 
 export class SignLibraryPanel {
-  private editingId: string | null | 'new' = null
+  private activeModal: HTMLElement | null = null
+  private escHandler: ((e: KeyboardEvent) => void) | null = null
 
   constructor(
     private readonly container: HTMLElement,
@@ -45,32 +46,31 @@ export class SignLibraryPanel {
 
   private render(): void {
     const templates = listTemplates(this.library)
-
     const rows = templates.map(t => this.buildRow(t)).join('')
-    const addArea = this.editingId === 'new'
-      ? this.buildForm(null)
-      : `<button class="sign-lib-add-btn" style="margin:8px 0 0;padding:6px 12px;min-height:44px;width:100%;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-muted);font-size:12px;cursor:pointer;text-align:left">+ Uusi malli</button>`
+    const addBtn = `<button class="sign-lib-add-btn" style="margin:8px 0 0;padding:6px 12px;min-height:44px;width:100%;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-muted);font-size:12px;cursor:pointer;text-align:left">+ Uusi malli</button>`
 
     this.container.innerHTML = `
       <div class="sign-lib-list">${rows}</div>
-      ${addArea}
+      ${addBtn}
     `
     this.bindEvents()
   }
 
   private buildRow(t: SignTemplate): string {
     const isDefault = DEFAULT_IDS.has(t.id)
-    const isEditing = this.editingId === t.id
-
-    if (isEditing) return this.buildForm(t)
+    const iconEntry = t.iconId ? getIconById(t.iconId) : null
+    // Safe: iconEntry.svgContent is from CURATED_ICONS (not user input)
+    const swatchInner = iconEntry
+      ? renderIconSvg(t.iconId!, 14)
+      : escapeHtml(t.shortLabel)
 
     const placeBtn = isDefault
       ? `<button class="sign-type-btn sign-lib-place-btn" data-type="${t.id}" style="flex:1;min-height:44px;display:flex;align-items:center;gap:8px;padding:6px 8px;background:none;border:none;color:var(--text-body);font-size:13px;cursor:pointer;text-align:left;border-radius:var(--radius-sm)">
-           <span class="sign-swatch" style="background:${escapeHtml(t.color)};color:#fff;border-radius:var(--radius-sm);min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900">${escapeHtml(t.shortLabel)}</span>
+           <span class="sign-swatch" style="background:${escapeHtml(t.color)};color:#fff;border-radius:var(--radius-sm);min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900">${swatchInner}</span>
            ${escapeHtml(t.label)}
          </button>`
       : `<div class="sign-lib-custom-item" style="flex:1;display:flex;align-items:center;gap:8px;padding:6px 8px;min-height:44px">
-           <span class="sign-swatch" style="background:${escapeHtml(t.color)};color:#fff;border-radius:var(--radius-sm);min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900">${escapeHtml(t.shortLabel)}</span>
+           <span class="sign-swatch" style="background:${escapeHtml(t.color)};color:#fff;border-radius:var(--radius-sm);min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900">${swatchInner}</span>
            <span style="font-size:13px;color:var(--text-body)">${escapeHtml(t.label)}</span>
          </div>`
 
@@ -85,36 +85,6 @@ export class SignLibraryPanel {
       ${favBtn}
       <button class="sign-lib-edit-btn" data-id="${t.id}" aria-label="Muokkaa mallia" style="min-width:44px;min-height:44px;background:none;border:none;border-radius:var(--radius-sm);color:var(--text-muted);font-size:13px;cursor:pointer">✎</button>
       ${deleteBtn}
-    </div>`
-  }
-
-  private buildForm(t: SignTemplate | null): string {
-    const id = t?.id ?? ''
-    const label = escapeHtml(t?.label ?? '')
-    const shortLabel = escapeHtml(t?.shortLabel ?? '')
-    const color = escapeHtml(t?.color ?? '#f59e0b')
-    const description = escapeHtml(t?.description ?? '')
-    const isDefault = t ? DEFAULT_IDS.has(t.id) : false
-    const title = t ? 'Muokkaa mallia' : 'Uusi malli'
-
-    return `<div class="sign-lib-form" data-id="${escapeHtml(id)}" style="padding:10px 8px;border-bottom:1px solid var(--border-card);background:var(--surface-raised);border-radius:var(--radius-md)">
-      <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">${title}</div>
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <input class="sign-lib-label-input" placeholder="Nimi (esim. Huoltopiste 25km)" value="${label}"
-               style="padding:8px 10px;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-body);font-size:13px">
-        <div style="display:flex;gap:6px">
-          <input class="sign-lib-short-input" placeholder="Lyhenne (1-3 merkkiä)" value="${shortLabel}" maxlength="3"
-                 style="flex:1;min-width:0;padding:8px 10px;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-body);font-size:13px">
-          ${isDefault ? '' : `<input type="color" class="sign-lib-color-input" value="${color}"
-                 style="width:44px;height:44px;border:1px solid var(--border-default);border-radius:var(--radius-sm);cursor:pointer;background:none;padding:2px;flex-shrink:0">`}
-        </div>
-        <input class="sign-lib-desc-input" placeholder="Kuvaus (valinnainen)" value="${description}"
-               style="padding:8px 10px;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-body);font-size:13px">
-        <div style="display:flex;gap:6px;margin-top:2px">
-          <button class="sign-lib-save-btn" style="flex:1;padding:8px;min-height:44px;background:var(--confirm);color:var(--confirm-text);border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer">Tallenna</button>
-          <button class="sign-lib-cancel-btn" style="padding:8px 16px;min-height:44px;background:var(--field-tint);color:var(--text-muted);border:1px solid var(--border-default);border-radius:var(--radius-sm);font-size:13px;cursor:pointer">Peruuta</button>
-        </div>
-      </div>
     </div>`
   }
 
@@ -133,8 +103,10 @@ export class SignLibraryPanel {
 
     this.container.querySelectorAll<HTMLButtonElement>('.sign-lib-edit-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        this.editingId = btn.dataset.id ?? null
-        this.render()
+        const id = btn.dataset.id
+        if (!id) return
+        const t = this.library.get(id)
+        if (t) this.openModal(t)
       })
     })
 
@@ -143,53 +115,210 @@ export class SignLibraryPanel {
         const id = btn.dataset.id
         if (!id) return
         deleteTemplate(this.library, id)
-        this.editingId = null
         this.render()
         this.onChange()
       })
     })
 
     const addBtn = this.container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')
-    if (addBtn) {
-      addBtn.addEventListener('click', () => {
-        this.editingId = 'new'
-        this.render()
-      })
-    }
-
-    const form = this.container.querySelector<HTMLElement>('.sign-lib-form')
-    if (form) {
-      const saveBtn = form.querySelector<HTMLButtonElement>('.sign-lib-save-btn')
-      const cancelBtn = form.querySelector<HTMLButtonElement>('.sign-lib-cancel-btn')
-
-      saveBtn?.addEventListener('click', () => this.saveForm(form))
-      cancelBtn?.addEventListener('click', () => {
-        this.editingId = null
-        this.render()
-      })
-    }
+    addBtn?.addEventListener('click', () => this.openModal(null))
   }
 
-  private saveForm(form: HTMLElement): void {
-    const id = (form as HTMLElement).dataset.id
-    const label = (form.querySelector('.sign-lib-label-input') as HTMLInputElement).value.trim()
-    const shortLabel = (form.querySelector('.sign-lib-short-input') as HTMLInputElement).value.trim()
-    const colorEl = form.querySelector<HTMLInputElement>('.sign-lib-color-input')
-    const color = colorEl ? colorEl.value : (id ? (this.library.get(id)?.color ?? '#f59e0b') : '#f59e0b')
-    const description = (form.querySelector('.sign-lib-desc-input') as HTMLInputElement).value.trim()
+  private openModal(template: SignTemplate | null): void {
+    this.closeModal()
 
-    if (!label || !shortLabel) return
+    let selectedIconId: string | null = template?.iconId ?? null
+    const isDefault = template ? DEFAULT_IDS.has(template.id) : false
 
-    if (!id) {
-      createTemplate(this.library, { label, shortLabel, color, description, favorite: true })
-    } else {
-      const patch: Partial<Omit<SignTemplate, 'id'>> = { label, shortLabel, description }
-      if (form.querySelector('.sign-lib-color-input')) patch.color = color
-      updateTemplate(this.library, id, patch)
+    const backdrop = document.createElement('div')
+    backdrop.className = 'sign-lib-modal-backdrop'
+    backdrop.style.cssText = 'position:fixed;inset:0;background:var(--overlay);backdrop-filter:blur(2px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px'
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) this.closeModal()
+    })
+
+    const modal = document.createElement('div')
+    modal.className = 'sign-lib-modal'
+    modal.setAttribute('role', 'dialog')
+    modal.setAttribute('aria-modal', 'true')
+    modal.setAttribute('aria-label', template ? 'Muokkaa mallia' : 'Uusi malli')
+    modal.style.cssText = 'background:var(--surface-card);border-radius:var(--radius-lg);box-shadow:0 16px 48px rgba(0,0,0,0.5);width:min(480px,92vw);max-height:80vh;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px'
+    modal.addEventListener('click', e => e.stopPropagation())
+
+    // Header
+    const header = document.createElement('div')
+    header.style.cssText = 'display:flex;justify-content:space-between;align-items:center'
+    const titleEl = document.createElement('span')
+    titleEl.style.cssText = 'font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em'
+    titleEl.textContent = template ? 'Muokkaa mallia' : 'Uusi malli'
+    const closeBtn = document.createElement('button')
+    closeBtn.className = 'sign-lib-modal-close'
+    closeBtn.setAttribute('aria-label', 'Sulje')
+    closeBtn.textContent = '✕'
+    closeBtn.style.cssText = 'min-width:44px;min-height:44px;background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;border-radius:var(--radius-sm)'
+    closeBtn.addEventListener('click', () => this.closeModal())
+    header.appendChild(titleEl)
+    header.appendChild(closeBtn)
+    modal.appendChild(header)
+
+    // Icon section label
+    const iconSectionLabel = document.createElement('div')
+    iconSectionLabel.style.cssText = 'font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em'
+    iconSectionLabel.textContent = 'Ikoni (valinnainen)'
+    modal.appendChild(iconSectionLabel)
+
+    // Icon grid
+    const iconGrid = document.createElement('div')
+    iconGrid.className = 'sign-lib-icon-grid'
+    iconGrid.style.cssText = 'display:grid;grid-template-columns:repeat(6,1fr);gap:4px'
+
+    const makeIconBtnStyle = (selected: boolean) =>
+      `min-height:44px;background:${selected ? 'var(--accent)' : 'var(--field-tint)'};color:${selected ? 'white' : 'var(--text-muted)'};border:1.5px solid ${selected ? 'var(--accent)' : 'var(--border-default)'};border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0`
+
+    // "No icon" option
+    const noIconBtn = document.createElement('button')
+    noIconBtn.className = 'sign-lib-icon-btn'
+    noIconBtn.dataset.iconId = ''
+    noIconBtn.title = 'Ei ikonia'
+    noIconBtn.style.cssText = makeIconBtnStyle(selectedIconId === null) + ';font-size:14px'
+    noIconBtn.textContent = '—'
+    iconGrid.appendChild(noIconBtn)
+
+    for (const icon of CURATED_ICONS) {
+      const btn = document.createElement('button')
+      btn.className = 'sign-lib-icon-btn'
+      btn.dataset.iconId = icon.id
+      btn.title = icon.label
+      btn.style.cssText = makeIconBtnStyle(selectedIconId === icon.id)
+      btn.innerHTML = renderIconSvg(icon.id, 20)  // safe: content from CURATED_ICONS only
+      iconGrid.appendChild(btn)
     }
 
-    this.editingId = null
-    this.render()
-    this.onChange()
+    const updateIconGrid = () => {
+      iconGrid.querySelectorAll<HTMLButtonElement>('.sign-lib-icon-btn').forEach(b => {
+        const isSel = (b.dataset.iconId === '') ? (selectedIconId === null) : (b.dataset.iconId === selectedIconId)
+        b.style.background = isSel ? 'var(--accent)' : 'var(--field-tint)'
+        b.style.color = isSel ? 'white' : 'var(--text-muted)'
+        b.style.borderColor = isSel ? 'var(--accent)' : 'var(--border-default)'
+      })
+    }
+
+    iconGrid.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.sign-lib-icon-btn')
+      if (!btn) return
+      selectedIconId = btn.dataset.iconId || null
+      updateIconGrid()
+    })
+
+    modal.appendChild(iconGrid)
+
+    // Label
+    const labelSectionLabel = document.createElement('div')
+    labelSectionLabel.style.cssText = 'font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em'
+    labelSectionLabel.textContent = 'Nimi'
+    modal.appendChild(labelSectionLabel)
+
+    const labelInput = document.createElement('input')
+    labelInput.className = 'sign-lib-label-input'
+    labelInput.type = 'text'
+    labelInput.placeholder = 'Esim. Huoltopiste 25km'
+    labelInput.value = template?.label ?? ''
+    labelInput.style.cssText = 'padding:8px 10px;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-body);font-size:13px;width:100%;box-sizing:border-box'
+    modal.appendChild(labelInput)
+
+    // ShortLabel + Color row
+    const shortColorRow = document.createElement('div')
+    shortColorRow.style.cssText = 'display:flex;gap:6px'
+
+    const shortInput = document.createElement('input')
+    shortInput.className = 'sign-lib-short-input'
+    shortInput.type = 'text'
+    shortInput.placeholder = 'Lyhenne (1-3)'
+    shortInput.value = template?.shortLabel ?? ''
+    shortInput.maxLength = 3
+    shortInput.style.cssText = 'flex:1;min-width:0;padding:8px 10px;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-body);font-size:13px'
+    shortColorRow.appendChild(shortInput)
+
+    let colorInput: HTMLInputElement | null = null
+    if (!isDefault) {
+      colorInput = document.createElement('input')
+      colorInput.type = 'color'
+      colorInput.className = 'sign-lib-color-input'
+      colorInput.value = template?.color ?? '#f59e0b'
+      colorInput.style.cssText = 'width:44px;height:44px;border:1px solid var(--border-default);border-radius:var(--radius-sm);cursor:pointer;background:none;padding:2px;flex-shrink:0'
+      shortColorRow.appendChild(colorInput)
+    }
+    modal.appendChild(shortColorRow)
+
+    // Description
+    const descInput = document.createElement('input')
+    descInput.className = 'sign-lib-desc-input'
+    descInput.type = 'text'
+    descInput.placeholder = 'Kuvaus (valinnainen)'
+    descInput.value = template?.description ?? ''
+    descInput.style.cssText = 'padding:8px 10px;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-body);font-size:13px;width:100%;box-sizing:border-box'
+    modal.appendChild(descInput)
+
+    // Save / Cancel
+    const btnRow = document.createElement('div')
+    btnRow.style.cssText = 'display:flex;gap:6px;margin-top:4px'
+
+    const saveBtn = document.createElement('button')
+    saveBtn.className = 'sign-lib-save-btn'
+    saveBtn.textContent = 'Tallenna'
+    saveBtn.style.cssText = 'flex:1;padding:8px;min-height:44px;background:var(--confirm);color:var(--confirm-text);border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer'
+
+    const cancelBtn = document.createElement('button')
+    cancelBtn.className = 'sign-lib-cancel-btn'
+    cancelBtn.textContent = 'Peruuta'
+    cancelBtn.style.cssText = 'padding:8px 16px;min-height:44px;background:var(--field-tint);color:var(--text-muted);border:1px solid var(--border-default);border-radius:var(--radius-sm);font-size:13px;cursor:pointer'
+
+    cancelBtn.addEventListener('click', () => this.closeModal())
+
+    saveBtn.addEventListener('click', () => {
+      const label = labelInput.value.trim()
+      const shortLabel = shortInput.value.trim()
+      if (!label || !shortLabel) return
+
+      const description = descInput.value.trim()
+      const iconId = selectedIconId ?? undefined
+
+      if (!template) {
+        const color = colorInput?.value ?? '#f59e0b'
+        createTemplate(this.library, { label, shortLabel, color, description, favorite: true, iconId })
+      } else {
+        const patch: Partial<Omit<SignTemplate, 'id'>> = { label, shortLabel, description, iconId }
+        if (colorInput) patch.color = colorInput.value
+        updateTemplate(this.library, template.id, patch)
+      }
+
+      this.closeModal()
+      this.render()
+      this.onChange()
+    })
+
+    btnRow.appendChild(saveBtn)
+    btnRow.appendChild(cancelBtn)
+    modal.appendChild(btnRow)
+
+    backdrop.appendChild(modal)
+    document.body.appendChild(backdrop)
+    this.activeModal = backdrop
+
+    this.escHandler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') this.closeModal()
+    }
+    document.addEventListener('keydown', this.escHandler)
+  }
+
+  private closeModal(): void {
+    if (this.activeModal) {
+      this.activeModal.remove()
+      this.activeModal = null
+    }
+    if (this.escHandler) {
+      document.removeEventListener('keydown', this.escHandler)
+      this.escHandler = null
+    }
   }
 }

@@ -12,6 +12,11 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
+// T93: edit/create form now opens in modal (document.body), not inline in container
+function bodyQuery<T extends Element>(selector: string): T | null {
+  return document.body.querySelector<T>(selector)
+}
+
 describe('T22 SignLibraryPanel — V10', () => {
   describe('seedDefaults', () => {
     it('luo kirjaston 4 oletusmalleilla', () => {
@@ -84,23 +89,24 @@ describe('T22 SignLibraryPanel — V10', () => {
   })
 
   describe('muokkaa default-mallia', () => {
-    it('muokkaa-klikki avaa lomakkeen', () => {
+    it('muokkaa-klikki avaa modaalin', () => {
       const container = setup()
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn())
       const editBtn = container.querySelector<HTMLButtonElement>('.sign-lib-edit-btn')!
       editBtn.click()
-      const form = container.querySelector('.sign-lib-form')
-      expect(form).toBeTruthy()
+      // T93: form in modal appended to body
+      const modal = bodyQuery('.sign-lib-modal')
+      expect(modal).toBeTruthy()
     })
 
-    it('lomakkeessa on label-input esitäytettynä', () => {
+    it('modaalissa on label-input esitäytettynä', () => {
       const container = setup()
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn())
       const editBtn = container.querySelector<HTMLButtonElement>('.sign-lib-edit-btn')!
       editBtn.click()
-      const input = container.querySelector<HTMLInputElement>('.sign-lib-label-input')!
+      const input = bodyQuery<HTMLInputElement>('.sign-lib-label-input')!
       expect(input.value).not.toBe('')
     })
 
@@ -111,11 +117,11 @@ describe('T22 SignLibraryPanel — V10', () => {
       new SignLibraryPanel(container, lib, onChange)
       const editBtn = container.querySelector<HTMLButtonElement>('.sign-lib-edit-btn')!
       editBtn.click()
-      const labelInput = container.querySelector<HTMLInputElement>('.sign-lib-label-input')!
+      const labelInput = bodyQuery<HTMLInputElement>('.sign-lib-label-input')!
       labelInput.value = 'Muutettu nimi'
-      const shortInput = container.querySelector<HTMLInputElement>('.sign-lib-short-input')!
+      const shortInput = bodyQuery<HTMLInputElement>('.sign-lib-short-input')!
       shortInput.value = 'M'
-      container.querySelector<HTMLButtonElement>('.sign-lib-save-btn')!.click()
+      bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
       const templates = listTemplates(lib)
       const updated = templates.find(t => t.label === 'Muutettu nimi')
       expect(updated).toBeTruthy()
@@ -128,34 +134,33 @@ describe('T22 SignLibraryPanel — V10', () => {
       new SignLibraryPanel(container, lib, onChange)
       const editBtn = container.querySelector<HTMLButtonElement>('.sign-lib-edit-btn')!
       editBtn.click()
-      const labelInput = container.querySelector<HTMLInputElement>('.sign-lib-label-input')!
-      labelInput.value = 'X'
-      container.querySelector<HTMLInputElement>('.sign-lib-short-input')!.value = 'X'
-      container.querySelector<HTMLButtonElement>('.sign-lib-save-btn')!.click()
+      bodyQuery<HTMLInputElement>('.sign-lib-label-input')!.value = 'X'
+      bodyQuery<HTMLInputElement>('.sign-lib-short-input')!.value = 'X'
+      bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
       expect(onChange).toHaveBeenCalledOnce()
     })
 
-    it('peruuta sulkee lomakkeen ilman muutoksia', () => {
+    it('peruuta sulkee modaalin ilman muutoksia', () => {
       const container = setup()
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn())
       const editBtn = container.querySelector<HTMLButtonElement>('.sign-lib-edit-btn')!
       editBtn.click()
-      container.querySelector<HTMLButtonElement>('.sign-lib-cancel-btn')!.click()
-      expect(container.querySelector('.sign-lib-form')).toBeNull()
+      bodyQuery<HTMLButtonElement>('.sign-lib-cancel-btn')!.click()
+      expect(bodyQuery('.sign-lib-modal')).toBeNull()
       expect(listTemplates(lib)).toHaveLength(4)
     })
   })
 
   describe('uusi malli', () => {
-    it('"Uusi malli" -klikki avaa tyhjän lomakkeen', () => {
+    it('"Uusi malli" -klikki avaa modaalin tyhjällä lomakkeella', () => {
       const container = setup()
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn())
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
-      const form = container.querySelector('.sign-lib-form')
-      expect(form).toBeTruthy()
-      const labelInput = container.querySelector<HTMLInputElement>('.sign-lib-label-input')!
+      const modal = bodyQuery('.sign-lib-modal')
+      expect(modal).toBeTruthy()
+      const labelInput = bodyQuery<HTMLInputElement>('.sign-lib-label-input')!
       expect(labelInput.value).toBe('')
     })
 
@@ -165,9 +170,9 @@ describe('T22 SignLibraryPanel — V10', () => {
       const onChange = vi.fn()
       new SignLibraryPanel(container, lib, onChange)
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
-      container.querySelector<HTMLInputElement>('.sign-lib-label-input')!.value = 'Huolto 25km'
-      container.querySelector<HTMLInputElement>('.sign-lib-short-input')!.value = 'H'
-      container.querySelector<HTMLButtonElement>('.sign-lib-save-btn')!.click()
+      bodyQuery<HTMLInputElement>('.sign-lib-label-input')!.value = 'Huolto 25km'
+      bodyQuery<HTMLInputElement>('.sign-lib-short-input')!.value = 'H'
+      bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
       const templates = listTemplates(lib)
       expect(templates).toHaveLength(5)
       const newT = templates.find(t => t.label === 'Huolto 25km')
@@ -180,8 +185,8 @@ describe('T22 SignLibraryPanel — V10', () => {
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn())
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
-      container.querySelector<HTMLInputElement>('.sign-lib-short-input')!.value = 'H'
-      container.querySelector<HTMLButtonElement>('.sign-lib-save-btn')!.click()
+      bodyQuery<HTMLInputElement>('.sign-lib-short-input')!.value = 'H'
+      bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
       expect(listTemplates(lib)).toHaveLength(4)
     })
 
@@ -190,9 +195,9 @@ describe('T22 SignLibraryPanel — V10', () => {
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn())
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
-      container.querySelector<HTMLInputElement>('.sign-lib-label-input')!.value = 'Kasa'
-      container.querySelector<HTMLInputElement>('.sign-lib-short-input')!.value = 'K'
-      container.querySelector<HTMLButtonElement>('.sign-lib-save-btn')!.click()
+      bodyQuery<HTMLInputElement>('.sign-lib-label-input')!.value = 'Kasa'
+      bodyQuery<HTMLInputElement>('.sign-lib-short-input')!.value = 'K'
+      bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
       const deleteBtns = container.querySelectorAll('.sign-lib-delete-btn')
       expect(deleteBtns.length).toBe(1)
     })
@@ -223,7 +228,6 @@ describe('T22 SignLibraryPanel — V10', () => {
     it('toggle vaihtaa favorite true→false', () => {
       const container = setup()
       const lib = createSignLibrary()
-      // default templates have favorite:true, toggle first one
       const lib_templates = listTemplates(lib)
       const firstId = lib_templates[0].id
       new SignLibraryPanel(container, lib, vi.fn())
@@ -243,9 +247,9 @@ describe('T22 SignLibraryPanel — V10', () => {
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn())
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
-      container.querySelector<HTMLInputElement>('.sign-lib-label-input')!.value = 'Uusi'
-      container.querySelector<HTMLInputElement>('.sign-lib-short-input')!.value = 'U'
-      container.querySelector<HTMLButtonElement>('.sign-lib-save-btn')!.click()
+      bodyQuery<HTMLInputElement>('.sign-lib-label-input')!.value = 'Uusi'
+      bodyQuery<HTMLInputElement>('.sign-lib-short-input')!.value = 'U'
+      bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
       const templates = listTemplates(lib)
       const custom = templates.find(t => t.label === 'Uusi')!
       expect(custom.favorite).toBe(true)
@@ -274,8 +278,7 @@ describe('T22 SignLibraryPanel — V10', () => {
       const lib = createSignLibrary()
       createTemplate(lib, { label: 'Ok', shortLabel: 'O', color: '#000', description: '<img src=x id="xss-desc">', favorite: false })
       new SignLibraryPanel(container, lib, vi.fn())
-      // avaa muokkauslomake nähdäkseen description
-      const editBtn = container.querySelector<HTMLButtonElement>('.sign-lib-edit-btn:last-of-type')!
+      const editBtn = container.querySelector<HTMLButtonElement>('.sign-lib-edit-btn')!
       editBtn.click()
       expect(document.getElementById('xss-desc')).toBeNull()
     })
@@ -285,9 +288,9 @@ describe('T22 SignLibraryPanel — V10', () => {
     function addCustom(container: HTMLElement, lib: ReturnType<typeof createSignLibrary>, onChange = vi.fn()) {
       new SignLibraryPanel(container, lib, onChange)
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
-      container.querySelector<HTMLInputElement>('.sign-lib-label-input')!.value = 'Poistettava'
-      container.querySelector<HTMLInputElement>('.sign-lib-short-input')!.value = 'P'
-      container.querySelector<HTMLButtonElement>('.sign-lib-save-btn')!.click()
+      bodyQuery<HTMLInputElement>('.sign-lib-label-input')!.value = 'Poistettava'
+      bodyQuery<HTMLInputElement>('.sign-lib-short-input')!.value = 'P'
+      bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
     }
 
     it('poisto-nappi poistaa mallin kirjastosta', () => {

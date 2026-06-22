@@ -12,6 +12,7 @@ export interface SignTemplate {
   color: string       // hex color for icon and swatch
   description: string // free text, e.g. "Käänny oikealle"
   favorite: boolean
+  iconId?: string     // V50: optional Lucide icon name; if set, shown instead of shortLabel in circle
 }
 
 export type SignLibrary = Map<string, SignTemplate>
