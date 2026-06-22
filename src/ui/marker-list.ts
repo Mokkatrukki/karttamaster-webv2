@@ -96,6 +96,7 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
   // Wider modal + bulk toolbar for järjestäjä
   if (!isTalkoolainen) {
     modal?.classList.add('modal--järjestäjä')
+    document.getElementById('marker-bulk-action-bar')?.remove()
     let toolbar = document.getElementById('marker-bulk-toolbar')
     if (!toolbar) {
       toolbar = document.createElement('div')
