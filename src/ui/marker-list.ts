@@ -112,19 +112,26 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
     ? '<p class="empty-state">Ei merkkejä</p>'
     : markers.map((m) => {
         const info = typeInfo(m.type)
+        const displayColor = m.color ?? info.color
+        const displayShortLabel = m.shortLabel ?? info.shortLabel
+        const displayLabel = m.shortLabel ?? info.label
         const km = (m.distanceFromStart / 1000).toFixed(2)
         const highlighted = m.id === highlightId ? ' marker-item--new' : ''
         const statusBadge = `<span class="marker-status marker-status--${m.status}">${STATUS_LABELS[m.status]}</span>`
         const checkbox = !isTalkoolainen
           ? `<input type="checkbox" class="marker-item-checkbox" data-id="${m.id}" aria-label="Valitse merkki">`
           : (!isTerminal(m.status) ? `<input type="checkbox" class="marker-checkin-cb" data-id="${m.id}" aria-label="Valitse merkki">` : '')
+        const deleteBtn = !isTalkoolainen
+          ? `<button class="btn-delete" data-id="${m.id}" title="Poista" style="flex-shrink:0">✕</button>`
+          : ''
         return `
           <div class="marker-item${highlighted}" data-id="${m.id}">
             ${checkbox}
-            <span class="marker-icon" style="color:${info.color}">${info.label[0]}</span>
+            <span class="marker-icon" style="color:${displayColor}">${displayShortLabel[0] ?? info.label[0]}</span>
             <span class="marker-km">${km} km</span>
             ${statusBadge}
-            <span class="marker-type-label">${info.label}</span>
+            <span class="marker-type-label">${displayLabel}</span>
+            ${deleteBtn}
           </div>`
       }).join('')
 
@@ -133,12 +140,21 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
       const target = e.target as HTMLElement
       if (target.classList.contains('marker-item-checkbox')) return
       if (target.classList.contains('marker-checkin-cb')) return
+      if (target.classList.contains('btn-delete')) return
       const id = (el as HTMLElement).dataset.id ?? ''
       if (onOpenDetail) {
         onOpenDetail(id)
       } else {
         manager.panTo(id)
       }
+    })
+  })
+
+  listEl.querySelectorAll<HTMLButtonElement>('.btn-delete[data-id]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      const id = btn.dataset.id ?? ''
+      if (id) manager.remove(id)
     })
   })
 
@@ -225,13 +241,15 @@ export function renderSignDots(
     const dist = activeRoutePoints[idx].distanceFromStart
     const pct = routePositionPct(dist, totalDistance)
     const info = typeInfo(m.type)
+    const dotColor = m.color ?? info.color
+    const dotShortLabel = m.shortLabel ?? info.shortLabel
     const km = (dist / 1000).toFixed(2)
-    const label = `${info.shortLabel} · ${km} km`
+    const label = `${dotShortLabel} · ${km} km`
 
     const dot = document.createElement('div')
     dot.className = `route-sign-dot ${m.type}`
     dot.style.left = `${pct}%`
-    dot.style.background = info.color
+    dot.style.background = dotColor
     dot.innerHTML = `<span class="sign-tooltip">${label}</span>`
     track.appendChild(dot)
   })

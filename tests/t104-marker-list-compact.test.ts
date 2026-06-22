@@ -49,10 +49,10 @@ describe('T104 — kompakti merkkilista', () => {
     expect(document.querySelector('.marker-note')).toBeNull()
   })
 
-  it('rivi renderöityy ilman .btn-delete-nappia', () => {
+  it('järjestäjällä on .btn-delete-nappi (poisto palautettu bugikorjauksena)', () => {
     const markers = [makeMarker('m1', 1000)]
     renderMarkerList(makeManager(markers))
-    expect(document.querySelector('.btn-delete')).toBeNull()
+    expect(document.querySelector('.btn-delete')).not.toBeNull()
   })
 
   it('rivi renderöityy ilman .btn-status-primary/secondary-nappeja', () => {
