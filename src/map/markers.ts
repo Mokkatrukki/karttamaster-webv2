@@ -20,6 +20,7 @@ export class MarkerManager {
   private onUpdate: () => void
   private onFarFromRoute?: (distM: number) => void
   private interaction: MarkerInteraction
+  private onMarkerClick: ((id: string) => void) | null = null
 
   constructor(map: L.Map, routes: RouteRef[], onUpdate: () => void, initialMarkers: SignMarker[] = [], onFarFromRoute?: (distM: number) => void) {
     this.map = map
@@ -178,6 +179,14 @@ export class MarkerManager {
     if (m) this.map.setView([m.lat, m.lon], this.map.getZoom())
   }
 
+  setOnMarkerClick(cb: (id: string) => void): void {
+    this.onMarkerClick = cb
+  }
+
+  armMarker(id: string): void {
+    this.interaction.arm(id)
+  }
+
   updateStatus(id: string, action: StatusAction): void {
     const m = this.markers.find((x) => x.id === id)
     if (!m) return
@@ -263,11 +272,8 @@ export class MarkerManager {
     el.addEventListener('click', (e) => {
       e.stopPropagation()
       if (this.interaction.isRotating) return
-      if (this.interaction.activeContextMenuMarkerId === m.id) {
-        this.interaction.hideContextMenu()
-        return
-      }
-      this.interaction.showContextMenu(m, el)
+      this.interaction.hideContextMenu()
+      this.onMarkerClick?.(m.id)
     })
 
     el.addEventListener('mousedown', (e) => {

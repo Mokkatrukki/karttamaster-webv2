@@ -2219,3 +2219,198 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   min-height: 0;
   overflow: hidden;
 }
+
+/* === MarkerDetailModal (T105) === */
+.marker-detail-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  backdrop-filter: blur(2px);
+  z-index: 3000;
+}
+
+.marker-detail-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(480px, 92vw);
+  max-height: 80vh;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  z-index: 3001;
+  overflow: hidden;
+}
+
+.marker-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.marker-detail-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-body);
+}
+
+.marker-detail-close {
+  min-height: 44px;
+  min-width: 44px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.marker-detail-close:hover {
+  background: var(--hover);
+  color: var(--text-body);
+}
+
+.marker-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  overflow-y: auto;
+}
+
+.marker-detail-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.marker-detail-note {
+  width: 100%;
+  min-height: 80px;
+  padding: 8px 10px;
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.marker-detail-note:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.marker-detail-placeholder {
+  font-size: 11px;
+  color: var(--text-meta);
+  margin: 0;
+}
+
+.marker-detail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.marker-detail-type-select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 10px;
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.marker-detail-btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+.marker-detail-rotate-btn {
+  flex: 1;
+  min-height: 44px;
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.marker-detail-rotate-btn:hover {
+  background: var(--hover-strong);
+}
+
+.marker-detail-delete-btn {
+  flex: 1;
+  min-height: 44px;
+  background: var(--danger-soft);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--danger-text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.marker-detail-delete-btn:hover {
+  background: var(--danger-soft-hover);
+}
+
+.marker-detail-status-btn {
+  width: 100%;
+  min-height: 44px;
+  background: var(--confirm);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--confirm-text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.marker-detail-status-btn:hover {
+  background: var(--confirm-hover);
+}
+
+.marker-detail-status-btn--secondary {
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  color: var(--text-muted);
+}
+
+.marker-detail-status-btn--secondary:hover {
+  background: var(--hover);
+  color: var(--text-body);
+}
+
+/* Note indicator in marker list */
+.marker-note-dot {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}

@@ -125,11 +125,15 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
         const deleteBtn = !isTalkoolainen
           ? `<button class="btn-delete" data-id="${m.id}" title="Poista" style="flex-shrink:0">✕</button>`
           : ''
+        const noteDot = m.locationNote
+          ? `<span class="marker-note-dot" aria-label="Kommentti kirjoitettu"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>`
+          : ''
         return `
           <div class="marker-item${highlighted}" data-id="${m.id}">
             ${checkbox}
             <span class="marker-icon" style="color:${displayColor}">${displayShortLabel}</span>
             <span class="marker-type-label">${displayLabel}</span>
+            ${noteDot}
             <span class="marker-km">${km} km</span>
             ${statusBadge}
             ${deleteBtn}

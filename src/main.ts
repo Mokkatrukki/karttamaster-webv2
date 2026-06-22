@@ -15,7 +15,7 @@ import { fetchMarkers } from './logic/sync'
 import { SnapshotPanel } from './ui/snapshot-panel'
 import { StatusPanel } from './ui/status-panel'
 import { calcAllRouteStatus } from './logic/route-status'
-import { setRole } from './logic/role'
+import { setRole, getRole } from './logic/role'
 import { GpsNavigator } from './map/gps-navigator'
 import { GpsDrivePanel } from './ui/gps-drive-panel'
 import { SegmentOverlay } from './map/segment-overlay'
@@ -28,6 +28,7 @@ import { getSegmentForCode, getMarkersForSegment } from './logic/segments'
 import type { Segment } from './logic/segments'
 import { fetchSegmentByCode, fetchAllSegments } from './logic/segment-sync'
 import type { RouteConfig } from './logic/multi-route'
+import { MarkerDetailModal } from './ui/marker-detail-modal'
 
 export const ROUTE_DEFS: Omit<RouteConfig, 'routePoints'>[] = [
   { id: '35km', label: '35 km', color: '#f59e0b', file: '/route-35km.gpx' },
@@ -174,7 +175,12 @@ async function init(talkoolainenCode?: string) {
   let segmentView: SegmentView | null = null
   let signLibrary: SignLibrary | null = null
 
-  const onOpenMarkerDetail = (id: string) => markerManager.panTo(id)
+  // Forward declaration — modal created after markerManager
+  let markerDetailModal: MarkerDetailModal | null = null
+  const onOpenMarkerDetail = (id: string) => {
+    markerManager.panTo(id)
+    markerDetailModal?.open(id)
+  }
 
   const markerManager = new MarkerManager(map, routes, () => {
     renderMarkerList(markerManager, undefined, undefined, signLibrary, onOpenMarkerDetail)
@@ -186,6 +192,19 @@ async function init(talkoolainenCode?: string) {
     }
   }, initialMarkers, showDistanceWarning)
   markerManagerRef.current = markerManager
+
+  markerDetailModal = new MarkerDetailModal(
+    markerManager,
+    () => signLibrary,
+    getRole,
+    () => talkoolainenCode ?? null,
+    (id) => markerManager.armMarker(id),
+    () => {
+      renderMarkerList(markerManager, undefined, undefined, signLibrary, onOpenMarkerDetail)
+      progressBar.refreshDots()
+    },
+  )
+  markerManager.setOnMarkerClick((id) => onOpenMarkerDetail(id))
 
   if (talkoolainenCode) {
     const seg = getSegmentForCode(segmentStore, talkoolainenCode)
