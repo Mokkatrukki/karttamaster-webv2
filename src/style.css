@@ -1701,9 +1701,23 @@ button {
   background: var(--overlay);
   backdrop-filter: blur(2px);
   display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 16px;
+}
+
+/* vaihe1/vaihe2: floating bottom-left, no overlay, pass clicks to map */
+.segment-creation-modal-backdrop[data-phase="vaihe1"],
+.segment-creation-modal-backdrop[data-phase="vaihe2"] {
+  background: transparent;
+  backdrop-filter: none;
+  pointer-events: none;
+}
+
+/* tiedot: centered blocking overlay */
+.segment-creation-modal-backdrop[data-phase="tiedot"] {
   align-items: center;
   justify-content: center;
-  padding: 16px;
 }
 
 .segment-creation-modal {

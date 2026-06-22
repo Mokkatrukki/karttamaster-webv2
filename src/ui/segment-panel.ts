@@ -252,6 +252,12 @@ export class SegmentPanel {
     if (!modal) return
     modal.innerHTML = ''
 
+    // vaihe1/vaihe2: backdrop must not block map clicks — only tiedot needs full overlay
+    const inMapPhase = this.state.mode === 'vaihe1' || this.state.mode === 'vaihe2'
+    backdrop.dataset.phase = this.state.mode
+    backdrop.style.pointerEvents = inMapPhase ? 'none' : 'all'
+    modal.style.pointerEvents = 'all'
+
     const header = document.createElement('div')
     header.className = 'segment-creation-modal-header'
     const title = document.createElement('span')
