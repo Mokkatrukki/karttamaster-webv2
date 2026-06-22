@@ -1,5 +1,5 @@
 import { nearestPointIndex, haversineDistance } from '../logic/bearing'
-import { createSegment, updateSegment, deleteSegment, getMarkersForSegment } from '../logic/segments'
+import { createSegment, updateSegment, deleteSegment, getMarkersForSegment, getSegmentProgress } from '../logic/segments'
 import { pushSegment, updateSegmentRemote, deleteSegmentRemote } from '../logic/segment-sync'
 import type { Segment, SegmentStore, EquipmentItem } from '../logic/segments'
 import type { RouteConfig } from '../logic/multi-route'
@@ -216,12 +216,13 @@ export class SegmentPanel {
       this.listEl.appendChild(empty)
       return
     }
+    const markers = this.callbacks.getMarkers?.() ?? []
     for (const seg of segments) {
-      this.listEl.appendChild(this.buildSegmentRow(seg))
+      this.listEl.appendChild(this.buildSegmentRow(seg, markers))
     }
   }
 
-  private buildSegmentRow(seg: Segment): HTMLLIElement {
+  private buildSegmentRow(seg: Segment, markers: SignMarker[] = []): HTMLLIElement {
     const li = document.createElement('li')
     li.className = 'segment-item'
     li.dataset.id = seg.id
@@ -239,6 +240,14 @@ export class SegmentPanel {
     kmSpan.className = 'segment-km'
     kmSpan.textContent = `${startKm}–${endKm} km`
     info.appendChild(kmSpan)
+    if (markers.length > 0) {
+      const progress = getSegmentProgress(seg, markers)
+      const progressSpan = document.createElement('span')
+      progressSpan.className = 'segment-progress'
+      progressSpan.textContent = `${progress}%`
+      progressSpan.style.cssText = 'font-size:11px;color:var(--text-muted);margin-left:4px'
+      info.appendChild(progressSpan)
+    }
     main.appendChild(info)
 
     const editPtsBtn = document.createElement('button')

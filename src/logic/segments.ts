@@ -77,6 +77,16 @@ export function getSegmentForCode(
   return Array.from(store.values()).find(s => s.assignedCode?.toUpperCase() === upper)
 }
 
+// T95: progress % = (asetettu+tarkistettu+kerätty) / all markers in segment
+export function getSegmentProgress(segment: Segment, markers: SignMarker[]): number {
+  const segMarkers = getMarkersForSegment(segment, markers)
+  if (segMarkers.length === 0) return 0
+  const done = segMarkers.filter(
+    m => m.status === 'asetettu' || m.status === 'tarkistettu' || m.status === 'kerätty',
+  ).length
+  return Math.round((done / segMarkers.length) * 100)
+}
+
 // V25: include marker if routeIds intersects AND distanceFromStart in [startDist, endDist].
 // Deduplication is implicit — each marker id is unique.
 export function getMarkersForSegment(
