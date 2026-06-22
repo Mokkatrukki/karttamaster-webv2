@@ -230,6 +230,21 @@ metsässä, hanskat kädessä.
 - Poista-nappi: `rgba(239,68,68,0.10)` tausta, `#f87171` teksti — vaarallinen toiminto
 - "Lisätiedot & varusteet" -nappi: `min-height: 44px`, avaa `SegmentDetailsModal` (alla)
 
+### SegmentCreationModal (`.segment-creation-modal`, T94)
+- Avautuu "Luo uusi pätkä" -napista — vain järjestäjälle
+- DOM: `document.body`-lapsi, `position:fixed; inset:0; z-index:3000`
+- Backdrop: `background: overlay; backdrop-filter: blur(2px)` — klikki sulkee (cancelCreation)
+- Modaalikehys: `bg-card`, `border: 1px solid border-default`, `border-radius: 14px`, `box-shadow: 0 16px 48px rgba(0,0,0,0.5)`
+- Leveys: `min(480px, 92vw)`, `max-height: 80vh`
+- Otsikko-rivi: "Luo uusi pätkä" `text-primary 14px bold`, ✕-nappi `aria-label:"Peruuta"` `min-height:44px min-width:44px`
+- Sulkeminen: ✕-nappi / Escape / backdrop-klikki → `cancelCreation()` → palaa idle
+- Tilakone:
+  - **vaihe1:** progress (●○○), "Klikkaa kartalta aloituspiste" — kartta crosshair-cursor, snap-markerit näkyvissä
+  - **vaihe2:** progress (●●○), "Klikkaa kartalta lopetuspiste" + aloituspiste km-info
+  - **tiedot:** progress (●●●), nimi-input + kuvaus-textarea + footer
+- Footer-napit: Tallenna (`confirm`-tausta, `min-height:44px`), Peruuta (`field-tint`, `min-height:44px`)
+- Tallenna luo segmentin ja sulkee modaalin — ei auto-save (käyttäjä vahvistaa)
+
 ### SegmentDetailsModal (`.segment-details-modal`)
 - Avautuu "Lisätiedot & varusteet" -napista pätkärivillä — vain järjestäjälle
 - DOM: `document.body`-lapsi, `position:fixed; inset:0; z-index:3000`
