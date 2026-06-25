@@ -236,14 +236,52 @@ metsässä, hanskat kädessä.
 - Sijainti: `#app-main`:n flex-row vasempi lapsi, ennen `#map-area`
 - Leveys auki: 240px sisältö + 44px toggle = 284px total; kiinni: 44px toggle strip
 - Tausta: `bg-app` (surface-app), oikea reuna: `border-subtle`
-- Toggle-nappi (`#left-panel-toggle`): `44×44px`, `position: sticky; top: 0`, `bg-raised`, `color: text-muted`
+
+**Panel header (`#left-panel-header`):**
+- Aina näkyvissä (ei piilotu kun kiinni)
+- Title: `"Työkalut"` — `11px uppercase text-muted letter-spacing:0.06em`
+- Toggle-nappi (`#left-panel-toggle`): `44×44px`, `bg-raised`, `color: text-muted`
   - Auki: `◀`, `aria-label: "Sulje paneeli"`; kiinni: `▶`, `aria-label: "Avaa paneeli"`
   - Hover: `hover-strong` bg, `text-body` väri
-- Sisältö (`#left-panel-content`): `flex column`, `overflow-y: auto`, piilotetaan `hidden`-attribuutilla kun kiinni
-- Osiot (`.left-panel-section`): border-bottom `border-subtle`; otsikko `11px uppercase text-muted`
-- `#sign-type-dropdown` paneelissa: `position: static; display: flex` — aina näkyvissä, ei floating
-- `#segment-panel-container` paneelissa: `position: static; display: block; max-height: none`
-- `+ Merkki` toolbarissa: klikkaus avaa panelin (`LeftPanel.open()`) järjestäjä-moodissa
+
+**Sisältö (`#left-panel-content`):** `flex column`, `overflow-y: auto`, piilotetaan `hidden`-attribuutilla kun kiinni
+
+**Section pattern (V61) — kaikki osiot noudattavat:**
+
+| Osa | Elementti | Tyyli |
+|-----|-----------|-------|
+| Header | `.left-panel-section-header` | `cursor:pointer; display:flex; align-items:center; padding:8px 10px; border-bottom:1px solid border-subtle` |
+| Toggle-ikoni | `▼/▶` | `11px text-muted flex-shrink:0 mr:6px` — ▼ auki, ▶ kiinni |
+| Nimi | `span` | `11px uppercase text-muted letter-spacing:0.06em flex:1` |
+| Count | `span` | `11px text-meta` — sulkuihin esim. `(3)` |
+| Item-rivit | `.left-panel-item` | `display:flex; align-items:center; min-height:44px; border-bottom:1px solid border-card` |
+| Item — label | `button tai span` | `flex:1; min-height:44px; text-align:left` — klikkaus = toiminto |
+| Item — actions | `[···]` | `min-width:44px; min-height:44px; color:text-muted` — avaa modal |
+| Section footer | `button` | `width:100%; min-height:44px; background:field-tint; border:1px solid border-default; color:text-muted; 12px` |
+
+**Sääntö (V62):** Item-rivillä ei koskaan inline delete. Poisto aina modaalin `modal-btn-destructive`-rivillä.
+
+**SignLibraryPanel section:**
+- Section-header: `[▼/▶ Merkkikirjasto]`
+- Item: `[swatch 22×22px] [label flex:1] [···]` — klikkaus asettaa merkin, ··· avaa edit-modaalin
+- Edit-modaali: sisältää suosikki-toggle (`<input type=checkbox>`) + footer-destructive "Poista malli" (vain custom-malleille)
+- Section-footer: `[+ Uusi merkki]`
+
+**SegmentPanel section:**
+- Section-header: `[▼/▶ Pätkäjako (N)]` — ei create-nappia headerissa
+- Item: `[nimi flex:1 truncated] [km text-muted] [···]` — ··· avaa SegmentDetailsModal
+- Section-footer: `[+ Luo uusi pätkä]`
+
+**AreaPanel section (T109):**
+- Section-header: `[▼/▶ Huoltopisteet (N)]` — ei create-nappia headerissa
+- Item: `[nimi flex:1] [status-badge] [···]` — ··· avaa AreaDetailsModal
+- Status-badge: "✓ Valmis" (#4ade80) tai "Suun." (text-meta)
+- Section-footer: `[+ Lisää huoltopiste]`
+- AreaDetailsModal: nimi-input + kuvaus-textarea (Markdown) + AreaFeature-lista + "✓ Merkitse valmiiksi" (confirm-väri)
+- AreaFeature-item: `[väri-swatch 16×16] [nimi-input flex:1] [väri-select] [✕ poista]`
+- Poisto (feature): btn-feat-delete suoraan feature-rivillä (pienikokoinen, danger-soft)
+- "Merkitse valmiiksi": window.confirm() ennen tilansiirtoa suunniteltu→valmis
+- Sijainti: `#area-panel-container` left-panel-content:ssä, segment-panelin jälkeen
 
 ### SegmentPanel (`#segment-panel`)
 - Vain järjestäjälle (`hidden` muille)

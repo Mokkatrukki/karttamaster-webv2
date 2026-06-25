@@ -31,6 +31,7 @@ import type { RouteConfig } from './logic/multi-route'
 import { MarkerDetailModal } from './ui/marker-detail-modal'
 import { AreaOverlay } from './map/area-overlay'
 import { fetchAreas } from './logic/area-sync'
+import { AreaPanel } from './ui/area-panel'
 
 export const ROUTE_DEFS: Omit<RouteConfig, 'routePoints'>[] = [
   { id: '35km', label: '35 km', color: '#f59e0b', file: '/route-35km.gpx' },
@@ -138,8 +139,39 @@ async function init(talkoolainenCode?: string) {
 
   // T108: AreaOverlay — huoltopisteet kartalla
   const areaOverlay = new AreaOverlay(map)
-  const areas = await fetchAreas()
+  let areas = await fetchAreas()
   areaOverlay.update(areas)
+
+  // T109: AreaPanel — järjestäjän editor-paneeli
+  const areaPanelContainer = document.getElementById('area-panel-container')
+  if (areaPanelContainer && !talkoolainenCode) {
+    new AreaPanel(areaPanelContainer, areas, {
+      onAreaAdd: (area) => {
+        areas = [...areas, area]
+        areaOverlay.update(areas)
+      },
+      onAreaUpdate: (area) => {
+        areas = areas.map(a => a.id === area.id ? area : a)
+        areaOverlay.update(areas)
+      },
+      onAreaDelete: (areaId) => {
+        areas = areas.filter(a => a.id !== areaId)
+        areaOverlay.update(areas)
+      },
+      onEnterMapMode: (onClick) => {
+        map.getContainer().style.cursor = 'crosshair'
+        const handler = (e: L.LeafletMouseEvent) => {
+          map.off('click', handler)
+          map.getContainer().style.cursor = ''
+          onClick(e.latlng.lat, e.latlng.lng)
+        }
+        map.on('click', handler)
+      },
+      onExitMapMode: () => {
+        map.getContainer().style.cursor = ''
+      },
+    })
+  }
 
   let tempCreationMarker: L.CircleMarker | null = null
 
