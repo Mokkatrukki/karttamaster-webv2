@@ -156,7 +156,7 @@ export class SegmentPanel {
 
   private applyCollapsed(): void {
     const count = this.store.size
-    this.titleEl.textContent = this.collapsed ? `Pätkäjako (${count})` : 'Pätkäjako'
+    this.titleEl.textContent = `Pätkäjako (${count})`
     this.toggleBtn.textContent = this.collapsed ? '▶' : '▼'
     this.listEl.hidden = this.collapsed
     if (this.collapsed) this.statusEl.hidden = true
@@ -173,16 +173,15 @@ export class SegmentPanel {
       this.render()
     })
 
-    const titleEl = document.createElement('h3')
+    const toggleBtn = document.createElement('span')
+    toggleBtn.className = 'btn-segment-toggle section-header-toggle'
+    toggleBtn.textContent = '▶'
+    header.appendChild(toggleBtn)
+
+    const titleEl = document.createElement('span')
+    titleEl.className = 'section-header-name'
     titleEl.textContent = 'Pätkäjako (0)'
     header.appendChild(titleEl)
-
-    const toggleBtn = document.createElement('button')
-    toggleBtn.className = 'btn-segment-toggle'
-    toggleBtn.setAttribute('aria-label', 'Näytä tai piilota pätkäjako')
-    toggleBtn.textContent = '▶'
-    toggleBtn.style.cssText = 'background:transparent;border:none;color:var(--text-muted);font-size:10px;padding:0 8px;min-height:44px;min-width:44px;cursor:pointer'
-    header.appendChild(toggleBtn)
 
     panel.appendChild(header)
 

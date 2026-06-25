@@ -1276,22 +1276,6 @@ button {
   background: var(--confirm-hover);
 }
 
-.segment-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 10px;
-  gap: 8px;
-}
-
-.segment-panel-header h3 {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
 .btn-segment-create {
   background: var(--hover);
   color: var(--text-body);
