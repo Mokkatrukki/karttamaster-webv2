@@ -18,6 +18,7 @@ interface MarkerRow {
   location_note: string | null
   color: string | null
   short_label: string | null
+  bearing_manual: number
   updated_at: string
   updated_by: string | null
 }
@@ -49,6 +50,7 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
     location_note?: string
     color?: string | null
     short_label?: string | null
+    bearing_manual?: boolean
   }>()
 
   if (
@@ -65,7 +67,7 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
   const id = body.id ?? randomUUID()
   const now = new Date().toISOString()
   db.run(
-    'INSERT INTO markers (id, type, lat, lon, bearing, distance_from_start, route_ids, status, location_note, color, short_label, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO markers (id, type, lat, lon, bearing, distance_from_start, route_ids, status, location_note, color, short_label, bearing_manual, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       id,
       body.type,
@@ -78,6 +80,7 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
       body.location_note ?? null,
       body.color ?? null,
       body.short_label ?? null,
+      body.bearing_manual ? 1 : 0,
       now,
       session.display_name,
     ],
@@ -102,6 +105,7 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
     lat?: number
     lon?: number
     bearing?: number
+    bearing_manual?: boolean
     type?: string
     distance_from_start?: number
     route_ids?: string[]
@@ -121,6 +125,7 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
   if (body.lat !== undefined) { fields.push('lat = ?'); values.push(body.lat) }
   if (body.lon !== undefined) { fields.push('lon = ?'); values.push(body.lon) }
   if (body.bearing !== undefined) { fields.push('bearing = ?'); values.push(body.bearing) }
+  if (body.bearing_manual !== undefined) { fields.push('bearing_manual = ?'); values.push(body.bearing_manual ? 1 : 0) }
   if (body.type !== undefined) { fields.push('type = ?'); values.push(body.type) }
   if (body.distance_from_start !== undefined) { fields.push('distance_from_start = ?'); values.push(body.distance_from_start) }
   if (body.route_ids !== undefined) { fields.push('route_ids = ?'); values.push(JSON.stringify(body.route_ids)) }

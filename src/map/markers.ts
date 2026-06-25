@@ -79,7 +79,9 @@ export class MarkerManager {
 
   private saveBearing(id: string): void {
     const m = this.markers.find(x => x.id === id)
-    if (m) this.apiPut(m.id, { bearing: m.bearing })
+    if (!m) return
+    m.bearingManual = true
+    this.apiPut(m.id, { bearing: m.bearing, bearing_manual: true })
   }
 
   private updateDragStates(armedId: string | null): void {

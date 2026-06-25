@@ -12,6 +12,7 @@ interface ServerMarker {
   location_note: string | null
   color: string | null
   short_label: string | null
+  bearing_manual: number
 }
 
 function fromServer(row: ServerMarker): SignMarker {
@@ -21,6 +22,7 @@ function fromServer(row: ServerMarker): SignMarker {
     lat: row.lat,
     lon: row.lon,
     bearing: row.bearing,
+    bearingManual: row.bearing_manual === 1,
     distanceFromStart: row.distance_from_start,
     routeIds: row.route_ids,
     status: row.status as MarkerStatus,

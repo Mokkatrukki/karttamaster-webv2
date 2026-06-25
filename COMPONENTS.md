@@ -73,19 +73,40 @@ server/       ← Hono + Bun + SQLite (tulossa)
 
 ## MVP-rajaus
 
-**Vaihe 1 — Frontend MVP** (ei backendiä, yksi laite):
-Taskit: T8, T9, T10, T11, T12, T29, T32 — **VALMIS ✓**
+> **Huom 2026-06-25:** Vaihe 1/2a/2b-jako poistettu — se kuvasi offline-first/localStorage-arkkitehtuuria joka on korvattu. Backend on ainoa totuus (V18). localStorage ei enää käytetä merkeille eikä segmenteille (T63–T65). T42 sync-logiikka ja T43 merge-UI ovat vanhentuneita — backend-write on synkronointi.
 
-**T7 — myöhemmin/tarvittaessa**: GPX-tiedostot 3+4 ei välttämättä saatavilla ajoissa. Lisätään kun tiedostot olemassa.
+---
 
-**Vaihe 2a — Backend core** (multi-device, auth, kartta-tila):
-Taskit: T41 (server setup) → T36 (auth) → T47 (markers API) → T48 (kartta-tila BE) → T49 (kartta-tila UI) → T50 (snapshots) → T51 (auth screen UI)
+**Vaihe 1 — Suunnittelu + merkinnät** (yksi laite, perustoiminnot): **VALMIS ✓**
+GPX-lataus, merkit kartalle, bearing, drive mode, sign library, persistointi.
+Taskit: T1–T6, T8–T12, T15–T16, T22–T23, T29–T33, T37–T38, T40, T44–T46.
 
-**Vaihe 2b — Sync** (online-first + offline):
-Taskit: T42 (sync-logiikka) → T43 (merge-konflikti UI) → T18 (offline/PWA)
+**Vaihe 2 — Multi-device + auth** (backend totuus, useampi laite): **VALMIS ✓**
+Backend, auth, markers API, segments backend, direct-write, snapshot, auth screen.
+Taskit: T36, T41, T47–T55, T59–T68, T70–T73, T81–T101, T104–T105.
 
-**Vaihe 3 — Jaettu tilannekuva + POI**:
-T15, T28 (tilannekuva) + info-pisteet (ei vielä speksattu)
+**Vaihe 3 — Talkoolainen metsässä** (täysi kenttätyöflow):
+Kriittisin puuttuva: talkoolaisen UX viimeistely + reaaliaikainen sync järjestäjälle.
+- **T74** CheckIn bottom sheet — kuittaus-UX talkoolaiselle
+- **T78** Pätkän pituuden muokkaus kentällä
+- **T79** Reaaliaikainen sync (SSE/polling) — järjestäjä näkee muutokset <15s
+- **T75** Kommentti-systeemi (merkki/pätkä/vapaa piste)
+- **T72** Teema-toggle (daylight-teema metsässä auringossa)
+
+**Vaihe 4 — POI + purku:**
+- **T76** POI-järjestelmä (huoltoalueet, noutopisteet, kasat)
+- **T19** Purkupätkä (lähtösuunnan valinta)
+- **T20** Kasauspisteet (bulk-kerätty)
+- **T80** Materiaalien kirjaus purku-vaiheessa
+- **T103** Kuva + lisäkuvaus per merkki
+
+**Myöhemmin / tarvittaessa:**
+- T7 (GPX-reitit 3+4 — tiedostot ei saatavilla)
+- T18 (offline/PWA)
+- T21 (live tracking — oma GPS muille näkyviin)
+- T34 (GPX-korvaus merge-flow)
+- T39 (drive mode "hyppää seuraavaan")
+- T102 (merkkilista-haku — järjestäjälle)
 
 Lisää: [backend.md — Vaiheistus](docs/components/backend.md)
 
