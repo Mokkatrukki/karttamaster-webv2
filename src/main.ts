@@ -29,6 +29,8 @@ import type { Segment } from './logic/segments'
 import { fetchSegmentByCode, fetchAllSegments } from './logic/segment-sync'
 import type { RouteConfig } from './logic/multi-route'
 import { MarkerDetailModal } from './ui/marker-detail-modal'
+import { AreaOverlay } from './map/area-overlay'
+import { fetchAreas } from './logic/area-sync'
 
 export const ROUTE_DEFS: Omit<RouteConfig, 'routePoints'>[] = [
   { id: '35km', label: '35 km', color: '#f59e0b', file: '/route-35km.gpx' },
@@ -36,6 +38,8 @@ export const ROUTE_DEFS: Omit<RouteConfig, 'routePoints'>[] = [
 ]
 
 const map = L.map('map')
+// E2E testability hook — not used in production
+;(window as unknown as Record<string, unknown>)['__testMap'] = map
 
 const LS_KEY = 'karttamaster-layer'
 const savedLayerId = localStorage.getItem(LS_KEY) ?? TILE_LAYERS[0].id
@@ -131,6 +135,11 @@ async function init(talkoolainenCode?: string) {
 
   const segmentOverlay = new SegmentOverlay(map, routes)
   segmentOverlay.update(segmentStore)
+
+  // T108: AreaOverlay — huoltopisteet kartalla
+  const areaOverlay = new AreaOverlay(map)
+  const areas = await fetchAreas()
+  areaOverlay.update(areas)
 
   let tempCreationMarker: L.CircleMarker | null = null
 

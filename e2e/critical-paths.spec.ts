@@ -426,3 +426,72 @@ test.describe('Left panel — T73', () => {
     await expect(signTypeBtn).toBeVisible()
   })
 })
+
+// T108 — AreaOverlay: area piirtyy kartalle + klikkaus triggeroi flyTo
+const TEST_AREA = {
+  id: 'area-e2e-1',
+  name: 'Huoltopiste 25km',
+  centerLat: 65.628,
+  centerLng: 27.628,
+  widthM: 200,
+  heightM: 100,
+  rotation: 0,
+  markdownDescription: '## Testi',
+  status: 'suunniteltu',
+  hashCode: 'test-hash-123',
+  features: [],
+}
+
+async function mockAreasApi(page: import('playwright/test').Page, areas: unknown[] = [TEST_AREA]) {
+  await page.route('/api/areas', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(areas),
+    })
+  )
+}
+
+test.describe('T108 — AreaOverlay', () => {
+  test('area piirtyy kartalle: .area-polygon elementti löytyy Leaflet SVG:stä', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockAreasApi(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(2000)
+
+    // Leaflet renderöi polygonit .leaflet-overlay-pane SVG path -elementteinä
+    // area-polygon className asetetaan area-overlay.ts:ssä
+    const areaPolygon = page.locator('.leaflet-overlay-pane .area-polygon')
+    await expect(areaPolygon).toHaveCount(1)
+  })
+
+  test('area klikkaus triggeroi flyTo: kartan zoom muuttuu 18:ksi', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockAreasApi(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(2000)
+
+    const zoomBefore = await page.evaluate(() => {
+      const m = (window as unknown as Record<string, unknown>)['__testMap'] as { getZoom(): number } | undefined
+      return m?.getZoom() ?? -1
+    })
+
+    // Trigger click via JS — polygon on olemassa mutta voi olla pieni zoom-tasosta riippuen
+    await page.evaluate(() => {
+      const el = document.querySelector('.area-polygon')
+      if (!el) throw new Error('.area-polygon not found')
+      el.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    // flyTo animoitu — odota päättymistä
+    await page.waitForTimeout(2500)
+
+    const zoomAfter = await page.evaluate(() => {
+      const m = (window as unknown as Record<string, unknown>)['__testMap'] as { getZoom(): number } | undefined
+      return m?.getZoom()
+    })
+    expect(zoomAfter).toBe(18)
+    expect(zoomBefore).not.toBe(18)
+  })
+})
