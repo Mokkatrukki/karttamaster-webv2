@@ -91,6 +91,31 @@ function initSchema(db: Database): void {
       status TEXT NOT NULL DEFAULT 'avoin',
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS areas (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      center_lat REAL NOT NULL,
+      center_lng REAL NOT NULL,
+      width_m REAL NOT NULL,
+      height_m REAL NOT NULL,
+      rotation REAL NOT NULL DEFAULT 0,
+      markdown_description TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'suunniteltu',
+      hash_code TEXT UNIQUE NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS area_features (
+      id TEXT PRIMARY KEY,
+      area_id TEXT NOT NULL REFERENCES areas(id) ON DELETE CASCADE,
+      name TEXT,
+      center_lat REAL NOT NULL,
+      center_lng REAL NOT NULL,
+      width_m REAL NOT NULL,
+      height_m REAL NOT NULL,
+      rotation REAL NOT NULL DEFAULT 0,
+      color TEXT NOT NULL
+    );
   `)
 
   // Migraatiot — idempotent ALTER TABLE (epäonnistuu hiljaa jos kolumni jo on)
