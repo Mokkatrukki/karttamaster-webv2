@@ -2125,33 +2125,54 @@ button {
 
 #left-panel {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   flex-shrink: 0;
+  width: 260px;
   background: var(--surface-app);
   border-right: 1px solid var(--border-subtle);
 }
 
+#left-panel.collapsed {
+  width: 32px;
+  overflow: hidden;
+}
+
+#left-panel.collapsed .left-panel-section-title {
+  display: none;
+}
+
+#left-panel.collapsed #left-panel-header {
+  padding: 4px;
+  justify-content: center;
+}
+
 body[data-role="talkoolainen"] #left-panel { display: none; }
 
+#left-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 6px 6px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
 #left-panel-content {
-  width: 240px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  flex: 1;
 }
 
 #left-panel-toggle {
-  width: 44px;
-  min-height: 44px;
-  align-self: flex-start;
-  position: sticky;
-  top: 0;
+  width: 28px;
+  height: 28px;
   border: none;
-  border-left: 1px solid var(--border-subtle);
-  background: var(--surface-raised);
+  border-radius: 4px;
+  background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 11px;
   font-family: inherit;
   font-weight: 600;
   transition: background 0.1s, color 0.1s;
@@ -2159,6 +2180,7 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 #left-panel-toggle:hover {
@@ -2176,7 +2198,7 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-muted);
-  padding: 8px 10px 4px;
+  padding: 0;
 }
 
 /* sign-type-dropdown inside left panel — always visible, not floating */
