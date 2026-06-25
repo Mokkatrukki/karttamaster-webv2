@@ -2452,3 +2452,55 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 .left-panel-section-header .section-header-name {
   flex: 1;
 }
+
+@media print {
+  #toolbar,
+  #left-panel,
+  #route-bar,
+  #btn-layer,
+  .area-view-modal .btn-area-print,
+  .area-view-modal header,
+  .leaflet-control-container {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  .area-print-content {
+    display: block !important;
+    padding: 24px;
+  }
+
+  .area-print-content h1 {
+    font-size: 24px;
+    margin-bottom: 16px;
+    color: #000;
+  }
+
+  .area-markdown-desc {
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  .area-features-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .area-features-table th,
+  .area-features-table td {
+    border: 1px solid #ccc;
+    padding: 6px 10px;
+    text-align: left;
+  }
+
+  .area-features-table th {
+    background: #f0f0f0;
+    font-weight: 600;
+  }
+}

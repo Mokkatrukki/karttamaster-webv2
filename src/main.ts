@@ -32,6 +32,7 @@ import { MarkerDetailModal } from './ui/marker-detail-modal'
 import { AreaOverlay } from './map/area-overlay'
 import { fetchAreas } from './logic/area-sync'
 import { AreaPanel } from './ui/area-panel'
+import { initAreaView } from './ui/area-view'
 
 export const ROUTE_DEFS: Omit<RouteConfig, 'routePoints'>[] = [
   { id: '35km', label: '35 km', color: '#f59e0b', file: '/route-35km.gpx' },
@@ -141,6 +142,9 @@ async function init(talkoolainenCode?: string) {
   const areaOverlay = new AreaOverlay(map)
   let areas = await fetchAreas()
   areaOverlay.update(areas)
+
+  // T111: hash-URL /a/<hash> → area-view modaali
+  await initAreaView(map)
 
   // T109: AreaPanel — järjestäjän editor-paneeli
   const areaPanelContainer = document.getElementById('area-panel-container')
