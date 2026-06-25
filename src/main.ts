@@ -43,6 +43,7 @@ let activeLayerIdx = Math.max(0, TILE_LAYERS.findIndex(l => l.id === savedLayerI
 let currentTileLayer = L.tileLayer(TILE_LAYERS[activeLayerIdx].urlTemplate, {
   attribution: TILE_LAYERS[activeLayerIdx].attribution,
   maxZoom: TILE_LAYERS[activeLayerIdx].maxZoom,
+  maxNativeZoom: TILE_LAYERS[activeLayerIdx].maxNativeZoom,
 }).addTo(map)
 
 function applyRoleView(role: string): void {
@@ -56,7 +57,7 @@ if (btnLayer) {
     activeLayerIdx = (activeLayerIdx + 1) % TILE_LAYERS.length
     const cfg = TILE_LAYERS[activeLayerIdx]
     currentTileLayer.remove()
-    currentTileLayer = L.tileLayer(cfg.urlTemplate, { attribution: cfg.attribution, maxZoom: cfg.maxZoom }).addTo(map)
+    currentTileLayer = L.tileLayer(cfg.urlTemplate, { attribution: cfg.attribution, maxZoom: cfg.maxZoom, maxNativeZoom: cfg.maxNativeZoom }).addTo(map)
     localStorage.setItem(LS_KEY, cfg.id)
     btnLayer.textContent = cfg.label
   })

@@ -12,6 +12,7 @@ export interface TileLayerConfig {
   urlTemplate: string
   attribution: string
   maxZoom: number
+  maxNativeZoom?: number
 }
 
 function mmlLayer(id: string, layer: string, label: string): TileLayerConfig {
@@ -21,7 +22,8 @@ function mmlLayer(id: string, layer: string, label: string): TileLayerConfig {
     label,
     urlTemplate: `${MML_BASE}/${layer}/default/WGS84_Pseudo-Mercator/{z}/{y}/{x}.png?api-key=${key}`,
     attribution: MML_ATTR,
-    maxZoom: 16,
+    maxZoom: 19,
+    maxNativeZoom: 16,
   }
 }
 

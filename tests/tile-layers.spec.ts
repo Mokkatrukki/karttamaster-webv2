@@ -28,9 +28,10 @@ describe('TILE_LAYERS config', () => {
     expect(TILE_LAYERS[0].id).toBe('mml-tausta')
   })
 
-  it('MML layers have maxZoom 16', () => {
+  it('MML layers have maxZoom 19 and maxNativeZoom 16', () => {
     TILE_LAYERS.filter(l => l.id.startsWith('mml')).forEach(l => {
-      expect(l.maxZoom).toBe(16)
+      expect(l.maxZoom).toBe(19)
+      expect(l.maxNativeZoom).toBe(16)
     })
   })
 
