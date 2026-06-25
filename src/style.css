@@ -2443,3 +2443,28 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   flex-shrink: 0;
   color: var(--text-muted);
 }
+
+.left-panel-section-header {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+  user-select: none;
+}
+
+.left-panel-section-header .section-header-toggle {
+  font-size: 10px;
+  flex-shrink: 0;
+  margin-right: 6px;
+  color: var(--text-muted);
+}
+
+.left-panel-section-header .section-header-name {
+  flex: 1;
+}

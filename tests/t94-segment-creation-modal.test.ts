@@ -29,6 +29,8 @@ function setup(store?: SegmentStore) {
   vi.stubGlobal('crypto', { randomUUID: () => 'test-id-' + Math.random() })
 
   const panel = new SegmentPanel(container, ROUTES, s, vi.fn(), callbacks)
+  // Expand panel so footer button (#btn-segment-create) is rendered
+  container.querySelector<HTMLElement>('.segment-panel-header')!.click()
   return { panel, store: s, callbacks, container }
 }
 

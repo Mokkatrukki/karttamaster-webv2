@@ -35,6 +35,7 @@ export function createSignLibrary(): SignLibrary {
 export class SignLibraryPanel {
   private activeModal: HTMLElement | null = null
   private escHandler: ((e: KeyboardEvent) => void) | null = null
+  private collapsed = false
 
   constructor(
     private readonly container: HTMLElement,
@@ -46,13 +47,38 @@ export class SignLibraryPanel {
 
   private render(): void {
     const templates = listTemplates(this.library)
-    const rows = templates.map(t => this.buildRow(t)).join('')
-    const addBtn = `<button class="sign-lib-add-btn" style="margin:8px 0 0;padding:6px 12px;min-height:44px;width:100%;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-muted);font-size:12px;cursor:pointer;text-align:left">+ Uusi malli</button>`
+    this.container.innerHTML = ''
 
-    this.container.innerHTML = `
-      <div class="sign-lib-list">${rows}</div>
-      ${addBtn}
+    // Section header
+    const sectionHeader = document.createElement('div')
+    sectionHeader.className = 'left-panel-section-header'
+    sectionHeader.setAttribute('role', 'button')
+    sectionHeader.setAttribute('aria-expanded', String(!this.collapsed))
+    sectionHeader.innerHTML = `
+      <span class="section-header-toggle">${this.collapsed ? '▶' : '▼'}</span>
+      <span class="section-header-name">Merkkikirjasto</span>
     `
+    sectionHeader.addEventListener('click', () => {
+      this.collapsed = !this.collapsed
+      this.render()
+    })
+    this.container.appendChild(sectionHeader)
+
+    if (this.collapsed) return
+
+    // Item list
+    const list = document.createElement('div')
+    list.className = 'sign-lib-list'
+    list.innerHTML = templates.map(t => this.buildRow(t)).join('')
+    this.container.appendChild(list)
+
+    // Section footer
+    const footer = document.createElement('button')
+    footer.className = 'sign-lib-add-btn sign-lib-section-footer'
+    footer.style.cssText = 'min-height:44px;width:100%;background:var(--field-tint);border:1px solid var(--border-default);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);color:var(--text-muted);font-size:12px;cursor:pointer;text-align:left;padding:0 12px'
+    footer.textContent = '+ Uusi merkki'
+    this.container.appendChild(footer)
+
     this.bindEvents()
   }
 
@@ -74,49 +100,19 @@ export class SignLibraryPanel {
            <span style="font-size:13px;color:var(--text-body)">${escapeHtml(t.label)}</span>
          </div>`
 
-    const deleteBtn = isDefault ? '' :
-      `<button class="sign-lib-delete-btn" data-id="${t.id}" aria-label="Poista malli" style="min-width:44px;min-height:44px;background:var(--danger-soft);border:none;border-radius:var(--radius-sm);color:var(--danger-text);font-size:14px;cursor:pointer">×</button>`
-
-    const favIcon = t.favorite ? '⭐' : '☆'
-    const favBtn = `<button class="sign-lib-fav-btn" data-id="${t.id}" aria-label="Suosikki-toggle" style="min-width:44px;min-height:44px;background:none;border:none;border-radius:var(--radius-sm);font-size:16px;cursor:pointer;line-height:1">${favIcon}</button>`
-
     return `<div class="sign-lib-row" style="display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--border-card);padding:0">
       ${placeBtn}
-      ${favBtn}
-      <button class="sign-lib-edit-btn" data-id="${t.id}" aria-label="Muokkaa mallia" style="min-width:44px;min-height:44px;background:none;border:none;border-radius:var(--radius-sm);color:var(--text-muted);font-size:13px;cursor:pointer">✎</button>
-      ${deleteBtn}
+      <button class="sign-lib-dots-btn" data-id="${t.id}" aria-label="Muokkaa mallia" style="min-width:44px;min-height:44px;background:none;border:none;border-radius:var(--radius-sm);color:var(--text-muted);font-size:14px;cursor:pointer;letter-spacing:0.05em">···</button>
     </div>`
   }
 
   private bindEvents(): void {
-    this.container.querySelectorAll<HTMLButtonElement>('.sign-lib-fav-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.dataset.id
-        if (!id) return
-        const t = this.library.get(id)
-        if (!t) return
-        updateTemplate(this.library, id, { favorite: !t.favorite })
-        this.render()
-        this.onChange()
-      })
-    })
-
-    this.container.querySelectorAll<HTMLButtonElement>('.sign-lib-edit-btn').forEach(btn => {
+    this.container.querySelectorAll<HTMLButtonElement>('.sign-lib-dots-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.dataset.id
         if (!id) return
         const t = this.library.get(id)
         if (t) this.openModal(t)
-      })
-    })
-
-    this.container.querySelectorAll<HTMLButtonElement>('.sign-lib-delete-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.dataset.id
-        if (!id) return
-        deleteTemplate(this.library, id)
-        this.render()
-        this.onChange()
       })
     })
 
@@ -259,6 +255,18 @@ export class SignLibraryPanel {
     descInput.style.cssText = 'padding:8px 10px;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-body);font-size:13px;width:100%;box-sizing:border-box'
     modal.appendChild(descInput)
 
+    // Favorite toggle (i)
+    const favLabel = document.createElement('label')
+    favLabel.style.cssText = 'display:flex;align-items:center;gap:8px;min-height:44px;cursor:pointer;font-size:13px;color:var(--text-body)'
+    const favCheckbox = document.createElement('input')
+    favCheckbox.type = 'checkbox'
+    favCheckbox.className = 'sign-lib-fav-checkbox'
+    favCheckbox.checked = template?.favorite ?? true
+    favCheckbox.style.cssText = 'width:18px;height:18px;cursor:pointer'
+    favLabel.appendChild(favCheckbox)
+    favLabel.appendChild(document.createTextNode('Näytä suosikit-pickissä'))
+    modal.appendChild(favLabel)
+
     // Save / Cancel
     const btnRow = document.createElement('div')
     btnRow.style.cssText = 'display:flex;gap:6px;margin-top:4px'
@@ -282,12 +290,13 @@ export class SignLibraryPanel {
 
       const description = descInput.value.trim()
       const iconId = selectedIconId ?? undefined
+      const favorite = favCheckbox.checked
 
       if (!template) {
         const color = colorInput?.value ?? '#f59e0b'
-        createTemplate(this.library, { label, shortLabel, color, description, favorite: true, iconId })
+        createTemplate(this.library, { label, shortLabel, color, description, favorite, iconId })
       } else {
-        const patch: Partial<Omit<SignTemplate, 'id'>> = { label, shortLabel, description, iconId }
+        const patch: Partial<Omit<SignTemplate, 'id'>> = { label, shortLabel, description, iconId, favorite }
         if (colorInput) patch.color = colorInput.value
         updateTemplate(this.library, template.id, patch)
       }
@@ -300,6 +309,22 @@ export class SignLibraryPanel {
     btnRow.appendChild(saveBtn)
     btnRow.appendChild(cancelBtn)
     modal.appendChild(btnRow)
+
+    // Destructive delete button (ii) — only for non-defaults
+    if (template && !isDefault) {
+      const deleteBtn = document.createElement('button')
+      deleteBtn.className = 'modal-btn-destructive'
+      deleteBtn.textContent = 'Poista malli'
+      deleteBtn.style.cssText = 'width:100%;padding:8px;min-height:44px;background:var(--danger-soft);color:var(--danger-text);border:none;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;margin-top:4px'
+      deleteBtn.addEventListener('click', () => {
+        if (!confirm(`Poistetaanko malli "${template.label}"? Toimintoa ei voi peruuttaa.`)) return
+        deleteTemplate(this.library, template.id)
+        this.closeModal()
+        this.render()
+        this.onChange()
+      })
+      modal.appendChild(deleteBtn)
+    }
 
     backdrop.appendChild(modal)
     document.body.appendChild(backdrop)

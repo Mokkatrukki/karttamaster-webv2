@@ -23,11 +23,11 @@ describe('T93 — Merkkikirjasto modal + iconId (V10, V50)', () => {
       expect(document.body.querySelector('.sign-lib-modal')).toBeTruthy()
     })
 
-    it('muokkaa-nappi (✎) avaa modaalin', () => {
+    it('dots-nappi (···) avaa modaalin', () => {
       const container = setup()
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn())
-      container.querySelector<HTMLButtonElement>('.sign-lib-edit-btn')!.click()
+      container.querySelector<HTMLButtonElement>('.sign-lib-dots-btn')!.click()
       expect(document.body.querySelector('.sign-lib-modal')).toBeTruthy()
     })
 
@@ -136,7 +136,7 @@ describe('T93 — Merkkikirjasto modal + iconId (V10, V50)', () => {
       const t = createTemplate(lib, { label: 'Vanha', shortLabel: 'V', color: '#000', description: '', favorite: false, iconId: 'flag' })
       new SignLibraryPanel(container, lib, vi.fn())
       // open edit modal for this template
-      container.querySelector<HTMLButtonElement>(`.sign-lib-edit-btn[data-id="${t.id}"]`)!.click()
+      container.querySelector<HTMLButtonElement>(`.sign-lib-dots-btn[data-id="${t.id}"]`)!.click()
       // change only label
       document.body.querySelector<HTMLInputElement>('.sign-lib-label-input')!.value = 'Uusi nimi'
       document.body.querySelector<HTMLButtonElement>('.sign-lib-save-btn')!.click()
@@ -148,7 +148,7 @@ describe('T93 — Merkkikirjasto modal + iconId (V10, V50)', () => {
       const lib = createSignLibrary()
       const t = createTemplate(lib, { label: 'X', shortLabel: 'X', color: '#000', description: '', favorite: false, iconId: 'flag' })
       new SignLibraryPanel(container, lib, vi.fn())
-      container.querySelector<HTMLButtonElement>(`.sign-lib-edit-btn[data-id="${t.id}"]`)!.click()
+      container.querySelector<HTMLButtonElement>(`.sign-lib-dots-btn[data-id="${t.id}"]`)!.click()
       // Click the "no icon" button (data-icon-id="")
       const noIconBtn = document.body.querySelector<HTMLButtonElement>('.sign-lib-icon-btn[data-icon-id=""]')!
       noIconBtn.click()

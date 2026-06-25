@@ -167,12 +167,10 @@ export class SegmentPanel {
     panel.id = 'segment-panel'
 
     const header = document.createElement('div')
-    header.className = 'segment-panel-header'
-    header.style.cursor = 'pointer'
-    header.addEventListener('click', (e) => {
-      if ((e.target as HTMLElement).closest('#btn-segment-create')) return
+    header.className = 'segment-panel-header left-panel-section-header'
+    header.addEventListener('click', () => {
       this.collapsed = !this.collapsed
-      this.applyCollapsed()
+      this.render()
     })
 
     const titleEl = document.createElement('h3')
@@ -185,13 +183,6 @@ export class SegmentPanel {
     toggleBtn.textContent = '▶'
     toggleBtn.style.cssText = 'background:transparent;border:none;color:var(--text-muted);font-size:10px;padding:0 8px;min-height:44px;min-width:44px;cursor:pointer'
     header.appendChild(toggleBtn)
-
-    const createBtn = document.createElement('button')
-    createBtn.id = 'btn-segment-create'
-    createBtn.textContent = 'Luo uusi pätkä'
-    createBtn.className = 'btn-segment-create'
-    createBtn.addEventListener('click', () => this.enterCreationMode())
-    header.appendChild(createBtn)
 
     panel.appendChild(header)
 
@@ -390,16 +381,32 @@ export class SegmentPanel {
   private render(): void {
     this.applyCollapsed()
     this.listEl.innerHTML = ''
+
+    // Remove previous footer if exists
+    const panel = this.listEl.parentElement
+    panel?.querySelector('.btn-segment-footer')?.remove()
+
     const segments = Array.from(this.store.values())
     if (segments.length === 0) {
       const empty = document.createElement('li')
       empty.className = 'segment-empty'
       empty.textContent = 'Ei pätkiä — luo ensimmäinen'
       this.listEl.appendChild(empty)
-      return
+    } else {
+      for (const seg of segments) {
+        this.listEl.appendChild(this.buildSegmentRow(seg))
+      }
     }
-    for (const seg of segments) {
-      this.listEl.appendChild(this.buildSegmentRow(seg))
+
+    // Section footer — always rendered, visible when not collapsed
+    if (!this.collapsed) {
+      const footerBtn = document.createElement('button')
+      footerBtn.id = 'btn-segment-create'
+      footerBtn.className = 'btn-segment-footer'
+      footerBtn.textContent = '+ Luo uusi pätkä'
+      footerBtn.style.cssText = 'min-height:44px;width:100%;background:var(--field-tint);border:1px solid var(--border-default);border-top:none;color:var(--text-muted);font-size:12px;cursor:pointer;text-align:left;padding:0 12px'
+      footerBtn.addEventListener('click', () => this.enterCreationMode())
+      panel?.appendChild(footerBtn)
     }
   }
 

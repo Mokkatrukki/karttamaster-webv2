@@ -63,39 +63,50 @@ describe('T22 SignLibraryPanel — V10', () => {
       expect(types).toContain('upcoming-left')
     })
 
-    it('jokainen rivi sisältää muokkaa-napin', () => {
+    it('jokainen rivi sisältää dots-napin (···)', () => {
       const container = setup()
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn())
-      const editBtns = container.querySelectorAll('.sign-lib-edit-btn')
-      expect(editBtns.length).toBe(4)
+      const dotsBtns = container.querySelectorAll('.sign-lib-dots-btn')
+      expect(dotsBtns.length).toBe(4)
     })
 
-    it('default-malleilla ei ole poisto-nappia', () => {
+    // V62: no inline delete in item rows
+    it('item-riveillä ei ole inline ★- tai ×-nappia (V62)', () => {
       const container = setup()
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn())
+      const favBtns = container.querySelectorAll('.sign-lib-fav-btn')
       const deleteBtns = container.querySelectorAll('.sign-lib-delete-btn')
+      expect(favBtns.length).toBe(0)
       expect(deleteBtns.length).toBe(0)
     })
 
-    it('sisältää "Uusi malli" -napin', () => {
+    it('sisältää "Uusi merkki" -napin', () => {
       const container = setup()
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn())
       const addBtn = container.querySelector('.sign-lib-add-btn')
       expect(addBtn).toBeTruthy()
     })
-  })
 
-  describe('muokkaa default-mallia', () => {
-    it('muokkaa-klikki avaa modaalin', () => {
+    it('section-header löytyy ja sisältää Merkkikirjasto-tekstin', () => {
       const container = setup()
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn())
-      const editBtn = container.querySelector<HTMLButtonElement>('.sign-lib-edit-btn')!
-      editBtn.click()
-      // T93: form in modal appended to body
+      const header = container.querySelector('.left-panel-section-header')
+      expect(header).toBeTruthy()
+      expect(header?.textContent).toContain('Merkkikirjasto')
+    })
+  })
+
+  describe('muokkaa default-mallia', () => {
+    it('dots-nappi avaa modaalin', () => {
+      const container = setup()
+      const lib = createSignLibrary()
+      new SignLibraryPanel(container, lib, vi.fn())
+      const dotsBtn = container.querySelector<HTMLButtonElement>('.sign-lib-dots-btn')!
+      dotsBtn.click()
       const modal = bodyQuery('.sign-lib-modal')
       expect(modal).toBeTruthy()
     })
@@ -104,8 +115,8 @@ describe('T22 SignLibraryPanel — V10', () => {
       const container = setup()
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn())
-      const editBtn = container.querySelector<HTMLButtonElement>('.sign-lib-edit-btn')!
-      editBtn.click()
+      const dotsBtn = container.querySelector<HTMLButtonElement>('.sign-lib-dots-btn')!
+      dotsBtn.click()
       const input = bodyQuery<HTMLInputElement>('.sign-lib-label-input')!
       expect(input.value).not.toBe('')
     })
@@ -115,8 +126,8 @@ describe('T22 SignLibraryPanel — V10', () => {
       const lib = createSignLibrary()
       const onChange = vi.fn()
       new SignLibraryPanel(container, lib, onChange)
-      const editBtn = container.querySelector<HTMLButtonElement>('.sign-lib-edit-btn')!
-      editBtn.click()
+      const dotsBtn = container.querySelector<HTMLButtonElement>('.sign-lib-dots-btn')!
+      dotsBtn.click()
       const labelInput = bodyQuery<HTMLInputElement>('.sign-lib-label-input')!
       labelInput.value = 'Muutettu nimi'
       const shortInput = bodyQuery<HTMLInputElement>('.sign-lib-short-input')!
@@ -132,8 +143,8 @@ describe('T22 SignLibraryPanel — V10', () => {
       const lib = createSignLibrary()
       const onChange = vi.fn()
       new SignLibraryPanel(container, lib, onChange)
-      const editBtn = container.querySelector<HTMLButtonElement>('.sign-lib-edit-btn')!
-      editBtn.click()
+      const dotsBtn = container.querySelector<HTMLButtonElement>('.sign-lib-dots-btn')!
+      dotsBtn.click()
       bodyQuery<HTMLInputElement>('.sign-lib-label-input')!.value = 'X'
       bodyQuery<HTMLInputElement>('.sign-lib-short-input')!.value = 'X'
       bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
@@ -144,16 +155,25 @@ describe('T22 SignLibraryPanel — V10', () => {
       const container = setup()
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn())
-      const editBtn = container.querySelector<HTMLButtonElement>('.sign-lib-edit-btn')!
-      editBtn.click()
+      const dotsBtn = container.querySelector<HTMLButtonElement>('.sign-lib-dots-btn')!
+      dotsBtn.click()
       bodyQuery<HTMLButtonElement>('.sign-lib-cancel-btn')!.click()
       expect(bodyQuery('.sign-lib-modal')).toBeNull()
       expect(listTemplates(lib)).toHaveLength(4)
     })
+
+    it('default-mallin modaalissa ei ole poisto-nappia', () => {
+      const container = setup()
+      const lib = createSignLibrary()
+      new SignLibraryPanel(container, lib, vi.fn())
+      const dotsBtn = container.querySelector<HTMLButtonElement>('.sign-lib-dots-btn')!
+      dotsBtn.click()
+      expect(bodyQuery('.modal-btn-destructive')).toBeNull()
+    })
   })
 
   describe('uusi malli', () => {
-    it('"Uusi malli" -klikki avaa modaalin tyhjällä lomakkeella', () => {
+    it('"Uusi merkki" -klikki avaa modaalin tyhjällä lomakkeella', () => {
       const container = setup()
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn())
@@ -190,7 +210,7 @@ describe('T22 SignLibraryPanel — V10', () => {
       expect(listTemplates(lib)).toHaveLength(4)
     })
 
-    it('uudella custom-mallilla on poisto-nappi', () => {
+    it('uudella custom-mallin modaalissa on poisto-nappi (V62)', () => {
       const container = setup()
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn())
@@ -198,42 +218,39 @@ describe('T22 SignLibraryPanel — V10', () => {
       bodyQuery<HTMLInputElement>('.sign-lib-label-input')!.value = 'Kasa'
       bodyQuery<HTMLInputElement>('.sign-lib-short-input')!.value = 'K'
       bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
-      const deleteBtns = container.querySelectorAll('.sign-lib-delete-btn')
-      expect(deleteBtns.length).toBe(1)
+      // Open the custom template's dots btn
+      const allDotsBtns = container.querySelectorAll<HTMLButtonElement>('.sign-lib-dots-btn')
+      const customDotsBtn = allDotsBtns[allDotsBtns.length - 1]
+      customDotsBtn.click()
+      expect(bodyQuery('.modal-btn-destructive')).toBeTruthy()
     })
   })
 
-  describe('suosikki-toggle (T83)', () => {
-    it('jokaisella rivillä on fav-nappi', () => {
+  describe('suosikki-toggle (T83) — via modal checkbox', () => {
+    it('modaalissa on suosikki-checkbox', () => {
       const container = setup()
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn())
-      const favBtns = container.querySelectorAll('.sign-lib-fav-btn')
-      expect(favBtns.length).toBe(4)
+      container.querySelector<HTMLButtonElement>('.sign-lib-dots-btn')!.click()
+      expect(bodyQuery('.sign-lib-fav-checkbox')).toBeTruthy()
     })
 
-    it('toggle vaihtaa favorite false→true ja kutsuu onChange', () => {
+    it('checkbox tallentuu favorite:ksi', () => {
       const container = setup()
       const lib = createSignLibrary()
       const t = createTemplate(lib, { label: 'Testi', shortLabel: 'T', color: '#000', description: '', favorite: false })
       const onChange = vi.fn()
       new SignLibraryPanel(container, lib, onChange)
-      const btn = container.querySelector<HTMLButtonElement>(`.sign-lib-fav-btn[data-id="${t.id}"]`)!
-      expect(btn).toBeTruthy()
-      btn.click()
+      const dotsBtn = container.querySelector<HTMLButtonElement>(`.sign-lib-dots-btn[data-id="${t.id}"]`)!
+      expect(dotsBtn).toBeTruthy()
+      dotsBtn.click()
+      const checkbox = bodyQuery<HTMLInputElement>('.sign-lib-fav-checkbox')!
+      checkbox.checked = true
+      bodyQuery<HTMLInputElement>('.sign-lib-label-input')!.value = 'Testi'
+      bodyQuery<HTMLInputElement>('.sign-lib-short-input')!.value = 'T'
+      bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
       expect(lib.get(t.id)?.favorite).toBe(true)
-      expect(onChange).toHaveBeenCalledOnce()
-    })
-
-    it('toggle vaihtaa favorite true→false', () => {
-      const container = setup()
-      const lib = createSignLibrary()
-      const lib_templates = listTemplates(lib)
-      const firstId = lib_templates[0].id
-      new SignLibraryPanel(container, lib, vi.fn())
-      const btn = container.querySelector<HTMLButtonElement>(`.sign-lib-fav-btn[data-id="${firstId}"]`)!
-      btn.click()
-      expect(lib.get(firstId)?.favorite).toBe(false)
+      expect(onChange).toHaveBeenCalled()
     })
 
     it('default-mallit ovat suosikkeja seedDefaults jälkeen', () => {
@@ -278,13 +295,13 @@ describe('T22 SignLibraryPanel — V10', () => {
       const lib = createSignLibrary()
       createTemplate(lib, { label: 'Ok', shortLabel: 'O', color: '#000', description: '<img src=x id="xss-desc">', favorite: false })
       new SignLibraryPanel(container, lib, vi.fn())
-      const editBtn = container.querySelector<HTMLButtonElement>('.sign-lib-edit-btn')!
-      editBtn.click()
+      const dotsBtn = container.querySelector<HTMLButtonElement>('.sign-lib-dots-btn')!
+      dotsBtn.click()
       expect(document.getElementById('xss-desc')).toBeNull()
     })
   })
 
-  describe('poista custom-malli', () => {
+  describe('poista custom-malli — via modal destructive (V62)', () => {
     function addCustom(container: HTMLElement, lib: ReturnType<typeof createSignLibrary>, onChange = vi.fn()) {
       new SignLibraryPanel(container, lib, onChange)
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
@@ -293,29 +310,50 @@ describe('T22 SignLibraryPanel — V10', () => {
       bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
     }
 
-    it('poisto-nappi poistaa mallin kirjastosta', () => {
+    function openCustomDotsModal(container: HTMLElement) {
+      const dotsBtns = container.querySelectorAll<HTMLButtonElement>('.sign-lib-dots-btn')
+      dotsBtns[dotsBtns.length - 1].click()
+    }
+
+    it('poisto-nappi poistaa mallin kirjastosta (window.confirm = true)', () => {
+      vi.stubGlobal('confirm', vi.fn().mockReturnValue(true))
       const container = setup()
       const lib = createSignLibrary()
       addCustom(container, lib)
-      container.querySelector<HTMLButtonElement>('.sign-lib-delete-btn')!.click()
+      openCustomDotsModal(container)
+      bodyQuery<HTMLButtonElement>('.modal-btn-destructive')!.click()
       expect(listTemplates(lib)).toHaveLength(4)
     })
 
     it('poisto kutsuu onChange', () => {
+      vi.stubGlobal('confirm', vi.fn().mockReturnValue(true))
       const container = setup()
       const lib = createSignLibrary()
       const onChange = vi.fn()
       addCustom(container, lib, onChange)
       onChange.mockClear()
-      container.querySelector<HTMLButtonElement>('.sign-lib-delete-btn')!.click()
+      openCustomDotsModal(container)
+      bodyQuery<HTMLButtonElement>('.modal-btn-destructive')!.click()
       expect(onChange).toHaveBeenCalledOnce()
     })
 
-    it('poistettu malli ei näy listassa', () => {
+    it('confirm=false ei poista mallia', () => {
+      vi.stubGlobal('confirm', vi.fn().mockReturnValue(false))
       const container = setup()
       const lib = createSignLibrary()
       addCustom(container, lib)
-      container.querySelector<HTMLButtonElement>('.sign-lib-delete-btn')!.click()
+      openCustomDotsModal(container)
+      bodyQuery<HTMLButtonElement>('.modal-btn-destructive')!.click()
+      expect(listTemplates(lib)).toHaveLength(5)
+    })
+
+    it('poistettu malli ei näy listassa', () => {
+      vi.stubGlobal('confirm', vi.fn().mockReturnValue(true))
+      const container = setup()
+      const lib = createSignLibrary()
+      addCustom(container, lib)
+      openCustomDotsModal(container)
+      bodyQuery<HTMLButtonElement>('.modal-btn-destructive')!.click()
       const rows = container.querySelectorAll('.sign-lib-row')
       expect(rows.length).toBe(4)
     })
