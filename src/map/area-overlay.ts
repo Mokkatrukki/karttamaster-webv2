@@ -34,6 +34,14 @@ export class AreaOverlay {
     }
   }
 
+  updateOne(area: AreaMarker): void {
+    this.areaLayers.get(area.id)?.forEach(l => l.remove())
+    this.dragHandles.get(area.id)?.remove()
+    this.areaLayers.delete(area.id)
+    this.dragHandles.delete(area.id)
+    this.renderArea(area)
+  }
+
   private renderArea(area: AreaMarker): void {
     const layers: L.Layer[] = []
 
