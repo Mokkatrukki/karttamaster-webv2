@@ -15,6 +15,8 @@ function toLatLngs(area: Pick<AreaMarker, 'centerLat' | 'centerLng' | 'widthM' |
 export class AreaOverlay {
   private areaLayers: Map<string, L.Layer[]> = new Map()
   private dragHandles: Map<string, L.Marker> = new Map()
+  private featureDragHandles: Map<string, L.Marker> = new Map()
+  private areaFeatureIds: Map<string, string[]> = new Map()
   private onAreaClick?: (area: AreaMarker) => void
   private onAreaMove?: (area: AreaMarker) => void
   private mapRectEditor?: MapRectEditor
@@ -45,11 +47,19 @@ export class AreaOverlay {
     this.dragHandles.get(area.id)?.remove()
     this.areaLayers.delete(area.id)
     this.dragHandles.delete(area.id)
+    // Clean up feature handles for this area
+    const oldFeatureIds = this.areaFeatureIds.get(area.id) ?? []
+    for (const fid of oldFeatureIds) {
+      this.featureDragHandles.get(fid)?.remove()
+      this.featureDragHandles.delete(fid)
+    }
+    this.areaFeatureIds.delete(area.id)
     this.renderArea(area)
   }
 
   private renderArea(area: AreaMarker): void {
     const layers: L.Layer[] = []
+    const featureIds: string[] = []
 
     // Main area polygon
     const poly = L.polygon(toLatLngs(area), {
@@ -90,29 +100,31 @@ export class AreaOverlay {
     poly.addTo(this.map)
     layers.push(poly)
 
-    // Feature sub-rectangles
+    // Feature sub-rectangles + move handles
     for (const feature of area.features) {
-      const fpoly = this.renderFeature(feature)
+      const fpoly = this.renderFeature(feature, area)
       fpoly.addTo(this.map)
       layers.push(fpoly)
+
+      const fHandle = this.createFeatureDragHandle(feature, area)
+      fHandle.addTo(this.map)
+      this.featureDragHandles.set(feature.id, fHandle)
+      featureIds.push(feature.id)
     }
 
-    // Draggable center handle
+    // Area center drag handle (moves whole area + all features)
     const handle = this.createDragHandle(area, (updatedArea) => {
-      this.areaLayers.get(area.id)?.forEach(l => l.remove())
-      this.dragHandles.get(area.id)?.remove()
-      this.areaLayers.delete(area.id)
-      this.dragHandles.delete(area.id)
-      this.renderArea(updatedArea)
+      this.updateOne(updatedArea)
       this.onAreaMove?.(updatedArea)
     })
     handle.addTo(this.map)
 
     this.areaLayers.set(area.id, layers)
     this.dragHandles.set(area.id, handle)
+    this.areaFeatureIds.set(area.id, featureIds)
   }
 
-  private renderFeature(feature: AreaFeature): L.Polygon {
+  private renderFeature(feature: AreaFeature, parentArea: AreaMarker): L.Polygon {
     const poly = L.polygon(toLatLngs(feature), {
       color: feature.color,
       fillColor: feature.color,
@@ -126,6 +138,26 @@ export class AreaOverlay {
         direction: 'center',
       })
     }
+
+    let currentFeature = feature
+    poly.on('dblclick', (e: L.LeafletMouseEvent) => {
+      L.DomEvent.stopPropagation(e)
+      this.mapRectEditor?.startEdit(
+        feature.id,
+        currentFeature,
+        (updated) => {
+          currentFeature = { ...currentFeature, ...updated }
+          const updatedParent: AreaMarker = {
+            ...parentArea,
+            features: parentArea.features.map(f => f.id === feature.id ? currentFeature : f),
+          }
+          this.updateOne(updatedParent)
+          this.onAreaMove?.(updatedParent)
+        },
+        () => { this.mapRectEditor?.stopEdit() },
+      )
+    })
+
     return poly
   }
 
@@ -161,6 +193,35 @@ export class AreaOverlay {
     return marker
   }
 
+  private createFeatureDragHandle(
+    feature: AreaFeature,
+    parentArea: AreaMarker,
+  ): L.Marker {
+    const icon = L.divIcon({
+      className: 'area-drag-handle',
+      html: '⊕',
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+    })
+    const marker = L.marker([feature.centerLat, feature.centerLng], {
+      draggable: true,
+      icon,
+      title: 'Siirrä sisäistä aluetta',
+    })
+    let currentFeature = feature
+    marker.on('dragend', () => {
+      const { lat, lng } = marker.getLatLng()
+      currentFeature = { ...currentFeature, centerLat: lat, centerLng: lng }
+      const updatedParent: AreaMarker = {
+        ...parentArea,
+        features: parentArea.features.map(f => f.id === feature.id ? currentFeature : f),
+      }
+      this.updateOne(updatedParent)
+      this.onAreaMove?.(updatedParent)
+    })
+    return marker
+  }
+
   clear(): void {
     for (const layers of this.areaLayers.values()) {
       layers.forEach(l => l.remove())
@@ -168,7 +229,12 @@ export class AreaOverlay {
     for (const handle of this.dragHandles.values()) {
       handle.remove()
     }
+    for (const handle of this.featureDragHandles.values()) {
+      handle.remove()
+    }
     this.areaLayers.clear()
     this.dragHandles.clear()
+    this.featureDragHandles.clear()
+    this.areaFeatureIds.clear()
   }
 }

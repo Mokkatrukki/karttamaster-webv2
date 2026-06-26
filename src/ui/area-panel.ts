@@ -260,23 +260,44 @@ export class AreaPanel {
     const addFeatureBtn = modal.querySelector('.btn-area-add-feature') as HTMLButtonElement
     if (addFeatureBtn) {
       addFeatureBtn.addEventListener('click', () => {
-        const feat: AreaFeature = {
-          id: generateId(),
-          name: undefined,
-          centerLat: area.centerLat,
-          centerLng: area.centerLng,
-          widthM: 10,
-          heightM: 5,
-          rotation: 0,
-          color: FEATURE_COLORS[0].value,
+        if (this.callbacks.onEnterDrawMode) {
+          // Draw-by-drag: feature placed at drawn location (V68)
+          this.closeModal()
+          this.callbacks.onEnterDrawMode((rect) => {
+            const feat: AreaFeature = {
+              id: generateId(),
+              name: undefined,
+              centerLat: rect.centerLat,
+              centerLng: rect.centerLng,
+              widthM: rect.widthM,
+              heightM: rect.heightM,
+              rotation: 0,
+              color: FEATURE_COLORS[0].value,
+            }
+            const updatedArea = addFeature(area, feat)
+            this.updateArea(updatedArea)
+            area = updatedArea
+            this.openDetailsModal(updatedArea)
+          })
+        } else {
+          // Fallback: auto-place at parent center
+          const feat: AreaFeature = {
+            id: generateId(),
+            name: undefined,
+            centerLat: area.centerLat,
+            centerLng: area.centerLng,
+            widthM: 10,
+            heightM: 5,
+            rotation: 0,
+            color: FEATURE_COLORS[0].value,
+          }
+          const updatedArea = addFeature(area, feat)
+          this.updateArea(updatedArea)
+          area = updatedArea
+          const featureList = modal.querySelector('.area-feature-list') as HTMLElement
+          if (featureList) featureList.innerHTML = this.buildFeatureListHTML(area)
+          this.bindFeatureListEvents(modal, area, (a) => { area = a })
         }
-        const updatedArea = addFeature(area, feat)
-        this.updateArea(updatedArea)
-        area = updatedArea
-        // Re-render feature list
-        const featureList = modal.querySelector('.area-feature-list') as HTMLElement
-        if (featureList) featureList.innerHTML = this.buildFeatureListHTML(area)
-        this.bindFeatureListEvents(modal, area, (a) => { area = a })
       })
     }
 

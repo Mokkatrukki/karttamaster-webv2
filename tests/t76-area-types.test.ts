@@ -134,3 +134,37 @@ describe('setAreaStatus', () => {
     expect(updated.features[0].id).toBe('feat-1')
   })
 })
+
+describe('T116 — AreaFeature itsenäinen sijoitus (V68)', () => {
+  it('feature voi sijoittua mihin tahansa — ei lukittu parent-alueen centeriin', () => {
+    const area = createAreaMarker(baseParams)
+    const feat: AreaFeature = {
+      ...sampleFeature,
+      centerLat: 65.0,   // kaukana parent-alueesta (63.8)
+      centerLng: 29.0,
+    }
+    const updated = addFeature(area, feat)
+    expect(updated.features[0].centerLat).toBe(65.0)
+    expect(updated.features[0].centerLng).toBe(29.0)
+    // Parent area ei muutu
+    expect(updated.centerLat).toBe(baseParams.centerLat)
+    expect(updated.centerLng).toBe(baseParams.centerLng)
+  })
+
+  it('feature geometry säilyy add-operaatiossa', () => {
+    const area = createAreaMarker(baseParams)
+    const feat: AreaFeature = {
+      ...sampleFeature,
+      centerLat: 65.1,
+      centerLng: 29.5,
+      widthM: 15,
+      heightM: 8,
+      rotation: 45,
+    }
+    const updated = addFeature(area, feat)
+    const f = updated.features[0]
+    expect(f.widthM).toBe(15)
+    expect(f.heightM).toBe(8)
+    expect(f.rotation).toBe(45)
+  })
+})
