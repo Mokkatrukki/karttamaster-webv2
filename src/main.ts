@@ -30,7 +30,7 @@ import { fetchSegmentByCode, fetchAllSegments } from './logic/segment-sync'
 import type { RouteConfig } from './logic/multi-route'
 import { MarkerDetailModal } from './ui/marker-detail-modal'
 import { AreaOverlay } from './map/area-overlay'
-import { fetchAreas } from './logic/area-sync'
+import { fetchAreas, createArea, updateArea, deleteArea } from './logic/area-sync'
 import { AreaPanel } from './ui/area-panel'
 import { initAreaView } from './ui/area-view'
 
@@ -148,17 +148,21 @@ async function init(talkoolainenCode?: string) {
 
   // T109: AreaPanel — järjestäjän editor-paneeli
   const areaPanelContainer = document.getElementById('area-panel-container')
+  let areaPanel: import('./ui/area-panel').AreaPanel | null = null
   if (areaPanelContainer && !talkoolainenCode) {
-    new AreaPanel(areaPanelContainer, areas, {
-      onAreaAdd: (area) => {
+    areaPanel = new AreaPanel(areaPanelContainer, areas, {
+      onAreaAdd: async (area) => {
+        await createArea(area)
         areas = [...areas, area]
         areaOverlay.update(areas)
       },
-      onAreaUpdate: (area) => {
+      onAreaUpdate: async (area) => {
+        await updateArea(area)
         areas = areas.map(a => a.id === area.id ? area : a)
         areaOverlay.update(areas)
       },
-      onAreaDelete: (areaId) => {
+      onAreaDelete: async (areaId) => {
+        await deleteArea(areaId)
         areas = areas.filter(a => a.id !== areaId)
         areaOverlay.update(areas)
       },
@@ -174,6 +178,12 @@ async function init(talkoolainenCode?: string) {
       onExitMapMode: () => {
         map.getContainer().style.cursor = ''
       },
+    })
+
+    areaOverlay.setOnAreaMove(async (area) => {
+      await updateArea(area)
+      areas = areas.map(a => a.id === area.id ? area : a)
+      areaPanel?.updateAreas(areas)
     })
   }
 

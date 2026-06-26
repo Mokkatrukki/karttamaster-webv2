@@ -61,7 +61,7 @@ export class AreaPanel {
 
     const titleSpan = document.createElement('span')
     titleSpan.style.cssText = 'font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);flex:1'
-    titleSpan.textContent = 'Huoltopisteet'
+    titleSpan.textContent = 'Alueet'
 
     const countSpan = document.createElement('span')
     countSpan.className = 'area-section-count'
@@ -78,7 +78,7 @@ export class AreaPanel {
 
     const footer = document.createElement('button')
     footer.className = 'area-section-footer btn-area-add'
-    footer.textContent = '+ Lisää huoltopiste'
+    footer.textContent = '+ Lisää alue'
     footer.hidden = true
     footer.style.cssText = 'width:100%;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);color:var(--text-muted);font-size:12px;cursor:pointer'
     footer.addEventListener('click', () => this.startAddFlow())
@@ -125,7 +125,7 @@ export class AreaPanel {
       const dotsBtn = document.createElement('button')
       dotsBtn.className = 'btn-area-dots'
       dotsBtn.textContent = '···'
-      dotsBtn.setAttribute('aria-label', 'Muokkaa huoltopistettä')
+      dotsBtn.setAttribute('aria-label', 'Muokkaa aluetta')
       dotsBtn.style.cssText = 'min-width:44px;min-height:44px;background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:16px'
       dotsBtn.addEventListener('click', (e) => {
         e.stopPropagation()
@@ -139,7 +139,7 @@ export class AreaPanel {
 
   private startAddFlow(): void {
     // Show name input dialog
-    const name = window.prompt('Huoltopisteen nimi:')
+    const name = window.prompt('Alueen nimi:')
     if (!name?.trim()) return
 
     // Enter map click mode
@@ -206,6 +206,24 @@ export class AreaPanel {
       })
     }
 
+    // Size + rotation save
+    const widthInput = modal.querySelector('.area-width-input') as HTMLInputElement
+    const heightInput = modal.querySelector('.area-height-input') as HTMLInputElement
+    const rotationInput = modal.querySelector('.area-rotation-input') as HTMLInputElement
+    const saveSizeBtn = modal.querySelector('.btn-area-size-save') as HTMLButtonElement
+    if (widthInput && heightInput && rotationInput && saveSizeBtn) {
+      saveSizeBtn.addEventListener('click', () => {
+        const updatedArea = {
+          ...area,
+          widthM: Math.max(10, Number(widthInput.value) || area.widthM),
+          heightM: Math.max(10, Number(heightInput.value) || area.heightM),
+          rotation: ((Number(rotationInput.value) || 0) % 360 + 360) % 360,
+        }
+        this.updateArea(updatedArea)
+        area = updatedArea
+      })
+    }
+
     // Description save
     const descTextarea = modal.querySelector('.area-desc-textarea') as HTMLTextAreaElement
     const saveDescBtn = modal.querySelector('.btn-area-desc-save') as HTMLButtonElement
@@ -265,7 +283,7 @@ export class AreaPanel {
     const isValmis = area.status === 'valmis'
     return `
       <div style="display:flex;align-items:center;padding:16px;border-bottom:1px solid var(--border-default)">
-        <h3 style="flex:1;margin:0;font-size:14px;color:var(--text-body)">Huoltopiste</h3>
+        <h3 style="flex:1;margin:0;font-size:14px;color:var(--text-body)">Alue</h3>
         <button class="btn-area-modal-close" aria-label="Sulje" style="min-height:44px;min-width:44px;background:transparent;border:none;color:var(--text-muted);font-size:18px;cursor:pointer">✕</button>
       </div>
       <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
@@ -274,6 +292,18 @@ export class AreaPanel {
           <div style="display:flex;gap:8px">
             <input class="area-name-input" type="text" value="${area.name.replace(/"/g, '&quot;')}" style="flex:1;padding:8px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:6px;color:var(--text-body);font-size:13px" />
             <button class="btn-area-name-save" style="padding:8px 12px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:6px;color:var(--text-muted);font-size:12px;cursor:pointer;white-space:nowrap">Tallenna</button>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px">Koko ja kierto</label>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <label style="font-size:11px;color:var(--text-muted)">Lev (m)</label>
+            <input class="area-width-input" type="number" value="${area.widthM}" min="10" max="5000" step="10" style="width:72px;padding:6px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:6px;color:var(--text-body);font-size:13px" />
+            <label style="font-size:11px;color:var(--text-muted)">Kork (m)</label>
+            <input class="area-height-input" type="number" value="${area.heightM}" min="10" max="5000" step="10" style="width:72px;padding:6px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:6px;color:var(--text-body);font-size:13px" />
+            <label style="font-size:11px;color:var(--text-muted)">Kierto (°)</label>
+            <input class="area-rotation-input" type="number" value="${area.rotation}" min="0" max="359" step="5" style="width:64px;padding:6px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:6px;color:var(--text-body);font-size:13px" />
+            <button class="btn-area-size-save" style="padding:6px 12px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:6px;color:var(--text-muted);font-size:12px;cursor:pointer;white-space:nowrap">Tallenna</button>
           </div>
         </div>
         <div>

@@ -44,13 +44,13 @@ afterEach(() => {
 })
 
 describe('AreaPanel — section-pattern (V61)', () => {
-  it('renderöi section-headerin otsikolla "Huoltopisteet"', async () => {
+  it('renderöi section-headerin otsikolla "Alueet"', async () => {
     const { AreaPanel } = await importAreaPanel()
     const container = document.getElementById('area-panel-container')!
     new AreaPanel(container, [])
     const header = container.querySelector('.left-panel-section-header')
     expect(header).not.toBeNull()
-    expect(header!.textContent).toContain('Huoltopisteet')
+    expect(header!.textContent).toContain('Alueet')
   })
 
   it('count päivittyy alueiden mukaan', async () => {
@@ -67,7 +67,7 @@ describe('AreaPanel — section-pattern (V61)', () => {
     new AreaPanel(container, [])
     const addBtn = container.querySelector('.btn-area-add')
     expect(addBtn).not.toBeNull()
-    expect(addBtn!.textContent).toContain('Lisää huoltopiste')
+    expect(addBtn!.textContent).toContain('Lisää alue')
   })
 
   it('alue-item renderöityy nimellä ja ··· -napilla', async () => {
