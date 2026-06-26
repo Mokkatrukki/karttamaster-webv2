@@ -44,6 +44,47 @@ export function rotatePoint(
   }
 }
 
+export function latLngToLocal(
+  lat: number,
+  lng: number,
+  centerLat: number,
+  centerLng: number,
+): { uM: number; vM: number } {
+  const scaleNS = 1 / DEG_PER_M_LAT
+  const scaleEW = 1 / degPerMLng(centerLat)
+  return {
+    uM: (lng - centerLng) * scaleEW,
+    vM: (lat - centerLat) * scaleNS,
+  }
+}
+
+export function localToLatLng(
+  uM: number,
+  vM: number,
+  centerLat: number,
+  centerLng: number,
+): LatLng {
+  return offsetLatLng(centerLat, centerLng, vM, uM)
+}
+
+export function cornersToRect(
+  cornerA: LatLng,
+  cornerB: LatLng,
+): { centerLat: number; centerLng: number; widthM: number; heightM: number } {
+  const centerLat = (cornerA.lat + cornerB.lat) / 2
+  const centerLng = (cornerA.lng + cornerB.lng) / 2
+  const scaleNS = 1 / DEG_PER_M_LAT
+  const scaleEW = 1 / degPerMLng(centerLat)
+  const widthM = Math.abs(cornerB.lng - cornerA.lng) * scaleEW
+  const heightM = Math.abs(cornerB.lat - cornerA.lat) * scaleNS
+  return {
+    centerLat,
+    centerLng,
+    widthM: Math.max(widthM, 1),
+    heightM: Math.max(heightM, 1),
+  }
+}
+
 export function cornersFromRect(
   centerLat: number,
   centerLng: number,
