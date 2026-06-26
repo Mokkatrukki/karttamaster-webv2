@@ -30,6 +30,7 @@ import { fetchSegmentByCode, fetchAllSegments } from './logic/segment-sync'
 import type { RouteConfig } from './logic/multi-route'
 import { MarkerDetailModal } from './ui/marker-detail-modal'
 import { AreaOverlay } from './map/area-overlay'
+import { MapRectEditor } from './map/map-rect-editor'
 import { fetchAreas, createArea, updateArea, deleteArea } from './logic/area-sync'
 import { AreaPanel } from './ui/area-panel'
 import { initAreaView } from './ui/area-view'
@@ -138,8 +139,12 @@ async function init(talkoolainenCode?: string) {
   const segmentOverlay = new SegmentOverlay(map, routes)
   segmentOverlay.update(segmentStore)
 
-  // T108: AreaOverlay — huoltopisteet kartalla
+  // T114-T116: MapRectEditor — draw-by-drag + corner resize + rotation arm
+  const mapRectEditor = new MapRectEditor(map)
+
+  // T108: AreaOverlay — alueet kartalla
   const areaOverlay = new AreaOverlay(map)
+  areaOverlay.setMapRectEditor(mapRectEditor)
   let areas = await fetchAreas()
   areaOverlay.update(areas)
 
@@ -165,6 +170,9 @@ async function init(talkoolainenCode?: string) {
         await deleteArea(areaId)
         areas = areas.filter(a => a.id !== areaId)
         areaOverlay.update(areas)
+      },
+      onEnterDrawMode: (onDone) => {
+        mapRectEditor.startDraw(onDone)
       },
       onEnterMapMode: (onClick) => {
         map.getContainer().style.cursor = 'crosshair'

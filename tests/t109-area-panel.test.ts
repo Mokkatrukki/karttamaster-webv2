@@ -231,6 +231,47 @@ describe('AreaPanel — status-vaihto', () => {
   })
 })
 
+describe('AreaPanel — draw-by-drag (T115)', () => {
+  it('onEnterDrawMode kutsutaan "Lisää alue" -klikistä (ei window.prompt ensin)', async () => {
+    const { AreaPanel } = await importAreaPanel()
+    const container = document.getElementById('area-panel-container')!
+    const onEnterDrawMode = vi.fn()
+    new AreaPanel(container, [], { onEnterDrawMode })
+    // Expand section first
+    const header = container.querySelector('.left-panel-section-header') as HTMLElement
+    header.click()
+    const addBtn = container.querySelector('.btn-area-add') as HTMLButtonElement
+    addBtn.click()
+    expect(onEnterDrawMode).toHaveBeenCalledOnce()
+    expect(onEnterDrawMode.mock.calls[0][0]).toBeTypeOf('function')
+  })
+
+  it('draw-by-drag onDone → area luodaan window.prompt-nimellä', async () => {
+    const { AreaPanel } = await importAreaPanel()
+    const container = document.getElementById('area-panel-container')!
+    const onAreaAdd = vi.fn()
+    let capturedOnDone: ((rect: { centerLat: number; centerLng: number; widthM: number; heightM: number }) => void) | null = null
+    new AreaPanel(container, [], {
+      onEnterDrawMode: (onDone) => { capturedOnDone = onDone },
+      onAreaAdd,
+    })
+    const header = container.querySelector('.left-panel-section-header') as HTMLElement
+    header.click()
+    const addBtn = container.querySelector('.btn-area-add') as HTMLButtonElement
+    addBtn.click()
+    expect(capturedOnDone).not.toBeNull()
+    // Simulate draw completion
+    vi.stubGlobal('prompt', () => 'Testialue')
+    capturedOnDone!({ centerLat: 65.0, centerLng: 28.0, widthM: 100, heightM: 60 })
+    expect(onAreaAdd).toHaveBeenCalledOnce()
+    const area = onAreaAdd.mock.calls[0][0]
+    expect(area.name).toBe('Testialue')
+    expect(area.widthM).toBe(100)
+    expect(area.heightM).toBe(60)
+    expect(area.centerLat).toBe(65.0)
+  })
+})
+
 describe('AreaPanel — koko ja kierto (B36)', () => {
   it('modaali sisältää widthM/heightM/rotation-inputit oikeilla arvoilla', async () => {
     const { AreaPanel } = await importAreaPanel()

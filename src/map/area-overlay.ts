@@ -1,6 +1,7 @@
 import L from 'leaflet'
 import type { AreaMarker, AreaFeature } from '../logic/area-types'
 import { cornersFromRect } from '../logic/area-geometry'
+import type { MapRectEditor } from './map-rect-editor'
 
 const AREA_COLOR = '#3b82f6'
 const AREA_FILL_OPACITY = 0.15
@@ -16,6 +17,7 @@ export class AreaOverlay {
   private dragHandles: Map<string, L.Marker> = new Map()
   private onAreaClick?: (area: AreaMarker) => void
   private onAreaMove?: (area: AreaMarker) => void
+  private mapRectEditor?: MapRectEditor
 
   constructor(private readonly map: L.Map) {}
 
@@ -25,6 +27,10 @@ export class AreaOverlay {
 
   setOnAreaMove(cb: (area: AreaMarker) => void): void {
     this.onAreaMove = cb
+  }
+
+  setMapRectEditor(editor: MapRectEditor): void {
+    this.mapRectEditor = editor
   }
 
   update(areas: AreaMarker[]): void {
@@ -64,6 +70,21 @@ export class AreaOverlay {
       L.DomEvent.stopPropagation(e)
       this.onAreaClick?.(area)
       this.map.flyTo([area.centerLat, area.centerLng], 18)
+    })
+
+    let currentArea = area
+    poly.on('dblclick', (e: L.LeafletMouseEvent) => {
+      L.DomEvent.stopPropagation(e)
+      this.mapRectEditor?.startEdit(
+        area.id,
+        currentArea,
+        (updated) => {
+          currentArea = { ...currentArea, ...updated }
+          this.updateOne(currentArea)
+          this.onAreaMove?.(currentArea)
+        },
+        () => { this.mapRectEditor?.stopEdit() },
+      )
     })
 
     poly.addTo(this.map)

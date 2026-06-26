@@ -19,6 +19,7 @@ export interface AreaPanelCallbacks {
   onAreaAdd?: (area: AreaMarker) => void
   onAreaUpdate?: (area: AreaMarker) => void
   onAreaDelete?: (areaId: string) => void
+  onEnterDrawMode?: (onDone: (rect: { centerLat: number; centerLng: number; widthM: number; heightM: number }) => void) => void
   onEnterMapMode?: (onMapClick: (lat: number, lng: number) => void) => void
   onExitMapMode?: () => void
 }
@@ -138,28 +139,48 @@ export class AreaPanel {
   }
 
   private startAddFlow(): void {
-    // Show name input dialog
-    const name = window.prompt('Alueen nimi:')
-    if (!name?.trim()) return
-
-    // Enter map click mode
-    this.callbacks.onEnterMapMode?.((lat, lng) => {
-      this.callbacks.onExitMapMode?.()
-      const area = createAreaMarker({
-        id: generateId(),
-        name: name.trim(),
-        centerLat: lat,
-        centerLng: lng,
-        widthM: 60,
-        heightM: 40,
-        rotation: 0,
-        markdownDescription: '',
-        hashCode: generateId() + generateId(),
+    if (this.callbacks.onEnterDrawMode) {
+      // Draw-by-drag: name asked after draw
+      this.callbacks.onEnterDrawMode((rect) => {
+        const name = window.prompt('Alueen nimi:')
+        if (!name?.trim()) return
+        const area = createAreaMarker({
+          id: generateId(),
+          name: name.trim(),
+          centerLat: rect.centerLat,
+          centerLng: rect.centerLng,
+          widthM: rect.widthM,
+          heightM: rect.heightM,
+          rotation: 0,
+          markdownDescription: '',
+          hashCode: generateId() + generateId(),
+        })
+        this.areas.push(area)
+        this.render()
+        this.callbacks.onAreaAdd?.(area)
       })
-      this.areas.push(area)
-      this.render()
-      this.callbacks.onAreaAdd?.(area)
-    })
+    } else {
+      // Fallback: click-to-place at fixed size
+      const name = window.prompt('Alueen nimi:')
+      if (!name?.trim()) return
+      this.callbacks.onEnterMapMode?.((lat, lng) => {
+        this.callbacks.onExitMapMode?.()
+        const area = createAreaMarker({
+          id: generateId(),
+          name: name.trim(),
+          centerLat: lat,
+          centerLng: lng,
+          widthM: 60,
+          heightM: 40,
+          rotation: 0,
+          markdownDescription: '',
+          hashCode: generateId() + generateId(),
+        })
+        this.areas.push(area)
+        this.render()
+        this.callbacks.onAreaAdd?.(area)
+      })
+    }
   }
 
   openDetailsModal(area: AreaMarker): void {
