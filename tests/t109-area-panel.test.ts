@@ -230,3 +230,42 @@ describe('AreaPanel — status-vaihto', () => {
     expect(window.confirm).toHaveBeenCalled()
   })
 })
+
+describe('AreaPanel — koko ja kierto (B36)', () => {
+  it('modaali sisältää widthM/heightM/rotation-inputit oikeilla arvoilla', async () => {
+    const { AreaPanel } = await importAreaPanel()
+    const container = document.getElementById('area-panel-container')!
+    const panel = new AreaPanel(container, [BASE_AREA])
+    panel.openDetailsModal(BASE_AREA)
+    const wInput = document.querySelector('.area-width-input') as HTMLInputElement
+    const hInput = document.querySelector('.area-height-input') as HTMLInputElement
+    const rInput = document.querySelector('.area-rotation-input') as HTMLInputElement
+    expect(wInput).not.toBeNull()
+    expect(hInput).not.toBeNull()
+    expect(rInput).not.toBeNull()
+    expect(Number(wInput.value)).toBe(BASE_AREA.widthM)
+    expect(Number(hInput.value)).toBe(BASE_AREA.heightM)
+    expect(Number(rInput.value)).toBe(BASE_AREA.rotation)
+  })
+
+  it('koko-tallenna kutsuu onAreaUpdate päivitetyillä dimensioilla', async () => {
+    const { AreaPanel } = await importAreaPanel()
+    const container = document.getElementById('area-panel-container')!
+    const onAreaUpdate = vi.fn()
+    const panel = new AreaPanel(container, [BASE_AREA], { onAreaUpdate })
+    panel.openDetailsModal(BASE_AREA)
+    const wInput = document.querySelector('.area-width-input') as HTMLInputElement
+    const hInput = document.querySelector('.area-height-input') as HTMLInputElement
+    const rInput = document.querySelector('.area-rotation-input') as HTMLInputElement
+    const saveBtn = document.querySelector('.btn-area-size-save') as HTMLButtonElement
+    wInput.value = '120'
+    hInput.value = '80'
+    rInput.value = '45'
+    saveBtn.click()
+    expect(onAreaUpdate).toHaveBeenCalledOnce()
+    const updated = onAreaUpdate.mock.calls[0][0]
+    expect(updated.widthM).toBe(120)
+    expect(updated.heightM).toBe(80)
+    expect(updated.rotation).toBe(45)
+  })
+})
