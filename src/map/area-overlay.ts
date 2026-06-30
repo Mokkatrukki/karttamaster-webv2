@@ -17,11 +17,24 @@ export class AreaOverlay {
   private dragHandles: Map<string, L.Marker> = new Map()
   private featureDragHandles: Map<string, L.Marker> = new Map()
   private areaFeatureIds: Map<string, string[]> = new Map()
+  private featureTooltipPolys: L.Polygon[] = []
   private onAreaClick?: (area: AreaMarker) => void
   private onAreaMove?: (area: AreaMarker) => void
   private mapRectEditor?: MapRectEditor
 
-  constructor(private readonly map: L.Map) {}
+  constructor(private readonly map: L.Map) {
+    map.on('zoomend', () => this.updateFeatureLabels(map.getZoom()))
+  }
+
+  updateFeatureLabels(zoom: number): void {
+    const opacity = zoom >= 16 ? 1 : 0
+    for (const poly of this.featureTooltipPolys) {
+      const tooltip = poly.getTooltip()
+      if (tooltip) {
+        tooltip.getElement()?.style.setProperty('opacity', String(opacity))
+      }
+    }
+  }
 
   setOnAreaClick(cb: (area: AreaMarker) => void): void {
     this.onAreaClick = cb
@@ -40,14 +53,17 @@ export class AreaOverlay {
     for (const area of areas) {
       this.renderArea(area)
     }
+    this.updateFeatureLabels(this.map.getZoom())
   }
 
   updateOne(area: AreaMarker): void {
-    this.areaLayers.get(area.id)?.forEach(l => l.remove())
+    const oldLayers = this.areaLayers.get(area.id) ?? []
+    // Remove feature tooltip polys for this area before re-rendering
+    this.featureTooltipPolys = this.featureTooltipPolys.filter(p => !oldLayers.includes(p))
+    oldLayers.forEach(l => l.remove())
     this.dragHandles.get(area.id)?.remove()
     this.areaLayers.delete(area.id)
     this.dragHandles.delete(area.id)
-    // Clean up feature handles for this area
     const oldFeatureIds = this.areaFeatureIds.get(area.id) ?? []
     for (const fid of oldFeatureIds) {
       this.featureDragHandles.get(fid)?.remove()
@@ -55,6 +71,7 @@ export class AreaOverlay {
     }
     this.areaFeatureIds.delete(area.id)
     this.renderArea(area)
+    this.updateFeatureLabels(this.map.getZoom())
   }
 
   private renderArea(area: AreaMarker): void {
@@ -135,9 +152,11 @@ export class AreaOverlay {
     })
     if (feature.name) {
       poly.bindTooltip(feature.name, {
+        permanent: true,
         className: 'area-feature-label',
         direction: 'center',
       })
+      this.featureTooltipPolys.push(poly)
     }
 
     let currentFeature = feature
@@ -237,5 +256,6 @@ export class AreaOverlay {
     this.dragHandles.clear()
     this.featureDragHandles.clear()
     this.areaFeatureIds.clear()
+    this.featureTooltipPolys = []
   }
 }
