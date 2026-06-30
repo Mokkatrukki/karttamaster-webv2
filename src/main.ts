@@ -261,7 +261,6 @@ async function init(talkoolainenCode?: string) {
     markerManager,
     () => signLibrary,
     getRole,
-    () => talkoolainenCode ?? null,
     (id) => markerManager.armMarker(id),
     () => {
       renderMarkerList(markerManager, undefined, undefined, signLibrary, onOpenMarkerDetail)

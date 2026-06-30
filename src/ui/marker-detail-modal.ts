@@ -31,7 +31,6 @@ export class MarkerDetailModal {
     private manager: MarkerManager,
     private getLibrary: () => SignLibrary | null,
     private getRole: () => string,
-    private getTalkoolainenCode: () => string | null,
     private onArmRequest: (id: string) => void,
     private onUpdate: () => void,
   ) {}
@@ -82,7 +81,6 @@ export class MarkerDetailModal {
   private buildContent(marker: SignMarker): DocumentFragment {
     const role = this.getRole()
     const isJarjestaja = role === 'järjestäjä'
-    const talkoolainenCode = this.getTalkoolainenCode()
     const library = this.getLibrary()
 
     const km = (marker.distanceFromStart / 1000).toFixed(2)

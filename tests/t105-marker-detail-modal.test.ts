@@ -35,7 +35,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'järjestäjä',
-      () => null,
       vi.fn(),
       vi.fn(),
     )
@@ -51,7 +50,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'järjestäjä',
-      () => null,
       vi.fn(),
       vi.fn(),
     )
@@ -68,7 +66,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'järjestäjä',
-      () => null,
       vi.fn(),
       onUpdate,
     )
@@ -89,7 +86,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'järjestäjä',
-      () => null,
       vi.fn(),
       vi.fn(),
     )
@@ -108,7 +104,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'järjestäjä',
-      () => null,
       vi.fn(),
       vi.fn(),
     )
@@ -125,7 +120,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'järjestäjä',
-      () => null,
       vi.fn(),
       vi.fn(),
     )
@@ -141,7 +135,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'järjestäjä',
-      () => null,
       vi.fn(),
       vi.fn(),
     )
@@ -158,7 +151,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'järjestäjä',
-      () => null,
       vi.fn(),
       vi.fn(),
     )
@@ -174,7 +166,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'talkoolainen',
-      () => 'abc123',
       vi.fn(),
       vi.fn(),
     )
@@ -190,7 +181,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'talkoolainen',
-      () => 'abc123',
       vi.fn(),
       vi.fn(),
     )
@@ -206,7 +196,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'talkoolainen',
-      () => null, // ei koodia
       vi.fn(),
       vi.fn(),
     )
@@ -223,7 +212,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'järjestäjä',
-      () => null,
       vi.fn(),
       vi.fn(),
     )
@@ -242,7 +230,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'järjestäjä',
-      () => null,
       vi.fn(),
       vi.fn(),
     )
@@ -261,7 +248,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'järjestäjä',
-      () => null,
       onArmRequest,
       vi.fn(),
     )
