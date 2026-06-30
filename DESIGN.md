@@ -273,14 +273,22 @@ metsässä, hanskat kädessä.
 - Section-footer: `[+ Luo uusi pätkä]`
 
 **AreaPanel section (T109):**
-- Section-header: `[▼/▶ Huoltopisteet (N)]` — ei create-nappia headerissa
-- Item: `[nimi flex:1] [status-badge] [···]` — ··· avaa AreaDetailsModal
-- Status-badge: "✓ Valmis" (#4ade80) tai "Suun." (text-meta)
-- Section-footer: `[+ Lisää huoltopiste]`
-- AreaDetailsModal: nimi-input + kuvaus-textarea (Markdown) + AreaFeature-lista + "✓ Merkitse valmiiksi" (confirm-väri)
-- AreaFeature-item: `[väri-swatch 16×16] [nimi-input flex:1] [väri-select] [✕ poista]`
-- Poisto (feature): btn-feat-delete suoraan feature-rivillä (pienikokoinen, danger-soft)
-- "Merkitse valmiiksi": window.confirm() ennen tilansiirtoa suunniteltu→valmis
+- Section-header: `[▼/▶ Alueet (N)]` — ei create-nappia headerissa
+- Item-rivi: `[▶/▼ expand] [nimi button flex:1] [(N) tai ✓] [···]`
+  - `▶/▼ expand` (32×44px): laajentaa/sulkee feature sub-listin klikkaamalla
+  - `nimi button`: klikkaus = sama expand/collapse (ei modaalia)
+  - status/count badge: "✓" (#4ade80) jos valmis, "(N)" (text-meta) muuten — N = komponenttien määrä
+  - `···` (44×44px): avaa AreaDetailsModal
+- **Feature sub-list** (`.area-feature-sublist`): piilotettu `hidden` kun suljettu, `surface-raised` tausta, sisennetty `28px` vasemmalta
+  - Feature-rivi: `[14×14px väri-swatch] [nimi text-muted 12px]`, `min-height:40px`
+  - Tyhjätila: `"Ei komponentteja"` `11px text-meta`
+  - Footer-nappi: `[+ Lisää komponentti]` `min-height:44px`, `border-top:dashed border-card`, `text-muted 12px`, käynnistää draw-by-drag suoraan — ei avaa modaalia
+- Section-footer: `[+ Lisää alue]`
+- **AreaDetailsModal** (···): nimi-input + koko+kierto + kuvaus-textarea (Markdown) + feature-lista VAIN editointia varten (nimi, väri, poisto) — ei "Lisää komponentti" -nappia modalissa
+  - AreaFeature-item: `[väri-swatch 16×16] [nimi-input flex:1] [väri-select] [✕ poista]`
+  - Poisto (feature): btn-feat-delete suoraan feature-rivillä (pienikokoinen, danger-soft)
+  - "Merkitse valmiiksi": window.confirm() ennen tilansiirtoa suunniteltu→valmis
+- **Alue kartta-polygon**: `fillOpacity: 0` (outline-only, sininen reuna) — featuret näkyvät paremmin omilla väreillään
 - Sijainti: `#area-panel-container` left-panel-content:ssä, segment-panelin jälkeen
 
 ### SegmentPanel (`#segment-panel`)

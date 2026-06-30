@@ -4,7 +4,7 @@ import { cornersFromRect } from '../logic/area-geometry'
 import type { MapRectEditor } from './map-rect-editor'
 
 const AREA_COLOR = '#3b82f6'
-const AREA_FILL_OPACITY = 0.15
+const AREA_FILL_OPACITY = 0
 const AREA_WEIGHT = 2
 
 function toLatLngs(area: Pick<AreaMarker, 'centerLat' | 'centerLng' | 'widthM' | 'heightM' | 'rotation'>): L.LatLngExpression[] {

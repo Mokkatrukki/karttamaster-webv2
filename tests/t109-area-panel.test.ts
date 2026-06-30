@@ -152,17 +152,32 @@ describe('AreaPanel — details-modaali (V62)', () => {
 })
 
 describe('AreaPanel — feature-lisäys', () => {
-  it('feature-lisäys-nappi löytyy modaalista', async () => {
+  it('feature-lisäys-nappi löytyy sivupalkissa kun alue laajennettu', async () => {
     const { AreaPanel } = await importAreaPanel()
     const container = document.getElementById('area-panel-container')!
-    const panel = new AreaPanel(container, [BASE_AREA])
-    panel.openDetailsModal(BASE_AREA)
-    const addFeatBtn = document.querySelector('.btn-area-add-feature')
+    new AreaPanel(container, [BASE_AREA])
+    // Expand area row
+    const expandBtn = document.querySelector('[aria-label="Näytä komponentit"]') as HTMLButtonElement
+    expect(expandBtn).not.toBeNull()
+    expandBtn.click()
+    const addFeatBtn = document.querySelector('.btn-area-add-feature-sidebar')
     expect(addFeatBtn).not.toBeNull()
-    expect(addFeatBtn!.textContent).toContain('Lisää sisäinen alue')
+    expect(addFeatBtn!.textContent).toContain('Lisää komponentti')
   })
 
-  it('olemassa oleva feature näkyy listassa', async () => {
+  it('olemassa oleva feature näkyy sivupalkissa laajennetulla alueella', async () => {
+    const { AreaPanel } = await importAreaPanel()
+    const areaWithFeat = addFeature(BASE_AREA, SAMPLE_FEATURE)
+    const container = document.getElementById('area-panel-container')!
+    new AreaPanel(container, [areaWithFeat])
+    const expandBtn = document.querySelector('[aria-label="Näytä komponentit"]') as HTMLButtonElement
+    expandBtn.click()
+    const subList = document.querySelector('.area-feature-sublist')
+    expect(subList).not.toBeNull()
+    expect(subList!.textContent).toContain('Tarjoilupöytä')
+  })
+
+  it('olemassa oleva feature näkyy myös modaalin editointilistassa', async () => {
     const { AreaPanel } = await importAreaPanel()
     const areaWithFeat = addFeature(BASE_AREA, SAMPLE_FEATURE)
     const container = document.getElementById('area-panel-container')!
@@ -172,7 +187,7 @@ describe('AreaPanel — feature-lisäys', () => {
     expect(featureItem).not.toBeNull()
   })
 
-  it('feature-poistonappi löytyy feature-riviltä', async () => {
+  it('feature-poistonappi löytyy modaalin editointilistassa', async () => {
     const { AreaPanel } = await importAreaPanel()
     const areaWithFeat = addFeature(BASE_AREA, SAMPLE_FEATURE)
     const container = document.getElementById('area-panel-container')!
@@ -182,14 +197,23 @@ describe('AreaPanel — feature-lisäys', () => {
     expect(deleteBtn).not.toBeNull()
   })
 
-  it('onAreaAdd kutsutaan kun feature lisätään', async () => {
+  it('onAreaUpdate kutsutaan kun feature lisätään sivupalkista', async () => {
     const { AreaPanel } = await importAreaPanel()
     const container = document.getElementById('area-panel-container')!
     const onAreaUpdate = vi.fn()
-    const panel = new AreaPanel(container, [BASE_AREA], { onAreaUpdate })
-    panel.openDetailsModal(BASE_AREA)
-    const addFeatBtn = document.querySelector('.btn-area-add-feature') as HTMLButtonElement
+    let capturedDone: ((rect: { centerLat: number; centerLng: number; widthM: number; heightM: number }) => void) | null = null
+    const onEnterDrawMode = vi.fn((onDone) => { capturedDone = onDone })
+    new AreaPanel(container, [BASE_AREA], { onAreaUpdate, onEnterDrawMode })
+    // Expand area row
+    const expandBtn = document.querySelector('[aria-label="Näytä komponentit"]') as HTMLButtonElement
+    expandBtn.click()
+    // Click sidebar add button
+    const addFeatBtn = document.querySelector('.btn-area-add-feature-sidebar') as HTMLButtonElement
+    expect(addFeatBtn).not.toBeNull()
     addFeatBtn.click()
+    expect(onEnterDrawMode).toHaveBeenCalledOnce()
+    // Simulate user drawing a rectangle
+    capturedDone!({ centerLat: 63.8001, centerLng: 28.2001, widthM: 10, heightM: 5 })
     expect(onAreaUpdate).toHaveBeenCalledOnce()
     const updatedArea = onAreaUpdate.mock.calls[0][0]
     expect(updatedArea.features).toHaveLength(1)

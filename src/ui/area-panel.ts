@@ -1,7 +1,6 @@
 import { createAreaMarker, addFeature, removeFeature, setAreaStatus } from '../logic/area-types'
 import type { AreaMarker, AreaFeature, AreaStatus } from '../logic/area-types'
 
-// Feature color options from DESIGN.md §C tokens
 const FEATURE_COLORS = [
   { label: 'Vihreä', value: '#4ade80' },
   { label: 'Sininen', value: '#93c5fd' },
@@ -27,6 +26,7 @@ export interface AreaPanelCallbacks {
 export class AreaPanel {
   private areas: AreaMarker[] = []
   private collapsed = true
+  private expandedAreas = new Set<string>()
   private activeModal: HTMLElement | null = null
   private escHandler: ((e: KeyboardEvent) => void) | null = null
 
@@ -98,28 +98,49 @@ export class AreaPanel {
     footer.hidden = this.collapsed
   }
 
+  private toggleAreaExpand(areaId: string): void {
+    if (this.expandedAreas.has(areaId)) {
+      this.expandedAreas.delete(areaId)
+    } else {
+      this.expandedAreas.add(areaId)
+    }
+    this.render()
+  }
+
   render(): void {
     this.listEl.innerHTML = ''
     const countEl = this.sectionEl.querySelector('.area-section-count') as HTMLElement
     countEl.textContent = `(${this.areas.length})`
 
     for (const area of this.areas) {
-      const li = document.createElement('li')
-      li.className = 'left-panel-item area-item'
-      li.dataset.areaId = area.id
-      li.style.cssText = 'display:flex;align-items:center;min-height:44px;border-bottom:1px solid var(--border-card)'
+      const isExpanded = this.expandedAreas.has(area.id)
 
-      const label = document.createElement('span')
-      label.style.cssText = 'flex:1;padding:0 8px;font-size:12px;color:var(--text-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap'
+      const li = document.createElement('li')
+      li.className = 'area-item'
+      li.dataset.areaId = area.id
+
+      // Main row
+      const row = document.createElement('div')
+      row.style.cssText = 'display:flex;align-items:center;min-height:44px;border-bottom:1px solid var(--border-card)'
+
+      const expandBtn = document.createElement('button')
+      expandBtn.textContent = isExpanded ? '▼' : '▶'
+      expandBtn.setAttribute('aria-label', isExpanded ? 'Sulje komponentit' : 'Näytä komponentit')
+      expandBtn.style.cssText = 'min-width:32px;min-height:44px;background:transparent;border:none;color:var(--text-muted);font-size:10px;cursor:pointer;flex-shrink:0'
+      expandBtn.addEventListener('click', (e) => { e.stopPropagation(); this.toggleAreaExpand(area.id) })
+
+      const label = document.createElement('button')
+      label.style.cssText = 'flex:1;min-height:44px;background:transparent;border:none;text-align:left;padding:0 4px;font-size:12px;color:var(--text-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer'
       label.textContent = area.name || '(nimetön)'
+      label.addEventListener('click', () => this.toggleAreaExpand(area.id))
 
       const statusBadge = document.createElement('span')
-      statusBadge.style.cssText = 'font-size:10px;padding:2px 6px;border-radius:4px;margin-right:4px'
+      statusBadge.style.cssText = 'font-size:10px;padding:2px 4px;border-radius:4px;margin-right:4px;flex-shrink:0'
       if (area.status === 'valmis') {
-        statusBadge.textContent = '✓ Valmis'
+        statusBadge.textContent = '✓'
         statusBadge.style.color = '#4ade80'
       } else {
-        statusBadge.textContent = 'Suun.'
+        statusBadge.textContent = `(${area.features.length})`
         statusBadge.style.color = 'var(--text-meta)'
       }
 
@@ -127,20 +148,81 @@ export class AreaPanel {
       dotsBtn.className = 'btn-area-dots'
       dotsBtn.textContent = '···'
       dotsBtn.setAttribute('aria-label', 'Muokkaa aluetta')
-      dotsBtn.style.cssText = 'min-width:44px;min-height:44px;background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:16px'
-      dotsBtn.addEventListener('click', (e) => {
-        e.stopPropagation()
-        this.openDetailsModal(area)
-      })
+      dotsBtn.style.cssText = 'min-width:44px;min-height:44px;background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;flex-shrink:0'
+      dotsBtn.addEventListener('click', (e) => { e.stopPropagation(); this.openDetailsModal(area) })
 
-      li.append(label, statusBadge, dotsBtn)
+      row.append(expandBtn, label, statusBadge, dotsBtn)
+
+      // Feature sub-list (visible when expanded)
+      const subList = document.createElement('ul')
+      subList.className = 'area-feature-sublist'
+      subList.style.cssText = 'list-style:none;margin:0;padding:0;background:var(--surface-raised, rgba(255,255,255,0.03))'
+      subList.hidden = !isExpanded
+      this.buildFeatureSubList(subList, area)
+
+      li.append(row, subList)
       this.listEl.appendChild(li)
+    }
+  }
+
+  private buildFeatureSubList(subList: HTMLUListElement, area: AreaMarker): void {
+    subList.innerHTML = ''
+
+    if (area.features.length === 0) {
+      const empty = document.createElement('li')
+      empty.style.cssText = 'padding:8px 8px 8px 28px;font-size:11px;color:var(--text-meta);border-bottom:1px solid var(--border-card)'
+      empty.textContent = 'Ei komponentteja'
+      subList.appendChild(empty)
+    } else {
+      for (const feat of area.features) {
+        const li = document.createElement('li')
+        li.style.cssText = 'display:flex;align-items:center;gap:8px;min-height:40px;padding:0 8px 0 28px;border-bottom:1px solid var(--border-card)'
+
+        const swatch = document.createElement('span')
+        swatch.style.cssText = `width:14px;height:14px;border-radius:3px;background:${feat.color};flex-shrink:0`
+
+        const name = document.createElement('span')
+        name.style.cssText = 'flex:1;font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap'
+        name.textContent = feat.name || '(nimetön)'
+
+        li.append(swatch, name)
+        subList.appendChild(li)
+      }
+    }
+
+    // Add feature button in sidebar
+    const addLi = document.createElement('li')
+    const addBtn = document.createElement('button')
+    addBtn.className = 'btn-area-add-feature-sidebar'
+    addBtn.textContent = '+ Lisää komponentti'
+    addBtn.style.cssText = 'width:100%;min-height:44px;background:transparent;border:none;border-top:1px dashed var(--border-card);color:var(--text-muted);font-size:12px;cursor:pointer;text-align:left;padding:0 8px 0 28px'
+    addBtn.addEventListener('click', () => this.startAddFeatureFlow(area))
+    addLi.appendChild(addBtn)
+    subList.appendChild(addLi)
+  }
+
+  private startAddFeatureFlow(area: AreaMarker): void {
+    if (this.callbacks.onEnterDrawMode) {
+      this.callbacks.onEnterDrawMode((rect) => {
+        const feat: AreaFeature = {
+          id: generateId(),
+          name: undefined,
+          centerLat: rect.centerLat,
+          centerLng: rect.centerLng,
+          widthM: rect.widthM,
+          heightM: rect.heightM,
+          rotation: 0,
+          color: FEATURE_COLORS[0].value,
+        }
+        const updatedArea = addFeature(area, feat)
+        this.updateArea(updatedArea)
+        this.expandedAreas.add(area.id)
+      })
     }
   }
 
   private startAddFlow(): void {
     if (this.callbacks.onEnterDrawMode) {
-      // Draw-by-drag: name asked after draw
       this.callbacks.onEnterDrawMode((rect) => {
         const name = window.prompt('Alueen nimi:')
         if (!name?.trim()) return
@@ -160,7 +242,6 @@ export class AreaPanel {
         this.callbacks.onAreaAdd?.(area)
       })
     } else {
-      // Fallback: click-to-place at fixed size
       const name = window.prompt('Alueen nimi:')
       if (!name?.trim()) return
       this.callbacks.onEnterMapMode?.((lat, lng) => {
@@ -256,51 +337,6 @@ export class AreaPanel {
       })
     }
 
-    // Add feature
-    const addFeatureBtn = modal.querySelector('.btn-area-add-feature') as HTMLButtonElement
-    if (addFeatureBtn) {
-      addFeatureBtn.addEventListener('click', () => {
-        if (this.callbacks.onEnterDrawMode) {
-          // Draw-by-drag: feature placed at drawn location (V68)
-          this.closeModal()
-          this.callbacks.onEnterDrawMode((rect) => {
-            const feat: AreaFeature = {
-              id: generateId(),
-              name: undefined,
-              centerLat: rect.centerLat,
-              centerLng: rect.centerLng,
-              widthM: rect.widthM,
-              heightM: rect.heightM,
-              rotation: 0,
-              color: FEATURE_COLORS[0].value,
-            }
-            const updatedArea = addFeature(area, feat)
-            this.updateArea(updatedArea)
-            area = updatedArea
-            this.openDetailsModal(updatedArea)
-          })
-        } else {
-          // Fallback: auto-place at parent center
-          const feat: AreaFeature = {
-            id: generateId(),
-            name: undefined,
-            centerLat: area.centerLat,
-            centerLng: area.centerLng,
-            widthM: 10,
-            heightM: 5,
-            rotation: 0,
-            color: FEATURE_COLORS[0].value,
-          }
-          const updatedArea = addFeature(area, feat)
-          this.updateArea(updatedArea)
-          area = updatedArea
-          const featureList = modal.querySelector('.area-feature-list') as HTMLElement
-          if (featureList) featureList.innerHTML = this.buildFeatureListHTML(area)
-          this.bindFeatureListEvents(modal, area, (a) => { area = a })
-        }
-      })
-    }
-
     // Set valmis
     const setValmisBtn = modal.querySelector('.btn-area-set-valmis') as HTMLButtonElement
     if (setValmisBtn) {
@@ -353,13 +389,14 @@ export class AreaPanel {
           <textarea class="area-desc-textarea" rows="4" style="width:100%;box-sizing:border-box;padding:8px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:6px;color:var(--text-body);font-size:13px;resize:vertical">${area.markdownDescription}</textarea>
           <button class="btn-area-desc-save" style="margin-top:4px;padding:6px 12px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:6px;color:var(--text-muted);font-size:12px;cursor:pointer">Tallenna kuvaus</button>
         </div>
+        ${area.features.length > 0 ? `
         <div>
-          <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:8px">Sisäiset alueet</label>
+          <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:8px">Komponentit (muokkaa / poista)</label>
           <ul class="area-feature-list" style="list-style:none;margin:0;padding:0">
             ${this.buildFeatureListHTML(area)}
           </ul>
-          <button class="btn-area-add-feature" style="width:100%;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:6px;color:var(--text-muted);font-size:12px;cursor:pointer;margin-top:8px">+ Lisää sisäinen alue</button>
         </div>
+        ` : ''}
         <button class="btn-area-set-valmis" style="width:100%;min-height:44px;background:var(--confirm);border:none;border-radius:8px;color:var(--confirm-text);font-size:13px;font-weight:600;cursor:pointer">
           ${isValmis ? '↩ Peru valmis' : '✓ Merkitse valmiiksi'}
         </button>
@@ -368,9 +405,7 @@ export class AreaPanel {
   }
 
   private buildFeatureListHTML(area: AreaMarker): string {
-    if (area.features.length === 0) {
-      return '<li style="font-size:12px;color:var(--text-meta);padding:8px">Ei sisäisiä alueita</li>'
-    }
+    if (area.features.length === 0) return ''
     return area.features.map((f) => `
       <li class="area-feature-item" data-feature-id="${f.id}" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-card)">
         <span style="display:inline-block;width:16px;height:16px;border-radius:3px;background:${f.color};flex-shrink:0"></span>
