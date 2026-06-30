@@ -75,8 +75,8 @@ server/       ← Hono + Bun + SQLite
 | LeftPanel | `src/ui/left-panel.ts` | ✓ T73 | critical-paths: "Left panel" | [ui.md](docs/components/ui.md) |
 | StatusPanel | `src/ui/status-panel.ts` | ✓ T28 | sprint-features: "T28" | [ui.md](docs/components/ui.md) |
 | ModalHelpers | `src/ui/modal-helpers.ts` | ✓ valmis | — | [ui.md](docs/components/ui.md) |
-| AreaDetailsModal | `src/ui/area-details-modal.ts` 361 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
-| AreaPanel | `src/ui/area-panel.ts` 295 riv | ✓ valmis | area-interaction | [ui.md](docs/components/ui.md) |
+| AreaDetailsModal | `src/ui/area-details-modal.ts` 370 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
+| AreaPanel | `src/ui/area-panel.ts` 367 riv | ✓ valmis | area-interaction | [ui.md](docs/components/ui.md) |
 | AreaView | `src/ui/area-view.ts` | ✓ valmis | — | [ui.md](docs/components/ui.md) |
 | GpsDrivePanel | `src/ui/gps-drive-panel.ts` | ✓ T30 | — | [ui.md](docs/components/ui.md) |
 | MarkerDetailModal | `src/ui/marker-detail-modal.ts` 266 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
@@ -145,7 +145,7 @@ Lisää: [backend.md — Vaiheistus](docs/components/backend.md)
 | Moduuli | Rivit | Milloin pilkotaan |
 |---|---|---|
 | `src/ui/segment-details-modal.ts` | **490** | Seuraa |
-| `src/ui/area-panel.ts` | **295** | OK |
+| `src/ui/area-panel.ts` | **367** | Seuraa |
 | `src/devtools/feedback-widget.ts` | **494** | Devtools, ei tuotantoon — ei pilkota mutta ei kasvateta |
 | `src/main.ts` | **414** | ⚠️ KRIITTINEN — 5× liian iso init-tiedostolle, pilkottava (T12/T32) |
 | `src/map/map-rect-editor.ts` | **316** | Seuraa — erota drag-logiikka jos kasvaa >400 riv |
