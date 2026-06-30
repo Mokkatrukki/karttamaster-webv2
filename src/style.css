@@ -2487,6 +2487,11 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   pointer-events: none;
 }
 
+.feat-swatch {
+  min-height: unset;
+  padding: 0;
+}
+
 .area-feature-sublist .feat-row.editing {
   background: var(--hover);
   border-left: 2px solid var(--accent);
