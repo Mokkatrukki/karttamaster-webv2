@@ -207,7 +207,7 @@ export class AreaPanel {
     const swatch = document.createElement('button')
     swatch.className = 'feat-swatch'
     swatch.setAttribute('aria-label', 'Vaihda väri (tuplaklikkaa)')
-    swatch.style.cssText = `width:18px;height:18px;box-sizing:content-box;border-radius:4px;background:${feat.color};flex-shrink:0;border:2px solid transparent;cursor:default;padding:0`
+    swatch.style.cssText = `width:18px;height:18px;box-sizing:content-box;border-radius:4px;background:${feat.color};flex-shrink:0;border:2px solid transparent;cursor:pointer;padding:0`
     swatch.addEventListener('dblclick', (e) => {
       e.stopPropagation()
       openFeatureColorPicker(swatch, feat.color, (newColor) => {

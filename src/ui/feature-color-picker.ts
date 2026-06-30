@@ -9,9 +9,6 @@ export function openFeatureColorPicker(
   input.style.cssText = 'position:fixed;opacity:0;pointer-events:none;width:0;height:0'
   document.body.appendChild(input)
 
-  input.addEventListener('input', () => {
-    anchor.style.background = input.value
-  })
   input.addEventListener('change', () => {
     onSelect(input.value)
     input.remove()
