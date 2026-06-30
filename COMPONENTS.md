@@ -63,11 +63,11 @@ server/       ← Hono + Bun + SQLite
 | ProgressBar | `src/ui/progress-bar.ts` | ✓ pilkko | critical-paths: "Drive mode" | [ui.md](docs/components/ui.md) |
 | PlaceMode | `src/ui/place-mode.ts` | ✓+B2 | critical-paths: "Merkki kartalle", "dblclick" | [ui.md](docs/components/ui.md) |
 | AppController | `src/main.ts` 414 riv ⚠️ | ✓ pilkko | critical-paths: kaikki | [ui.md](docs/components/ui.md) |
-| SignLibraryPanel | `src/ui/sign-library-panel.ts` 349 riv | ✓ T22 | — | [ui.md](docs/components/ui.md) |
+| SignLibraryPanel | `src/ui/sign-library-panel.ts` 340 riv | ✓ T22 | — | [ui.md](docs/components/ui.md) |
 | RoleSelector | `src/ui/role-selector.ts` | ✓ T12 | critical-paths: "Rooli-toggle" | [ui.md](docs/components/ui.md) |
 | SegmentPanel | `src/ui/segment-panel.ts` 279 riv | ✓ T25 | — | [ui.md](docs/components/ui.md) |
-| SegmentCreationModal | `src/ui/segment-creation-modal.ts` 204 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
-| SegmentDetailsModal | `src/ui/segment-details-modal.ts` 499 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
+| SegmentCreationModal | `src/ui/segment-creation-modal.ts` 195 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
+| SegmentDetailsModal | `src/ui/segment-details-modal.ts` 490 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
 | EquipmentList | `src/ui/segment-view.ts` | ✓ T27 | — | [ui.md](docs/components/ui.md) |
 | AuthScreen | `src/ui/auth-screen.ts` 160 riv | ✓ T51 | — | [ui.md](docs/components/ui.md) |
 | MapStateBadge | `src/ui/map-state-badge.ts` | ✓ T49 | sprint-features: "T49" | [ui.md](docs/components/ui.md) |
@@ -75,10 +75,11 @@ server/       ← Hono + Bun + SQLite
 | LeftPanel | `src/ui/left-panel.ts` | ✓ T73 | critical-paths: "Left panel" | [ui.md](docs/components/ui.md) |
 | StatusPanel | `src/ui/status-panel.ts` | ✓ T28 | sprint-features: "T28" | [ui.md](docs/components/ui.md) |
 | ModalHelpers | `src/ui/modal-helpers.ts` | ✓ valmis | — | [ui.md](docs/components/ui.md) |
+| AreaDetailsModal | `src/ui/area-details-modal.ts` 361 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
 | AreaPanel | `src/ui/area-panel.ts` 295 riv | ✓ valmis | area-interaction | [ui.md](docs/components/ui.md) |
 | AreaView | `src/ui/area-view.ts` | ✓ valmis | — | [ui.md](docs/components/ui.md) |
 | GpsDrivePanel | `src/ui/gps-drive-panel.ts` | ✓ T30 | — | [ui.md](docs/components/ui.md) |
-| MarkerDetailModal | `src/ui/marker-detail-modal.ts` 270 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
+| MarkerDetailModal | `src/ui/marker-detail-modal.ts` 266 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
 | FeedbackWidget | `src/devtools/feedback-widget.ts` 494 riv | ✓ devtools | feedback-widget | — |
 | BackendServer | `server/index.ts` | ✓ T41 | — | [backend.md](docs/components/backend.md) |
 | DatabaseLayer | `server/db.ts` 151 riv | ✓ valmis | — | [backend.md](docs/components/backend.md) |
@@ -143,13 +144,13 @@ Lisää: [backend.md — Vaiheistus](docs/components/backend.md)
 
 | Moduuli | Rivit | Milloin pilkotaan |
 |---|---|---|
-| `src/ui/segment-details-modal.ts` | **490** | Seuraa — erota equipment omaksi komponentiksi jos kasvaa |
+| `src/ui/segment-details-modal.ts` | **490** | Seuraa |
 | `src/ui/area-panel.ts` | **295** | OK |
 | `src/devtools/feedback-widget.ts` | **494** | Devtools, ei tuotantoon — ei pilkota mutta ei kasvateta |
 | `src/main.ts` | **414** | ⚠️ KRIITTINEN — 5× liian iso init-tiedostolle, pilkottava (T12/T32) |
 | `src/map/map-rect-editor.ts` | **316** | Seuraa — erota drag-logiikka jos kasvaa >400 riv |
-| `src/ui/sign-library-panel.ts` | **349** | Seuraa |
-| `src/ui/marker-detail-modal.ts` | **270** | Seuraa |
+| `src/ui/sign-library-panel.ts` | **340** | Seuraa |
+| `src/ui/marker-detail-modal.ts` | **266** | Seuraa |
 | `src/map/area-overlay.ts` | **241** | Seuraa |
 | `src/map/markers.ts` | **294** | Seuraa — pilkottava ennen T10 |
 | `src/map/marker-interaction.ts` | **179** | Seuraa — jos kasvaa >250 riv, erota rotation omaksi |
