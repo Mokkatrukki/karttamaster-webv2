@@ -1,6 +1,7 @@
 import { createSegment } from '../logic/segments'
 import { pushSegment } from '../logic/segment-sync'
 import type { Segment, SegmentStore } from '../logic/segments'
+import { registerEscClose, createBackdrop } from './modal-helpers'
 
 export type CreationState =
   | { mode: 'idle' }
@@ -10,7 +11,7 @@ export type CreationState =
 
 export class SegmentCreationModal {
   private backdrop: HTMLElement | null = null
-  private escHandler: ((e: KeyboardEvent) => void) | null = null
+  private unregEsc: (() => void) | null = null
   private segmentCounter: number
 
   constructor(
@@ -24,11 +25,7 @@ export class SegmentCreationModal {
   open(state: CreationState): void {
     this.close()
 
-    const backdrop = document.createElement('div')
-    backdrop.className = 'segment-creation-modal-backdrop'
-    backdrop.addEventListener('click', (e) => {
-      if (e.target === backdrop) this.onCancel()
-    })
+    const backdrop = createBackdrop('segment-creation-modal-backdrop', () => this.onCancel())
 
     const modal = document.createElement('div')
     modal.className = 'segment-creation-modal'
@@ -40,11 +37,7 @@ export class SegmentCreationModal {
     backdrop.appendChild(modal)
     document.body.appendChild(backdrop)
     this.backdrop = backdrop
-
-    this.escHandler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') this.onCancel()
-    }
-    document.addEventListener('keydown', this.escHandler)
+    this.unregEsc = registerEscClose(() => this.onCancel())
 
     this.updatePhase(state)
   }
@@ -102,10 +95,8 @@ export class SegmentCreationModal {
       this.backdrop.remove()
       this.backdrop = null
     }
-    if (this.escHandler) {
-      document.removeEventListener('keydown', this.escHandler)
-      this.escHandler = null
-    }
+    this.unregEsc?.()
+    this.unregEsc = null
   }
 
   private buildHeader(): HTMLElement {

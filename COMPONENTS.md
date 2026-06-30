@@ -74,7 +74,8 @@ server/       ← Hono + Bun + SQLite
 | SnapshotPanel | `src/ui/snapshot-panel.ts` 172 riv | ✓ T50 | — | [ui.md](docs/components/ui.md) |
 | LeftPanel | `src/ui/left-panel.ts` | ✓ T73 | critical-paths: "Left panel" | [ui.md](docs/components/ui.md) |
 | StatusPanel | `src/ui/status-panel.ts` | ✓ T28 | sprint-features: "T28" | [ui.md](docs/components/ui.md) |
-| AreaPanel | `src/ui/area-panel.ts` 486 riv ⚠️ | ✓ valmis | area-interaction | [ui.md](docs/components/ui.md) |
+| ModalHelpers | `src/ui/modal-helpers.ts` | ✓ valmis | — | [ui.md](docs/components/ui.md) |
+| AreaPanel | `src/ui/area-panel.ts` 295 riv | ✓ valmis | area-interaction | [ui.md](docs/components/ui.md) |
 | AreaView | `src/ui/area-view.ts` | ✓ valmis | — | [ui.md](docs/components/ui.md) |
 | GpsDrivePanel | `src/ui/gps-drive-panel.ts` | ✓ T30 | — | [ui.md](docs/components/ui.md) |
 | MarkerDetailModal | `src/ui/marker-detail-modal.ts` 270 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
@@ -142,8 +143,8 @@ Lisää: [backend.md — Vaiheistus](docs/components/backend.md)
 
 | Moduuli | Rivit | Milloin pilkotaan |
 |---|---|---|
-| `src/ui/segment-details-modal.ts` | **499** | Seuraa — erota equipment omaksi komponentiksi jos kasvaa |
-| `src/ui/area-panel.ts` | **486** | ⚠️ Seuraa — erota draw-flow vs edit-view |
+| `src/ui/segment-details-modal.ts` | **490** | Seuraa — erota equipment omaksi komponentiksi jos kasvaa |
+| `src/ui/area-panel.ts` | **295** | OK |
 | `src/devtools/feedback-widget.ts` | **494** | Devtools, ei tuotantoon — ei pilkota mutta ei kasvateta |
 | `src/main.ts` | **414** | ⚠️ KRIITTINEN — 5× liian iso init-tiedostolle, pilkottava (T12/T32) |
 | `src/map/map-rect-editor.ts` | **316** | Seuraa — erota drag-logiikka jos kasvaa >400 riv |

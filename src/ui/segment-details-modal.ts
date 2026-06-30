@@ -2,6 +2,7 @@ import { updateSegment, deleteSegment, getMarkersForSegment } from '../logic/seg
 import { updateSegmentRemote, deleteSegmentRemote } from '../logic/segment-sync'
 import type { Segment, SegmentStore, EquipmentItem } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
+import { registerEscClose, createBackdrop } from './modal-helpers'
 
 const STATUS_LABELS: Record<string, string> = {
   suunniteltu: 'Suunniteltu',
@@ -26,7 +27,7 @@ export interface SegmentDetailsCallbacks {
 
 export class SegmentDetailsModal {
   private backdrop: HTMLElement | null = null
-  private escHandler: ((e: KeyboardEvent) => void) | null = null
+  private unregEsc: (() => void) | null = null
 
   constructor(
     private readonly store: SegmentStore,
@@ -38,11 +39,7 @@ export class SegmentDetailsModal {
   open(seg: Segment): void {
     this.close()
 
-    const backdrop = document.createElement('div')
-    backdrop.className = 'segment-details-modal-backdrop'
-    backdrop.addEventListener('click', (e) => {
-      if (e.target === backdrop) this.close()
-    })
+    const backdrop = createBackdrop('segment-details-modal-backdrop', () => this.close())
 
     const modal = document.createElement('div')
     modal.className = 'segment-details-modal'
@@ -65,11 +62,7 @@ export class SegmentDetailsModal {
     backdrop.appendChild(modal)
     document.body.appendChild(backdrop)
     this.backdrop = backdrop
-
-    this.escHandler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') this.close()
-    }
-    document.addEventListener('keydown', this.escHandler)
+    this.unregEsc = registerEscClose(() => this.close())
   }
 
   close(): void {
@@ -77,10 +70,8 @@ export class SegmentDetailsModal {
       this.backdrop.remove()
       this.backdrop = null
     }
-    if (this.escHandler) {
-      document.removeEventListener('keydown', this.escHandler)
-      this.escHandler = null
-    }
+    this.unregEsc?.()
+    this.unregEsc = null
   }
 
   private buildHeader(titleEl: HTMLElement, onClose: () => void): HTMLElement {

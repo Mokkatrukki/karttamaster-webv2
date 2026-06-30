@@ -9,6 +9,7 @@ import {
   type SignTemplate,
 } from '../logic/sign-library'
 import { CURATED_ICONS, getIconById, renderIconSvg } from '../logic/icon-set'
+import { registerEscClose, createBackdrop } from './modal-helpers'
 
 const DEFAULT_IDS = new Set(['right', 'left', 'upcoming-right', 'upcoming-left'])
 
@@ -34,7 +35,7 @@ export function createSignLibrary(): SignLibrary {
 
 export class SignLibraryPanel {
   private activeModal: HTMLElement | null = null
-  private escHandler: ((e: KeyboardEvent) => void) | null = null
+  private unregEsc: (() => void) | null = null
   private collapsed = false
 
   constructor(
@@ -126,12 +127,8 @@ export class SignLibraryPanel {
     let selectedIconId: string | null = template?.iconId ?? null
     const isDefault = template ? DEFAULT_IDS.has(template.id) : false
 
-    const backdrop = document.createElement('div')
-    backdrop.className = 'sign-lib-modal-backdrop'
+    const backdrop = createBackdrop('sign-lib-modal-backdrop', () => this.closeModal())
     backdrop.style.cssText = 'position:fixed;inset:0;background:var(--overlay);backdrop-filter:blur(2px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px'
-    backdrop.addEventListener('click', (e) => {
-      if (e.target === backdrop) this.closeModal()
-    })
 
     const modal = document.createElement('div')
     modal.className = 'sign-lib-modal'
@@ -329,11 +326,7 @@ export class SignLibraryPanel {
     backdrop.appendChild(modal)
     document.body.appendChild(backdrop)
     this.activeModal = backdrop
-
-    this.escHandler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') this.closeModal()
-    }
-    document.addEventListener('keydown', this.escHandler)
+    this.unregEsc = registerEscClose(() => this.closeModal())
   }
 
   private closeModal(): void {
@@ -341,9 +334,7 @@ export class SignLibraryPanel {
       this.activeModal.remove()
       this.activeModal = null
     }
-    if (this.escHandler) {
-      document.removeEventListener('keydown', this.escHandler)
-      this.escHandler = null
-    }
+    this.unregEsc?.()
+    this.unregEsc = null
   }
 }

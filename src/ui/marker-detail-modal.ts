@@ -4,6 +4,7 @@ import type { SignMarker, MarkerStatus } from '../logic/types'
 import { SIGN_TYPES } from '../logic/sign-picker'
 import { listTemplates } from '../logic/sign-library'
 import { validActions, canTransition } from '../logic/marker-status'
+import { registerEscClose } from './modal-helpers'
 
 const STATUS_LABELS: Record<MarkerStatus, string> = {
   suunniteltu: 'Suunniteltu',
@@ -25,7 +26,7 @@ export class MarkerDetailModal {
   private backdrop: HTMLElement | null = null
   private modal: HTMLElement | null = null
   private currentId: string | null = null
-  private escHandler: ((e: KeyboardEvent) => void) | null = null
+  private unregEsc: (() => void) | null = null
 
   constructor(
     private manager: MarkerManager,
@@ -55,8 +56,7 @@ export class MarkerDetailModal {
     document.body.appendChild(this.backdrop)
     document.body.appendChild(this.modal)
 
-    this.escHandler = (e: KeyboardEvent) => { if (e.key === 'Escape') this.close() }
-    document.addEventListener('keydown', this.escHandler)
+    this.unregEsc = registerEscClose(() => this.close())
 
     this.modal.querySelector<HTMLElement>('.marker-detail-note')?.focus()
   }
@@ -67,10 +67,8 @@ export class MarkerDetailModal {
     this.backdrop = null
     this.modal = null
     this.currentId = null
-    if (this.escHandler) {
-      document.removeEventListener('keydown', this.escHandler)
-      this.escHandler = null
-    }
+    this.unregEsc?.()
+    this.unregEsc = null
   }
 
   // Re-render if currently showing the given marker (called after external update)

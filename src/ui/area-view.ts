@@ -35,12 +35,26 @@ function buildPrintContent(area: AreaMarker): HTMLElement {
   if (area.features.length > 0) {
     const table = document.createElement('table')
     table.className = 'area-features-table'
-    table.innerHTML = `<thead><tr><th>Alue</th><th>Väri</th><th>Koko (m)</th></tr></thead>`
+    const thead = document.createElement('thead')
+    thead.innerHTML = '<tr><th>Alue</th><th>Väri</th><th>Koko (m)</th></tr>'
+    table.appendChild(thead)
     const tbody = document.createElement('tbody')
     for (const f of area.features) {
       const tr = document.createElement('tr')
-      const swatch = `<span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${f.color};vertical-align:middle;margin-right:6px"></span>`
-      tr.innerHTML = `<td>${f.name ?? '—'}</td><td>${swatch}${f.color}</td><td>${f.widthM}×${f.heightM}</td>`
+
+      const tdName = document.createElement('td')
+      tdName.textContent = f.name ?? '—'
+
+      const tdColor = document.createElement('td')
+      const swatch = document.createElement('span')
+      swatch.style.cssText = `display:inline-block;width:14px;height:14px;border-radius:3px;background:${f.color};vertical-align:middle;margin-right:6px`
+      tdColor.appendChild(swatch)
+      tdColor.appendChild(document.createTextNode(f.color))
+
+      const tdSize = document.createElement('td')
+      tdSize.textContent = `${f.widthM}×${f.heightM}`
+
+      tr.append(tdName, tdColor, tdSize)
       tbody.appendChild(tr)
     }
     table.appendChild(tbody)
