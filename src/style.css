@@ -2470,6 +2470,11 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   cursor: grabbing;
 }
 
+.feature-color-picker button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .area-feature-label {
   font-size: 11px;
   font-weight: 600;

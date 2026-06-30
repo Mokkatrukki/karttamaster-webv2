@@ -1,6 +1,7 @@
 import { createAreaMarker, addFeature } from '../logic/area-types'
 import type { AreaMarker, AreaFeature } from '../logic/area-types'
 import { AreaDetailsModal } from './area-details-modal'
+import { openFeatureColorPicker } from './feature-color-picker'
 
 const FEATURE_COLORS_FIRST = '#4ade80'
 
@@ -233,8 +234,26 @@ export class AreaPanel {
     li.classList.add('editing')
     li.innerHTML = ''
 
-    const swatch = document.createElement('span')
-    swatch.style.cssText = `width:14px;height:14px;border-radius:3px;background:${feat.color};flex-shrink:0`
+    let currentColor = feat.color
+
+    const swatchBtn = document.createElement('button')
+    swatchBtn.className = 'feat-inline-swatch-btn'
+    swatchBtn.setAttribute('aria-label', 'Vaihda väri')
+    swatchBtn.style.cssText = `width:22px;height:22px;border-radius:4px;background:${currentColor};flex-shrink:0;border:2px solid var(--border-default);cursor:pointer;padding:0`
+    swatchBtn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      openFeatureColorPicker(swatchBtn, currentColor, (newColor) => {
+        currentColor = newColor
+        swatchBtn.style.background = newColor
+      })
+    })
+    swatchBtn.addEventListener('dblclick', (e) => {
+      e.stopPropagation()
+      openFeatureColorPicker(swatchBtn, currentColor, (newColor) => {
+        currentColor = newColor
+        swatchBtn.style.background = newColor
+      })
+    })
 
     const input = document.createElement('input')
     input.type = 'text'
@@ -244,24 +263,10 @@ export class AreaPanel {
     input.style.cssText =
       'flex:1;min-height:36px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:4px;padding:0 8px;font-size:12px;color:var(--text-body);min-width:0'
 
-    const colorSelect = document.createElement('select')
-    colorSelect.className = 'feat-inline-color-select'
-    colorSelect.style.cssText =
-      'min-height:36px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:4px;padding:0 4px;font-size:12px;color:var(--text-body);flex-shrink:0'
-    const FEAT_COLORS = ['#4ade80', '#60a5fa', '#f87171', '#fbbf24', '#a78bfa', '#34d399']
-    for (const c of FEAT_COLORS) {
-      const opt = document.createElement('option')
-      opt.value = c
-      opt.textContent = c
-      opt.selected = c === feat.color
-      colorSelect.appendChild(opt)
-    }
-
     const save = (): void => {
       const newName = input.value.trim() || undefined
-      const newColor = colorSelect.value
       const updatedFeatures = area.features.map(f =>
-        f.id === feat.id ? { ...f, name: newName, color: newColor } : f,
+        f.id === feat.id ? { ...f, name: newName, color: currentColor } : f,
       )
       const updatedArea: AreaMarker = { ...area, features: updatedFeatures }
       this.updateArea(updatedArea)
@@ -275,7 +280,7 @@ export class AreaPanel {
       if (li.classList.contains('editing')) save()
     })
 
-    li.append(swatch, input, colorSelect)
+    li.append(swatchBtn, input)
     input.focus()
   }
 

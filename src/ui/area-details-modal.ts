@@ -1,15 +1,7 @@
 import { setAreaStatus, removeFeature } from '../logic/area-types'
 import type { AreaMarker, AreaFeature, AreaStatus } from '../logic/area-types'
 import { registerEscClose, createBackdrop } from './modal-helpers'
-
-const FEATURE_COLORS = [
-  { label: 'Vihreä', value: '#4ade80' },
-  { label: 'Sininen', value: '#93c5fd' },
-  { label: 'Oranssi', value: '#fbbf24' },
-  { label: 'Punainen', value: '#f87171' },
-  { label: 'Violetti', value: '#c084fc' },
-  { label: 'Keltainen', value: '#6ee7b7' },
-]
+import { openFeatureColorPicker } from './feature-color-picker'
 
 export interface AreaDetailsCallbacks {
   onAreaUpdate: (area: AreaMarker) => void
@@ -251,9 +243,21 @@ export class AreaDetailsModal {
     li.style.cssText =
       'display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-card)'
 
-    const swatch = document.createElement('span')
-    swatch.style.cssText = `display:inline-block;width:16px;height:16px;border-radius:3px;background:${feat.color};flex-shrink:0`
-    li.appendChild(swatch)
+    let currentColor = feat.color
+
+    const swatchBtn = document.createElement('button')
+    swatchBtn.className = 'feat-color-swatch-btn'
+    swatchBtn.setAttribute('aria-label', 'Vaihda väri')
+    swatchBtn.style.cssText = `display:inline-block;width:22px;height:22px;border-radius:4px;background:${currentColor};flex-shrink:0;border:2px solid var(--border-default);cursor:pointer;padding:0`
+    const updateSwatch = (color: string) => {
+      currentColor = color
+      swatchBtn.style.background = color
+    }
+    swatchBtn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      openFeatureColorPicker(swatchBtn, currentColor, updateSwatch)
+    })
+    li.appendChild(swatchBtn)
 
     const nameInput = document.createElement('input')
     nameInput.className = 'feat-name-input'
@@ -263,19 +267,6 @@ export class AreaDetailsModal {
     nameInput.style.cssText =
       'flex:1;padding:4px 8px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:4px;color:var(--text-body);font-size:12px'
     li.appendChild(nameInput)
-
-    const colorSelect = document.createElement('select')
-    colorSelect.className = 'feat-color-select'
-    colorSelect.style.cssText =
-      'padding:4px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:4px;color:var(--text-body);font-size:11px'
-    for (const c of FEATURE_COLORS) {
-      const opt = document.createElement('option')
-      opt.value = c.value
-      opt.textContent = c.label
-      if (c.value === feat.color) opt.selected = true
-      colorSelect.appendChild(opt)
-    }
-    li.appendChild(colorSelect)
 
     const deleteBtn = document.createElement('button')
     deleteBtn.className = 'btn-feat-delete'
@@ -291,7 +282,7 @@ export class AreaDetailsModal {
         ...cur,
         features: cur.features.map(f =>
           f.id === feat.id
-            ? { ...f, name: nameInput.value.trim() || undefined, color: colorSelect.value }
+            ? { ...f, name: nameInput.value.trim() || undefined, color: currentColor }
             : f,
         ),
       }
@@ -299,7 +290,6 @@ export class AreaDetailsModal {
     }
 
     nameInput.addEventListener('blur', saveFeature)
-    colorSelect.addEventListener('change', saveFeature)
     deleteBtn.addEventListener('click', () => {
       const updated = removeFeature(getCurrent(), feat.id)
       onUpdate(updated)
