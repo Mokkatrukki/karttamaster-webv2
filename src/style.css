@@ -2470,6 +2470,12 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   cursor: grabbing;
 }
 
+.area-feature-sublist .feat-row.editing {
+  background: var(--hover);
+  border-left: 2px solid var(--accent);
+  gap: 6px;
+}
+
 @media print {
   #toolbar,
   #left-panel,
