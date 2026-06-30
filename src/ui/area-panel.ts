@@ -30,6 +30,7 @@ export class AreaPanel {
     this.areas = [...initialAreas]
     this.detailsModal = new AreaDetailsModal({
       onAreaUpdate: (updated) => this.updateArea(updated),
+      onAreaDelete: (id) => this.deleteArea(id),
     })
 
     const { section, list } = this.build()
@@ -286,6 +287,12 @@ export class AreaPanel {
       this.render()
       this.callbacks.onAreaUpdate?.(updated)
     }
+  }
+
+  private deleteArea(id: string): void {
+    this.areas = this.areas.filter(a => a.id !== id)
+    this.render()
+    this.callbacks.onAreaDelete?.(id)
   }
 
   updateAreas(areas: AreaMarker[]): void {

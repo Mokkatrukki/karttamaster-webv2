@@ -13,6 +13,7 @@ const FEATURE_COLORS = [
 
 export interface AreaDetailsCallbacks {
   onAreaUpdate: (area: AreaMarker) => void
+  onAreaDelete: (id: string) => void
 }
 
 export class AreaDetailsModal {
@@ -44,6 +45,7 @@ export class AreaDetailsModal {
 
     modal.appendChild(this.buildHeader(() => this.close()))
     modal.appendChild(this.buildBody(area, onUpdate, () => current))
+    modal.appendChild(this.buildFooter(area, () => current))
 
     document.body.append(backdrop, modal)
     this.backdrop = backdrop
@@ -88,7 +90,7 @@ export class AreaDetailsModal {
     getCurrent: () => AreaMarker,
   ): HTMLElement {
     const body = document.createElement('div')
-    body.style.cssText = 'padding:16px;display:flex;flex-direction:column;gap:12px'
+    body.style.cssText = 'padding:16px;display:flex;flex-direction:column;gap:12px;flex:1'
 
     body.appendChild(this.buildNameSection(area, onUpdate, getCurrent))
     body.appendChild(this.buildSizeSection(area, onUpdate, getCurrent))
@@ -109,29 +111,21 @@ export class AreaDetailsModal {
     const label = this.buildLabel('Nimi')
     section.appendChild(label)
 
-    const row = document.createElement('div')
-    row.style.cssText = 'display:flex;gap:8px'
-
     const nameInput = document.createElement('input')
     nameInput.className = 'area-name-input'
     nameInput.type = 'text'
     nameInput.value = area.name
     nameInput.style.cssText =
-      'flex:1;padding:8px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:6px;color:var(--text-body);font-size:13px'
+      'width:100%;box-sizing:border-box;padding:8px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:6px;color:var(--text-body);font-size:13px'
 
-    const saveBtn = document.createElement('button')
-    saveBtn.className = 'btn-area-name-save'
-    saveBtn.textContent = 'Tallenna'
-    saveBtn.style.cssText =
-      'padding:8px 12px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:6px;color:var(--text-muted);font-size:12px;cursor:pointer;white-space:nowrap'
-    saveBtn.addEventListener('click', () => {
-      const updated = { ...getCurrent(), name: nameInput.value.trim() || getCurrent().name }
-      onUpdate(updated)
-    })
+    const save = () => {
+      const val = nameInput.value.trim()
+      if (val) onUpdate({ ...getCurrent(), name: val })
+    }
+    nameInput.addEventListener('blur', save)
+    nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); save() } })
 
-    row.appendChild(nameInput)
-    row.appendChild(saveBtn)
-    section.appendChild(row)
+    section.appendChild(nameInput)
     return section
   }
 
@@ -178,22 +172,18 @@ export class AreaDetailsModal {
     const heightInput = addLabeledInput('Kork (m)', 'area-height-input', area.heightM, 10, 5000, 10, '72px')
     const rotationInput = addLabeledInput('Kierto (°)', 'area-rotation-input', area.rotation, 0, 359, 5, '64px')
 
-    const saveBtn = document.createElement('button')
-    saveBtn.className = 'btn-area-size-save'
-    saveBtn.textContent = 'Tallenna'
-    saveBtn.style.cssText =
-      'padding:6px 12px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:6px;color:var(--text-muted);font-size:12px;cursor:pointer;white-space:nowrap'
-    saveBtn.addEventListener('click', () => {
+    const saveSize = () => {
       const cur = getCurrent()
-      const updated = {
+      onUpdate({
         ...cur,
         widthM: Math.max(10, Number(widthInput.value) || cur.widthM),
         heightM: Math.max(10, Number(heightInput.value) || cur.heightM),
         rotation: ((Number(rotationInput.value) || 0) % 360 + 360) % 360,
-      }
-      onUpdate(updated)
-    })
-    row.appendChild(saveBtn)
+      })
+    }
+    widthInput.addEventListener('blur', saveSize)
+    heightInput.addEventListener('blur', saveSize)
+    rotationInput.addEventListener('blur', saveSize)
 
     section.appendChild(row)
     return section
@@ -205,26 +195,21 @@ export class AreaDetailsModal {
     getCurrent: () => AreaMarker,
   ): HTMLElement {
     const section = document.createElement('div')
-    section.appendChild(this.buildLabel('Ohjeteksti (Markdown)'))
+    section.appendChild(this.buildLabel('Ohjeteksti'))
 
     const textarea = document.createElement('textarea')
     textarea.className = 'area-desc-textarea'
     textarea.rows = 4
+    textarea.placeholder = 'Ohjeteksti talkoolaisille — enterillä uusi rivi'
     textarea.style.cssText =
       'width:100%;box-sizing:border-box;padding:8px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:6px;color:var(--text-body);font-size:13px;resize:vertical'
     textarea.value = area.markdownDescription
 
-    const saveBtn = document.createElement('button')
-    saveBtn.className = 'btn-area-desc-save'
-    saveBtn.textContent = 'Tallenna kuvaus'
-    saveBtn.style.cssText =
-      'margin-top:4px;padding:6px 12px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:6px;color:var(--text-muted);font-size:12px;cursor:pointer'
-    saveBtn.addEventListener('click', () => {
+    textarea.addEventListener('blur', () => {
       onUpdate({ ...getCurrent(), markdownDescription: textarea.value })
     })
 
     section.appendChild(textarea)
-    section.appendChild(saveBtn)
     return section
   }
 
@@ -349,6 +334,30 @@ export class AreaDetailsModal {
     })
 
     return btn
+  }
+
+  private buildFooter(
+    area: AreaMarker,
+    getCurrent: () => AreaMarker,
+  ): HTMLElement {
+    const footer = document.createElement('div')
+    footer.style.cssText =
+      'padding:12px 16px;border-top:1px solid var(--border-default);display:flex;justify-content:flex-end'
+
+    const deleteBtn = document.createElement('button')
+    deleteBtn.className = 'btn-area-delete modal-btn-destructive'
+    deleteBtn.textContent = 'Poista alue'
+    deleteBtn.style.cssText =
+      'padding:8px 16px;min-height:44px;background:var(--danger-soft);border:none;border-radius:8px;color:var(--danger-text);font-size:13px;cursor:pointer'
+    deleteBtn.addEventListener('click', () => {
+      const cur = getCurrent()
+      if (!window.confirm(`Poistetaanko alue "${cur.name}"?`)) return
+      this.callbacks.onAreaDelete(area.id)
+      this.close()
+    })
+
+    footer.appendChild(deleteBtn)
+    return footer
   }
 
   private buildLabel(text: string): HTMLElement {

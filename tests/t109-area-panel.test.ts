@@ -313,7 +313,7 @@ describe('AreaPanel — koko ja kierto (B36)', () => {
     expect(Number(rInput.value)).toBe(BASE_AREA.rotation)
   })
 
-  it('koko-tallenna kutsuu onAreaUpdate päivitetyillä dimensioilla', async () => {
+  it('koko-inputin blur kutsuu onAreaUpdate päivitetyillä dimensioilla (auto-save, T118)', async () => {
     const { AreaPanel } = await importAreaPanel()
     const container = document.getElementById('area-panel-container')!
     const onAreaUpdate = vi.fn()
@@ -322,11 +322,10 @@ describe('AreaPanel — koko ja kierto (B36)', () => {
     const wInput = document.querySelector('.area-width-input') as HTMLInputElement
     const hInput = document.querySelector('.area-height-input') as HTMLInputElement
     const rInput = document.querySelector('.area-rotation-input') as HTMLInputElement
-    const saveBtn = document.querySelector('.btn-area-size-save') as HTMLButtonElement
     wInput.value = '120'
     hInput.value = '80'
     rInput.value = '45'
-    saveBtn.click()
+    wInput.dispatchEvent(new Event('blur', { bubbles: true }))
     expect(onAreaUpdate).toHaveBeenCalledOnce()
     const updated = onAreaUpdate.mock.calls[0][0]
     expect(updated.widthM).toBe(120)
