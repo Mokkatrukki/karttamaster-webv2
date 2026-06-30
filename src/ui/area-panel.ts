@@ -204,14 +204,30 @@ export class AreaPanel {
     li.style.cssText =
       'display:flex;align-items:center;gap:8px;min-height:40px;padding:0 8px 0 28px;border-bottom:1px solid var(--border-card)'
 
-    const swatch = document.createElement('span')
-    swatch.style.cssText = `width:14px;height:14px;border-radius:3px;background:${feat.color};flex-shrink:0`
+    const swatch = document.createElement('button')
+    swatch.className = 'feat-swatch'
+    swatch.setAttribute('aria-label', 'Vaihda väri (tuplaklikkaa)')
+    swatch.style.cssText = `width:18px;height:18px;border-radius:4px;background:${feat.color};flex-shrink:0;border:2px solid transparent;cursor:default;padding:0`
+    swatch.addEventListener('dblclick', (e) => {
+      e.stopPropagation()
+      openFeatureColorPicker(swatch, feat.color, (newColor) => {
+        swatch.style.background = newColor
+        const updatedFeatures = area.features.map(f =>
+          f.id === feat.id ? { ...f, color: newColor } : f,
+        )
+        this.updateArea({ ...area, features: updatedFeatures })
+      })
+    })
 
     const name = document.createElement('span')
+    name.className = 'feat-name'
     name.style.cssText =
-      'flex:1;font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap'
+      'flex:1;font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:default'
     name.textContent = feat.name || '(nimetön)'
-    name.addEventListener('dblclick', () => this.enterInlineEdit(li, feat, area))
+    name.addEventListener('dblclick', (e) => {
+      e.stopPropagation()
+      this.enterNameEdit(name, feat, area)
+    })
 
     const editBtn = document.createElement('button')
     editBtn.className = 'btn-feat-inline-edit'
@@ -226,6 +242,38 @@ export class AreaPanel {
 
     li.append(swatch, name, editBtn)
     return li
+  }
+
+  private enterNameEdit(nameSpan: HTMLElement, feat: AreaFeature, area: AreaMarker): void {
+    const input = document.createElement('input')
+    input.type = 'text'
+    input.value = feat.name ?? ''
+    input.placeholder = 'Komponentin nimi'
+    input.className = 'feat-inline-name-input'
+    input.style.cssText =
+      'flex:1;min-height:32px;background:var(--field-tint);border:1px solid var(--accent);border-radius:4px;padding:0 6px;font-size:12px;color:var(--text-body);min-width:0;width:100%'
+
+    nameSpan.replaceWith(input)
+    input.focus()
+    input.select()
+
+    const save = () => {
+      const newName = input.value.trim() || undefined
+      const updatedFeatures = area.features.map(f =>
+        f.id === feat.id ? { ...f, name: newName } : f,
+      )
+      this.updateArea({ ...area, features: updatedFeatures })
+    }
+
+    const cancel = () => {
+      input.replaceWith(nameSpan)
+    }
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); save() }
+      if (e.key === 'Escape') { e.preventDefault(); cancel() }
+    })
+    input.addEventListener('blur', save)
   }
 
   private enterInlineEdit(li: HTMLLIElement, feat: AreaFeature, area: AreaMarker): void {
