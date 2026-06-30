@@ -67,6 +67,21 @@ export function localToLatLng(
   return offsetLatLng(centerLat, centerLng, vM, uM)
 }
 
+// CW rotation in (uM=East, vM=North) metric space — matches cornersFromRect/rotatePoint convention
+export function rotateLocal(
+  uM: number,
+  vM: number,
+  deg: number,
+): { uM: number; vM: number } {
+  const rad = (deg * Math.PI) / 180
+  const cos = Math.cos(rad)
+  const sin = Math.sin(rad)
+  return {
+    uM: uM * cos + vM * sin,
+    vM: -uM * sin + vM * cos,
+  }
+}
+
 export function cornersToRect(
   cornerA: LatLng,
   cornerB: LatLng,

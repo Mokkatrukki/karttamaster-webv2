@@ -78,6 +78,7 @@ export class AreaOverlay {
 
     poly.on('click', (e: L.LeafletMouseEvent) => {
       L.DomEvent.stopPropagation(e)
+      if (this.mapRectEditor?.isEditing()) return  // V69: edit mode → no modal
       this.onAreaClick?.(area)
       this.map.flyTo([area.centerLat, area.centerLng], 18)
     })

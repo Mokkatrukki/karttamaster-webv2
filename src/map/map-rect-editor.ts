@@ -4,6 +4,7 @@ import {
   cornersToRect,
   latLngToLocal,
   localToLatLng,
+  rotateLocal,
 } from '../logic/area-geometry'
 
 export interface EditableRect {
@@ -37,12 +38,9 @@ function rectToCorners(rect: EditableRect): [L.LatLng, L.LatLng, L.LatLng, L.Lat
 }
 
 function rotationArmTip(rect: EditableRect): L.LatLng {
-  // Arm points north (vM = +ROTATION_ARM_OFFSET_M) then rotated
-  const { uM, vM } = { uM: 0, vM: ROTATION_ARM_OFFSET_M }
-  const rad = (rect.rotation * Math.PI) / 180
-  const rU = uM * Math.cos(rad) - vM * Math.sin(rad)
-  const rV = uM * Math.sin(rad) + vM * Math.cos(rad)
-  const tip = localToLatLng(rU, rV, rect.centerLat, rect.centerLng)
+  // Arm starts North (vM=+offset), rotated CW by rect.rotation — V70
+  const arm = rotateLocal(0, ROTATION_ARM_OFFSET_M, rect.rotation)
+  const tip = localToLatLng(arm.uM, arm.vM, rect.centerLat, rect.centerLng)
   return L.latLng(tip.lat, tip.lng)
 }
 
@@ -58,6 +56,7 @@ export class MapRectEditor {
   private rotationLine: L.Polyline | null = null
   private editOnUpdate: ((r: EditableRect) => void) | null = null
   private editOnDone: (() => void) | null = null
+  private onMapClickOutsideHandler: ((e: L.LeafletMouseEvent) => void) | null = null
 
   private readonly onMapMouseMove = (e: L.LeafletMouseEvent) => this.handleDrawMove(e)
   private readonly onMapMouseUp = (e: L.LeafletMouseEvent) => this.handleDrawEnd(e)
@@ -150,6 +149,10 @@ export class MapRectEditor {
 
   // ── Edit mode ─────────────────────────────────────────────────────────────
 
+  isEditing(): boolean {
+    return this.editId !== null
+  }
+
   startEdit(
     id: string,
     rect: EditableRect,
@@ -161,6 +164,14 @@ export class MapRectEditor {
     this.editRect = { ...rect }
     this.editOnUpdate = onUpdate
     this.editOnDone = onDone
+
+    // Exit edit when user clicks outside handles/polygon (V69)
+    this.onMapClickOutsideHandler = () => {
+      const done = this.editOnDone
+      this.stopEdit()
+      done?.()
+    }
+    this.map.on('click', this.onMapClickOutsideHandler)
     document.addEventListener('keydown', this.onDocKeyDown)
     this.buildHandles()
   }
@@ -173,6 +184,10 @@ export class MapRectEditor {
     this.rotationHandle = null
     this.rotationLine?.remove()
     this.rotationLine = null
+    if (this.onMapClickOutsideHandler) {
+      this.map.off('click', this.onMapClickOutsideHandler)
+      this.onMapClickOutsideHandler = null
+    }
     this.editId = null
     this.editRect = null
     this.editOnUpdate = null
@@ -212,15 +227,23 @@ export class MapRectEditor {
     const oppositeIndex = (draggedIndex + 2) % 4
     const oppositePos = rectToCorners(rect)[oppositeIndex]
 
-    const newRect = cornersToRect(
-      { lat: draggedPos.lat, lng: draggedPos.lng },
-      { lat: oppositePos.lat, lng: oppositePos.lng },
-    )
-    // Preserve rotation
-    const updated: EditableRect = { ...newRect, rotation: rect.rotation }
+    // Center = midpoint of the two opposite corners (world coords) — V71
+    const centerLat = (draggedPos.lat + oppositePos.lat) / 2
+    const centerLng = (draggedPos.lng + oppositePos.lng) / 2
+
+    // Project dragged corner into rectangle's rotated frame to get widthM/heightM — V71
+    const draggedLocal = latLngToLocal(draggedPos.lat, draggedPos.lng, centerLat, centerLng)
+    const frame = rotateLocal(draggedLocal.uM, draggedLocal.vM, -rect.rotation)
+
+    const updated: EditableRect = {
+      centerLat,
+      centerLng,
+      widthM: Math.max(2 * Math.abs(frame.uM), 1),
+      heightM: Math.max(2 * Math.abs(frame.vM), 1),
+      rotation: rect.rotation,
+    }
     this.editRect = updated
 
-    // Update non-dragged corner handles positions
     const newCorners = rectToCorners(updated)
     newCorners.forEach((pos, i) => {
       if (i !== draggedIndex) {
@@ -228,7 +251,6 @@ export class MapRectEditor {
       }
     })
 
-    // Update rotation arm
     const tip = rotationArmTip(updated)
     this.rotationLine?.setLatLngs([L.latLng(updated.centerLat, updated.centerLng), tip])
     this.rotationHandle?.setLatLng(tip)
