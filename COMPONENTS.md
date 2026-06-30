@@ -56,7 +56,7 @@ server/       ← Hono + Bun + SQLite
 | MarkerInteraction | `src/map/marker-interaction.ts` 179 riv | ✓ | critical-paths: "dblclick", "Rotation arm sticky" | [map.md](docs/components/map.md) |
 | RouteBar | `src/map/route-bar.ts` 125 riv | ✓ pilkko | — | [map.md](docs/components/map.md) |
 | GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30 | critical-paths: "GPS-paikannin" | [map.md](docs/components/map.md) |
-| AreaOverlay | `src/map/area-overlay.ts` 241 riv | ✓ valmis | area-interaction | [map.md](docs/components/map.md) |
+| AreaOverlay | `src/map/area-overlay.ts` 261 riv | ✓ valmis | area-interaction | [map.md](docs/components/map.md) |
 | MapRectEditor | `src/map/map-rect-editor.ts` 316 riv | ✓ T117 | area-interaction | [map.md](docs/components/map.md) |
 | SegmentOverlay | `src/map/segment-overlay.ts` 184 riv | ✓ valmis | — | [map.md](docs/components/map.md) |
 | MarkerListUI | `src/ui/marker-list.ts` 261 riv | ✓ T11,T24 | — | [ui.md](docs/components/ui.md) |
@@ -151,7 +151,7 @@ Lisää: [backend.md — Vaiheistus](docs/components/backend.md)
 | `src/map/map-rect-editor.ts` | **316** | Seuraa — erota drag-logiikka jos kasvaa >400 riv |
 | `src/ui/sign-library-panel.ts` | **340** | Seuraa |
 | `src/ui/marker-detail-modal.ts` | **266** | Seuraa |
-| `src/map/area-overlay.ts` | **241** | Seuraa |
+| `src/map/area-overlay.ts` | **261** | Seuraa |
 | `src/map/markers.ts` | **294** | Seuraa — pilkottava ennen T10 |
 | `src/map/marker-interaction.ts` | **179** | Seuraa — jos kasvaa >250 riv, erota rotation omaksi |
 
