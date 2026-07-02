@@ -427,11 +427,12 @@ CSS-luokat:
 - Toimintonapit (`.admin-toggle-active-btn`, `.admin-copy-invite-btn`): `min-height:44px`, `field-tint` tausta
 
 ### SegmentOverlay (Leaflet-layer, `src/map/segment-overlay.ts`)
-- Pätkäkaista: `weight: 8, opacity: 0.7`, väri rotaatiosta SEGMENT_COLORS (alla)
+- Pätkäkaista: `weight: 11, opacity: 0.85, dashArray: '1 9', lineCap: 'round'` — pistekuvio "merkkausteippi" reitin päällä, ei kiinteä viiva kuten reitti (erottuu myös harmaasävynäytöllä/värisokealle)
+- Väri rotaatiosta SEGMENT_COLORS (alla) — **paletti ei saa sisältää route-värejä** (`main.ts ROUTE_DEFS`: `#f59e0b`, `#8b5cf6`) — muuten pätkä sulautuu reittiin kun ne ovat samanvärisiä
 - DisplayName: pysyvä tooltip `permanent: true`, CSS-class `segment-label`
 - Aukko (gap): `color: text-muted hex (#94a3b8), weight: 8, opacity: 0.3`
 - SEGMENT_COLORS (6 väriä, rotaatio indeksin mukaan):
-  `['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#ef4444']`
+  `['#10b981', '#ec4899', '#3b82f6', '#ef4444', '#06b6d4', '#64748b']`
 
 ---
 
@@ -476,6 +477,7 @@ CSS-luokat:
 | U21 | `.segment-list` max-height:160px liian lyhyt useilla pätkillä | Pieni | ✓ korjattu 2026-06-11 (220px) |
 | U22 | Segment-panel korkeus ei ole rajoitettu kun "Lisätiedot & varusteet" on auki — koko paneeli näkyy, kartta painuu pitkälle alas. | Suuri | osittain ✓ 2026-06-11: paneeli alkaa nyt suljettuna (collapsed=true), lista piilossa |
 | U23 | SegmentPanel ei ollut collapsible — "Pätkäjako"-lista aina auki, vie karttatilaa | Suuri | ✓ korjattu 2026-06-11: collapse toggle lisätty, alkaa suljettuna |
+| U24 | SEGMENT_COLORS törmäsi route-väreihin (`#f59e0b`,`#8b5cf6` molemmissa) + sama solid-tyyli — järjestäjä ei erottanut pätkää reitistä kartalla | Suuri | ✓ korjattu 2026-07-02: dashArray '1 9' + weight 11 + väripaletti ilman route-värejä |
 
 ---
 

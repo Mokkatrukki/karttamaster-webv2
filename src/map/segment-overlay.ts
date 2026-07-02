@@ -5,8 +5,8 @@ import type { Segment, SegmentStore } from '../logic/segments'
 
 interface RouteRef { id: string; routePoints: RoutePoint[] }
 
-// DESIGN.md §K SegmentOverlay
-const SEGMENT_COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#ef4444']
+// DESIGN.md §K SegmentOverlay — värit valittu erilleen route-paletista (main.ts ROUTE_DEFS: #f59e0b, #8b5cf6)
+const SEGMENT_COLORS = ['#10b981', '#ec4899', '#3b82f6', '#ef4444', '#06b6d4', '#64748b']
 const GAP_COLOR = '#94a3b8'
 
 export class SegmentOverlay {
@@ -47,7 +47,10 @@ export class SegmentOverlay {
         if (!route) continue
         const pts = sliceRoutePoints(route.routePoints, seg.startDist, seg.endDist)
         if (pts.length < 2) continue
-        const line = L.polyline(pts, { color, weight: 8, opacity: 0.7 })
+        const line = L.polyline(pts, {
+          color, weight: 11, opacity: 0.85,
+          dashArray: '1 9', lineCap: 'round',
+        })
         if (seg.displayName) {
           line.bindTooltip(seg.displayName, { permanent: true, className: 'segment-label', direction: 'center' })
         }
