@@ -45,6 +45,28 @@ describe('GpkgControls', () => {
     expect(statusEl.textContent).toBe('Tuotu: 2 uutta, 1 päivitetty')
   })
 
+  it('onnistunut import kutsuu onImported-callbackin', async () => {
+    const { importBtn, fileInput, statusEl } = makeDom()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ created: 1, updated: 0 }) })),
+    )
+    const onImported = vi.fn()
+    new GpkgControls(importBtn, fileInput, statusEl, onImported)
+    selectFile(fileInput, new File(['x'], 'kyltit.gpkg'))
+    await vi.waitFor(() => expect(onImported).toHaveBeenCalledOnce())
+  })
+
+  it('epäonnistunut import ei kutsu onImported-callbackia', async () => {
+    const { importBtn, fileInput, statusEl } = makeDom()
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) })))
+    const onImported = vi.fn()
+    new GpkgControls(importBtn, fileInput, statusEl, onImported)
+    selectFile(fileInput, new File(['x'], 'kyltit.gpkg'))
+    await vi.waitFor(() => expect(statusEl.textContent).toContain('500'))
+    expect(onImported).not.toHaveBeenCalled()
+  })
+
   it('epäonnistunut import (403) näyttää statuskoodin', async () => {
     const { importBtn, fileInput, statusEl } = makeDom()
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 403, json: async () => ({}) })))

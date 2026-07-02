@@ -63,6 +63,8 @@ Leaflet-glue. Ohut kerros kartan päällä. **Testattavuus: Playwright.**
 - ✓ `setVisibleRoutes` — piilottaa/näyttää merkit
 - ✓ `panTo` — siirtää karttanäkymän merkin kohdalle
 - ✓ Delegoi interaktio `MarkerInteraction`-oliolle
+- ✓ `reload(markers)` — korvaa koko merkkilistan + piirtää näkyvät uudelleen (T124-T128: GPKG-tuonnin jälkeen)
+- ✓ `fixOrphanRouteIds()` — B45: korjaa merkit joilla `routeIds:[]` (esim. GPKG-tuonnin uudet merkit, palvelin ei tunne GPX-geometriaa) lähin-reitti-fallbackilla, sama periaate kuin `add()`/V21. Vitest-jsdom-testattu (`tests/gpkg-orphan-markers.test.ts`) real Leaflet-mapilla jsdomissa — ei vaadi Playwrightia tälle logiikalle.
 
 ### Tulossa
 - [ ] Drag-to-move merkki: siirto päivittää bearing + routeIds (T37, V15)

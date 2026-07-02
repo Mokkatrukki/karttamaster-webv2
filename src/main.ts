@@ -98,6 +98,8 @@ if (btnGps) {
   })
 }
 
+let activeMarkerManager: MarkerManager | null = null
+
 async function init(talkoolainenCode?: string) {
   const initialMarkers = await fetchMarkers()
 
@@ -257,6 +259,7 @@ async function init(talkoolainenCode?: string) {
     }
   }, initialMarkers, showDistanceWarning)
   markerManagerRef.current = markerManager
+  activeMarkerManager = markerManager
 
   markerDetailModal = new MarkerDetailModal(
     markerManager,
@@ -413,6 +416,12 @@ const authScreen = new AuthScreen(({ role, code }) => {
     document.getElementById('btn-gpkg-import') as HTMLButtonElement,
     document.getElementById('gpkg-file-input') as HTMLInputElement,
     document.getElementById('gpkg-import-status') as HTMLElement,
+    async () => {
+      if (!activeMarkerManager) return
+      const markers = await fetchMarkers()
+      activeMarkerManager.reload(markers)
+      activeMarkerManager.fixOrphanRouteIds()
+    },
   )
   init(code).catch(console.error)
 })

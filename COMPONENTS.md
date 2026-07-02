@@ -52,7 +52,7 @@ server/       ← Hono + Bun + SQLite
 | Sync | `src/logic/sync.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
 | SignIcon | `src/map/icons.ts` | ✓ valmis | critical-paths: "toolbar-dropdown" | [map.md](docs/components/map.md) |
 | DriveMode | `src/map/drive.ts` | ✓ valmis | critical-paths: "Drive mode" | [map.md](docs/components/map.md) |
-| MarkerManager | `src/map/markers.ts` 294 riv | ✓+B1 | critical-paths: "Merkki kartalle", "Drag-to-move" | [map.md](docs/components/map.md) |
+| MarkerManager | `src/map/markers.ts` 362 riv | ✓+B1+B45 | critical-paths: "Merkki kartalle", "Drag-to-move" | [map.md](docs/components/map.md) |
 | MarkerInteraction | `src/map/marker-interaction.ts` 179 riv | ✓ | critical-paths: "dblclick", "Rotation arm sticky" | [map.md](docs/components/map.md) |
 | RouteBar | `src/map/route-bar.ts` 125 riv | ✓ pilkko | — | [map.md](docs/components/map.md) |
 | GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30 | critical-paths: "GPS-paikannin" | [map.md](docs/components/map.md) |

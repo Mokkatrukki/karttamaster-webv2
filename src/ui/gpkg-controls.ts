@@ -3,6 +3,7 @@ export class GpkgControls {
     private readonly importBtn: HTMLButtonElement,
     private readonly fileInput: HTMLInputElement,
     private readonly statusEl: HTMLElement,
+    private readonly onImported?: () => void,
   ) {
     this.importBtn.addEventListener('click', (e) => {
       e.stopPropagation()
@@ -31,5 +32,6 @@ export class GpkgControls {
     }
     const body = (await res.json()) as { created: number; updated: number }
     this.statusEl.textContent = `Tuotu: ${body.created} uutta, ${body.updated} päivitetty`
+    this.onImported?.()
   }
 }
