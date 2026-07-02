@@ -89,6 +89,9 @@ server/       ← Hono + Bun + SQLite
 | MarkersAPI | `server/routes/markers.ts` | ✓ T47+T103 (description+images) | — | [backend.md](docs/components/backend.md) |
 | AreasAPI | `server/routes/areas.ts` 231 riv | ✓ valmis | area-interaction | [backend.md](docs/components/backend.md) |
 | DevFeedbackAPI | `server/routes/devfeedback.ts` | ✓ valmis | — | [backend.md](docs/components/backend.md) |
+| GpkgGeoJSON | `server/gpkg/geojson.ts` | ✓ T124 | — | [backend.md](docs/components/backend.md) |
+| GpkgConvert | `server/gpkg/convert.ts` *(ei vielä)* | ○ T125,T126 | — | [backend.md](docs/components/backend.md) |
+| GpkgRoutes | `server/routes/gpkg.ts` *(ei vielä)* | ○ T125,T126 | — | [backend.md](docs/components/backend.md) |
 | AuthMiddleware | `server/middleware/auth.ts` | ✓ valmis | — | [backend.md](docs/components/backend.md) |
 | SnapshotScheduler | `server/snapshot-scheduler.ts` | ✓ valmis | — | [backend.md](docs/components/backend.md) |
 | ServerTypes | `server/types.ts` | ✓ valmis | — | [backend.md](docs/components/backend.md) |

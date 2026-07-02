@@ -426,6 +426,29 @@ TEST_USERS.talkoolainen.code      // 'TEST-KOODI-1'
 
 ---
 
+## GpkgGeoJSON
+
+**Vastuu:** Muuntaa markerit GeoJSON-muotoon (id, type, bearing, description + Point-geometria) ja takaisin — GPKG-export/import-featuren rakennuspalikka.
+**Käyttäjä:** järjestäjä (vie/tuo kylttidataa kaverin QGIS-sovellukseen).
+**Moduuli:** `server/gpkg/geojson.ts`
+**Testattavuus:** Bun-integraatiotesti (`server/gpkg/geojson.test.ts`) — ei DB:tä, puhdas muunnos
+
+### Ominaisuudet
+- ✓ `markersToGeoJSON(rows)` — MarkerRow[] → FeatureCollection<Point>, vain id/type/bearing/description (ei color/status/routeIds/locationNote/images)
+- ✓ `geoJSONToMarkers(fc)` — käänteinen parsinta, puuttuva description → null
+
+### Tulossa
+- [ ] `server/gpkg/convert.ts` — ogr2ogr subprocess wrapper, GeoJSON ↔ .gpkg (T125,T126)
+- [ ] `GET /api/gpkg/export` — koko markerdatan lataus .gpkg-tiedostona (T125)
+- [ ] `POST /api/gpkg/import` — upload .gpkg, upsert id:n perusteella (T126)
+- [ ] UI-napit järjestäjän näkymään (T127)
+- [ ] `apk add gdal` Dockerfileen (T128)
+
+### Käyttäjätarkistus
+> Järjestäjä: yksisuuntainen muunnin nyt — arvo syntyy vasta T125/T126:n myötä kun tiedosto liikkuu oikeasti serverin läpi.
+
+---
+
 ## OfflineManager *(tulossa — T18)*
 
 **Vastuu:** PWA service worker + offline-tuki omalle pätkälle
