@@ -13,7 +13,7 @@ RUN bun run build
 FROM oven/bun:alpine
 WORKDIR /app
 
-RUN apk add --no-cache nginx
+RUN apk add --no-cache nginx gdal-tools
 
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/http.d/default.conf

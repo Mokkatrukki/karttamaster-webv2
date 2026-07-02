@@ -255,7 +255,7 @@ export class AreaDetailsModal {
     }
     swatchBtn.addEventListener('click', (e) => {
       e.stopPropagation()
-      openFeatureColorPicker(swatchBtn, currentColor, updateSwatch)
+      openFeatureColorPicker(currentColor, updateSwatch)
     })
     li.appendChild(swatchBtn)
 
@@ -331,14 +331,13 @@ export class AreaDetailsModal {
     getCurrent: () => AreaMarker,
   ): HTMLElement {
     const footer = document.createElement('div')
+    footer.className = 'modal-footer-destructive'
     footer.style.cssText =
-      'padding:12px 16px;border-top:1px solid var(--border-default);display:flex;justify-content:flex-end'
+      'padding:8px 16px 12px;border-top:1px solid var(--border-default);display:flex;justify-content:center'
 
     const deleteBtn = document.createElement('button')
     deleteBtn.className = 'btn-area-delete modal-btn-destructive'
     deleteBtn.textContent = 'Poista alue'
-    deleteBtn.style.cssText =
-      'padding:8px 16px;min-height:44px;background:var(--danger-soft);border:none;border-radius:8px;color:var(--danger-text);font-size:13px;cursor:pointer'
     deleteBtn.addEventListener('click', () => {
       const cur = getCurrent()
       if (!window.confirm(`Poistetaanko alue "${cur.name}"?`)) return
