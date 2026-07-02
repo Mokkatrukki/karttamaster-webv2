@@ -446,6 +446,9 @@ TEST_USERS.talkoolainen.code      // 'TEST-KOODI-1'
 - [ ] UI-napit järjestäjän näkymään (T127)
 - [ ] `apk add gdal` Dockerfileen (T128)
 
+### Tunnettu rajaus: uusien tuotujen merkkien väri/lyhenne
+`color`/`short_label` eivät kuulu GPKG-attribuutteihin (tietoinen rajaus, ks. §I / SPEC.md T124). Olemassa oleva id säilyttää nämä kentät ennallaan importissa (ei kosketa niitä). Täysin uusi id (kaverin lisäämä merkki) saa `color=null, short_label=null` → kartalla harmaa `?`-ympyrä (`src/map/icons.ts` default-haara) kunnes järjestäjä liittää sen merkkikirjaston tyyppiin manuaalisesti. Tietoinen päätös — toimii visuaalisena "vaatii käsittelyn" -vihjeenä, ei automaattista täsmäytystä.
+
 ### Käyttäjätarkistus
 > Järjestäjä: round-trip toimii nyt palvelinpuolella (export + import). Ei vielä UI:ta — testattu suoraan API:n kautta. UI-napit T127.
 
