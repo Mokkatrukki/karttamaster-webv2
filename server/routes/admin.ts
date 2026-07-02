@@ -10,8 +10,8 @@ export const adminRoutes = new Hono<AuthEnv>()
 adminRoutes.get('/users', requireAuth(), requireRole('admin'), (c) => {
   const db: Database = c.get('db')
   const users = db
-    .query<Pick<User, 'id' | 'username' | 'role' | 'display_name' | 'created_at' | 'is_active'>, []>(
-      'SELECT id, username, role, display_name, created_at, is_active FROM users ORDER BY created_at ASC',
+    .query<Pick<User, 'id' | 'username' | 'role' | 'display_name' | 'created_at' | 'is_active' | 'invite_token'>, []>(
+      'SELECT id, username, role, display_name, created_at, is_active, invite_token FROM users ORDER BY created_at ASC',
     )
     .all()
   return c.json(users)

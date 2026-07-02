@@ -1843,6 +1843,7 @@ button {
   background: transparent;
   backdrop-filter: none;
   pointer-events: none;
+  padding-bottom: 100px;
 }
 
 /* tiedot: centered blocking overlay */
@@ -2548,4 +2549,153 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
     background: #f0f0f0;
     font-weight: 600;
   }
+}
+
+/* === AdminPage (T122) — src/admin.ts + src/ui/admin-page.ts === */
+
+#admin-app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px;
+  color: var(--text-body);
+}
+
+#admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+#admin-header h1 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+#btn-admin-logout {
+  min-height: 44px;
+  padding: 6px 12px;
+  background: var(--field-tint);
+  color: var(--text-body);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.admin-invite-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  background: var(--warn-highlight);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  word-break: break-all;
+}
+
+.admin-invite-banner button {
+  min-height: 44px;
+  padding: 6px 12px;
+  background: var(--accent);
+  color: var(--accent-text);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.admin-invite-btn {
+  min-height: 44px;
+  width: 100%;
+  padding: 8px 14px;
+  margin-bottom: 16px;
+  background: var(--field-tint);
+  color: var(--text-body);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.admin-invite-btn:hover {
+  background: var(--hover);
+}
+
+.admin-users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.admin-users-table th {
+  text-align: left;
+  padding: 8px 10px;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.admin-users-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+.admin-users-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 24px !important;
+}
+
+.admin-user-status {
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-user-status.active {
+  background: rgba(74, 222, 128, 0.10);
+  color: #4ade80;
+}
+
+.admin-user-status.inactive {
+  background: var(--danger-soft);
+  color: var(--danger-text);
+}
+
+.admin-user-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-toggle-active-btn,
+.admin-copy-invite-btn {
+  min-height: 44px;
+  padding: 6px 12px;
+  background: var(--field-tint);
+  color: var(--text-body);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.admin-toggle-active-btn:hover,
+.admin-copy-invite-btn:hover {
+  background: var(--hover);
+}
+
+.admin-forbidden {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-muted);
 }

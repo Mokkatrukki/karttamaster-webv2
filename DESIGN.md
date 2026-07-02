@@ -280,7 +280,10 @@ metsässä, hanskat kädessä.
   - status/count badge: "✓" (#4ade80) jos valmis, "(N)" (text-meta) muuten — N = komponenttien määrä
   - `···` (44×44px): avaa AreaDetailsModal
 - **Feature sub-list** (`.area-feature-sublist`): piilotettu `hidden` kun suljettu, `surface-raised` tausta, sisennetty `28px` vasemmalta
-  - Feature-rivi: `[14×14px väri-swatch] [nimi text-muted 12px]`, `min-height:40px`
+  - Feature-rivi: `[14×14px väri-swatch] [nimi text-muted 12px flex:1] [✎ 44×44px text-muted]`, `min-height:40px`
+    - `✎`-nappi (`.btn-feat-inline-edit`) avaa inline-edittilan
+    - dblclick feature-nimelle = sama kuin `✎`-nappi
+    - **Inline-edit tila:** rivi saa `background: var(--hover); border-left: 2px solid var(--accent)`. Elementit: `[swatch] [name-input autofocus field-tint flex:1] [color-select]`. Enter/blur tallentaa. Escape palauttaa.
   - Tyhjätila: `"Ei komponentteja"` `11px text-meta`
   - Footer-nappi: `[+ Lisää komponentti]` `min-height:44px`, `border-top:dashed border-card`, `text-muted 12px`, käynnistää draw-by-drag suoraan — ei avaa modaalia
 - Section-footer: `[+ Lisää alue]`
@@ -289,6 +292,12 @@ metsässä, hanskat kädessä.
   - Poisto (feature): btn-feat-delete suoraan feature-rivillä (pienikokoinen, danger-soft)
   - "Merkitse valmiiksi": window.confirm() ennen tilansiirtoa suunniteltu→valmis
 - **Alue kartta-polygon**: `fillOpacity: 0` (outline-only, sininen reuna) — featuret näkyvät paremmin omilla väreillään
+- **AreaFeature karttanimet (zoom-riippuvainen):**
+  - `L.Tooltip` `permanent:true, direction:'center', className:'area-feature-label'` — centroidi, polygonin sisällä
+  - Zoom `≥16` → näkyy (`opacity:1`). Zoom `<16` → piilotettu (`opacity:0`)
+  - `map.on('zoomend', updateFeatureLabels)` — iteroi feature-layerit, aseta opacity
+  - CSS `.area-feature-label`: `font-size:11px; font-weight:600; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.9); background:transparent; border:none; padding:0; white-space:nowrap; pointer-events:none`
+  - Ei CSS custom propertya — Leaflet-DOM ei peri `:root`-tokeneja reliably
 - Sijainti: `#area-panel-container` left-panel-content:ssä, segment-panelin jälkeen
 
 ### SegmentPanel (`#segment-panel`)
@@ -405,6 +414,16 @@ CSS-luokat:
   - Lyhenne+väri rivi: `display:flex;gap:6px` — lyhenne-input `flex:1;min-width:0`, color-input `width:44px;height:44px` ilman tekstilabelia (§R: color-picker on itsessään selvä)
   - Tallenna-nappi: `confirm` tausta, `confirm-text`, `min-height:44px`, `flex:1`
   - Peruuta-nappi: `field-tint` tausta, `border-default`, `min-height:44px`
+
+### AdminPage (`admin.html` + `src/admin.ts` + `src/ui/admin-page.ts`, T122)
+- Erillinen entrypoint, ei jaa `#app`-runkoa index.html:n kanssa — vain admin-rooli, oma sivu
+- `#admin-app`: `max-width:960px;margin:0 auto;padding:16px` — kapea keskitetty layout, toimii myös mobiililla
+- Header (`#admin-header`): otsikko + "Kirjaudu ulos" (`min-height:44px`)
+- Invite-banneri (`.admin-invite-banner`): näyttää tuoreimman invite/reset-URL:n + kopiointinappi (`min-height:44px`), `warn-highlight` tausta + `accent`-reunus
+- "Kutsu uusi järjestäjä" (`.admin-invite-btn`): `min-height:44px;width:100%`, `field-tint` tausta, katkoviivareunus
+- Käyttäjätaulukko (`.admin-users-table`): rivi per käyttäjä, sarakkeet Nimi/Käyttäjätunnus/Rooli/Luotu/Tila/Toiminnot
+- Tila-pilli (`.admin-user-status`): käyttää olemassa olevia status-värejä (§C) — `active` = `#4ade80`/`rgba(74,222,128,0.10)` (sama kuin status-asetettu), `inactive` = `danger-text`/`danger-soft`. **Ei uutta `--confirm`-tekstiväriä tummalla taustalla** — kontrasti alle AA:n (3.1:1), käytä aina kirkkaampaa status-tokenia.
+- Toimintonapit (`.admin-toggle-active-btn`, `.admin-copy-invite-btn`): `min-height:44px`, `field-tint` tausta
 
 ### SegmentOverlay (Leaflet-layer, `src/map/segment-overlay.ts`)
 - Pätkäkaista: `weight: 8, opacity: 0.7`, väri rotaatiosta SEGMENT_COLORS (alla)

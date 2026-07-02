@@ -179,3 +179,26 @@ DOM-komponentit ilman Leafletia. **Testattavuus: Vitest-jsdom.**
 
 ### Käyttäjätarkistus
 > Talkoolainen: syöttää koodin → suoraan omaan pätkänäkymään ✓
+
+---
+
+## AdminPage — T122 ✓
+**Vastuu:** Käyttäjähallinta admin-roolille — käyttäjälista, deaktivointi/aktivointi, kutsut, kutsulinkkien kopiointi
+**Käyttäjä:** admin (ei talkoolainen eikä pelkkä järjestäjä)
+**Konteksti:** erillinen entrypoint `/admin`, ei jaa runkoa karttanäkymän kanssa — ei karttaa, ei left-panel. Toimii mobiililla (kapea keskitetty layout).
+**Moduuli:** `admin.html` (entrypoint) + `src/admin.ts` (wiring, fetch-orkestrointi — poissa coveragesta kuten main.ts) + `src/ui/admin-page.ts` (puhdas render, testattu)
+**Testattavuus:** Vitest-jsdom (`tests/admin-page.test.ts`) — renderöinti + callback-wiring. Manuaalisesti Playwright-cli:llä varmistettu login→taulukko→invite-flow (ei pysyvä E2E-spec).
+
+### Ominaisuudet
+- ✓ `AuthScreen`-uudelleenkäyttö kirjautumisportissa (roolitarkistus laajennettu myös admin-rooliin, ks. src/admin.ts)
+- ✓ Käyttäjätaulukko: nimi, käyttäjätunnus, rooli, luotu, tila, toiminnot
+- ✓ Deaktivoi/Aktivoi-nappi → `PATCH /api/admin/users/:id`
+- ✓ "Kutsu uusi järjestäjä" → `POST /api/admin/invites` → banner + kopiointi
+- ✓ Per-rivi "Kopioi kutsulinkki" kun `invite_token` ei-null (odottava kutsu)
+- ✓ 403/ei-admin → `renderForbidden()`, ei pääsyä taulukkoon
+
+### Tulossa
+- [ ] "Resetoi salasana" -nappi per rivi (T123)
+
+### Käyttäjätarkistus
+> Admin: käyttäjälista + toiminnot yhdellä sivulla, ei ylimääräistä navigointia — täyttää VISION.md:n "alle minuutissa, kolmella klikkauksella" -kriteerin invite-flow'lle.

@@ -94,6 +94,7 @@ server/       ← Hono + Bun + SQLite
 | ServerTypes | `server/types.ts` | ✓ valmis | — | [backend.md](docs/components/backend.md) |
 | MapStateAPI | `server/routes/admin.ts` | ○ T48 | — | [backend.md](docs/components/backend.md) |
 | OfflineManager | `public/sw.js` *(ei vielä)* | ○ T18 | — | [backend.md](docs/components/backend.md) |
+| AdminPage | `admin.html` + `src/admin.ts` + `src/ui/admin-page.ts` | ✓ T122 | — | [ui.md](docs/components/ui.md) |
 
 **Tila:** ✓ = valmis, ○ = tulossa, B# = avoin bugi, pilkko = rivimäärä kasvaa, ⚠️ = kriittinen pilkko
 
