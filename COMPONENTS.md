@@ -78,6 +78,7 @@ server/       ← Hono + Bun + SQLite
 | AreaDetailsModal | `src/ui/area-details-modal.ts` 370 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
 | AreaPanel | `src/ui/area-panel.ts` 367 riv | ✓ valmis | area-interaction | [ui.md](docs/components/ui.md) |
 | AreaView | `src/ui/area-view.ts` | ✓ valmis | — | [ui.md](docs/components/ui.md) |
+| GpkgControls | `src/ui/gpkg-controls.ts` | ✓ T127 | — | [ui.md](docs/components/ui.md) |
 | GpsDrivePanel | `src/ui/gps-drive-panel.ts` | ✓ T30 | — | [ui.md](docs/components/ui.md) |
 | MarkerDetailModal | `src/ui/marker-detail-modal.ts` 343 riv | ✓ T103 (kuvaus+kuvat) | — | [ui.md](docs/components/ui.md) |
 | FeedbackWidget | `src/devtools/feedback-widget.ts` 494 riv | ✓ devtools | feedback-widget | — |

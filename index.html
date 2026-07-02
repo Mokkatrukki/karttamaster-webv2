@@ -19,6 +19,11 @@
         <button id="btn-snapshot-panel">Varmuuskopiot</button>
         <div class="menu-sep"></div>
         <button id="btn-layer">Karttakerros</button>
+        <div class="menu-sep" data-role-hide="talkoolainen"></div>
+        <a id="btn-gpkg-export" href="/api/gpkg/export" download data-role-hide="talkoolainen">Vie GPKG</a>
+        <button id="btn-gpkg-import" data-role-hide="talkoolainen">Tuo GPKG</button>
+        <input id="gpkg-file-input" type="file" accept=".gpkg" hidden />
+        <span id="gpkg-import-status" class="gpkg-import-status" data-role-hide="talkoolainen"></span>
       </div>
 
       <div id="app-main">

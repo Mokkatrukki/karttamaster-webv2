@@ -13,6 +13,7 @@ import { AuthScreen } from './ui/auth-screen'
 import { TILE_LAYERS } from './logic/tile-layers'
 import { fetchMarkers } from './logic/sync'
 import { SnapshotPanel } from './ui/snapshot-panel'
+import { GpkgControls } from './ui/gpkg-controls'
 import { StatusPanel } from './ui/status-panel'
 import { calcAllRouteStatus } from './logic/route-status'
 import { setRole, getRole } from './logic/role'
@@ -408,6 +409,11 @@ const authScreen = new AuthScreen(({ role, code }) => {
     snapshotPanel.open()
     toolbarMenu.classList.remove('open')
   })
+  new GpkgControls(
+    document.getElementById('btn-gpkg-import') as HTMLButtonElement,
+    document.getElementById('gpkg-file-input') as HTMLInputElement,
+    document.getElementById('gpkg-import-status') as HTMLElement,
+  )
   init(code).catch(console.error)
 })
 authScreen.start().catch(console.error)
