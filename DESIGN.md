@@ -170,6 +170,13 @@ metsässä, hanskat kädessä.
 - Lista: scrollable, `border-card`-separaattorit, `11px text-muted`
 - Palauta-nappi: `danger-soft` tausta, `danger-text` — vaarallinen toiminto = punainen
 
+### GpkgControls (`#btn-gpkg-export`, `#btn-gpkg-import`) — T127
+- Vain järjestäjälle/adminille — piilotus `body[data-role="talkoolainen"]`-CSS-selektorilla (**ei** `data-role-hide`-attribuutti, se on kertaluontoinen eikä reagoi live rooli-togglelle, ks. U7)
+- `#toolbar-menu a` saa saman tyylin kuin `#toolbar-menu button` (yhtenäinen selektori `#toolbar-menu button, #toolbar-menu a`) — muuten ankkuri renderöityisi oletustyylillä (sininen, alleviivattu)
+- "Vie GPKG": plain `<a href download>`, ei JS:ää — selain lähettää session-cookien mukana
+- "Tuo GPKG": avaa piilotetun file-inputin, `min-height: 44px` (§R pakollinen)
+- `.gpkg-import-status`: `12px`, `text-muted`, `display:block` oman rivinsä — ei riko menun leveyttä (`min-width:200px` riittää)
+
 ### Marker-modaali (`#marker-modal`)
 - Tausta: `bg-card`, border: `border-default`, `border-radius: 14px`
 - Shadow: `0 16px 48px rgba(0,0,0,0.5)`
