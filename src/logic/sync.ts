@@ -13,6 +13,8 @@ interface ServerMarker {
   color: string | null
   short_label: string | null
   bearing_manual: number
+  description: string | null
+  images: string[]
 }
 
 function fromServer(row: ServerMarker): SignMarker {
@@ -29,6 +31,8 @@ function fromServer(row: ServerMarker): SignMarker {
     ...(row.location_note != null ? { locationNote: row.location_note } : {}),
     ...(row.color != null ? { color: row.color } : {}),
     ...(row.short_label != null ? { shortLabel: row.short_label } : {}),
+    ...(row.description != null ? { description: row.description } : {}),
+    ...(row.images && row.images.length > 0 ? { images: row.images } : {}),
   }
 }
 

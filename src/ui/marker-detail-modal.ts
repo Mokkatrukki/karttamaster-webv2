@@ -135,11 +135,88 @@ export class MarkerDetailModal {
     body.appendChild(noteLabel)
     body.appendChild(noteInput)
 
-    // T103 placeholder
-    const descPlaceholder = document.createElement('p')
-    descPlaceholder.className = 'marker-detail-placeholder'
-    descPlaceholder.textContent = 'Kuvaus tulossa (T103)'
-    body.appendChild(descPlaceholder)
+    // T103: description — järjestäjä muokkaa, talkoolainen readonly
+    const descLabel = document.createElement('label')
+    descLabel.className = 'marker-detail-label'
+    descLabel.textContent = 'Kuvaus'
+    body.appendChild(descLabel)
+
+    if (isJarjestaja) {
+      const descInput = document.createElement('textarea')
+      descInput.className = 'marker-detail-description'
+      descInput.placeholder = 'Lisäkuvaus merkille...'
+      descInput.rows = 2
+      descInput.value = marker.description ?? ''
+      descInput.addEventListener('blur', () => {
+        this.manager.updateDescription(marker.id, descInput.value)
+        this.onUpdate()
+      })
+      body.appendChild(descInput)
+    } else {
+      const descText = document.createElement('p')
+      descText.className = 'marker-detail-description-readonly'
+      descText.textContent = marker.description || 'Ei kuvausta'
+      body.appendChild(descText)
+    }
+
+    // T103: kuvat — thumbnail-galleria + järjestäjälle kameran/tiedoston lataus
+    const imagesSection = document.createElement('div')
+    imagesSection.className = 'marker-detail-images'
+
+    const images = marker.images ?? []
+    if (images.length > 0) {
+      const gallery = document.createElement('div')
+      gallery.className = 'marker-detail-image-gallery'
+      images.forEach((url) => {
+        const img = document.createElement('img')
+        img.className = 'marker-detail-image-thumb'
+        img.src = url
+        img.loading = 'lazy'
+        img.alt = 'Merkin kuva'
+        img.addEventListener('error', () => {
+          const placeholder = document.createElement('div')
+          placeholder.className = 'marker-detail-image-placeholder'
+          placeholder.textContent = '[kuva ei saatavilla]'
+          img.replaceWith(placeholder)
+        })
+        gallery.appendChild(img)
+      })
+      imagesSection.appendChild(gallery)
+    } else if (!isJarjestaja) {
+      const noImg = document.createElement('p')
+      noImg.className = 'marker-detail-placeholder'
+      noImg.textContent = 'Ei kuvia'
+      imagesSection.appendChild(noImg)
+    }
+
+    if (isJarjestaja) {
+      const addImageBtn = document.createElement('button')
+      addImageBtn.type = 'button'
+      addImageBtn.className = 'marker-detail-add-image-btn'
+      addImageBtn.textContent = '📷 Lisää kuva'
+
+      const fileInput = document.createElement('input')
+      fileInput.type = 'file'
+      fileInput.accept = 'image/*'
+      fileInput.setAttribute('capture', 'environment')
+      fileInput.className = 'marker-detail-image-input'
+      fileInput.hidden = true
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files?.[0]
+        if (!file) return
+        addImageBtn.disabled = true
+        this.manager.addImage(marker.id, file)
+          .then(() => { this.onUpdate(); this.refresh(marker.id) })
+          .catch(() => { addImageBtn.disabled = false })
+        fileInput.value = ''
+      })
+      addImageBtn.addEventListener('click', () => fileInput.click())
+
+      imagesSection.appendChild(addImageBtn)
+      imagesSection.appendChild(fileInput)
+    }
+
+    body.appendChild(imagesSection)
 
     frag.appendChild(body)
 

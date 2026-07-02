@@ -79,14 +79,14 @@ server/       ← Hono + Bun + SQLite
 | AreaPanel | `src/ui/area-panel.ts` 367 riv | ✓ valmis | area-interaction | [ui.md](docs/components/ui.md) |
 | AreaView | `src/ui/area-view.ts` | ✓ valmis | — | [ui.md](docs/components/ui.md) |
 | GpsDrivePanel | `src/ui/gps-drive-panel.ts` | ✓ T30 | — | [ui.md](docs/components/ui.md) |
-| MarkerDetailModal | `src/ui/marker-detail-modal.ts` 266 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
+| MarkerDetailModal | `src/ui/marker-detail-modal.ts` 343 riv | ✓ T103 (kuvaus+kuvat) | — | [ui.md](docs/components/ui.md) |
 | FeedbackWidget | `src/devtools/feedback-widget.ts` 494 riv | ✓ devtools | feedback-widget | — |
 | BackendServer | `server/index.ts` | ✓ T41 | — | [backend.md](docs/components/backend.md) |
 | DatabaseLayer | `server/db.ts` 151 riv | ✓ valmis | — | [backend.md](docs/components/backend.md) |
 | SegmentsAPI | `server/routes/segments.ts` | ✓ T61 | — | [backend.md](docs/components/backend.md) |
 | AuthRoutes | `server/routes/auth.ts` | ✓ T36 | — | [backend.md](docs/components/backend.md) |
 | AdminRoutes | `server/routes/admin.ts` | ✓ T121 (users/invites/codes/is_active/reset-password) | — | [backend.md](docs/components/backend.md) |
-| MarkersAPI | `server/routes/markers.ts` | ✓ T47 | — | [backend.md](docs/components/backend.md) |
+| MarkersAPI | `server/routes/markers.ts` | ✓ T47+T103 (description+images) | — | [backend.md](docs/components/backend.md) |
 | AreasAPI | `server/routes/areas.ts` 231 riv | ✓ valmis | area-interaction | [backend.md](docs/components/backend.md) |
 | DevFeedbackAPI | `server/routes/devfeedback.ts` | ✓ valmis | — | [backend.md](docs/components/backend.md) |
 | AuthMiddleware | `server/middleware/auth.ts` | ✓ valmis | — | [backend.md](docs/components/backend.md) |
@@ -151,7 +151,7 @@ Lisää: [backend.md — Vaiheistus](docs/components/backend.md)
 | `src/main.ts` | **414** | ⚠️ KRIITTINEN — 5× liian iso init-tiedostolle, pilkottava (T12/T32) |
 | `src/map/map-rect-editor.ts` | **316** | Seuraa — erota drag-logiikka jos kasvaa >400 riv |
 | `src/ui/sign-library-panel.ts` | **340** | Seuraa |
-| `src/ui/marker-detail-modal.ts` | **266** | Seuraa |
+| `src/ui/marker-detail-modal.ts` | **343** | Seuraa — kasvoi T103:ssa (kuvaus+kuvat), harkitse pilkkoa jos >400 riv |
 | `src/map/area-overlay.ts` | **261** | Seuraa |
 | `src/map/markers.ts` | **294** | Seuraa — pilkottava ennen T10 |
 | `src/map/marker-interaction.ts` | **179** | Seuraa — jos kasvaa >250 riv, erota rotation omaksi |

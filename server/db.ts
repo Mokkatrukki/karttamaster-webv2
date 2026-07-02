@@ -116,6 +116,14 @@ function initSchema(db: Database): void {
       rotation REAL NOT NULL DEFAULT 0,
       color TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS marker_images (
+      id TEXT PRIMARY KEY,
+      marker_id TEXT NOT NULL REFERENCES markers(id) ON DELETE CASCADE,
+      content_type TEXT NOT NULL,
+      data BLOB NOT NULL,
+      created_at TEXT NOT NULL
+    );
   `)
 
   // Migraatiot — idempotent ALTER TABLE (epäonnistuu hiljaa jos kolumni jo on)
@@ -123,6 +131,7 @@ function initSchema(db: Database): void {
   try { db.exec('ALTER TABLE markers ADD COLUMN short_label TEXT') } catch { /* already exists */ }
   try { db.exec('ALTER TABLE markers ADD COLUMN bearing_manual INTEGER NOT NULL DEFAULT 0') } catch { /* already exists */ }
   try { db.exec('ALTER TABLE users ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1') } catch { /* already exists */ }
+  try { db.exec('ALTER TABLE markers ADD COLUMN description TEXT') } catch { /* already exists */ }
 
   const existing = db.query<{ count: number }, []>(
     "SELECT COUNT(*) as count FROM map_state WHERE key='status'"

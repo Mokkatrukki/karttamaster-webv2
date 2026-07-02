@@ -2330,6 +2330,88 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   margin: 0;
 }
 
+/* === T103: kuvaus + kuvat === */
+
+.marker-detail-description {
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 10px;
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+}
+
+.marker-detail-description:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.marker-detail-description-readonly {
+  font-size: 13px;
+  color: var(--text-body);
+  margin: 0 0 12px 0;
+}
+
+.marker-detail-images {
+  margin-bottom: 4px;
+}
+
+.marker-detail-image-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.marker-detail-image-thumb {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+}
+
+.marker-detail-image-placeholder {
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 9px;
+  color: var(--text-meta);
+  background: var(--field-tint);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.marker-detail-add-image-btn {
+  min-height: 44px;
+  width: 100%;
+  padding: 8px 14px;
+  background: var(--field-tint);
+  color: var(--text-body);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.marker-detail-add-image-btn:hover {
+  background: var(--hover);
+}
+
+.marker-detail-add-image-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* === Modal footer -pattern (yhteinen kaikille modaaleille) === */
 .modal-footer {
   position: sticky;

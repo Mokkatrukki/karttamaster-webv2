@@ -382,7 +382,8 @@ CSS-luokat:
 - Leveys: `min(480px,92vw)`, `max-height:80vh`, scrollable sisältö
 - Otsikko-rivi: type-label + km `text-primary 14px bold`, ✕-nappi `min-height:44px min-width:44px`
 - `locationNote`: `<textarea>` `min-height:80px`, `field-tint`, placeholder `"Lisää kommentti... (esim: kiinnitä puuhun)"` — auto-save blurilla + eksplisiittinen "Tallenna"-nappi footerissa
-- Kuvaus-osio: placeholder `text-muted 12px "Kuvaus tulossa (T103)"` kunnes T103 valmis
+- Kuvaus-osio (T103): järjestäjälle `.marker-detail-description` textarea (`min-height:56px`, `field-tint`, auto-save blurilla), talkoolaiselle `.marker-detail-description-readonly` teksti (tai "Ei kuvausta")
+- Kuvat-osio (T103): `.marker-detail-image-gallery` — thumbnailit `72×72px, object-fit:cover, radius-sm`. Lazy-load (`loading="lazy"`) + `onerror` → `.marker-detail-image-placeholder` (`"[kuva ei saatavilla]"`, ei spinneriä). Järjestäjälle `.marker-detail-add-image-btn` (`min-height:44px;width:100%`, katkoviivareunus) avaa piilotetun `<input type="file" accept="image/*" capture="environment">` — mobiilissa avaa kameran suoraan.
 - Footer (Modal footer -pattern):
   - Talkoolainen: `[Aseta] [Ei tarpeen]` — primary + secondary
   - Järjestäjä: `[Tallenna] [↻ Käännä]` + footer-destructive rivillä `[Poista merkki]` (pieni, `danger-text`)

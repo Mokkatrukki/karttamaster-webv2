@@ -21,6 +21,8 @@ const makeMockManager = (marker: SignMarker) => ({
   updateType: vi.fn(),
   remove: vi.fn(),
   panTo: vi.fn(),
+  updateDescription: vi.fn(),
+  addImage: vi.fn().mockResolvedValue(undefined),
 })
 
 describe('MarkerDetailModal', () => {
@@ -238,6 +240,118 @@ describe('MarkerDetailModal', () => {
     deleteBtn!.click()
     expect(manager.remove).toHaveBeenCalledWith('test-id')
     expect(document.querySelector('.marker-detail-modal')).toBeNull()
+  })
+
+  // ── T103: kuvaus + kuvat ──────────────────────────────────────────────
+
+  it('T103: järjestäjä näkee muokattavan kuvaus-textarean', () => {
+    const marker = makeMarker({ description: 'Kiinnitä puuhun' })
+    const manager = makeMockManager(marker)
+    const modal = new MarkerDetailModal(
+      manager as any,
+      () => null,
+      () => 'järjestäjä',
+      vi.fn(),
+      vi.fn(),
+    )
+    modal.open('test-id')
+    const textarea = document.querySelector<HTMLTextAreaElement>('.marker-detail-description')
+    expect(textarea?.value).toBe('Kiinnitä puuhun')
+  })
+
+  it('T103: kuvaus-textarea auto-save blurilla', () => {
+    const marker = makeMarker()
+    const manager = makeMockManager(marker)
+    const onUpdate = vi.fn()
+    const modal = new MarkerDetailModal(
+      manager as any,
+      () => null,
+      () => 'järjestäjä',
+      vi.fn(),
+      onUpdate,
+    )
+    modal.open('test-id')
+    const textarea = document.querySelector<HTMLTextAreaElement>('.marker-detail-description')!
+    textarea.value = 'Uusi kuvaus'
+    textarea.dispatchEvent(new Event('blur'))
+    expect(manager.updateDescription).toHaveBeenCalledWith('test-id', 'Uusi kuvaus')
+    expect(onUpdate).toHaveBeenCalled()
+  })
+
+  it('T103: talkoolainen näkee kuvauksen readonly-tekstinä, ei textareaa', () => {
+    const marker = makeMarker({ description: 'Kiinnitä puuhun' })
+    const manager = makeMockManager(marker)
+    const modal = new MarkerDetailModal(
+      manager as any,
+      () => null,
+      () => 'talkoolainen',
+      vi.fn(),
+      vi.fn(),
+    )
+    modal.open('test-id')
+    expect(document.querySelector('.marker-detail-description')).toBeNull()
+    expect(document.querySelector('.marker-detail-description-readonly')?.textContent).toBe('Kiinnitä puuhun')
+  })
+
+  it('T103: talkoolainen näkee "Ei kuvausta" kun description puuttuu', () => {
+    const marker = makeMarker()
+    const manager = makeMockManager(marker)
+    const modal = new MarkerDetailModal(
+      manager as any,
+      () => null,
+      () => 'talkoolainen',
+      vi.fn(),
+      vi.fn(),
+    )
+    modal.open('test-id')
+    expect(document.querySelector('.marker-detail-description-readonly')?.textContent).toBe('Ei kuvausta')
+  })
+
+  it('T103: järjestäjä näkee "Lisää kuva" -napin, talkoolainen ei', () => {
+    const marker = makeMarker()
+    const jManager = makeMockManager(marker)
+    const jModal = new MarkerDetailModal(jManager as any, () => null, () => 'järjestäjä', vi.fn(), vi.fn())
+    jModal.open('test-id')
+    expect(document.querySelector('.marker-detail-add-image-btn')).not.toBeNull()
+
+    document.body.innerHTML = ''
+    const tManager = makeMockManager(marker)
+    const tModal = new MarkerDetailModal(tManager as any, () => null, () => 'talkoolainen', vi.fn(), vi.fn())
+    tModal.open('test-id')
+    expect(document.querySelector('.marker-detail-add-image-btn')).toBeNull()
+  })
+
+  it('T103: renderöi kuva-thumbnailit marker.images-listasta', () => {
+    const marker = makeMarker({ images: ['/api/markers/test-id/images/a', '/api/markers/test-id/images/b'] })
+    const manager = makeMockManager(marker)
+    const modal = new MarkerDetailModal(manager as any, () => null, () => 'järjestäjä', vi.fn(), vi.fn())
+    modal.open('test-id')
+    const thumbs = document.querySelectorAll('.marker-detail-image-thumb')
+    expect(thumbs.length).toBe(2)
+  })
+
+  it('T103: kuva-onerror näyttää offline-placeholderin lazy-loadin sijaan', () => {
+    const marker = makeMarker({ images: ['/api/markers/test-id/images/a'] })
+    const manager = makeMockManager(marker)
+    const modal = new MarkerDetailModal(manager as any, () => null, () => 'järjestäjä', vi.fn(), vi.fn())
+    modal.open('test-id')
+    const img = document.querySelector<HTMLImageElement>('.marker-detail-image-thumb')!
+    img.dispatchEvent(new Event('error'))
+    expect(document.querySelector('.marker-detail-image-thumb')).toBeNull()
+    expect(document.querySelector('.marker-detail-image-placeholder')?.textContent).toBe('[kuva ei saatavilla]')
+  })
+
+  it('T103: tiedoston valinta kutsuu manager.addImage', async () => {
+    const marker = makeMarker()
+    const manager = makeMockManager(marker)
+    const modal = new MarkerDetailModal(manager as any, () => null, () => 'järjestäjä', vi.fn(), vi.fn())
+    modal.open('test-id')
+    const fileInput = document.querySelector<HTMLInputElement>('.marker-detail-image-input')!
+    const file = new File(['x'], 'kuva.jpg', { type: 'image/jpeg' })
+    Object.defineProperty(fileInput, 'files', { value: [file] })
+    fileInput.dispatchEvent(new Event('change'))
+    await Promise.resolve()
+    expect(manager.addImage).toHaveBeenCalledWith('test-id', file)
   })
 
   it('rotate-nappi kutsuu onArmRequest + sulkee modaalin', () => {

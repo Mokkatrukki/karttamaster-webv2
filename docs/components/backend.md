@@ -93,8 +93,19 @@ CREATE TABLE markers (
   status TEXT NOT NULL DEFAULT 'suunniteltu',
   location_note TEXT,
   updated_at TEXT NOT NULL,
-  updated_by TEXT                   -- display_name kuka muutti
+  updated_by TEXT,                  -- display_name kuka muutti
+  description TEXT                  -- T103: lisäkuvaus, järjestäjä muokkaa
 );
+
+-- Merkkien kuvat (T103) — blob suoraan sqliteen, ei erillistä tiedostovarastoa
+CREATE TABLE marker_images (
+  id TEXT PRIMARY KEY,
+  marker_id TEXT NOT NULL REFERENCES markers(id) ON DELETE CASCADE,
+  content_type TEXT NOT NULL,
+  data BLOB NOT NULL,               -- max 8MB per kuva (MAX_IMAGE_BYTES)
+  created_at TEXT NOT NULL
+);
+-- GET /api/markers palauttaa images: string[] URLina (/api/markers/:id/images/:imageId)
 
 -- Info-pisteet (POI) — sama logiikka kuin merkit, eri näkymä
 CREATE TABLE poi (
@@ -281,8 +292,10 @@ POST   /api/auth/register           → rekisteröidy invite-tokenilla
 # Merkit
 GET    /api/markers                 → kaikki merkit (403 jos luonnos + talkoolainen)
 POST   /api/markers                 → uusi merkki (järjestäjä+)
-PUT    /api/markers/:id             → päivitä (status: kaikki, sijainti: järjestäjä+)
+PUT    /api/markers/:id             → päivitä (status: kaikki, sijainti+description: järjestäjä+)
 DELETE /api/markers/:id             → poista (järjestäjä+)
+POST   /api/markers/:id/images      → lataa kuva (multipart, field "image", järjestäjä+, max 8MB) (T103)
+GET    /api/markers/:id/images/:imageId → palauttaa kuvan blobina (kaikki autentikoidut) (T103)
 
 # POI (vaihe 3)
 GET    /api/poi                     → kaikki POI:t

@@ -71,6 +71,35 @@ describe('fetchMarkers', () => {
     expect(markers).toEqual([])
   })
 
+  it('T103: maps description and images from server', async () => {
+    const withDesc = {
+      ...SERVER_MARKER,
+      description: 'Kiinnitä puuhun',
+      images: ['/api/markers/test-id/images/img1'],
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [withDesc],
+    }))
+
+    const markers = await fetchMarkers()
+    expect(markers[0].description).toBe('Kiinnitä puuhun')
+    expect(markers[0].images).toEqual(['/api/markers/test-id/images/img1'])
+  })
+
+  it('T103: omits description/images fields when absent (SignMarker accepts optional fields)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [SERVER_MARKER],
+    }))
+
+    const markers = await fetchMarkers()
+    expect(markers[0].description).toBeUndefined()
+    expect(markers[0].images).toBeUndefined()
+  })
+
   it('returns [] when server returns []', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,

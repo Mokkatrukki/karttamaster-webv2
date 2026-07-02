@@ -279,4 +279,142 @@ describe('T47: Markers REST API', () => {
       expect(res.status).toBe(401)
     })
   })
+
+  // ── T103: description + images ──────────────────────────────────────────
+
+  describe('PUT /api/markers/:id — description', () => {
+    test('järjestäjä asettaa kuvauksen', async () => {
+      const id = await seedMarker(db)
+      const res = await makeApp(db).request(`/api/markers/${id}`, {
+        method: 'PUT',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: 'Kiinnitä puuhun, näkyy tieltä' }),
+      })
+      expect(res.status).toBe(200)
+      const body = await res.json() as MarkerJson & { description: string | null }
+      expect(body.description).toBe('Kiinnitä puuhun, näkyy tieltä')
+    })
+
+    test('talkoolainen ei voi asettaa kuvausta → 403', async () => {
+      const id = await seedMarker(db)
+      const res = await makeApp(db).request(`/api/markers/${id}`, {
+        method: 'PUT',
+        headers: { ...authHeaders(db, 'talkoolainen'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: 'yritys' }),
+      })
+      expect(res.status).toBe(403)
+    })
+  })
+
+  describe('GET /api/markers — images', () => {
+    test('merkillä on tyhjä images-lista oletuksena', async () => {
+      await seedMarker(db)
+      const res = await makeApp(db).request('/api/markers', { headers: authHeaders(db, 'järjestäjä') })
+      const body = await res.json() as Array<MarkerJson & { images: string[] }>
+      expect(body[0].images).toEqual([])
+    })
+  })
+
+  describe('POST /api/markers/:id/images', () => {
+    test('järjestäjä lataa kuvan → palauttaa url', async () => {
+      const id = await seedMarker(db)
+      const form = new FormData()
+      form.append('image', makeUploadFile())
+      const res = await makeApp(db).request(`/api/markers/${id}/images`, {
+        method: 'POST',
+        headers: authHeaders(db, 'järjestäjä'),
+        body: form,
+      })
+      expect(res.status).toBe(201)
+      const body = await res.json() as { url: string }
+      expect(body.url).toMatch(new RegExp(`^/api/markers/${id}/images/`))
+    })
+
+    test('kuva näkyy sen jälkeen GET /api/markers images-listassa', async () => {
+      const id = await seedMarker(db)
+      const form = new FormData()
+      form.append('image', makeUploadFile())
+      await makeApp(db).request(`/api/markers/${id}/images`, {
+        method: 'POST',
+        headers: authHeaders(db, 'järjestäjä'),
+        body: form,
+      })
+      const res = await makeApp(db).request('/api/markers', { headers: authHeaders(db, 'järjestäjä') })
+      const body = await res.json() as Array<MarkerJson & { images: string[] }>
+      expect(body[0].images.length).toBe(1)
+    })
+
+    test('talkoolainen ei voi ladata kuvaa → 403', async () => {
+      const id = await seedMarker(db)
+      const form = new FormData()
+      form.append('image', makeUploadFile())
+      const res = await makeApp(db).request(`/api/markers/${id}/images`, {
+        method: 'POST',
+        headers: authHeaders(db, 'talkoolainen'),
+        body: form,
+      })
+      expect(res.status).toBe(403)
+    })
+
+    test('ei-kuva-tiedosto hylätään → 400', async () => {
+      const id = await seedMarker(db)
+      const form = new FormData()
+      form.append('image', new File(['not an image'], 'note.txt', { type: 'text/plain' }))
+      const res = await makeApp(db).request(`/api/markers/${id}/images`, {
+        method: 'POST',
+        headers: authHeaders(db, 'järjestäjä'),
+        body: form,
+      })
+      expect(res.status).toBe(400)
+    })
+
+    test('tuntematon merkki → 404', async () => {
+      const form = new FormData()
+      form.append('image', makeUploadFile())
+      const res = await makeApp(db).request('/api/markers/ei-ole/images', {
+        method: 'POST',
+        headers: authHeaders(db, 'järjestäjä'),
+        body: form,
+      })
+      expect(res.status).toBe(404)
+    })
+  })
+
+  describe('GET /api/markers/:id/images/:imageId', () => {
+    test('palauttaa kuvan oikealla content-typellä', async () => {
+      const id = await seedMarker(db)
+      const form = new FormData()
+      form.append('image', makeUploadFile())
+      const uploadRes = await makeApp(db).request(`/api/markers/${id}/images`, {
+        method: 'POST',
+        headers: authHeaders(db, 'järjestäjä'),
+        body: form,
+      })
+      const { url } = await uploadRes.json() as { url: string }
+
+      const res = await makeApp(db).request(url, { headers: authHeaders(db, 'talkoolainen') })
+      expect(res.status).toBe(200)
+      expect(res.headers.get('content-type')).toBe('image/jpeg')
+      const bytes = new Uint8Array(await res.arrayBuffer())
+      expect(bytes.length).toBeGreaterThan(0)
+    })
+
+    test('tuntematon kuva → 404', async () => {
+      const id = await seedMarker(db)
+      const res = await makeApp(db).request(`/api/markers/${id}/images/ei-ole`, {
+        headers: authHeaders(db, 'järjestäjä'),
+      })
+      expect(res.status).toBe(404)
+    })
+
+    test('unauthenticated → 401', async () => {
+      const id = await seedMarker(db)
+      const res = await makeApp(db).request(`/api/markers/${id}/images/ei-ole`)
+      expect(res.status).toBe(401)
+    })
+  })
 })
+
+function makeUploadFile(): File {
+  return new File([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], 'kuva.jpg', { type: 'image/jpeg' })
+}

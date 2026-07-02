@@ -21,4 +21,6 @@ export interface SignMarker {
   color?: string          // custom template color (ei default-4 tyypeille)
   shortLabel?: string     // custom template lyhenne
   bearingManual?: boolean // true jos käyttäjä on manuaalisesti kääntänyt merkkiä — dragend ei ylikirjoita
+  description?: string    // T103: lisäkuvaus, järjestäjä muokkaa
+  images?: string[]       // T103: kuva-URL:t (server/routes/markers.ts POST :id/images)
 }

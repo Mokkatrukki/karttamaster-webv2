@@ -230,6 +230,25 @@ export class MarkerManager {
     this.apiPut(id, { location_note: note || null })
   }
 
+  // T103
+  updateDescription(id: string, description: string): void {
+    const m = this.markers.find((x) => x.id === id)
+    if (!m) return
+    m.description = description || undefined
+    this.apiPut(id, { description: description || null })
+  }
+
+  // T103 — multipart upload, appends resulting URL to marker.images
+  async addImage(id: string, file: File): Promise<void> {
+    const form = new FormData()
+    form.append('image', file)
+    const res = await fetch(`/api/markers/${id}/images`, { method: 'POST', body: form })
+    if (!res.ok) throw new Error('image_upload_failed')
+    const data = await res.json() as { url: string }
+    const m = this.markers.find((x) => x.id === id)
+    if (m) m.images = [...(m.images ?? []), data.url]
+  }
+
   private addLeafletMarker(m: SignMarker): void {
     const icon = createSignIcon(m.type, m.bearing, m.status, m.color, m.shortLabel)
     const lm = L.marker([m.lat, m.lon], { icon, draggable: true }).addTo(this.map)
