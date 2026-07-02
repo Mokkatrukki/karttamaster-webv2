@@ -437,17 +437,17 @@ TEST_USERS.talkoolainen.code      // 'TEST-KOODI-1'
 - ✓ `markersToGeoJSON(rows)` — MarkerRow[] → FeatureCollection<Point>, vain id/type/bearing/description (ei color/status/routeIds/locationNote/images)
 - ✓ `geoJSONToMarkers(fc)` — käänteinen parsinta, puuttuva description → null
 
-### Ominaisuudet (T125)
+### Ominaisuudet (T125, T126)
 - ✓ `server/gpkg/convert.ts` — `geoJSONToGpkg`/`gpkgToGeoJSON`, ogr2ogr subprocess (tempdir per kutsu, siivoaa jälkensä)
 - ✓ `GET /api/gpkg/export` (`server/routes/gpkg.ts`) — järjestäjä+, koko markerdata → `.gpkg`-lataus (layer "kyltit"). 503 jos GDAL ei asennettu palvelimella.
+- ✓ `POST /api/gpkg/import` — multipart upload `.gpkg`, upsert id:n perusteella: olemassa oleva id päivittää `type/bearing/lat/lon/description` (status+routeIds koskematta), uusi id luo `status='suunniteltu'`-merkin. Palauttaa `{created, updated}`.
 
 ### Tulossa
-- [ ] `POST /api/gpkg/import` — upload .gpkg, upsert id:n perusteella (T126)
 - [ ] UI-napit järjestäjän näkymään (T127)
 - [ ] `apk add gdal` Dockerfileen (T128)
 
 ### Käyttäjätarkistus
-> Järjestäjä: export toimii itsenäisesti nyt — voi ladata `.gpkg`-tiedoston ja avata QGIS:ssä. Round-trip (tuonti takaisin) valmistuu T126:ssa.
+> Järjestäjä: round-trip toimii nyt palvelinpuolella (export + import). Ei vielä UI:ta — testattu suoraan API:n kautta. UI-napit T127.
 
 ---
 
