@@ -2677,8 +2677,22 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   gap: 6px;
 }
 
+.admin-whatsapp-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  background: var(--confirm);
+  color: var(--confirm-text);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
 .admin-toggle-active-btn,
-.admin-copy-invite-btn {
+.admin-copy-invite-btn,
+.admin-reset-password-btn {
   min-height: 44px;
   padding: 6px 12px;
   background: var(--field-tint);
@@ -2690,7 +2704,8 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 }
 
 .admin-toggle-active-btn:hover,
-.admin-copy-invite-btn:hover {
+.admin-copy-invite-btn:hover,
+.admin-reset-password-btn:hover {
   background: var(--hover);
 }
 

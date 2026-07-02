@@ -12,6 +12,7 @@ export interface AdminPageCallbacks {
   onToggleActive: (user: AdminUser) => void
   onInvite: () => void
   onCopyInvite: (user: AdminUser) => void
+  onResetPassword: (user: AdminUser) => void
 }
 
 export function renderAdminUsers(container: HTMLElement, users: AdminUser[], callbacks: AdminPageCallbacks): void {
@@ -95,6 +96,14 @@ function buildUserRow(user: AdminUser, callbacks: AdminPageCallbacks): HTMLTable
     copyBtn.textContent = 'Kopioi kutsulinkki'
     copyBtn.addEventListener('click', () => callbacks.onCopyInvite(user))
     actionsTd.appendChild(copyBtn)
+  }
+
+  if (active) {
+    const resetBtn = document.createElement('button')
+    resetBtn.className = 'admin-reset-password-btn'
+    resetBtn.textContent = 'Resetoi salasana'
+    resetBtn.addEventListener('click', () => callbacks.onResetPassword(user))
+    actionsTd.appendChild(resetBtn)
   }
 
   tr.append(nameTd, usernameTd, roleTd, createdTd, statusTd, actionsTd)

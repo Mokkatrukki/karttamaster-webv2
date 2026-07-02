@@ -182,7 +182,7 @@ DOM-komponentit ilman Leafletia. **Testattavuus: Vitest-jsdom.**
 
 ---
 
-## AdminPage — T122 ✓
+## AdminPage — T122+T123 ✓
 **Vastuu:** Käyttäjähallinta admin-roolille — käyttäjälista, deaktivointi/aktivointi, kutsut, kutsulinkkien kopiointi
 **Käyttäjä:** admin (ei talkoolainen eikä pelkkä järjestäjä)
 **Konteksti:** erillinen entrypoint `/admin`, ei jaa runkoa karttanäkymän kanssa — ei karttaa, ei left-panel. Toimii mobiililla (kapea keskitetty layout).
@@ -196,9 +196,7 @@ DOM-komponentit ilman Leafletia. **Testattavuus: Vitest-jsdom.**
 - ✓ "Kutsu uusi järjestäjä" → `POST /api/admin/invites` → banner + kopiointi
 - ✓ Per-rivi "Kopioi kutsulinkki" kun `invite_token` ei-null (odottava kutsu)
 - ✓ 403/ei-admin → `renderForbidden()`, ei pääsyä taulukkoon
-
-### Tulossa
-- [ ] "Resetoi salasana" -nappi per rivi (T123)
+- ✓ Per-rivi "Resetoi salasana" (vain aktiivisille) → `POST /api/admin/users/:id/reset-password` → banner + "Lähetä WhatsAppilla" (`wa.me`-linkki)
 
 ### Käyttäjätarkistus
 > Admin: käyttäjälista + toiminnot yhdellä sivulla, ei ylimääräistä navigointia — täyttää VISION.md:n "alle minuutissa, kolmella klikkauksella" -kriteerin invite-flow'lle.

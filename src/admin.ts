@@ -22,7 +22,13 @@ function showBanner(url: string): void {
   copyBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(url).catch(() => { /* clipboard unavailable */ })
   })
-  banner.append(span, copyBtn)
+  const waLink = document.createElement('a')
+  waLink.href = `https://wa.me/?text=${encodeURIComponent(url)}`
+  waLink.target = '_blank'
+  waLink.rel = 'noopener'
+  waLink.className = 'admin-whatsapp-link'
+  waLink.textContent = 'Lähetä WhatsAppilla'
+  banner.append(span, copyBtn, waLink)
 }
 
 async function loadUsers(): Promise<void> {
@@ -57,6 +63,14 @@ async function loadUsers(): Promise<void> {
       try {
         await navigator.clipboard.writeText(url)
       } catch { /* clipboard unavailable */ }
+    },
+    onResetPassword: async (user) => {
+      const res = await fetch(`/api/admin/users/${user.id}/reset-password`, { method: 'POST' })
+      if (res.ok) {
+        const data = await res.json() as { inviteUrl: string }
+        showBanner(`${window.location.origin}${data.inviteUrl}`)
+      }
+      await loadUsers()
     },
   })
 }

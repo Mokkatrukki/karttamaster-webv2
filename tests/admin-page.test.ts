@@ -20,6 +20,7 @@ function makeCallbacks(): AdminPageCallbacks {
     onToggleActive: vi.fn(),
     onInvite: vi.fn(),
     onCopyInvite: vi.fn(),
+    onResetPassword: vi.fn(),
   }
 }
 
@@ -81,6 +82,22 @@ describe('T122: AdminPage renderAdminUsers', () => {
     expect(btn).toBeTruthy()
     btn.click()
     expect(callbacks.onCopyInvite).toHaveBeenCalledWith(expect.objectContaining({ invite_token: 'tok-123' }))
+  })
+
+  test('T123: active user has "Resetoi salasana" button, deactivated user does not', () => {
+    renderAdminUsers(container, [makeUser({ id: 'u1', is_active: 1 })], makeCallbacks())
+    expect(container.querySelector('.admin-reset-password-btn')).toBeTruthy()
+
+    renderAdminUsers(container, [makeUser({ id: 'u1', is_active: 0 })], makeCallbacks())
+    expect(container.querySelector('.admin-reset-password-btn')).toBeFalsy()
+  })
+
+  test('T123: clicking "Resetoi salasana" calls onResetPassword with the user', () => {
+    const callbacks = makeCallbacks()
+    const user = makeUser({ id: 'u1', is_active: 1 })
+    renderAdminUsers(container, [user], callbacks)
+    ;(container.querySelector('.admin-reset-password-btn') as HTMLButtonElement).click()
+    expect(callbacks.onResetPassword).toHaveBeenCalledWith(user)
   })
 
   test('renderForbidden shows message and no table', () => {
