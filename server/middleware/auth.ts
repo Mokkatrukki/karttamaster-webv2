@@ -28,6 +28,13 @@ export function requireAuth() {
     ).get(sessionId, new Date().toISOString())
     if (!session) return c.json({ error: 'unauthorized' }, 401)
 
+    if (session.user_id) {
+      const user = db.query<{ is_active: number }, [string]>(
+        'SELECT is_active FROM users WHERE id = ?'
+      ).get(session.user_id)
+      if (user && user.is_active === 0) return c.json({ error: 'account_disabled' }, 401)
+    }
+
     c.set('session', session)
     await next()
   }

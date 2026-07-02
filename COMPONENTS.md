@@ -85,7 +85,7 @@ server/       ← Hono + Bun + SQLite
 | DatabaseLayer | `server/db.ts` 151 riv | ✓ valmis | — | [backend.md](docs/components/backend.md) |
 | SegmentsAPI | `server/routes/segments.ts` | ✓ T61 | — | [backend.md](docs/components/backend.md) |
 | AuthRoutes | `server/routes/auth.ts` | ✓ T36 | — | [backend.md](docs/components/backend.md) |
-| AdminRoutes | `server/routes/admin.ts` | ✓ T36 (users/invites/codes) | — | [backend.md](docs/components/backend.md) |
+| AdminRoutes | `server/routes/admin.ts` | ✓ T121 (users/invites/codes/is_active/reset-password) | — | [backend.md](docs/components/backend.md) |
 | MarkersAPI | `server/routes/markers.ts` | ✓ T47 | — | [backend.md](docs/components/backend.md) |
 | AreasAPI | `server/routes/areas.ts` 231 riv | ✓ valmis | area-interaction | [backend.md](docs/components/backend.md) |
 | DevFeedbackAPI | `server/routes/devfeedback.ts` | ✓ valmis | — | [backend.md](docs/components/backend.md) |

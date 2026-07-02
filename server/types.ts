@@ -17,4 +17,5 @@ export interface User {
   invite_token: string | null
   display_name: string | null
   created_at: string
+  is_active: number
 }

@@ -10,11 +10,32 @@ export const adminRoutes = new Hono<AuthEnv>()
 adminRoutes.get('/users', requireAuth(), requireRole('admin'), (c) => {
   const db: Database = c.get('db')
   const users = db
-    .query<Pick<User, 'id' | 'username' | 'role' | 'display_name' | 'created_at'>, []>(
-      'SELECT id, username, role, display_name, created_at FROM users ORDER BY created_at ASC',
+    .query<Pick<User, 'id' | 'username' | 'role' | 'display_name' | 'created_at' | 'is_active'>, []>(
+      'SELECT id, username, role, display_name, created_at, is_active FROM users ORDER BY created_at ASC',
     )
     .all()
   return c.json(users)
+})
+
+adminRoutes.patch('/users/:id', requireAuth(), requireRole('admin'), async (c) => {
+  const db: Database = c.get('db')
+  const id = c.req.param('id')
+  const body = await c.req.json<{ is_active?: number }>().catch(() => ({}) as { is_active?: number })
+  if (body.is_active !== 0 && body.is_active !== 1) {
+    return c.json({ error: 'invalid_is_active' }, 400)
+  }
+  const result = db.run('UPDATE users SET is_active = ? WHERE id = ?', [body.is_active, id])
+  if (result.changes === 0) return c.json({ error: 'not_found' }, 404)
+  return c.json({ ok: true })
+})
+
+adminRoutes.post('/users/:id/reset-password', requireAuth(), requireRole('admin'), (c) => {
+  const db: Database = c.get('db')
+  const id = c.req.param('id')
+  const token = randomUUID()
+  const result = db.run('UPDATE users SET invite_token = ? WHERE id = ?', [token, id])
+  if (result.changes === 0) return c.json({ error: 'not_found' }, 404)
+  return c.json({ inviteUrl: `/auth/invite/${token}` })
 })
 
 adminRoutes.post('/invites', requireAuth(), requireRole('admin', 'järjestäjä'), (c) => {

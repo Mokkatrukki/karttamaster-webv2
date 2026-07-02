@@ -56,9 +56,10 @@ CREATE TABLE users (
   username TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,      -- bcrypt, null-proof
   role TEXT NOT NULL,               -- 'admin' | 'järjestäjä' | 'talkoolainen'
-  invite_token TEXT UNIQUE,         -- admin luo järjestäjälle, one-time
+  invite_token TEXT UNIQUE,         -- admin luo järjestäjälle, one-time (sama mekaniikka reset-passwordille, V76)
   display_name TEXT,                -- näytetään tilannekuvassa
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  is_active INTEGER NOT NULL DEFAULT 1  -- 0 = deaktivoitu, requireAuth() 401 myös voimassa olevalla sessiolla (V75)
 );
 
 -- Talkoolais-koodit (ei pysyvä tunnus — event-scoped)
@@ -260,7 +261,9 @@ POST   /api/auth/logout             → poista sessio
 GET    /api/auth/me                 → nykyinen sessio + rooli
 
 # Admin
-GET    /api/admin/users             → lista käyttäjistä (admin)
+GET    /api/admin/users             → lista käyttäjistä + is_active (admin)
+PATCH  /api/admin/users/:id         → {is_active: 0|1} — deaktivoi/aktivoi (admin, V74/V75)
+POST   /api/admin/users/:id/reset-password → uusi invite-token → {inviteUrl} (admin, V76)
 POST   /api/admin/invites           → luo invite-token järjestäjälle
 POST   /api/admin/codes             → luo talkoolainen-koodeja (bulk)
 DELETE /api/admin/codes/:code       → poista koodi
