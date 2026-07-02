@@ -36,12 +36,15 @@ export async function geoJSONToGpkg(fc: GpkgFeatureCollection, layerName: string
   })
 }
 
-export async function gpkgToGeoJSON(gpkgBytes: Uint8Array, layerName: string): Promise<GpkgFeatureCollection> {
+// Ei layer-nimeä: QGIS nimeää layerin uudelleen tallennuksen yhteydessä (esim.
+// "kyltit" -> "2026_testikyltit__kyltit"), joten ogr2ogr saa valita ainoan/ensimmäisen
+// layerin tiedostosta sen sijaan että vaadittaisiin täsmällistä nimeä.
+export async function gpkgToGeoJSON(gpkgBytes: Uint8Array): Promise<GpkgFeatureCollection> {
   return withTempDir(async (dir) => {
     const gpkgPath = join(dir, `${randomUUID()}.gpkg`)
     const geojsonPath = join(dir, `${randomUUID()}.geojson`)
     await Bun.write(gpkgPath, gpkgBytes)
-    await runOgr2ogr(['-f', 'GeoJSON', geojsonPath, gpkgPath, layerName])
+    await runOgr2ogr(['-f', 'GeoJSON', geojsonPath, gpkgPath])
     return JSON.parse(await Bun.file(geojsonPath).text()) as GpkgFeatureCollection
   })
 }

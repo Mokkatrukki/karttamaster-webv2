@@ -62,7 +62,7 @@ gpkgRoutes.post('/import', requireAuth(), requireRole('admin', 'järjestäjä'),
   }
 
   const gpkgBytes = new Uint8Array(await file.arrayBuffer())
-  const fc = await gpkgToGeoJSON(gpkgBytes, LAYER_NAME)
+  const fc = await gpkgToGeoJSON(gpkgBytes)
   const markers: GpkgMarkerRow[] = geoJSONToMarkers(fc)
 
   const now = new Date().toISOString()
