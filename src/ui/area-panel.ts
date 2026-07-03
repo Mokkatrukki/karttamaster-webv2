@@ -210,7 +210,7 @@ export class AreaPanel {
     swatch.style.cssText = `width:18px;height:18px;box-sizing:content-box;border-radius:4px;background:${feat.color};flex-shrink:0;border:2px solid transparent;cursor:pointer;padding:0`
     swatch.addEventListener('dblclick', (e) => {
       e.stopPropagation()
-      openFeatureColorPicker(swatch, feat.color, (newColor) => {
+      openFeatureColorPicker(feat.color, (newColor) => {
         swatch.style.background = newColor
         const updatedFeatures = area.features.map(f =>
           f.id === feat.id ? { ...f, color: newColor } : f,
@@ -290,14 +290,14 @@ export class AreaPanel {
     swatchBtn.style.cssText = `width:22px;height:22px;border-radius:4px;background:${currentColor};flex-shrink:0;border:2px solid var(--border-default);cursor:pointer;padding:0`
     swatchBtn.addEventListener('click', (e) => {
       e.stopPropagation()
-      openFeatureColorPicker(swatchBtn, currentColor, (newColor) => {
+      openFeatureColorPicker(currentColor, (newColor) => {
         currentColor = newColor
         swatchBtn.style.background = newColor
       })
     })
     swatchBtn.addEventListener('dblclick', (e) => {
       e.stopPropagation()
-      openFeatureColorPicker(swatchBtn, currentColor, (newColor) => {
+      openFeatureColorPicker(currentColor, (newColor) => {
         currentColor = newColor
         swatchBtn.style.background = newColor
       })

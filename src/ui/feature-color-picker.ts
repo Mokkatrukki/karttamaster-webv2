@@ -1,5 +1,4 @@
 export function openFeatureColorPicker(
-  anchor: HTMLElement,
   currentColor: string,
   onSelect: (color: string) => void,
 ): void {

@@ -13,6 +13,7 @@ import { AuthScreen } from './ui/auth-screen'
 import { TILE_LAYERS } from './logic/tile-layers'
 import { fetchMarkers } from './logic/sync'
 import { SnapshotPanel } from './ui/snapshot-panel'
+import { GpkgControls } from './ui/gpkg-controls'
 import { StatusPanel } from './ui/status-panel'
 import { calcAllRouteStatus } from './logic/route-status'
 import { setRole, getRole } from './logic/role'
@@ -96,6 +97,8 @@ if (btnGps) {
     }
   })
 }
+
+let activeMarkerManager: MarkerManager | null = null
 
 async function init(talkoolainenCode?: string) {
   const initialMarkers = await fetchMarkers()
@@ -256,6 +259,7 @@ async function init(talkoolainenCode?: string) {
     }
   }, initialMarkers, showDistanceWarning)
   markerManagerRef.current = markerManager
+  activeMarkerManager = markerManager
 
   markerDetailModal = new MarkerDetailModal(
     markerManager,
@@ -408,6 +412,17 @@ const authScreen = new AuthScreen(({ role, code }) => {
     snapshotPanel.open()
     toolbarMenu.classList.remove('open')
   })
+  new GpkgControls(
+    document.getElementById('btn-gpkg-import') as HTMLButtonElement,
+    document.getElementById('gpkg-file-input') as HTMLInputElement,
+    document.getElementById('gpkg-import-status') as HTMLElement,
+    async () => {
+      if (!activeMarkerManager) return
+      const markers = await fetchMarkers()
+      activeMarkerManager.reload(markers)
+      activeMarkerManager.fixOrphanRouteIds()
+    },
+  )
   init(code).catch(console.error)
 })
 authScreen.start().catch(console.error)

@@ -160,7 +160,10 @@ html, body {
   z-index: 2001;
 }
 #toolbar-menu.open { display: flex; }
-#toolbar-menu button {
+#toolbar-menu button,
+#toolbar-menu a {
+  display: flex;
+  align-items: center;
   justify-content: flex-start;
   text-align: left;
   background: transparent;
@@ -169,9 +172,13 @@ html, body {
   border-radius: var(--radius-sm);
   min-height: 44px;
   padding: 8px 12px;
+  text-decoration: none;
+  font-size: inherit;
+  font-family: inherit;
   transition: background 0.1s;
 }
-#toolbar-menu button:hover { background: var(--hover); }
+#toolbar-menu button:hover,
+#toolbar-menu a:hover { background: var(--hover); }
 
 .menu-sep {
   height: 1px;
@@ -179,8 +186,19 @@ html, body {
   margin: 2px 0;
 }
 
+.gpkg-import-status {
+  display: block;
+  padding: 0 12px 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 body[data-role="talkoolainen"] #btn-segment-panel,
-body[data-role="talkoolainen"] #btn-snapshot-panel {
+body[data-role="talkoolainen"] #btn-snapshot-panel,
+body[data-role="talkoolainen"] #gpkg-menu-sep,
+body[data-role="talkoolainen"] #btn-gpkg-export,
+body[data-role="talkoolainen"] #btn-gpkg-import,
+body[data-role="talkoolainen"] #gpkg-import-status {
   display: none;
 }
 

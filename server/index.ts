@@ -7,6 +7,7 @@ import { markersRoutes } from './routes/markers'
 import { segmentRoutes } from './routes/segments'
 import { areasRoutes } from './routes/areas'
 import { devfeedbackRoutes } from './routes/devfeedback'
+import { gpkgRoutes } from './routes/gpkg'
 import { scheduleNightlySnapshot } from './snapshot-scheduler'
 
 const db = createDb(process.env.DB_PATH)
@@ -23,6 +24,7 @@ app.route('/api/markers', markersRoutes)
 app.route('/api/segments', segmentRoutes)
 app.route('/api/areas', areasRoutes)
 app.route('/api/devfeedback', devfeedbackRoutes)
+app.route('/api/gpkg', gpkgRoutes)
 
 export default {
   port: Number(process.env.PORT ?? 3001),

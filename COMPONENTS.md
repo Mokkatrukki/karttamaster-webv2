@@ -52,7 +52,7 @@ server/       ← Hono + Bun + SQLite
 | Sync | `src/logic/sync.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
 | SignIcon | `src/map/icons.ts` | ✓ valmis | critical-paths: "toolbar-dropdown" | [map.md](docs/components/map.md) |
 | DriveMode | `src/map/drive.ts` | ✓ valmis | critical-paths: "Drive mode" | [map.md](docs/components/map.md) |
-| MarkerManager | `src/map/markers.ts` 294 riv | ✓+B1 | critical-paths: "Merkki kartalle", "Drag-to-move" | [map.md](docs/components/map.md) |
+| MarkerManager | `src/map/markers.ts` 362 riv | ✓+B1+B45 | critical-paths: "Merkki kartalle", "Drag-to-move" | [map.md](docs/components/map.md) |
 | MarkerInteraction | `src/map/marker-interaction.ts` 179 riv | ✓ | critical-paths: "dblclick", "Rotation arm sticky" | [map.md](docs/components/map.md) |
 | RouteBar | `src/map/route-bar.ts` 125 riv | ✓ pilkko | — | [map.md](docs/components/map.md) |
 | GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30 | critical-paths: "GPS-paikannin" | [map.md](docs/components/map.md) |
@@ -78,6 +78,7 @@ server/       ← Hono + Bun + SQLite
 | AreaDetailsModal | `src/ui/area-details-modal.ts` 370 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
 | AreaPanel | `src/ui/area-panel.ts` 367 riv | ✓ valmis | area-interaction | [ui.md](docs/components/ui.md) |
 | AreaView | `src/ui/area-view.ts` | ✓ valmis | — | [ui.md](docs/components/ui.md) |
+| GpkgControls | `src/ui/gpkg-controls.ts` | ✓ T127 | — | [ui.md](docs/components/ui.md) |
 | GpsDrivePanel | `src/ui/gps-drive-panel.ts` | ✓ T30 | — | [ui.md](docs/components/ui.md) |
 | MarkerDetailModal | `src/ui/marker-detail-modal.ts` 343 riv | ✓ T103 (kuvaus+kuvat) | — | [ui.md](docs/components/ui.md) |
 | FeedbackWidget | `src/devtools/feedback-widget.ts` 494 riv | ✓ devtools | feedback-widget | — |
@@ -89,6 +90,9 @@ server/       ← Hono + Bun + SQLite
 | MarkersAPI | `server/routes/markers.ts` | ✓ T47+T103 (description+images) | — | [backend.md](docs/components/backend.md) |
 | AreasAPI | `server/routes/areas.ts` 231 riv | ✓ valmis | area-interaction | [backend.md](docs/components/backend.md) |
 | DevFeedbackAPI | `server/routes/devfeedback.ts` | ✓ valmis | — | [backend.md](docs/components/backend.md) |
+| GpkgGeoJSON | `server/gpkg/geojson.ts` | ✓ T124 | — | [backend.md](docs/components/backend.md) |
+| GpkgConvert | `server/gpkg/convert.ts` | ✓ T125 | — | [backend.md](docs/components/backend.md) |
+| GpkgRoutes | `server/routes/gpkg.ts` | ✓ T125,T126 | — | [backend.md](docs/components/backend.md) |
 | AuthMiddleware | `server/middleware/auth.ts` | ✓ valmis | — | [backend.md](docs/components/backend.md) |
 | SnapshotScheduler | `server/snapshot-scheduler.ts` | ✓ valmis | — | [backend.md](docs/components/backend.md) |
 | ServerTypes | `server/types.ts` | ✓ valmis | — | [backend.md](docs/components/backend.md) |

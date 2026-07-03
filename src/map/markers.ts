@@ -94,7 +94,11 @@ export class MarkerManager {
     })
   }
 
-  add(lat: number, lon: number, type: MarkerType, color?: string, shortLabel?: string): SignMarker {
+  private nearestRouteAssignment(lat: number, lon: number): {
+    routeIds: string[]
+    bearing: number
+    distanceFromStart: number
+  } {
     let bestIdx = 0, bestRouteIdx = 0, bestDist = Infinity
     this.routes.forEach((r, ri) => {
       const idx = nearestPointIndex(r.routePoints, lat, lon)
@@ -107,11 +111,16 @@ export class MarkerManager {
     const rawRouteIds = assignRoutesToMarker(lat, lon, this.routes)
     const routeIds = ensureRouteIds(rawRouteIds, primaryRoute.id)
     if (bestDist > FAR_FROM_ROUTE_M) this.onFarFromRoute?.(bestDist)
+    return { routeIds, bearing, distanceFromStart: point.distanceFromStart }
+  }
+
+  add(lat: number, lon: number, type: MarkerType, color?: string, shortLabel?: string): SignMarker {
+    const { routeIds, bearing, distanceFromStart } = this.nearestRouteAssignment(lat, lon)
 
     const marker: SignMarker = {
       id: crypto.randomUUID(),
       type, lat, lon, bearing,
-      distanceFromStart: point.distanceFromStart,
+      distanceFromStart,
       routeIds,
       status: DEFAULT_STATUS,
       bearingManual: false,
@@ -127,6 +136,46 @@ export class MarkerManager {
     this.onUpdate()
     this.interaction.arm(marker.id)
     return marker
+  }
+
+  /** Replace marker set (esim. GPKG-tuonnin jälkeen) — piirtää näkyvät merkit uudelleen. */
+  reload(markers: SignMarker[]): void {
+    this.leafletMarkers.forEach((lm) => lm.remove())
+    this.leafletMarkers.clear()
+    this.markers = markers
+    this.markers.forEach((m) => {
+      if (m.routeIds.some((id) => this.visibleRouteIds.includes(id))) {
+        this.addLeafletMarker(m)
+      }
+    })
+    this.onUpdate()
+  }
+
+  /**
+   * Korjaa merkit joilla ei ole route-assignointia (esim. GPKG-tuonnista tulleet uudet
+   * merkit — kts. V21/B1: routeIds:[] -> merkki tallentuu mutta katoaa hiljaa kartalta).
+   * Käyttää samaa lähin-reitti-logiikkaa kuin add(). Palauttaa korjattujen määrän.
+   */
+  fixOrphanRouteIds(): number {
+    let fixed = 0
+    this.markers.forEach((m) => {
+      if (m.routeIds.length > 0) return
+      const { routeIds, bearing, distanceFromStart } = this.nearestRouteAssignment(m.lat, m.lon)
+      m.routeIds = routeIds
+      if (!m.bearingManual) m.bearing = bearing
+      m.distanceFromStart = distanceFromStart
+      this.apiPut(m.id, {
+        route_ids: routeIds,
+        bearing: m.bearing,
+        distance_from_start: distanceFromStart,
+      })
+      if (m.routeIds.some((id) => this.visibleRouteIds.includes(id)) && !this.leafletMarkers.has(m.id)) {
+        this.addLeafletMarker(m)
+      }
+      fixed++
+    })
+    if (fixed > 0) this.onUpdate()
+    return fixed
   }
 
   remove(id: string): void {

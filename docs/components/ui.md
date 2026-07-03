@@ -200,3 +200,20 @@ DOM-komponentit ilman Leafletia. **Testattavuus: Vitest-jsdom.**
 
 ### Käyttäjätarkistus
 > Admin: käyttäjälista + toiminnot yhdellä sivulla, ei ylimääräistä navigointia — täyttää VISION.md:n "alle minuutissa, kolmella klikkauksella" -kriteerin invite-flow'lle.
+
+---
+
+## GpkgControls — T127 ✓
+**Vastuu:** Toolbar-menun "Vie GPKG" / "Tuo GPKG" -napit — vienti plain `<a href download>`, tuonti file-input + POST-upload + tulosstatus.
+**Käyttäjä:** järjestäjä (kaverin QGIS-vaihto). Piilotettu talkoolaiselta (`data-role-hide="talkoolainen"`, sama mekanismi kuin GPS-napissa käänteisesti).
+**Konteksti:** toimisto/koti, ei kenttäkäyttöä — ei erityistä mobiili/hanskat-vaatimusta.
+**Moduuli:** `src/ui/gpkg-controls.ts` (import-logiikka) + `index.html` (export-linkki, ei JS:ää tarvita — selain lähettää session-cookien mukana GET-navigoinnissa)
+**Testattavuus:** Vitest-jsdom (`tests/gpkg-controls.test.ts`) — fetch mockattu, kattaa onnistuneen tuonnin, 403:n ja verkkovirheen.
+
+### Ominaisuudet
+- ✓ "Vie GPKG" — `<a href="/api/gpkg/export" download>`, ei erillistä JS-wireäystä
+- ✓ "Tuo GPKG" -nappi avaa piilotetun file-inputin
+- ✓ Tiedoston valinta → `POST /api/gpkg/import` multipart, statusteksti "Tuotu: N uutta, M päivitetty" tai virhe (HTTP-status / "yhteys epäonnistui")
+
+### Käyttäjätarkistus
+> Järjestäjä: kaksi nappia toolbar-menussa, ei modaalia — export on yksi klikki, import kaksi (valitse tiedosto → tulos näkyy heti).

@@ -426,6 +426,34 @@ TEST_USERS.talkoolainen.code      // 'TEST-KOODI-1'
 
 ---
 
+## GpkgGeoJSON
+
+**Vastuu:** Muuntaa markerit GeoJSON-muotoon (id, type, bearing, description + Point-geometria) ja takaisin — GPKG-export/import-featuren rakennuspalikka.
+**Käyttäjä:** järjestäjä (vie/tuo kylttidataa kaverin QGIS-sovellukseen).
+**Moduuli:** `server/gpkg/geojson.ts`
+**Testattavuus:** Bun-integraatiotesti (`server/gpkg/geojson.test.ts`) — ei DB:tä, puhdas muunnos
+
+### Ominaisuudet
+- ✓ `markersToGeoJSON(rows)` — MarkerRow[] → FeatureCollection<Point>, vain id/type/bearing/description (ei color/status/routeIds/locationNote/images)
+- ✓ `geoJSONToMarkers(fc)` — käänteinen parsinta, puuttuva description → null
+
+### Ominaisuudet (T125, T126)
+- ✓ `server/gpkg/convert.ts` — `geoJSONToGpkg`/`gpkgToGeoJSON`, ogr2ogr subprocess (tempdir per kutsu, siivoaa jälkensä)
+- ✓ `GET /api/gpkg/export` (`server/routes/gpkg.ts`) — järjestäjä+, koko markerdata → `.gpkg`-lataus (layer "kyltit"). 503 jos GDAL ei asennettu palvelimella.
+- ✓ `POST /api/gpkg/import` — multipart upload `.gpkg`, upsert id:n perusteella: olemassa oleva id päivittää `type/bearing/lat/lon/description` (status+routeIds koskematta), uusi id luo `status='suunniteltu'`-merkin. Palauttaa `{created, updated}`.
+
+### Tulossa
+- [ ] UI-napit järjestäjän näkymään (T127)
+- [ ] `apk add gdal` Dockerfileen (T128)
+
+### Tunnettu rajaus: uusien tuotujen merkkien väri/lyhenne
+`color`/`short_label` eivät kuulu GPKG-attribuutteihin (tietoinen rajaus, ks. §I / SPEC.md T124). Olemassa oleva id säilyttää nämä kentät ennallaan importissa (ei kosketa niitä). Täysin uusi id (kaverin lisäämä merkki) saa `color=null, short_label=null` → kartalla harmaa `?`-ympyrä (`src/map/icons.ts` default-haara) kunnes järjestäjä liittää sen merkkikirjaston tyyppiin manuaalisesti. Tietoinen päätös — toimii visuaalisena "vaatii käsittelyn" -vihjeenä, ei automaattista täsmäytystä.
+
+### Käyttäjätarkistus
+> Järjestäjä: round-trip toimii nyt palvelinpuolella (export + import). Ei vielä UI:ta — testattu suoraan API:n kautta. UI-napit T127.
+
+---
+
 ## OfflineManager *(tulossa — T18)*
 
 **Vastuu:** PWA service worker + offline-tuki omalle pätkälle

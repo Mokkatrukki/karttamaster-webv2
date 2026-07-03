@@ -3,6 +3,7 @@ import { resolve } from 'path'
 
 export default defineConfig({
   server: {
+    host: true,
     proxy: {
       '/api': 'http://localhost:3001',
     },
