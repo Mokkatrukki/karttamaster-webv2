@@ -257,4 +257,20 @@ test.describe('T25 — SegmentPanel', () => {
 
     await expect(page.locator('.segment-empty')).toBeVisible()
   })
+
+  // T141/V88: main.ts wiring regression guard — T95 died silently this exact way (B60)
+  test('SegmentStatusBar näkyy kartan alla ja päivittyy pätkän luonnista (T141, B60)', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    const bar = page.locator('#segment-status-bar')
+    await expect(bar).toBeHidden()
+
+    await createSegmentViaModal(page)
+
+    await expect(bar).toBeVisible()
+    await expect(bar).toContainText('ei merkkejä')
+  })
 })
