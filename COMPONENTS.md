@@ -37,7 +37,7 @@ server/       ← Hono + Bun + SQLite
 | SignLibrary | `src/logic/sign-library.ts` | ✓ T8 | — | [logic.md](docs/components/logic.md) |
 | MarkerStatus | `src/logic/marker-status.ts` | ✓ T10 | — | [logic.md](docs/components/logic.md) |
 | SegmentManager | `src/logic/segments.ts` | ✓ T13 | — | [logic.md](docs/components/logic.md) |
-| RoleController | `src/logic/role.ts` | ✓ T12 | critical-paths: "Rooli-toggle" | [logic.md](docs/components/logic.md) |
+| RoleController | `src/logic/role.ts` | ✓ T12, huom B48/V80 (#btn-role dead code, rooli backendistä) | critical-paths: "Rooli backendistä" | [logic.md](docs/components/logic.md) |
 | SituationLogic | `src/logic/situation.ts` *(ei vielä)* | ○ T15 | — | [logic.md](docs/components/logic.md) |
 | NavigationLogic | `src/logic/navigation.ts` | ✓ T16 | — | [logic.md](docs/components/logic.md) |
 | SegmentSync | `src/logic/segment-sync.ts` | ✓ T62 | — | [logic.md](docs/components/logic.md) |
@@ -63,13 +63,13 @@ server/       ← Hono + Bun + SQLite
 | PlaceMode | `src/ui/place-mode.ts` | ✓+B2 | critical-paths: "Merkki kartalle", "dblclick" | [ui.md](docs/components/ui.md) |
 | AppController | `src/main.ts` 414 riv ⚠️ | ✓ pilkko | critical-paths: kaikki | [ui.md](docs/components/ui.md) |
 | SignLibraryPanel | `src/ui/sign-library-panel.ts` 340 riv | ✓ T22 | — | [ui.md](docs/components/ui.md) |
-| RoleSelector | `src/ui/role-selector.ts` | ✓ T12 | critical-paths: "Rooli-toggle" | [ui.md](docs/components/ui.md) |
+| RoleSelector | `src/ui/role-selector.ts` | ✓ T12, huom B48/V80 (toggle-klikkaus dead code — `lockedRole` aina asetettu) | critical-paths: "Rooli backendistä" | [ui.md](docs/components/ui.md) |
 | SegmentPanel | `src/ui/segment-panel.ts` 279 riv | ✓ T25 | — | [ui.md](docs/components/ui.md) |
 | SegmentCreationModal | `src/ui/segment-creation-modal.ts` 195 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
 | SegmentDetailsModal | `src/ui/segment-details-modal.ts` 490 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
 | EquipmentList | `src/ui/segment-view.ts` | ✓ T27 | — | [ui.md](docs/components/ui.md) |
 | AuthScreen | `src/ui/auth-screen.ts` 160 riv | ✓ T51 | — | [ui.md](docs/components/ui.md) |
-| MapStateBadge | `src/ui/map-state-badge.ts` | ✓ T49 | sprint-features: "T49" | [ui.md](docs/components/ui.md) |
+| MapStateBadge | `src/ui/map-state-badge.ts` | stub — approval-konsepti poistettu (B46/V79), ei renderöi mitään | — | [ui.md](docs/components/ui.md) |
 | SnapshotPanel | `src/ui/snapshot-panel.ts` 172 riv | ✓ T50 | — | [ui.md](docs/components/ui.md) |
 | LeftPanel | `src/ui/left-panel.ts` | ✓ T73 | critical-paths: "Left panel" | [ui.md](docs/components/ui.md) |
 | StatusPanel | `src/ui/status-panel.ts` | ✓ T28 | sprint-features: "T28" | [ui.md](docs/components/ui.md) |
@@ -124,6 +124,7 @@ Kriittisin puuttuva: talkoolaisen UX viimeistely + reaaliaikainen sync järjest�
 - **T79** Reaaliaikainen sync (SSE/polling) — järjestäjä näkee muutokset <15s
 - **T75** Kommentti-systeemi (merkki/pätkä/vapaa piste)
 - **T72** Teema-toggle (daylight-teema metsässä auringossa)
+- **T134** UX-audit-korjaukset: `--text-meta`-kontrasti alle WCAG AA, U18/U19 36px-vaje, `.marker-item-checkbox` touch-target (todettu, ei korjattu — B51-B53)
 
 **Vaihe 4 — POI + purku:**
 - **T76** POI-järjestelmä (huoltoalueet, noutopisteet, kasat)
