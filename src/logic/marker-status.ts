@@ -10,6 +10,7 @@ const TRANSITIONS: Record<MarkerStatus, Partial<Record<StatusAction, MarkerStatu
     ohita: 'ei_tarpeen',
   },
   asetettu: {
+    kerää: 'kerätty',
     tarkista: 'tarkistettu',
     peru: 'suunniteltu',
   },

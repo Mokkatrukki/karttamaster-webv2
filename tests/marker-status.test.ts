@@ -29,6 +29,10 @@ describe('marker-status: transitionStatus', () => {
     expect(transitionStatus('tarkistettu', 'kerää')).toBe('kerätty')
   })
 
+  it('T145/V92: asetettu → kerätty suoraan via kerää (ei pakko käydä tarkistetun kautta)', () => {
+    expect(transitionStatus('asetettu', 'kerää')).toBe('kerätty')
+  })
+
   it('tarkistettu → asetettu via peru', () => {
     expect(transitionStatus('tarkistettu', 'peru')).toBe('asetettu')
   })
@@ -64,11 +68,12 @@ describe('marker-status: validActions', () => {
     expect(actions).toHaveLength(2)
   })
 
-  it('asetettu has tarkista and peru', () => {
+  it('asetettu has kerää, tarkista and peru (T145/V92: tarkista valinnainen, ei pakko)', () => {
     const actions = validActions('asetettu')
+    expect(actions).toContain('kerää')
     expect(actions).toContain('tarkista')
     expect(actions).toContain('peru')
-    expect(actions).toHaveLength(2)
+    expect(actions).toHaveLength(3)
   })
 
   it('kerätty has no actions', () => {
@@ -114,5 +119,14 @@ describe('marker-status: full lifecycle', () => {
     expect(s).toBe('ei_tarpeen')
     s = transitionStatus(s, 'peru')
     expect(s).toBe('suunniteltu')
+  })
+
+  it('T145/V92: suora path suunniteltu → asetettu → kerätty (ei tarkistusta)', () => {
+    let s: MarkerStatus = 'suunniteltu'
+    s = transitionStatus(s, 'aseta')
+    expect(s).toBe('asetettu')
+    s = transitionStatus(s, 'kerää')
+    expect(s).toBe('kerätty')
+    expect(isTerminal(s)).toBe(true)
   })
 })
