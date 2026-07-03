@@ -42,6 +42,7 @@ export class SignLibraryPanel {
     private readonly container: HTMLElement,
     private readonly library: SignLibrary,
     private readonly onChange: () => void,
+    private readonly onPlace: (template: SignTemplate) => void,
   ) {
     this.render()
   }
@@ -84,22 +85,17 @@ export class SignLibraryPanel {
   }
 
   private buildRow(t: SignTemplate): string {
-    const isDefault = DEFAULT_IDS.has(t.id)
     const iconEntry = t.iconId ? getIconById(t.iconId) : null
     // Safe: iconEntry.svgContent is from CURATED_ICONS (not user input)
     const swatchInner = iconEntry
       ? renderIconSvg(t.iconId!, 14)
       : escapeHtml(t.shortLabel)
 
-    const placeBtn = isDefault
-      ? `<button class="sign-type-btn sign-lib-place-btn" data-type="${t.id}" style="flex:1;min-height:44px;display:flex;align-items:center;gap:8px;padding:6px 8px;background:none;border:none;color:var(--text-body);font-size:13px;cursor:pointer;text-align:left;border-radius:var(--radius-sm)">
+    // T136/V83: kaikki mallit (myös custom) ovat suoraan sijoitettavissa kartalle — ei suosikkivaatimusta
+    const placeBtn = `<button class="sign-type-btn sign-lib-place-btn" data-id="${escapeHtml(t.id)}" aria-label="Aseta ${escapeHtml(t.label)} kartalle" style="flex:1;min-height:44px;display:flex;align-items:center;gap:8px;padding:6px 8px;background:none;border:none;color:var(--text-body);font-size:13px;cursor:pointer;text-align:left;border-radius:var(--radius-sm)">
            <span class="sign-swatch" style="background:${escapeHtml(t.color)};color:#fff;border-radius:var(--radius-sm);min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900">${swatchInner}</span>
            ${escapeHtml(t.label)}
          </button>`
-      : `<div class="sign-lib-custom-item" style="flex:1;display:flex;align-items:center;gap:8px;padding:6px 8px;min-height:44px">
-           <span class="sign-swatch" style="background:${escapeHtml(t.color)};color:#fff;border-radius:var(--radius-sm);min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900">${swatchInner}</span>
-           <span style="font-size:13px;color:var(--text-body)">${escapeHtml(t.label)}</span>
-         </div>`
 
     return `<div class="sign-lib-row" style="display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--border-card);padding:0">
       ${placeBtn}
@@ -114,6 +110,16 @@ export class SignLibraryPanel {
         if (!id) return
         const t = this.library.get(id)
         if (t) this.openModal(t)
+      })
+    })
+
+    // T136/V83: klikkaus sijoittaa mallin kartalle (arm + seuraava karttaklikki) — ei suosikkivaatimusta
+    this.container.querySelectorAll<HTMLButtonElement>('.sign-lib-place-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id
+        if (!id) return
+        const t = this.library.get(id)
+        if (t) this.onPlace(t)
       })
     })
 

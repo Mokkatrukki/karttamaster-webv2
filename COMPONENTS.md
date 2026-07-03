@@ -60,9 +60,9 @@ server/       ← Hono + Bun + SQLite
 | SegmentOverlay | `src/map/segment-overlay.ts` 184 riv | ✓ valmis | — | [map.md](docs/components/map.md) |
 | MarkerListUI | `src/ui/marker-list.ts` 261 riv | ✓ T11,T24 | — | [ui.md](docs/components/ui.md) |
 | ProgressBar | `src/ui/progress-bar.ts` | ✓ pilkko | critical-paths: "Drive mode" | [ui.md](docs/components/ui.md) |
-| PlaceMode | `src/ui/place-mode.ts` | ✓+B2 | critical-paths: "Merkki kartalle", "dblclick" | [ui.md](docs/components/ui.md) |
+| PlaceMode | `src/ui/place-mode.ts` | ✓+B2+B55+T136 (armFromSidebar/placeArmedAt) | critical-paths: "Merkki kartalle", "dblclick", "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
 | AppController | `src/main.ts` 414 riv ⚠️ | ✓ pilkko | critical-paths: kaikki | [ui.md](docs/components/ui.md) |
-| SignLibraryPanel | `src/ui/sign-library-panel.ts` 340 riv | ✓ T22 | — | [ui.md](docs/components/ui.md) |
+| SignLibraryPanel | `src/ui/sign-library-panel.ts` 346 riv | ✓ T22+B55+T136 (kaikki rivit sijoitettavissa, ei suosikkivaatimusta) | critical-paths: "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
 | RoleSelector | `src/ui/role-selector.ts` | ✓ T12, huom B48/V80 (toggle-klikkaus dead code — `lockedRole` aina asetettu) | critical-paths: "Rooli backendistä" | [ui.md](docs/components/ui.md) |
 | SegmentPanel | `src/ui/segment-panel.ts` 279 riv | ✓ T25 | — | [ui.md](docs/components/ui.md) |
 | SegmentCreationModal | `src/ui/segment-creation-modal.ts` 195 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
@@ -154,7 +154,7 @@ Lisää: [backend.md — Vaiheistus](docs/components/backend.md)
 | `src/devtools/feedback-widget.ts` | **494** | Devtools, ei tuotantoon — ei pilkota mutta ei kasvateta |
 | `src/main.ts` | **414** | ⚠️ KRIITTINEN — 5× liian iso init-tiedostolle, pilkottava (T12/T32) |
 | `src/map/map-rect-editor.ts` | **316** | Seuraa — erota drag-logiikka jos kasvaa >400 riv |
-| `src/ui/sign-library-panel.ts` | **340** | Seuraa |
+| `src/ui/sign-library-panel.ts` | **346** | Seuraa |
 | `src/ui/marker-detail-modal.ts` | **343** | Seuraa — kasvoi T103:ssa (kuvaus+kuvat), harkitse pilkkoa jos >400 riv |
 | `src/map/area-overlay.ts` | **261** | Seuraa |
 | `src/map/markers.ts` | **294** | Seuraa — pilkottava ennen T10 |

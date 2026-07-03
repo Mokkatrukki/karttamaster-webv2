@@ -18,7 +18,7 @@ describe('T93 — Merkkikirjasto modal + iconId (V10, V50)', () => {
     it('"Uusi malli" avaa .sign-lib-modal document.bodyyn', () => {
       const container = setup()
       const lib = createSignLibrary()
-      new SignLibraryPanel(container, lib, vi.fn())
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
       expect(document.body.querySelector('.sign-lib-modal')).toBeTruthy()
     })
@@ -26,7 +26,7 @@ describe('T93 — Merkkikirjasto modal + iconId (V10, V50)', () => {
     it('dots-nappi (···) avaa modaalin', () => {
       const container = setup()
       const lib = createSignLibrary()
-      new SignLibraryPanel(container, lib, vi.fn())
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       container.querySelector<HTMLButtonElement>('.sign-lib-dots-btn')!.click()
       expect(document.body.querySelector('.sign-lib-modal')).toBeTruthy()
     })
@@ -34,7 +34,7 @@ describe('T93 — Merkkikirjasto modal + iconId (V10, V50)', () => {
     it('modaalissa on ikoni-grid', () => {
       const container = setup()
       const lib = createSignLibrary()
-      new SignLibraryPanel(container, lib, vi.fn())
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
       const grid = document.body.querySelector('.sign-lib-icon-grid')
       expect(grid).toBeTruthy()
@@ -43,7 +43,7 @@ describe('T93 — Merkkikirjasto modal + iconId (V10, V50)', () => {
     it('ikoni-gridissä on CURATED_ICONS.length + 1 nappia ("ei ikonia" + kaikki ikonit)', () => {
       const container = setup()
       const lib = createSignLibrary()
-      new SignLibraryPanel(container, lib, vi.fn())
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
       const btns = document.body.querySelectorAll('.sign-lib-icon-btn')
       expect(btns.length).toBe(CURATED_ICONS.length + 1)
@@ -54,7 +54,7 @@ describe('T93 — Merkkikirjasto modal + iconId (V10, V50)', () => {
     it('✕-nappi sulkee modaalin', () => {
       const container = setup()
       const lib = createSignLibrary()
-      new SignLibraryPanel(container, lib, vi.fn())
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
       document.body.querySelector<HTMLButtonElement>('.sign-lib-modal-close')!.click()
       expect(document.body.querySelector('.sign-lib-modal')).toBeNull()
@@ -63,7 +63,7 @@ describe('T93 — Merkkikirjasto modal + iconId (V10, V50)', () => {
     it('Peruuta-nappi sulkee modaalin', () => {
       const container = setup()
       const lib = createSignLibrary()
-      new SignLibraryPanel(container, lib, vi.fn())
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
       document.body.querySelector<HTMLButtonElement>('.sign-lib-cancel-btn')!.click()
       expect(document.body.querySelector('.sign-lib-modal')).toBeNull()
@@ -72,7 +72,7 @@ describe('T93 — Merkkikirjasto modal + iconId (V10, V50)', () => {
     it('Esc-näppäin sulkee modaalin', () => {
       const container = setup()
       const lib = createSignLibrary()
-      new SignLibraryPanel(container, lib, vi.fn())
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
       expect(document.body.querySelector('.sign-lib-modal')).toBeTruthy()
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
@@ -82,7 +82,7 @@ describe('T93 — Merkkikirjasto modal + iconId (V10, V50)', () => {
     it('backdrop-klikki sulkee modaalin', () => {
       const container = setup()
       const lib = createSignLibrary()
-      new SignLibraryPanel(container, lib, vi.fn())
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
       const backdrop = document.body.querySelector<HTMLElement>('.sign-lib-modal-backdrop')!
       backdrop.click()
@@ -92,7 +92,7 @@ describe('T93 — Merkkikirjasto modal + iconId (V10, V50)', () => {
     it('tallenna sulkee modaalin', () => {
       const container = setup()
       const lib = createSignLibrary()
-      new SignLibraryPanel(container, lib, vi.fn())
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
       document.body.querySelector<HTMLInputElement>('.sign-lib-label-input')!.value = 'Testi'
       document.body.querySelector<HTMLInputElement>('.sign-lib-short-input')!.value = 'T'
@@ -105,7 +105,7 @@ describe('T93 — Merkkikirjasto modal + iconId (V10, V50)', () => {
     it('tallenna ilman ikoni-valintaa → iconId undefined', () => {
       const container = setup()
       const lib = createSignLibrary()
-      new SignLibraryPanel(container, lib, vi.fn())
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
       document.body.querySelector<HTMLInputElement>('.sign-lib-label-input')!.value = 'Testi'
       document.body.querySelector<HTMLInputElement>('.sign-lib-short-input')!.value = 'T'
@@ -117,7 +117,7 @@ describe('T93 — Merkkikirjasto modal + iconId (V10, V50)', () => {
     it('ikonin valinta tallentuu iconId:nä', () => {
       const container = setup()
       const lib = createSignLibrary()
-      new SignLibraryPanel(container, lib, vi.fn())
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
       // Click first non-"no-icon" icon button
       const iconBtns = document.body.querySelectorAll<HTMLButtonElement>('.sign-lib-icon-btn')
@@ -134,7 +134,7 @@ describe('T93 — Merkkikirjasto modal + iconId (V10, V50)', () => {
       const container = setup()
       const lib = createSignLibrary()
       const t = createTemplate(lib, { label: 'Vanha', shortLabel: 'V', color: '#000', description: '', favorite: false, iconId: 'flag' })
-      new SignLibraryPanel(container, lib, vi.fn())
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       // open edit modal for this template
       container.querySelector<HTMLButtonElement>(`.sign-lib-dots-btn[data-id="${t.id}"]`)!.click()
       // change only label
@@ -147,7 +147,7 @@ describe('T93 — Merkkikirjasto modal + iconId (V10, V50)', () => {
       const container = setup()
       const lib = createSignLibrary()
       const t = createTemplate(lib, { label: 'X', shortLabel: 'X', color: '#000', description: '', favorite: false, iconId: 'flag' })
-      new SignLibraryPanel(container, lib, vi.fn())
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       container.querySelector<HTMLButtonElement>(`.sign-lib-dots-btn[data-id="${t.id}"]`)!.click()
       // Click the "no icon" button (data-icon-id="")
       const noIconBtn = document.body.querySelector<HTMLButtonElement>('.sign-lib-icon-btn[data-icon-id=""]')!

@@ -1,5 +1,5 @@
 import { positionPicker } from '../logic/sign-picker'
-import { listFavorites, type SignLibrary } from '../logic/sign-library'
+import { listFavorites, type SignLibrary, type SignTemplate } from '../logic/sign-library'
 import type { MarkerType } from '../logic/types'
 import type { MarkerManager } from '../map/markers'
 
@@ -10,6 +10,8 @@ function escapeHtml(s: string): string {
 export class PlaceMode {
   private pendingDblClick: { lat: number; lon: number } | null = null
   private readonly floatingPicker: HTMLElement
+  // T136/V83: sidebar-valittu malli — seuraava kartan klikki sijoittaa sen, ei suosikkivaatimusta
+  private armedTemplate: SignTemplate | null = null
 
   constructor(
     private readonly markerManager: MarkerManager,
@@ -20,6 +22,28 @@ export class PlaceMode {
   }
 
   isPickerOpen(): boolean { return this.floatingPicker.classList.contains('open') }
+
+  isArmed(): boolean { return this.armedTemplate !== null }
+
+  armFromSidebar(template: SignTemplate): void {
+    this.closePicker()
+    this.armedTemplate = template
+    document.getElementById('map')?.classList.add('place-mode')
+  }
+
+  disarm(): void {
+    this.armedTemplate = null
+    document.getElementById('map')?.classList.remove('place-mode')
+  }
+
+  // Kutsutaan kartan single-clickistä main.ts:ssä kun isArmed(). Palauttaa true jos sijoitti.
+  placeArmedAt(lat: number, lon: number): boolean {
+    if (!this.armedTemplate) return false
+    const t = this.armedTemplate
+    this.markerManager.add(lat, lon, t.id as MarkerType, t.color, t.shortLabel)
+    this.disarm()
+    return true
+  }
 
   openPicker(lat: number, lon: number, clientX: number, clientY: number): void {
     this.pendingDblClick = { lat, lon }

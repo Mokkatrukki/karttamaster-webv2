@@ -365,6 +365,29 @@ test.describe('Left panel — T73', () => {
     const signTypeBtn = page.locator('#left-panel #sign-type-dropdown .sign-type-btn').first()
     await expect(signTypeBtn).toBeVisible()
   })
+
+  test('sivupalkin merkkikirjastosta voi asettaa merkin kartalle (T136/B55/V83)', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    const before = await page.locator('.leaflet-marker-pane .leaflet-marker-icon').count()
+
+    // Klikkaa sivupalkin merkkikirjaston riviä — armaa sijoituksen, ei vaadi suosikkia
+    await page.click('#left-panel #sign-type-dropdown .sign-lib-place-btn >> nth=0')
+    await expect(page.locator('#map')).toHaveClass(/place-mode/)
+
+    // Seuraava kartan klikki sijoittaa merkin
+    const mapBox = await page.locator('#map').boundingBox()
+    expect(mapBox).not.toBeNull()
+    await page.mouse.click(mapBox!.x + mapBox!.width / 2, mapBox!.y + mapBox!.height / 2)
+    await page.waitForTimeout(500)
+
+    await expect(page.locator('#map')).not.toHaveClass(/place-mode/)
+    const after = await page.locator('.leaflet-marker-pane .leaflet-marker-icon').count()
+    expect(after).toBe(before + 1)
+  })
 })
 
 // T108 — AreaOverlay: area piirtyy kartalle + klikkaus triggeroi flyTo

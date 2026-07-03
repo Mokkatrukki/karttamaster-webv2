@@ -320,12 +320,11 @@ async function init(talkoolainenCode?: string) {
   statusPanel.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
 
   signLibrary = createSignLibrary()
+  const placeMode = new PlaceMode(markerManager, signLibrary)
   const signLibraryContainer = document.getElementById('sign-type-dropdown')
   if (signLibraryContainer) {
-    new SignLibraryPanel(signLibraryContainer, signLibrary, () => saveLibrary(signLibrary))
+    new SignLibraryPanel(signLibraryContainer, signLibrary, () => saveLibrary(signLibrary), (t) => placeMode.armFromSidebar(t))
   }
-
-  const placeMode = new PlaceMode(markerManager, signLibrary)
 
   // Marker modal
   const markerModalBackdrop = document.getElementById('marker-modal-backdrop')!
@@ -360,6 +359,7 @@ async function init(talkoolainenCode?: string) {
   map.doubleClickZoom.disable()
 
   map.on('click', (e: L.LeafletMouseEvent) => {
+    if (placeMode.isArmed()) { placeMode.placeArmedAt(e.latlng.lat, e.latlng.lng); return }
     if (segmentPanel.isCreationMode()) {
       segmentPanel.onMapClick(e.latlng.lat, e.latlng.lng)
       return
@@ -374,6 +374,7 @@ async function init(talkoolainenCode?: string) {
 
   document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
+      if (placeMode.isArmed())           { placeMode.disarm();        return }
       if (segmentPanel.isCreationMode()) { segmentPanel.cancelCreation(); return }
       if (segmentOverlay.isEditMode())   { segmentOverlay.exitEditMode(); return }
       if (placeMode.isPickerOpen())      { placeMode.closePicker();   return }
