@@ -106,4 +106,46 @@ describe('T14 — SegmentView', () => {
     view.update([makeMarker({ id: 'm-1' }), makeMarker({ id: 'm-2', distanceFromStart: 9000 })])
     expect(container.querySelectorAll('.segment-view-item').length).toBe(2)
   })
+
+  // T147: tarkastus-UI — kevyt läpiajo, vapaateksti-huomio, ei per-merkki-kuittausta
+  describe('tarkastus-phase', () => {
+    it('piilotettu ei-tarkastus-pätkällä', () => {
+      new SegmentView(container, makeSeg({ phase: 'asettaminen' }))
+      const section = container.querySelector('.segment-view-inspect') as HTMLElement
+      expect(section.hidden).toBe(true)
+    })
+
+    it('näkyvissä tarkastus-pätkällä, tila "Ei vielä tarkastettu"', () => {
+      new SegmentView(container, makeSeg({ phase: 'tarkastus' }))
+      const section = container.querySelector('.segment-view-inspect') as HTMLElement
+      expect(section.hidden).toBe(false)
+      expect(container.querySelector('.segment-view-inspect-status')?.textContent).toBe('Ei vielä tarkastettu')
+      expect(container.querySelector('.btn-mark-inspected')?.textContent).toBe('Merkitse tarkastetuksi')
+    })
+
+    it('inspected=true näyttää "Tarkastettu ✓" ja vaihtaa napin tekstin', () => {
+      new SegmentView(container, makeSeg({ phase: 'tarkastus', inspected: true }))
+      expect(container.querySelector('.segment-view-inspect-status')?.textContent).toBe('Tarkastettu ✓')
+      expect(container.querySelector('.btn-mark-inspected')?.textContent).toBe('Merkitse tarkastamattomaksi')
+    })
+
+    it('klikkaus kutsuu onInspect(true, huomioteksti)', () => {
+      let called: [boolean, string] | null = null
+      const view = new SegmentView(container, makeSeg({ phase: 'tarkastus' }), undefined, (inspected, note) => {
+        called = [inspected, note]
+      })
+      const noteInput = container.querySelector('.segment-view-inspect-note') as HTMLTextAreaElement
+      noteInput.value = 'Puu kaatunut polulla'
+      const btn = container.querySelector('.btn-mark-inspected') as HTMLButtonElement
+      btn.click()
+      expect(called).toEqual([true, 'Puu kaatunut polulla'])
+      expect(view).toBeDefined()
+    })
+
+    it('huomioteksti esitäytetään segment.inspectionNotesta', () => {
+      new SegmentView(container, makeSeg({ phase: 'tarkastus', inspectionNote: 'Vanha huomio' }))
+      const noteInput = container.querySelector('.segment-view-inspect-note') as HTMLTextAreaElement
+      expect(noteInput.value).toBe('Vanha huomio')
+    })
+  })
 })

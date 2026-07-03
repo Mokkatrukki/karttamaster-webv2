@@ -22,18 +22,28 @@ export class SegmentView {
   private readonly markerListEl: HTMLUListElement
   private readonly bulkBtn: HTMLButtonElement
   private readonly equipmentSection: HTMLElement
+  private readonly inspectSection: HTMLElement
+  private readonly inspectBtn: HTMLButtonElement
+  private readonly inspectNoteInput: HTMLTextAreaElement
+  private readonly inspectStatus: HTMLElement
   private currentMarkers: SignMarker[] = []
 
   constructor(
     container: HTMLElement,
     private segment: Segment,
     private readonly onBulkCollect?: (updated: SignMarker[]) => void,
+    private readonly onInspect?: (inspected: boolean, note: string) => void,
   ) {
-    const { panel, markerListEl, bulkBtn, equipmentSection } = this.build()
+    const { panel, markerListEl, bulkBtn, equipmentSection, inspectSection, inspectBtn, inspectNoteInput, inspectStatus } = this.build()
     this.markerListEl = markerListEl
     this.bulkBtn = bulkBtn
     this.equipmentSection = equipmentSection
+    this.inspectSection = inspectSection
+    this.inspectBtn = inspectBtn
+    this.inspectNoteInput = inspectNoteInput
+    this.inspectStatus = inspectStatus
     container.appendChild(panel)
+    this.renderInspectSection()
   }
 
   update(markers: SignMarker[], segment?: Segment): void {
@@ -42,6 +52,7 @@ export class SegmentView {
     this.renderMarkers(markers)
     this.updateBulkBtn(markers)
     this.renderEquipment(markers)
+    this.renderInspectSection()
   }
 
   private updateBulkBtn(markers: SignMarker[]): void {
@@ -49,7 +60,28 @@ export class SegmentView {
     this.bulkBtn.hidden = this.segment.phase !== 'purku' || !hasNonTerminal
   }
 
-  private build(): { panel: HTMLElement; markerListEl: HTMLUListElement; bulkBtn: HTMLButtonElement; equipmentSection: HTMLElement } {
+  // T147: tarkastus-phase — kevyt läpiajo, vapaateksti-huomio, ei per-merkki-kuittausta
+  private renderInspectSection(): void {
+    const isInspectionPhase = this.segment.phase === 'tarkastus'
+    this.inspectSection.hidden = !isInspectionPhase
+    if (!isInspectionPhase) return
+
+    const inspected = this.segment.inspected ?? false
+    this.inspectNoteInput.value = this.segment.inspectionNote ?? ''
+    this.inspectStatus.textContent = inspected ? 'Tarkastettu ✓' : 'Ei vielä tarkastettu'
+    this.inspectBtn.textContent = inspected ? 'Merkitse tarkastamattomaksi' : 'Merkitse tarkastetuksi'
+  }
+
+  private build(): {
+    panel: HTMLElement
+    markerListEl: HTMLUListElement
+    bulkBtn: HTMLButtonElement
+    equipmentSection: HTMLElement
+    inspectSection: HTMLElement
+    inspectBtn: HTMLButtonElement
+    inspectNoteInput: HTMLTextAreaElement
+    inspectStatus: HTMLElement
+  } {
     const panel = document.createElement('div')
     panel.id = 'segment-view'
 
@@ -91,11 +123,35 @@ export class SegmentView {
     })
     panel.appendChild(bulkBtn)
 
+    const inspectSection = document.createElement('div')
+    inspectSection.className = 'segment-view-inspect'
+    inspectSection.hidden = true
+
+    const inspectStatus = document.createElement('p')
+    inspectStatus.className = 'segment-view-inspect-status'
+    inspectSection.appendChild(inspectStatus)
+
+    const inspectNoteInput = document.createElement('textarea')
+    inspectNoteInput.className = 'segment-view-inspect-note'
+    inspectNoteInput.placeholder = 'Huomiot (esim. "puu kaatunut polulla")'
+    inspectNoteInput.rows = 3
+    inspectSection.appendChild(inspectNoteInput)
+
+    const inspectBtn = document.createElement('button')
+    inspectBtn.className = 'btn-mark-inspected'
+    inspectBtn.addEventListener('click', () => {
+      const nowInspected = !(this.segment.inspected ?? false)
+      this.onInspect?.(nowInspected, inspectNoteInput.value.trim())
+    })
+    inspectSection.appendChild(inspectBtn)
+
+    panel.appendChild(inspectSection)
+
     const markerListEl = document.createElement('ul')
     markerListEl.className = 'segment-view-list'
     panel.appendChild(markerListEl)
 
-    return { panel, markerListEl, bulkBtn, equipmentSection }
+    return { panel, markerListEl, bulkBtn, equipmentSection, inspectSection, inspectBtn, inspectNoteInput, inspectStatus }
   }
 
   private renderEquipment(markers: SignMarker[]): void {

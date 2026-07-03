@@ -25,9 +25,9 @@ import { SegmentView } from './ui/segment-view'
 import { LeftPanel } from './ui/left-panel'
 import { SignLibraryPanel, createSignLibrary } from './ui/sign-library-panel'
 import { saveLibrary, type SignLibrary } from './logic/sign-library'
-import { getSegmentForCode, getMarkersForSegment } from './logic/segments'
+import { getSegmentForCode, getMarkersForSegment, updateSegment } from './logic/segments'
 import type { Segment } from './logic/segments'
-import { fetchSegmentByCode, fetchAllSegments } from './logic/segment-sync'
+import { fetchSegmentByCode, fetchAllSegments, updateSegmentRemote } from './logic/segment-sync'
 import type { RouteConfig } from './logic/multi-route'
 import { MarkerDetailModal } from './ui/marker-detail-modal'
 import { AreaOverlay } from './map/area-overlay'
@@ -281,6 +281,11 @@ async function init(talkoolainenCode?: string) {
         seg,
         (updated) => {
           for (const m of updated) markerManager.updateStatus(m.id, 'kerää')
+        },
+        (inspected, note) => {
+          const updatedSeg = updateSegment(segmentStore, seg.id, { inspected, inspectionNote: note || undefined })
+          updateSegmentRemote(seg.id, { inspected, inspectionNote: note || undefined }).catch(() => {})
+          if (updatedSeg) segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
         },
       )
       segmentView.update(getMarkersForSegment(seg, markerManager.getAll()))

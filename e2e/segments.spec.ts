@@ -274,4 +274,29 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(kmSpan).toBeVisible()
     await expect(kmSpan).toContainText('ei merkkejä')
   })
+
+  // T147: tarkastus-vaiheen pätkäjako (luotu T146:n klooni-mekanismilla) näyttää
+  // talkoolaisen segment-view:ssä tarkastus-UI:n numeerisen X/N-progressin sijaan.
+  test('tarkastus-segmentti näyttää segment-view:ssä "Merkitse tarkastetuksi" -UI:n', async ({ page }) => {
+    const MOCK_TARKASTUS_SEGMENT = {
+      id: 'seg-tarkastus-1', routeIds: ['35km'],
+      startDist: 0, endDist: 12500,
+      displayName: 'Tarkastuspätkä', equipment: [],
+      phase: 'tarkastus', assignedCode: 'INSP01', inspected: false,
+    }
+    await page.route('/api/segments/by-code/INSP01', r =>
+      r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_TARKASTUS_SEGMENT) }))
+    await page.route('/api/markers', r =>
+      r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) }))
+
+    await mockAuthAsTalkoolainen(page, 'INSP01')
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.goto('/s/INSP01')
+    await page.waitForTimeout(1500)
+
+    const inspectSection = page.locator('.segment-view-inspect')
+    await expect(inspectSection).toBeVisible()
+    await expect(page.locator('.segment-view-inspect-status')).toHaveText('Ei vielä tarkastettu')
+    await expect(page.locator('.btn-mark-inspected')).toHaveText('Merkitse tarkastetuksi')
+  })
 })

@@ -1296,6 +1296,49 @@ button {
   background: var(--confirm-hover);
 }
 
+/* T147: tarkastus-phase — kevyt läpiajo talkoolaiselle/tarkastajalle */
+.segment-view-inspect {
+  margin: 8px 0;
+}
+
+.segment-view-inspect-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+
+.segment-view-inspect-note {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  font-size: 13px;
+  padding: 8px;
+  margin-bottom: 8px;
+  resize: vertical;
+}
+
+.btn-mark-inspected {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  background: var(--confirm);
+  color: var(--confirm-text);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-mark-inspected:hover {
+  background: var(--confirm-hover);
+}
+
 .btn-segment-create {
   background: var(--hover);
   color: var(--text-body);

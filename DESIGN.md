@@ -408,6 +408,7 @@ CSS-luokat:
   - Status-väri: sama kuin global status-värit (§C)
 - `[data-role="talkoolainen"] #segment-view { display: block }` — muille hidden
 - Ei purku-bulk-nappia vielä (T52 lisää)
+- **Tarkastus-osio (T147, `.segment-view-inspect`):** näkyy vain `phase==='tarkastus'`-pätkällä. `.segment-view-inspect-status` (`text-primary 12px bold`): "Tarkastettu ✓" / "Ei vielä tarkastettu". `.segment-view-inspect-note` (`<textarea>`, 3 riviä, `min-height:44px`, `field-tint` bg) — vapaateksti-huomio, ei per-merkki-kuittausta (VISION §4). `.btn-mark-inspected` (`min-height:44px;width:100%`, `confirm`-tyyli kuten `.btn-bulk-collect`) — tekstinä "Merkitse tarkastetuksi"/"Merkitse tarkastamattomaksi" (toggle).
 
 ### SignLibraryPanel (`src/ui/sign-library-panel.ts`)
 - Vain järjestäjälle — sijaitsee `#left-panel-content`:ssä
