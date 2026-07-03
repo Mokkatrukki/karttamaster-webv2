@@ -227,16 +227,16 @@ metsässä, hanskat kädessä.
 - Outline: `stroke: white, stroke-width: 2`
 - Upcoming-tyyppi: `stroke-dasharray="4 2"` (jo käytössä — ei muuteta statukselle)
 
-**Status-visualisointi (T23, `createSignIcon(type, bearing, status)`):**
-- `suunniteltu` → `opacity: 0.45` koko ikonille — "haalistunut = ei tehty"
-- muut statukset → `opacity: 1.0`
-- Status-piste: `8px` absoluuttinen `<span>` oikealle, `bottom:12px` (ympyrän alapuoli, ei tip-alueen päällä)
-  - `suunniteltu`: piilotettu (ei pistettä)
-  - `asetettu`: `#4ade80`
-  - `tarkistettu`: `#93c5fd`
-  - `kerätty`: `#6ee7b7`
-  - `ei_tarpeen`: `#fbbf24`
-- Ei tekstiä merkillä, ei status-perusteista muotomuutosta — muoto on aina teardrop, tyyppiväri pysyy tunnistimena
+**Status-visualisointi (T23/V51/T138, `createSignIcon(type, status, color?, shortLabel?, iconId?)`):**
+- `suunniteltu` → ympyrä `fill-opacity:0.55` + `stroke-dasharray:"4 2"` — "haalistunut/katkoviiva = ei tehty" (V51)
+- muut statukset → täysi `fill-opacity:1.0`, ei dasharray
+- Statusbadge (T138/V85, korvaa entisen 8px pisteen): `16×16px` pyöreä `<span>` oikealle, `bottom:12px` (ympyrän alapuoli, ei tip-alueen päällä), `border:2px solid white`, `box-shadow` kontrastia varten, glyfi keskellä
+  - `suunniteltu`: piilotettu (dasharray riittää signaaliksi)
+  - `asetettu`: `✓` `#4ade80`
+  - `tarkistettu`: `✓` `#93c5fd`
+  - `kerätty`: `✓` `#6ee7b7`
+  - `ei_tarpeen`: `✕` `#fbbf24`
+- Ympyrän sisällä: tyyppi-ikoni (Lucide, custom-malleille) tai arrow/shortLabel-teksti — **ei enää erillistä nurkkabadgea joka toistaisi saman tekstin** (poistettu T138:ssa, oli B57: sekoitti "kaksi kertaa sama teksti" -ongelman). Muoto on aina teardrop, tyyppiväri pysyy ensisijaisena tunnistimena.
 
 ### LeftPanel (`#left-panel`)
 - Vain järjestäjälle — `body[data-role="talkoolainen"] #left-panel { display: none }`

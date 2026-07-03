@@ -32,14 +32,15 @@ describe('positionPicker — viewport-aware placement', () => {
 })
 
 describe('Sign icons — all 4 types', () => {
-  it('right icon contains O label', () => {
-    const icon = createSignIcon('right', 0)
-    expect((icon.options as any).html).toContain('O')
+  // T138/V85: kirjain-nurkkabadge poistettu (duplikoi tyyppitekstin) — nuolisymboli ympyrässä riittää tyypin tunnistamiseen
+  it('right icon contains → arrow', () => {
+    const icon = createSignIcon('right', 'suunniteltu')
+    expect((icon.options as any).html).toContain('→')
   })
 
-  it('left icon contains V label', () => {
-    const icon = createSignIcon('left', 90)
-    expect((icon.options as any).html).toContain('V')
+  it('left icon contains ← arrow', () => {
+    const icon = createSignIcon('left', 'suunniteltu')
+    expect((icon.options as any).html).toContain('←')
   })
 
   it('upcoming-right icon renders without error', () => {
