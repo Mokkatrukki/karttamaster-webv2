@@ -36,7 +36,8 @@ server/       ← Hono + Bun + SQLite
 | PersistenceLayer | `src/logic/persistence.ts` | ✓ T29 | — | [logic.md](docs/components/logic.md) |
 | SignLibrary | `src/logic/sign-library.ts` | ✓ T8 | — | [logic.md](docs/components/logic.md) |
 | MarkerStatus | `src/logic/marker-status.ts` | ✓ T10 | — | [logic.md](docs/components/logic.md) |
-| SegmentManager | `src/logic/segments.ts` | ✓ T13 | — | [logic.md](docs/components/logic.md) |
+| SegmentManager | `src/logic/segments.ts` | ✓ T13,T144,T146 | — | [logic.md](docs/components/logic.md) |
+| PhaseView | `src/logic/phase-view.ts` | ✓ T148 | — | [logic.md](docs/components/logic.md) |
 | RoleController | `src/logic/role.ts` | ✓ T12, huom B48/V80 (#btn-role dead code, rooli backendistä) | critical-paths: "Rooli backendistä" | [logic.md](docs/components/logic.md) |
 | SituationLogic | `src/logic/situation.ts` *(ei vielä)* | ○ T15 | — | [logic.md](docs/components/logic.md) |
 | NavigationLogic | `src/logic/navigation.ts` | ✓ T16 | — | [logic.md](docs/components/logic.md) |
@@ -61,13 +62,14 @@ server/       ← Hono + Bun + SQLite
 | MarkerListUI | `src/ui/marker-list.ts` 261 riv | ✓ T11,T24 | — | [ui.md](docs/components/ui.md) |
 | ProgressBar | `src/ui/progress-bar.ts` | ✓ pilkko | critical-paths: "Drive mode" | [ui.md](docs/components/ui.md) |
 | PlaceMode | `src/ui/place-mode.ts` | ✓+B2+B55+T136 (armFromSidebar/placeArmedAt) | critical-paths: "Merkki kartalle", "dblclick", "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
-| AppController | `src/main.ts` 414 riv ⚠️ | ✓ pilkko | critical-paths: kaikki | [ui.md](docs/components/ui.md) |
+| AppController | `src/main.ts` 454 riv ⚠️ | ✓ pilkko | critical-paths: kaikki | [ui.md](docs/components/ui.md) |
 | SignLibraryPanel | `src/ui/sign-library-panel.ts` 346 riv | ✓ T22+B55+T136 (kaikki rivit sijoitettavissa, ei suosikkivaatimusta) | critical-paths: "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
 | RoleSelector | `src/ui/role-selector.ts` | ✓ T12, huom B48/V80 (toggle-klikkaus dead code — `lockedRole` aina asetettu) | critical-paths: "Rooli backendistä" | [ui.md](docs/components/ui.md) |
-| SegmentPanel | `src/ui/segment-panel.ts` 294 riv | ✓ T25,T142,T143 | e2e/segments.spec.ts ".segment-km näyttää status-lukumäärän" | [ui.md](docs/components/ui.md) |
+| SegmentPanel | `src/ui/segment-panel.ts` 294 riv | ✓ T25,T142,T143,T148 (phase-suodin) | e2e/segments.spec.ts ".segment-km näyttää status-lukumäärän" | [ui.md](docs/components/ui.md) |
 | SegmentCreationModal | `src/ui/segment-creation-modal.ts` 195 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
-| SegmentDetailsModal | `src/ui/segment-details-modal.ts` 490 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
-| EquipmentList | `src/ui/segment-view.ts` | ✓ T27 | — | [ui.md](docs/components/ui.md) |
+| SegmentDetailsModal | `src/ui/segment-details-modal.ts` 518 riv ⚠️ | ✓ T146 (kloonaa seuraavaan vaiheeseen) — kasvanut isoksi (nimi/kuvaus/merkit/varusteet/assign/editpts/klooni/poisto), harkitse pilkkoa | — | [ui.md](docs/components/ui.md) |
+| EquipmentList | `src/ui/segment-view.ts` | ✓ T27,T147 (tarkastus-UI) | e2e/segments.spec.ts "tarkastus-segmentti näyttää..." | [ui.md](docs/components/ui.md) |
+| PhaseSwitcher | `src/ui/phase-switcher.ts` | ✓ T148 | — | [ui.md](docs/components/ui.md) |
 | AuthScreen | `src/ui/auth-screen.ts` 160 riv | ✓ T51 | — | [ui.md](docs/components/ui.md) |
 | MapStateBadge | `src/ui/map-state-badge.ts` | stub — approval-konsepti poistettu (B46/V79), ei renderöi mitään | — | [ui.md](docs/components/ui.md) |
 | SnapshotPanel | `src/ui/snapshot-panel.ts` 172 riv | ✓ T50 | — | [ui.md](docs/components/ui.md) |
