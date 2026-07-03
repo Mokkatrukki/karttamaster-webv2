@@ -222,21 +222,20 @@ metsässä, hanskat kädessä.
 ### SignIcon — karttamerkit (SVG, `src/map/icons.ts`)
 - Koko: `32×52px` (W×H)
 - Teardrop: pyörivä ympyrä `r=14` `cy=28` + kiinteä kärki-SVG `position:absolute;bottom:0;height:10px` (ei rotoi bearingin mukaan). Ankkuri kärjen kärjessä `(16, 52)`.
-- Kärki-path: `M8,0 L16,10 L24,0 Z` — osoittaa tarkan sijainnin kartalla
-- Värit: ks. §C Merkki-värit (tyyppiväri — ei muutu statuksen mukaan)
+- Kärki-path: `M8,0 L16,10 L24,0 Z` — osoittaa tarkan sijainnin kartalla. Kärjen väri on **aina tyyppiväri**, riippumatta statuksesta (V86) — tyyppi-identiteetti säilyy vaikka pääympyrä vaihtaa väriä.
 - Outline: `stroke: white, stroke-width: 2`
-- Upcoming-tyyppi: `stroke-dasharray="4 2"` (jo käytössä — ei muuteta statukselle)
+- Upcoming-tyyppi (`upcoming-left`/`upcoming-right`): pääympyrä pysyy aina tyyppivärillä + `stroke-dasharray="4 2"`, ei osallistu statusväritykseen (esikatselu-tyyppi, ei operatiivinen kuittausflow).
 
-**Status-visualisointi (T23/V51/T138, `createSignIcon(type, status, color?, shortLabel?, iconId?)`):**
-- `suunniteltu` → ympyrä `fill-opacity:0.55` + `stroke-dasharray:"4 2"` — "haalistunut/katkoviiva = ei tehty" (V51)
-- muut statukset → täysi `fill-opacity:1.0`, ei dasharray
-- Statusbadge (T138/V85, korvaa entisen 8px pisteen): `16×16px` pyöreä `<span>` oikealle, `bottom:12px` (ympyrän alapuoli, ei tip-alueen päällä), `border:2px solid white`, `box-shadow` kontrastia varten, glyfi keskellä
-  - `suunniteltu`: piilotettu (dasharray riittää signaaliksi)
-  - `asetettu`: `✓` `#4ade80`
-  - `tarkistettu`: `✓` `#93c5fd`
-  - `kerätty`: `✓` `#6ee7b7`
-  - `ei_tarpeen`: `✕` `#fbbf24`
-- Ympyrän sisällä: tyyppi-ikoni (Lucide, custom-malleille) tai arrow/shortLabel-teksti — **ei enää erillistä nurkkabadgea joka toistaisi saman tekstin** (poistettu T138:ssa, oli B57: sekoitti "kaksi kertaa sama teksti" -ongelman). Muoto on aina teardrop, tyyppiväri pysyy ensisijaisena tunnistimena.
+**Status-visualisointi (T23/V51/T138/T139, `createSignIcon(type, status, color?, shortLabel?, iconId?)`):**
+- `suunniteltu` → pääympyrä `fill=tyyppiväri fill-opacity:0.55` + `stroke-dasharray:"4 2"` — "haalistunut/katkoviiva = ei tehty" (V51), ennallaan
+- `asetettu`/`tarkistettu`/`kerätty`/`ei_tarpeen` → pääympyrän **täyttöväri on statusväri, ei tyyppiväri** (T139/V86/B58 — entinen pieni statusbadge ei erottunut riittävästi, koko ympyrä nyt vaihtaa väriä):
+  - `asetettu`: `#22c55e` (vihreä)
+  - `tarkistettu`: `#0ea5e9` (taivassininen)
+  - `kerätty`: `#8b5cf6` (violetti)
+  - `ei_tarpeen`: `#78716c` (harmaa)
+  - Neljä väriä valittu eri sävyperheistä tarkoituksella — ei saman perheen pastelleja (aiempi badge-versio #4ade80/#93c5fd/#6ee7b7 oli liian samankaltainen, B58)
+- Ympyrän sisällä: tyyppi-ikoni (Lucide, custom-malleille) tai arrow/shortLabel-teksti — paitsi `kerätty`/`ei_tarpeen`, joissa iso `✓`/`✕`-glyfi korvaa tyyppi-ikonin (T139: status painaa terminaalitilassa enemmän kuin tyyppi)
+- **Ei enää erillistä nurkkabadgea** (poistettu T138:ssa, oli B57: "kaksi kertaa sama teksti"). Muoto on aina teardrop.
 
 ### LeftPanel (`#left-panel`)
 - Vain järjestäjälle — `body[data-role="talkoolainen"] #left-panel { display: none }`

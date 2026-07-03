@@ -49,28 +49,29 @@ describe('T23: createSignIcon status-visualisointi', () => {
   })
 
   describe('status-piste', () => {
-    it('suunniteltu → ei status-pistettä', () => {
+    // T139/B58: statuspiste korvattu koko ympyrän statusvärillä — ks. tests/t139-status-fill-color.test.ts
+    it('suunniteltu → ei status-täyttöväriä (tyyppiväri säilyy)', () => {
       const html = getHtml('right', 'suunniteltu')
-      expect(html).not.toContain('#4ade80')
-      expect(html).not.toContain('#93c5fd')
-      expect(html).not.toContain('#fbbf24')
-      expect(html).not.toContain('#6ee7b7')
+      expect(html).not.toContain('#22c55e')
+      expect(html).not.toContain('#0ea5e9')
+      expect(html).not.toContain('#8b5cf6')
+      expect(html).not.toContain('#78716c')
     })
 
-    it('asetettu → vihreä piste #4ade80', () => {
-      expect(getHtml('right', 'asetettu')).toContain('#4ade80')
+    it('asetettu → vihreä täyttö #22c55e', () => {
+      expect(getHtml('right', 'asetettu')).toContain('#22c55e')
     })
 
-    it('tarkistettu → sininen piste #93c5fd', () => {
-      expect(getHtml('left', 'tarkistettu')).toContain('#93c5fd')
+    it('tarkistettu → sininen täyttö #0ea5e9', () => {
+      expect(getHtml('left', 'tarkistettu')).toContain('#0ea5e9')
     })
 
-    it('kerätty → mint piste #6ee7b7', () => {
-      expect(getHtml('upcoming-right', 'kerätty')).toContain('#6ee7b7')
+    it('kerätty → violetti täyttö #8b5cf6', () => {
+      expect(getHtml('right', 'kerätty')).toContain('#8b5cf6')
     })
 
-    it('ei_tarpeen → keltainen piste #fbbf24', () => {
-      expect(getHtml('upcoming-left', 'ei_tarpeen')).toContain('#fbbf24')
+    it('ei_tarpeen → harmaa täyttö #78716c', () => {
+      expect(getHtml('right', 'ei_tarpeen')).toContain('#78716c')
     })
   })
 
@@ -143,10 +144,14 @@ describe('T70: teardrop-ikoni', () => {
     expect(tipContext).toContain('#16a34a')
   })
 
-  it('status-piste ei ole tip-alueella (bottom:12px eikä bottom:2px)', () => {
+  // T139/B58: statuspiste korvattu koko ympyrän täyttövärillä — tip-kärki säilyttää tyyppivärin
+  // riippumatta statuksesta (ei sekoitu statusväriin), ks. tests/t139-status-fill-color.test.ts
+  it('tip-kärki säilyttää tyyppivärin vaikka status muuttaa pääympyrän väriä', () => {
     const html = createSignIcon('right', 'asetettu') as unknown as { html: string }
-    expect(html.html).toContain('bottom:12px')
-    expect(html.html).not.toContain('bottom:2px')
+    const tipIdx = html.html.indexOf('M8,0 L16,10 L24,0 Z')
+    const tipContext = html.html.slice(tipIdx, tipIdx + 80)
+    expect(tipContext).toContain('#16a34a')
+    expect(html.html).toContain('#22c55e')
   })
 
   it('kaikki 4 tyyppiä renderoituvat virheettä', () => {
