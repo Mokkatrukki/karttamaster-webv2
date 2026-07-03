@@ -1752,6 +1752,24 @@ button {
   color: var(--text-body);
 }
 
+.btn-segment-clone-phase {
+  background: var(--field-tint);
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  padding: 0 16px;
+  min-height: 44px;
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+}
+
+.btn-segment-clone-phase:hover {
+  background: var(--hover);
+  color: var(--text-body);
+}
+
 .segment-details-modal-footer {
   padding: 12px 20px;
   border-top: 1px solid var(--border-subtle);

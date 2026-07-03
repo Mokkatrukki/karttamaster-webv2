@@ -346,6 +346,7 @@ metsässä, hanskat kädessä.
   - kuvaus: `<textarea>`, 3 riviä, auto-save change, `min-height: 44px`
   - merkit readonly-lista: `text-muted 12px`, status-badge §C-väreillä, `max-height: 160px` scrollable
   - varusteet: add/remove/edit-rivi, `min-height: 44px` kaikille inputeille ja napeille
+  - `.btn-segment-clone-phase` (T146): "Kloonaa &lt;seuraava&gt;-vaiheeseen", sama tyyli kuin `.btn-segment-edit-pts-modal` (`field-tint` bg, `border-strong`, `min-height:44px`, `width:100%`, `text-align:left`) — ei destructive, ei primary, matala visuaalinen painoarvo koska harvoin käytetty toiminto
 
 ### Modal footer -pattern (KAIKKI modaalit noudattavat)
 
