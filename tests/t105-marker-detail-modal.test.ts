@@ -17,6 +17,7 @@ const makeMockManager = (marker: SignMarker) => ({
   getAll: vi.fn(() => [marker]),
   updateNote: vi.fn(),
   updateStatus: vi.fn(),
+  bulkSetStatus: vi.fn(),
   updateType: vi.fn(),
   remove: vi.fn(),
   panTo: vi.fn(),
@@ -147,8 +148,8 @@ describe('MarkerDetailModal', () => {
       vi.fn(),
     )
     modal.open('test-id')
-    expect(document.querySelector('.modal-btn-primary')).not.toBeNull()
-    expect(document.querySelector('.modal-btn-primary')?.textContent).toBe('Tallenna')
+    const saveBtn = Array.from(document.querySelectorAll('.modal-btn-primary')).find(b => b.textContent === 'Tallenna')
+    expect(saveBtn).not.toBeUndefined()
   })
 
   it('talkoolainen ei näe type-select eikä delete-nappia', () => {

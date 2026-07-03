@@ -233,6 +233,37 @@ export class MarkerDetailModal {
     const footer = document.createElement('div')
     footer.className = 'modal-footer marker-detail-actions'
 
+    // T137/V84: järjestäjä voi asettaa minkä tahansa statuksen suoraan, ei validActions()-rajausta
+    const statusLabel = document.createElement('label')
+    statusLabel.className = 'marker-detail-label'
+    statusLabel.textContent = 'Status'
+    footer.appendChild(statusLabel)
+
+    const statusRow = document.createElement('div')
+    statusRow.className = 'marker-detail-status-row'
+    const renderStatusRow = () => {
+      statusRow.innerHTML = ''
+      ;(Object.keys(STATUS_LABELS) as MarkerStatus[]).forEach(status => {
+        const btn = document.createElement('button')
+        const isCurrent = status === marker.status
+        btn.className = isCurrent ? 'modal-btn-primary' : 'modal-btn-secondary'
+        btn.textContent = STATUS_LABELS[status]
+        btn.disabled = isCurrent
+        btn.setAttribute('aria-pressed', String(isCurrent))
+        btn.addEventListener('click', () => {
+          // marker on sama viittaus manager.getAll()-listan alkioon (V84) — bulkSetStatus
+          // mutatoi marker.status:n suoraan, joten rivi voidaan piirtää uudelleen ilman
+          // koko modaalin sulkemista/uudelleenavausta (ei hukkaa tallentamatonta huomiota, B14-tyylinen riski).
+          this.manager.bulkSetStatus([marker.id], status)
+          this.onUpdate()
+          renderStatusRow()
+        })
+        statusRow.appendChild(btn)
+      })
+    }
+    renderStatusRow()
+    footer.appendChild(statusRow)
+
     // Type select above footer actions
     const typeLabel = document.createElement('label')
     typeLabel.className = 'marker-detail-label'

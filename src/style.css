@@ -2450,6 +2450,22 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   gap: 8px;
 }
 
+/* T137/V84: järjestäjän status-nappirivi MarkerDetailModalissa — 5 tilaa, rivittyy pienellä näytöllä */
+.marker-detail-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.marker-detail-status-row button {
+  flex: 1 1 auto;
+  min-width: 44px;
+}
+.marker-detail-status-row button:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
 .modal-btn-primary {
   flex: 1;
   min-height: 44px;
