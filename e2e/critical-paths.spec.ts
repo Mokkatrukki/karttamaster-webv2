@@ -170,6 +170,9 @@ test.describe('Drag-to-move — T37', () => {
     expect(boxAfter).not.toBeNull()
     const moved = Math.abs(boxAfter!.x - boxBefore!.x) > 20 || Math.abs(boxAfter!.y - boxBefore!.y) > 20
     expect(moved).toBe(true)
+
+    // B54/V82/T135: drag ei saa avata merkki-modaalia sivuvaikutuksena
+    await expect(page.locator('.marker-detail-modal')).toHaveCount(0)
   })
 })
 

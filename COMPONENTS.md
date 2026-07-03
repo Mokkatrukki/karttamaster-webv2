@@ -52,7 +52,7 @@ server/       ← Hono + Bun + SQLite
 | Sync | `src/logic/sync.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
 | SignIcon | `src/map/icons.ts` | ✓ valmis | critical-paths: "toolbar-dropdown" | [map.md](docs/components/map.md) |
 | DriveMode | `src/map/drive.ts` | ✓ valmis | critical-paths: "Drive mode" | [map.md](docs/components/map.md) |
-| MarkerManager | `src/map/markers.ts` 292 riv | ✓+B1+B45+T130 (bearing poistettu) | critical-paths: "Merkki kartalle", "Drag-to-move" | [map.md](docs/components/map.md) |
+| MarkerManager | `src/map/markers.ts` 294 riv | ✓+B1+B45+B54+T130+T135 (bearing poistettu, drag ei enää avaa modaalia) | critical-paths: "Merkki kartalle", "Drag-to-move" | [map.md](docs/components/map.md) |
 | RouteBar | `src/map/route-bar.ts` 125 riv | ✓ pilkko | — | [map.md](docs/components/map.md) |
 | GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30 | critical-paths: "GPS-paikannin" | [map.md](docs/components/map.md) |
 | AreaOverlay | `src/map/area-overlay.ts` 261 riv | ✓ valmis | area-interaction | [map.md](docs/components/map.md) |
@@ -157,7 +157,7 @@ Lisää: [backend.md — Vaiheistus](docs/components/backend.md)
 | `src/ui/sign-library-panel.ts` | **340** | Seuraa |
 | `src/ui/marker-detail-modal.ts` | **343** | Seuraa — kasvoi T103:ssa (kuvaus+kuvat), harkitse pilkkoa jos >400 riv |
 | `src/map/area-overlay.ts` | **261** | Seuraa |
-| `src/map/markers.ts` | **292** | Seuraa — pilkottava ennen T10 |
+| `src/map/markers.ts` | **294** | Seuraa — pilkottava ennen T10 |
 
 ---
 
