@@ -12,6 +12,8 @@ import {
   getPhaseProgress,
   formatPhaseProgress,
   validateNoOverlap,
+  cloneSegmentToNextPhase,
+  NEXT_PHASE,
   type Segment,
   type SegmentStore,
 } from '../src/logic/segments'
@@ -348,6 +350,51 @@ describe('segments', () => {
 
     it('excludeId ohittaa oman segmentin (muokkaus)', () => {
       expect(validateNoOverlap(store, 'r1', 1000, 5000, 'existing')).toBe(true)
+    })
+  })
+
+  // T146: UI-aukko korjattu — kloonaa segmentti seuraavaan vaiheeseen
+  describe('NEXT_PHASE / cloneSegmentToNextPhase', () => {
+    it('NEXT_PHASE-kierto: asettaminen->tarkastus->purku->asettaminen', () => {
+      expect(NEXT_PHASE.asettaminen).toBe('tarkastus')
+      expect(NEXT_PHASE.tarkastus).toBe('purku')
+      expect(NEXT_PHASE.purku).toBe('asettaminen')
+    })
+
+    it('kloonaus luo uuden segmentin oikealla phase-arvolla', () => {
+      const original = createSegment(store, {
+        ...baseSegment,
+        displayName: 'Pätkä 1',
+        assignedCode: 'ABC1',
+        equipment: [{ name: 'nauhaa', count: 5 }],
+      })
+      const cloned = cloneSegmentToNextPhase(store, original)
+      expect(cloned.id).not.toBe(original.id)
+      expect(cloned.phase).toBe('tarkastus')
+      expect(cloned.routeIds).toEqual(original.routeIds)
+      expect(cloned.startDist).toBe(original.startDist)
+      expect(cloned.endDist).toBe(original.endDist)
+      expect(cloned.displayName).toBe('Pätkä 1')
+    })
+
+    it('kloonatulla ei ole assignedCode/equipment/description — ei peri vanhan koodia', () => {
+      const original = createSegment(store, {
+        ...baseSegment,
+        assignedCode: 'ABC1',
+        description: 'vanha ohje',
+        equipment: [{ name: 'nauhaa', count: 5 }],
+      })
+      const cloned = cloneSegmentToNextPhase(store, original)
+      expect(cloned.assignedCode).toBeUndefined()
+      expect(cloned.description).toBeUndefined()
+      expect(cloned.equipment).toEqual([])
+    })
+
+    it('vanha segmentti säilyy koskemattomana kloonauksen jälkeen', () => {
+      const original = createSegment(store, { ...baseSegment, assignedCode: 'ABC1' })
+      cloneSegmentToNextPhase(store, original)
+      const stillThere = store.get(original.id)
+      expect(stillThere).toEqual(original)
     })
   })
 })

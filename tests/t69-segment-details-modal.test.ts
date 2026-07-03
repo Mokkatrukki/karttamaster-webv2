@@ -210,4 +210,31 @@ describe('T69 — SegmentDetailsModal', () => {
     openBtn.click()
     expect(document.querySelector('.segment-details-marker-list')).toBeNull()
   })
+
+  // T146: kloonaa seuraavaan vaiheeseen -nappi
+  it('modaali näyttää "Kloonaa tarkastus-vaiheeseen" -napin asettaminen-pätkällä', () => {
+    const { container } = setup()
+    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    openBtn.click()
+    const cloneBtn = document.querySelector('.btn-segment-clone-phase') as HTMLButtonElement
+    expect(cloneBtn).not.toBeNull()
+    expect(cloneBtn.textContent).toBe('Kloonaa tarkastus-vaiheeseen')
+  })
+
+  it('klikkaus luo uuden segmentin oikealla phase-arvolla, vanha säilyy', async () => {
+    const { container, store } = setup()
+    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    openBtn.click()
+    const original = Array.from(store.values())[0]
+    const cloneBtn = document.querySelector('.btn-segment-clone-phase') as HTMLButtonElement
+    cloneBtn.click()
+    await flush()
+    expect(store.size).toBe(2)
+    const cloned = Array.from(store.values()).find(s => s.id !== original.id)!
+    expect(cloned.phase).toBe('tarkastus')
+    expect(cloned.assignedCode).toBeUndefined()
+    const stillOriginal = store.get(original.id)
+    expect(stillOriginal?.phase).toBe('asettaminen')
+    expect(stillOriginal?.displayName).toBe('Testipätkä')
+  })
 })

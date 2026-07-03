@@ -64,6 +64,28 @@ export function deleteSegment(store: SegmentStore, id: string): boolean {
   return store.delete(id)
 }
 
+// T146/V91: lookup, ei if-ketju — uusi phase helppo lisätä. purku→asettaminen kiertää ympäri
+// (järjestäjä voi kloonata takaisin seuraavan tapahtuman asetusvaihetta varten).
+export const NEXT_PHASE: Record<Segment['phase'], Segment['phase']> = {
+  asettaminen: 'tarkastus',
+  tarkastus: 'purku',
+  purku: 'asettaminen',
+}
+
+// T146: korjaa UI-aukon — ei ollut mitään tapaa luoda tarkastus/purku-vaiheen pätkäjakoa.
+// Kopioi routeIds/startDist/endDist/displayName, TYHJÄ assignedCode/equipment/description
+// (V26: eri talkoolainen eri vaiheessa, ei peri edellisen koodia). Vanha segmentti koskematon.
+export function cloneSegmentToNextPhase(store: SegmentStore, segment: Segment): Segment {
+  return createSegment(store, {
+    routeIds: [...segment.routeIds],
+    startDist: segment.startDist,
+    endDist: segment.endDist,
+    displayName: segment.displayName,
+    equipment: [],
+    phase: NEXT_PHASE[segment.phase],
+  })
+}
+
 export function getSegmentsForPhase(
   store: SegmentStore,
   phase: Segment['phase'],

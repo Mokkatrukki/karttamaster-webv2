@@ -1,5 +1,5 @@
-import { updateSegment, deleteSegment, getMarkersForSegment } from '../logic/segments'
-import { updateSegmentRemote, deleteSegmentRemote } from '../logic/segment-sync'
+import { updateSegment, deleteSegment, getMarkersForSegment, cloneSegmentToNextPhase, NEXT_PHASE } from '../logic/segments'
+import { updateSegmentRemote, deleteSegmentRemote, pushSegment } from '../logic/segment-sync'
 import type { Segment, SegmentStore, EquipmentItem } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
 import { registerEscClose, createBackdrop } from './modal-helpers'
@@ -10,6 +10,12 @@ const STATUS_LABELS: Record<string, string> = {
   tarkistettu: 'Tarkistettu ✓',
   kerätty: 'Kerätty',
   ei_tarpeen: 'Ei tarpeen',
+}
+
+const PHASE_LABELS: Record<Segment['phase'], string> = {
+  asettaminen: 'asetus',
+  tarkastus: 'tarkastus',
+  purku: 'purku',
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -119,6 +125,9 @@ export class SegmentDetailsModal {
 
     // (6) edit points
     body.appendChild(this.buildEditPointsSection(seg))
+
+    // (7) T146: kloonaa seuraavaan vaiheeseen
+    body.appendChild(this.buildCloneSection(seg))
 
     const saveAll = () => {
       saveDisplayName()
@@ -446,6 +455,25 @@ export class SegmentDetailsModal {
         this.onRender()
         this.onUpdate()
       })
+    })
+    section.appendChild(btn)
+    return section
+  }
+
+  private buildCloneSection(seg: Segment): HTMLElement {
+    const section = document.createElement('div')
+    section.className = 'segment-details-modal-section'
+
+    const nextPhase = NEXT_PHASE[seg.phase]
+    const btn = document.createElement('button')
+    btn.className = 'btn-segment-clone-phase'
+    btn.textContent = `Kloonaa ${PHASE_LABELS[nextPhase]}-vaiheeseen`
+    btn.addEventListener('click', () => {
+      const cloned = cloneSegmentToNextPhase(this.store, seg)
+      pushSegment(cloned).catch(() => {})
+      this.close()
+      this.onRender()
+      this.onUpdate()
     })
     section.appendChild(btn)
     return section
