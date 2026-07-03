@@ -410,6 +410,13 @@ CSS-luokat:
 - Ei purku-bulk-nappia vielä (T52 lisää)
 - **Tarkastus-osio (T147, `.segment-view-inspect`):** näkyy vain `phase==='tarkastus'`-pätkällä. `.segment-view-inspect-status` (`text-primary 12px bold`): "Tarkastettu ✓" / "Ei vielä tarkastettu". `.segment-view-inspect-note` (`<textarea>`, 3 riviä, `min-height:44px`, `field-tint` bg) — vapaateksti-huomio, ei per-merkki-kuittausta (VISION §4). `.btn-mark-inspected` (`min-height:44px;width:100%`, `confirm`-tyyli kuten `.btn-bulk-collect`) — tekstinä "Merkitse tarkastetuksi"/"Merkitse tarkastamattomaksi" (toggle).
 
+### PhaseSwitcher (T148, `#phase-switcher-container`, `src/ui/phase-switcher.ts`)
+- Vain järjestäjälle — `data-role-hide="talkoolainen"` piilottaa containerin talkoolaiselta
+- Sijainti: `#toolbar-menu` (⋯-valikko), oma rivi `.menu-sep`-erottimien välissä
+- `<select>` kolmella vaihtoehdolla: Asetus / Tarkastus / Purku (`Segment['phase']`-arvot), `min-height:44px`
+- Vapaa valinta mihin arvoon tahansa — ei rajoitettu ketju
+- Ohjaa mitä `SegmentPanel`-lista ja `SegmentOverlay`-kartta näyttävät oletuksena (`getSegmentsForPhase`-suodin) — ei vaikuta talkoolaisen omaan pätkänäkymään
+
 ### SignLibraryPanel (`src/ui/sign-library-panel.ts`)
 - Vain järjestäjälle — sijaitsee `#left-panel-content`:ssä
 - Rivit (`.sign-lib-row`): `display:flex;align-items:center;gap:4px`, border-bottom `border-card`

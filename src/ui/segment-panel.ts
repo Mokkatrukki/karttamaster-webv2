@@ -5,6 +5,7 @@ import {
   formatStatusCounts,
   getPhaseProgress,
   formatPhaseProgress,
+  getSegmentsForPhase,
 } from '../logic/segments'
 import type { SegmentStore, Segment } from '../logic/segments'
 import type { RouteConfig } from '../logic/multi-route'
@@ -23,6 +24,8 @@ export interface SegmentPanelCallbacks {
   onExitCreationMode?: () => void
   onShowSnapMarkers?: (onSnap: (routeId: string, dist: number, lat: number, lon: number) => void) => void
   onHideSnapMarkers?: () => void
+  // T148: globaali phase-näkymän suodin — undefined = näytä kaikki (taaksepäin yhteensopiva)
+  getActivePhase?: () => Segment['phase']
 }
 
 export class SegmentPanel {
@@ -239,11 +242,12 @@ export class SegmentPanel {
     const panel = this.listEl.parentElement
     panel?.querySelector('.btn-segment-footer')?.remove()
 
-    const segments = Array.from(this.store.values())
+    const activePhase = this.callbacks.getActivePhase?.()
+    const segments = activePhase ? getSegmentsForPhase(this.store, activePhase) : Array.from(this.store.values())
     if (segments.length === 0) {
       const empty = document.createElement('li')
       empty.className = 'segment-empty'
-      empty.textContent = 'Ei pätkiä — luo ensimmäinen'
+      empty.textContent = activePhase ? `Ei pätkiä ${activePhase}-vaiheessa` : 'Ei pätkiä — luo ensimmäinen'
       this.listEl.appendChild(empty)
     } else {
       for (const seg of segments) {

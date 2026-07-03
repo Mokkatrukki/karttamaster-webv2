@@ -25,9 +25,11 @@ import { SegmentView } from './ui/segment-view'
 import { LeftPanel } from './ui/left-panel'
 import { SignLibraryPanel, createSignLibrary } from './ui/sign-library-panel'
 import { saveLibrary, type SignLibrary } from './logic/sign-library'
-import { getSegmentForCode, getMarkersForSegment, updateSegment } from './logic/segments'
+import { getSegmentForCode, getMarkersForSegment, updateSegment, getSegmentsForPhase } from './logic/segments'
 import type { Segment } from './logic/segments'
 import { fetchSegmentByCode, fetchAllSegments, updateSegmentRemote } from './logic/segment-sync'
+import { getActivePhase } from './logic/phase-view'
+import { PhaseSwitcher } from './ui/phase-switcher'
 import type { RouteConfig } from './logic/multi-route'
 import { MarkerDetailModal } from './ui/marker-detail-modal'
 import { AreaOverlay } from './map/area-overlay'
@@ -139,8 +141,18 @@ async function init(talkoolainenCode?: string) {
     for (const seg of all) segmentStore.set(seg.id, seg)
   }
 
+  // T148: järjestäjä näkee kartalla vain aktiivisen phasen pätkät — talkoolainen aina omansa
+  const visibleSegments = (): Segment[] =>
+    talkoolainenCode ? Array.from(segmentStore.values()) : getSegmentsForPhase(segmentStore, getActivePhase())
+
+  const renderSegmentOverlay = (): void => {
+    const filtered = new Map<string, Segment>()
+    for (const seg of visibleSegments()) filtered.set(seg.id, seg)
+    segmentOverlay.update(filtered)
+  }
+
   const segmentOverlay = new SegmentOverlay(map, routes)
-  segmentOverlay.update(segmentStore)
+  renderSegmentOverlay()
 
   // T114-T116: MapRectEditor — draw-by-drag + corner resize + rotation arm
   const mapRectEditor = new MapRectEditor(map)
@@ -207,8 +219,9 @@ async function init(talkoolainenCode?: string) {
     document.getElementById('segment-panel-container')!,
     routes,
     segmentStore,
-    () => segmentOverlay.update(segmentStore),
+    () => renderSegmentOverlay(),
     {
+      getActivePhase: talkoolainenCode ? undefined : getActivePhase,
       onFirstPoint: (lat, lon) => {
         tempCreationMarker?.remove()
         tempCreationMarker = L.circleMarker([lat, lon], {
@@ -237,6 +250,13 @@ async function init(talkoolainenCode?: string) {
 
   if (!talkoolainenCode) {
     segmentOverlay.setOnSegmentClick(seg => segmentPanel.openDetailsModal(seg))
+    const phaseSwitcherContainer = document.getElementById('phase-switcher-container')
+    if (phaseSwitcherContainer) {
+      new PhaseSwitcher(phaseSwitcherContainer, () => {
+        renderSegmentOverlay()
+        segmentPanel.refreshCounts()
+      })
+    }
   }
 
   let segmentView: SegmentView | null = null

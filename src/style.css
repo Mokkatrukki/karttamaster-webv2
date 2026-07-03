@@ -193,6 +193,31 @@ html, body {
   color: var(--text-muted);
 }
 
+/* T148: globaali phase-näkymän vaihdin — järjestäjän toolbar-menu */
+.phase-switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  min-height: 44px;
+}
+
+.phase-switcher-label {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.phase-switcher-select {
+  flex: 1;
+  min-height: 44px;
+  background: var(--field-tint);
+  color: var(--text-body);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  padding: 0 8px;
+}
+
 body[data-role="talkoolainen"] #btn-segment-panel,
 body[data-role="talkoolainen"] #btn-snapshot-panel,
 body[data-role="talkoolainen"] #gpkg-menu-sep,
