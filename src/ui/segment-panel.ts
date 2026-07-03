@@ -1,5 +1,11 @@
 import { nearestPointIndex, haversineDistance } from '../logic/bearing'
-import { validateNoOverlap, getSegmentStatusCounts, formatStatusCounts } from '../logic/segments'
+import {
+  validateNoOverlap,
+  getSegmentStatusCounts,
+  formatStatusCounts,
+  getPhaseProgress,
+  formatPhaseProgress,
+} from '../logic/segments'
 import type { SegmentStore, Segment } from '../logic/segments'
 import type { RouteConfig } from '../logic/multi-route'
 import type { SignMarker } from '../logic/types'
@@ -270,8 +276,9 @@ export class SegmentPanel {
     const kmSpan = document.createElement('span')
     kmSpan.className = 'segment-km'
     const markers = this.callbacks.getMarkers?.() ?? []
-    kmSpan.textContent = formatStatusCounts(getSegmentStatusCounts(seg, markers))
-    kmSpan.title = `${(seg.startDist / 1000).toFixed(1)}–${(seg.endDist / 1000).toFixed(1)} km`
+    kmSpan.textContent = formatPhaseProgress(getPhaseProgress(seg, markers))
+    const kmRange = `${(seg.startDist / 1000).toFixed(1)}–${(seg.endDist / 1000).toFixed(1)} km`
+    kmSpan.title = `${kmRange} · ${formatStatusCounts(getSegmentStatusCounts(seg, markers))}`
 
     const detailsBtn = document.createElement('button')
     detailsBtn.className = 'btn-segment-details-open'

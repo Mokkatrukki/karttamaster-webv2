@@ -9,6 +9,8 @@ import {
   getMarkersForSegment,
   getSegmentStatusCounts,
   formatStatusCounts,
+  getPhaseProgress,
+  formatPhaseProgress,
   validateNoOverlap,
   type Segment,
   type SegmentStore,
@@ -258,6 +260,38 @@ describe('segments', () => {
       expect(formatStatusCounts({
         suunniteltu: 3, asetettu: 0, tarkistettu: 0, kerätty: 0, ei_tarpeen: 0,
       })).toBe('3 suunniteltu')
+    })
+  })
+
+  // T143/V90: yksi phase-tietoinen luku sivupalkkiriville
+  describe('getPhaseProgress / formatPhaseProgress', () => {
+    it('asettaminen-pätkä: done = asetettu+tarkistettu+kerätty', () => {
+      const segment = createSegment(store, { ...baseSegment, phase: 'asettaminen' })
+      const markers: SignMarker[] = [
+        { ...makeMarker('m1', ['route-35km'], 2000), status: 'suunniteltu' },
+        { ...makeMarker('m2', ['route-35km'], 3000), status: 'asetettu' },
+        { ...makeMarker('m3', ['route-35km'], 4000), status: 'tarkistettu' },
+        { ...makeMarker('m4', ['route-35km'], 4500), status: 'kerätty' },
+      ]
+      const progress = getPhaseProgress(segment, markers)
+      expect(progress).toEqual({ done: 3, total: 4, label: 'asetettu' })
+      expect(formatPhaseProgress(progress)).toBe('3/4 asetettu')
+    })
+
+    it('purku-pätkä: done = vain kerätty', () => {
+      const segment = createSegment(store, { ...baseSegment, phase: 'purku' })
+      const markers: SignMarker[] = [
+        { ...makeMarker('m1', ['route-35km'], 2000), status: 'asetettu' },
+        { ...makeMarker('m2', ['route-35km'], 3000), status: 'kerätty' },
+      ]
+      const progress = getPhaseProgress(segment, markers)
+      expect(progress).toEqual({ done: 1, total: 2, label: 'kerätty' })
+      expect(formatPhaseProgress(progress)).toBe('1/2 kerätty')
+    })
+
+    it('tyhjä pätkä: "ei merkkejä"', () => {
+      const segment = createSegment(store, { ...baseSegment, phase: 'asettaminen' })
+      expect(formatPhaseProgress(getPhaseProgress(segment, []))).toBe('ei merkkejä')
     })
   })
 

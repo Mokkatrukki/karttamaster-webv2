@@ -64,7 +64,7 @@ server/       ← Hono + Bun + SQLite
 | AppController | `src/main.ts` 414 riv ⚠️ | ✓ pilkko | critical-paths: kaikki | [ui.md](docs/components/ui.md) |
 | SignLibraryPanel | `src/ui/sign-library-panel.ts` 346 riv | ✓ T22+B55+T136 (kaikki rivit sijoitettavissa, ei suosikkivaatimusta) | critical-paths: "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
 | RoleSelector | `src/ui/role-selector.ts` | ✓ T12, huom B48/V80 (toggle-klikkaus dead code — `lockedRole` aina asetettu) | critical-paths: "Rooli backendistä" | [ui.md](docs/components/ui.md) |
-| SegmentPanel | `src/ui/segment-panel.ts` 287 riv | ✓ T25,T142 | e2e/segments.spec.ts ".segment-km näyttää status-lukumäärän" | [ui.md](docs/components/ui.md) |
+| SegmentPanel | `src/ui/segment-panel.ts` 294 riv | ✓ T25,T142,T143 | e2e/segments.spec.ts ".segment-km näyttää status-lukumäärän" | [ui.md](docs/components/ui.md) |
 | SegmentCreationModal | `src/ui/segment-creation-modal.ts` 195 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
 | SegmentDetailsModal | `src/ui/segment-details-modal.ts` 490 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
 | EquipmentList | `src/ui/segment-view.ts` | ✓ T27 | — | [ui.md](docs/components/ui.md) |

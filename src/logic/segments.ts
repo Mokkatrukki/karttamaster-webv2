@@ -120,6 +120,28 @@ export function formatStatusCounts(counts: Record<MarkerStatus, number>): string
   return parts.length > 0 ? parts.join(' · ') : 'ei merkkejä'
 }
 
+// T143/V90: yksi phase-tietoinen luku täyden breakdownin sijaan — mahtuu ahtaaseen sivupalkkiriviin.
+// Lookup-taulu (ei if-ketju) jotta tuleva 'tarkastus'-phase on helppo lisätä.
+const PHASE_TARGET: Record<Segment['phase'], { label: string; doneStatuses: MarkerStatus[] }> = {
+  asettaminen: { label: 'asetettu', doneStatuses: ['asetettu', 'tarkistettu', 'kerätty'] },
+  purku: { label: 'kerätty', doneStatuses: ['kerätty'] },
+}
+
+export function getPhaseProgress(
+  segment: Segment,
+  markers: SignMarker[],
+): { done: number; total: number; label: string } {
+  const segMarkers = getMarkersForSegment(segment, markers)
+  const target = PHASE_TARGET[segment.phase]
+  const done = segMarkers.filter(m => target.doneStatuses.includes(m.status)).length
+  return { done, total: segMarkers.length, label: target.label }
+}
+
+export function formatPhaseProgress(progress: { done: number; total: number; label: string }): string {
+  if (progress.total === 0) return 'ei merkkejä'
+  return `${progress.done}/${progress.total} ${progress.label}`
+}
+
 // V49: overlap = startDist2 < endDist1 && startDist1 < endDist2. excludeId skips own segment on edit.
 export function validateNoOverlap(
   store: SegmentStore,
