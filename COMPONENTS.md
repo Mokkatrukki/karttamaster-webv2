@@ -50,7 +50,7 @@ server/       ← Hono + Bun + SQLite
 | SegmentActions | `src/logic/segment-actions.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
 | SegmentPersistence | `src/logic/segment-persistence.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
 | Sync | `src/logic/sync.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
-| SignIcon | `src/map/icons.ts` | ✓+B57+T138+B58+T139 (poistettu duplikoiva nurkkabadge, koko ympyrä vaihtaa väriä statuksen mukaan) | critical-paths: "toolbar-dropdown" | [map.md](docs/components/map.md) |
+| SignIcon | `src/map/icons.ts` | ✓+B57+T138+B58+T139+B59+T140 (poistettu duplikoiva nurkkabadge; statusväri ulkoreunassa, täyttö pysyy aina tyyppikuvana) | critical-paths: "toolbar-dropdown" | [map.md](docs/components/map.md) |
 | DriveMode | `src/map/drive.ts` | ✓ valmis | critical-paths: "Drive mode" | [map.md](docs/components/map.md) |
 | MarkerManager | `src/map/markers.ts` 294 riv | ✓+B1+B45+B54+T130+T135 (bearing poistettu, drag ei enää avaa modaalia) | critical-paths: "Merkki kartalle", "Drag-to-move" | [map.md](docs/components/map.md) |
 | RouteBar | `src/map/route-bar.ts` 125 riv | ✓ pilkko | — | [map.md](docs/components/map.md) |

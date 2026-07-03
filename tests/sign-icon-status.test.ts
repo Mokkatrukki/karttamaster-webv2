@@ -49,8 +49,8 @@ describe('T23: createSignIcon status-visualisointi', () => {
   })
 
   describe('status-piste', () => {
-    // T139/B58: statuspiste korvattu koko ympyrän statusvärillä — ks. tests/t139-status-fill-color.test.ts
-    it('suunniteltu → ei status-täyttöväriä (tyyppiväri säilyy)', () => {
+    // T140/B59: statuspiste korvattu ulkoreunan statusvärillä (täyttö on aina tyyppiväri) — ks. tests/t140-status-ring-color.test.ts
+    it('suunniteltu → ei status-reunusväriä', () => {
       const html = getHtml('right', 'suunniteltu')
       expect(html).not.toContain('#22c55e')
       expect(html).not.toContain('#0ea5e9')
@@ -58,19 +58,19 @@ describe('T23: createSignIcon status-visualisointi', () => {
       expect(html).not.toContain('#78716c')
     })
 
-    it('asetettu → vihreä täyttö #22c55e', () => {
+    it('asetettu → vihreä reunus #22c55e', () => {
       expect(getHtml('right', 'asetettu')).toContain('#22c55e')
     })
 
-    it('tarkistettu → sininen täyttö #0ea5e9', () => {
+    it('tarkistettu → sininen reunus #0ea5e9', () => {
       expect(getHtml('left', 'tarkistettu')).toContain('#0ea5e9')
     })
 
-    it('kerätty → violetti täyttö #8b5cf6', () => {
+    it('kerätty → violetti reunus #8b5cf6', () => {
       expect(getHtml('right', 'kerätty')).toContain('#8b5cf6')
     })
 
-    it('ei_tarpeen → harmaa täyttö #78716c', () => {
+    it('ei_tarpeen → harmaa reunus #78716c', () => {
       expect(getHtml('right', 'ei_tarpeen')).toContain('#78716c')
     })
   })
