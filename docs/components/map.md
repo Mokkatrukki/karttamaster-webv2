@@ -5,14 +5,13 @@ Leaflet-glue. Ohut kerros kartan päällä. **Testattavuus: Playwright.**
 ---
 
 ## SignIcon
-**Vastuu:** Leaflet DivIcon -luonti merkkityypille ja bearingille
+**Vastuu:** Leaflet DivIcon -luonti merkkityypille (bearing-rotaatio poistettu T130)
 **Käyttäjä:** molemmat (visuaali kartalla)
 **Moduuli:** `src/map/icons.ts`
 **Testattavuus:** Vitest-jsdom (L.divIcon tarvitsee DOM)
 
 ### Ominaisuudet
 - ✓ `createSignIcon` — L.DivIcon SVG-ympyrällä, nuolella ja labelilla
-- ✓ Rotate-handle (`.sign-handle`) — näkyy vain `.marker-armed`-tilassa
 - ✓ Upcoming-tyypit viivakuviolla (dashed circle)
 
 ### Tulossa
@@ -49,54 +48,29 @@ Leaflet-glue. Ohut kerros kartan päällä. **Testattavuus: Playwright.**
 ---
 
 ## MarkerManager
-**Vastuu:** Merkkien data-hallinta + Leaflet-layer
+**Vastuu:** Merkkien data-hallinta + Leaflet-layer (bearing/rotaatio poistettu T130 — `MarkerInteraction` poistettu kokonaan, se oli olemassa vain kääntöä varten)
 **Käyttäjä:** molemmat
-**Moduuli:** `src/map/markers.ts` (159 riv)
+**Moduuli:** `src/map/markers.ts` (292 riv)
 **Testattavuus:** Playwright
 
 ### Ominaisuudet
-- ✓ `add` — lisää merkki, bearing + reittiassignment automaattisesti, status='suunniteltu'
+- ✓ `add` — lisää merkki, reittiassignment automaattisesti, status='suunniteltu'
 - ✓ `remove` — poistaa merkin ja Leaflet-markerin
-- ✓ `updateBearing` — päivittää suuntakulman ja kuvakkeen
 - ✓ `getAll` — näkyvien reittien merkit etäisyysjärjestyksessä
 - ✓ `getForRoute` — tietyn reitin merkit
 - ✓ `setVisibleRoutes` — piilottaa/näyttää merkit
 - ✓ `panTo` — siirtää karttanäkymän merkin kohdalle
-- ✓ Delegoi interaktio `MarkerInteraction`-oliolle
 - ✓ `reload(markers)` — korvaa koko merkkilistan + piirtää näkyvät uudelleen (T124-T128: GPKG-tuonnin jälkeen)
 - ✓ `fixOrphanRouteIds()` — B45: korjaa merkit joilla `routeIds:[]` (esim. GPKG-tuonnin uudet merkit, palvelin ei tunne GPX-geometriaa) lähin-reitti-fallbackilla, sama periaate kuin `add()`/V21. Vitest-jsdom-testattu (`tests/gpkg-orphan-markers.test.ts`) real Leaflet-mapilla jsdomissa — ei vaadi Playwrightia tälle logiikalle.
 
 ### Tulossa
-- [ ] Drag-to-move merkki: siirto päivittää bearing + routeIds (T37, V15)
 - [ ] Vaihda merkin tyyppi jälkikäteen (T38, V17)
 - [ ] Merkin status-värikoodaus kartalla (T23)
 - [ ] Kuittausnappi talkoolaiselle (T24)
 
 ### Käyttäjätarkistus
 > Talkoolainen: tuplaklikkaa → picker → merkki — 2 toimintoa ✓
-> Järjestäjä: kontekstivalikosta kääntö ja poisto ✓
-> Järjestäjä-kitka: väärässä paikassa → delete+redo pakko (T37 korjaa)
-
----
-
-## MarkerInteraction
-**Vastuu:** Rotation arm/drag + kontekstivalikko + CSS inject
-**Käyttäjä:** molemmat
-**Moduuli:** `src/map/marker-interaction.ts` (189 riv)
-**Testattavuus:** Playwright
-
-### Ominaisuudet
-- ✓ `arm/disarm` — rotaatio-arming + outside-click handler
-- ✓ `startRotation/applyRotation` — mouse + touch rotaatio
-- ✓ `showContextMenu/hideContextMenu` — "Käännä" + "✕ Poista"
-- ✓ `injectStyles` — staattinen CSS inject (kerran per sivu)
-
-### Tulossa
-- [ ] Rotation arm sticky: arm ei häviä karttaklikistä (T40, V16)
-- [ ] Pitkä paina = kontekstivalikko mobiililla (UX parannus)
-
-### Käyttäjätarkistus — tiedossa oleva kitka
-> Järjestäjä-kitka: arm häviää ulkoklikillä → turha Käännä-reset (T40 korjaa)
+> Järjestäjä: drag&drop siirtää merkin, poisto modaalin kautta ✓
 
 ---
 

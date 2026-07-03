@@ -44,7 +44,6 @@ function initSchema(db: Database): void {
       type TEXT NOT NULL,
       lat REAL NOT NULL,
       lon REAL NOT NULL,
-      bearing REAL NOT NULL,
       distance_from_start REAL NOT NULL,
       route_ids TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'suunniteltu',
@@ -129,7 +128,6 @@ function initSchema(db: Database): void {
   // Migraatiot — idempotent ALTER TABLE (epäonnistuu hiljaa jos kolumni jo on)
   try { db.exec('ALTER TABLE markers ADD COLUMN color TEXT') } catch { /* already exists */ }
   try { db.exec('ALTER TABLE markers ADD COLUMN short_label TEXT') } catch { /* already exists */ }
-  try { db.exec('ALTER TABLE markers ADD COLUMN bearing_manual INTEGER NOT NULL DEFAULT 0') } catch { /* already exists */ }
   try { db.exec('ALTER TABLE users ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1') } catch { /* already exists */ }
   try { db.exec('ALTER TABLE markers ADD COLUMN description TEXT') } catch { /* already exists */ }
 

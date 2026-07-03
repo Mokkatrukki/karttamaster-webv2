@@ -27,7 +27,6 @@ function makeMarker(id: string, routeIds: string[], dist: number): SignMarker {
     type: 'right',
     lat: 0,
     lon: 0,
-    bearing: 0,
     distanceFromStart: dist,
     routeIds,
     status: 'suunniteltu',

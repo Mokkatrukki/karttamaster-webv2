@@ -8,8 +8,8 @@ vi.mock('leaflet', () => ({
 
 import { createSignIcon } from '../src/map/icons'
 
-function getHtml(type: Parameters<typeof createSignIcon>[0], status: Parameters<typeof createSignIcon>[2]): string {
-  const icon = createSignIcon(type, 0, status) as unknown as { html: string }
+function getHtml(type: Parameters<typeof createSignIcon>[0], status: Parameters<typeof createSignIcon>[1]): string {
+  const icon = createSignIcon(type, status) as unknown as { html: string }
   return icon.html
 }
 
@@ -76,7 +76,7 @@ describe('T23: createSignIcon status-visualisointi', () => {
 
   describe('default status', () => {
     it('ilman status-param → suunniteltu (stroke-dasharray)', () => {
-      const icon = createSignIcon('right', 0) as unknown as { html: string }
+      const icon = createSignIcon('right') as unknown as { html: string }
       expect(icon.html).toContain('stroke-dasharray="4 2"')
     })
   })
@@ -93,7 +93,7 @@ describe('T23: createSignIcon status-visualisointi', () => {
     })
 
     it('custom type: color override toimii', () => {
-      const icon = createSignIcon('my-type', 0, 'suunniteltu', '#ff0000', 'X') as unknown as { html: string }
+      const icon = createSignIcon('my-type', 'suunniteltu', '#ff0000', 'X') as unknown as { html: string }
       expect(icon.html).toContain('#ff0000')
       expect(icon.html).toContain('X')
     })
@@ -107,7 +107,7 @@ describe('T23: createSignIcon status-visualisointi', () => {
 
 describe('T70: teardrop-ikoni', () => {
   function getIcon(type: Parameters<typeof createSignIcon>[0] = 'right') {
-    return createSignIcon(type, 0, 'suunniteltu') as unknown as {
+    return createSignIcon(type, 'suunniteltu') as unknown as {
       html: string
       iconSize: number[]
       iconAnchor: number[]
@@ -144,14 +144,14 @@ describe('T70: teardrop-ikoni', () => {
   })
 
   it('status-piste ei ole tip-alueella (bottom:12px eikä bottom:2px)', () => {
-    const html = createSignIcon('right', 0, 'asetettu') as unknown as { html: string }
+    const html = createSignIcon('right', 'asetettu') as unknown as { html: string }
     expect(html.html).toContain('bottom:12px')
     expect(html.html).not.toContain('bottom:2px')
   })
 
   it('kaikki 4 tyyppiä renderoituvat virheettä', () => {
     for (const type of ['right', 'left', 'upcoming-right', 'upcoming-left'] as const) {
-      const icon = createSignIcon(type, 45, 'asetettu') as unknown as { html: string }
+      const icon = createSignIcon(type, 'asetettu') as unknown as { html: string }
       expect(icon.html).toContain('M8,0 L16,10 L24,0 Z')
     }
   })

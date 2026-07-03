@@ -4,19 +4,17 @@ Puhtaat funktiot. Ei Leafletia, ei DOM:ia. **Testattavuus: Vitest-pure.**
 
 ---
 
-## BearingMath
-**Vastuu:** Geo-laskenta — bearing, etäisyys, reittipisteistö, sijaintiprosentti
+## RouteGeoMath
+**Vastuu:** Reittigeometria — etäisyys, reittipisteistö, sijaintiprosentti (bearing-laskenta poistettu T129, ks. SPEC.md V1/V15/V41/V52/V53/V60)
 **Käyttäjä:** molemmat (taustalogiikka)
 **Moduuli:** `src/logic/bearing.ts`
 **Testattavuus:** Vitest-pure
 
 ### Ominaisuudet
-- ✓ `calcBearing` — suuntakulma kahden pisteen välille
 - ✓ `haversineDistance` — etäisyys metreinä
 - ✓ `buildRoutePoints` — lat/lon-taulukosta RoutePoint[] kumulatiivisella etäisyydellä
 - ✓ `nearestPointIndex` — lähin reittipisteindeksi koordinaatille
 - ✓ `routePositionPct` — matka prosentteina (0–100) reitillä
-- ✓ `bearingAtIndex` — suuntakulma reittipisteessä (ympyräkeskiarvo)
 
 ### Tulossa
 - [ ] Snap-to-route: palauta koordinaatti lähimmälle reittipisteelle (T31)

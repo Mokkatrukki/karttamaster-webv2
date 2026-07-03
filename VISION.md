@@ -60,6 +60,36 @@ Sama flow kuin talkoolaisella — eri pätkä, tarkastusvaihe. Ajaa autolla tai 
 
 Sama henkilö voi tehdä useita pätkiä eri vaiheissa. Kaikki näkevät kaikkien statuksen — avoimuus on tarkoituksellista.
 
+### Admin / Pääjärjestäjä
+
+**Persoona:** Tapahtuman vetäjä joka vastaa siitä että oikeat ihmiset pääsevät sovellukseen sisään. Tietää ketkä osallistuvat — lisää uusia järjestäjiä etukäteen, poistaa pääsyn jos suunnitelmat muuttuvat. Ei välttämättä tee itse maastotöitä, mutta vastaa kokonaisuudesta.
+
+**Konteksti:** toimisto tai koti, laptop, hyvä nettiyhteys. Ennen tapahtumaa: lisää järjestäjiä joukkoon. Tapahtumapäivänä: reagoi nopeasti jos joku ei pääse sisään tai salasana on hukassa. Yksi tai kaksi adminia koko tapahtumassa.
+
+**Mitä admin tekee:**
+- Lisää järjestäjän: luo invite-linkin, lähettää WhatsAppilla tai sähköpostilla. Käyttäjä rekisteröi itse omat tunnukset.
+- Deaktivoi järjestäjän joka ei tulekaan paikalle — deaktivoitu henkilö ei pääse enää sisään.
+- Resetoi salasanan: luo uuden invite-linkin, lähettää henkilölle — sama mekanismi kuin uusi käyttäjä.
+- Näkee kaikki käyttäjät: nimi, rooli, luontiaika, onko aktiivinen.
+- Tulevaisuudessa: näkee kuka on muokannut mitäkin (audit trail).
+
+**Mitä admin tarvitsee:** yksinkertainen käyttäjälista, yksi nappi kutsulinkin luontiin, yksi nappi deaktivointiin. Max 3 klikkausta mihinkään toimintoon. Toimii myös puhelimella jos tarve.
+
+**Mitä admin EI tarvitse:** monimutkaista roolienhallintaa, erillisiä oikeustasoja järjestäjien välillä, käyttäjien muokkausta mid-session. Yksinkertaisuus ennen kattavuutta.
+
+**Näkymä:** `/admin`-URL — erillinen sivu karttanäkymästä. Admin kirjautuu samalla lomakkeella kuin järjestäjä (username+password). Admin pääsee myös karttanäkymään — admin-rooli sisältää kaikki järjestäjän oikeudet.
+
+**UX-testi adminille:** "Voinko lisätä uuden järjestäjän alle minuutissa? Voinko deaktivoida henkilön kolmella klikkauksella?"
+
+**Roolihierarkia:**
+```
+admin      → käyttäjähallinta + kaikki järjestäjän oikeudet + audit-lokit
+järjestäjä → merkit, pätkät, alueet, snapshots, talkoolaisen URL:t
+talkoolainen → vain oma pätkä, kuittaukset
+```
+
+Admin on järjestäjistä se jolle annetaan ylimääräinen vastuu — ei erillinen henkilötyyppi. Käytännössä yksi henkilö koko tapahtumassa.
+
 ## Reitit
 
 4 GPX-reittiä, osin päällekkäisiä (35km + 60km jakavat pitkän yhteisen osuuden). Lähtö ja maali samat kaikille. Fyysinen merkki voi palvella useampaa reittiä samanaikaisesti — se on yksi esine, ei monta.
@@ -68,7 +98,7 @@ Sama henkilö voi tehdä useita pätkiä eri vaiheissa. Kaikki näkevät kaikkie
 
 **Merkkikirjasto** (järjestäjä rakentaa): ikoni + teksti + kuvaus. Esimerkkejä: nuoli oikealle, nuoli vasemmalle, "Varo hyppy", "Muurahaispesä", "Huolto 25km", "->". Ikonilähde selvitetään tutkimusvaiheessa.
 
-**Kartalla oleva merkki** = kirjaston instanssi + sijainti + suunta (bearing) + paikkaohjeet.
+**Kartalla oleva merkki** = kirjaston instanssi + sijainti + paikkaohjeet.
 
 **Merkin elinkaari**: `suunniteltu → asetettu → tarkistettu → kerätty`
 
@@ -255,7 +285,7 @@ Jos feature on teknisesti oikein mutta ei läpäise käyttäjätestiä, se on ke
 ## Avoimet (selvitetään ennen toteutusta)
 
 1. **Ikonilähde**: Lucide — selvitetty (T9 ✓)
-2. **Auth-flow**: hash-URL talkoolaiselle (V27 ✓), invite-flow järjestäjälle (T36 ✓)
+2. **Auth-flow**: hash-URL talkoolaiselle (V27 ✓), invite-flow järjestäjälle (T36 ✓). Admin UI käyttäjähallintaan: T121–T123.
 3. **GPX-päivitys**: mitä tapahtuu olemassa oleville merkeille kun GPX korvataan? (T34, auki)
 4. **Impromptu-pätkäjako:** "käyn purkamassa tämän alueen" — miten talkoolainen ottaa alueen ilman järjestäjää? Hash-URL generointi talkoolaiselle itse?
 5. **Kasa-kuittaus:** kuka voi merkata kasan otetuksi — vain assignattu, vai kaikki autentikoidut?

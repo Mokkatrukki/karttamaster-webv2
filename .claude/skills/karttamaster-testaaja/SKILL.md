@@ -60,6 +60,10 @@ Kun `/ck:build` on valmis, tarkista task:
 4. Onko uusi UI `src/ui/`-kansiossa? → Taso 2 -testi
 5. Kriittinen karttainteraktio `src/map/`-kansiossa? → Taso 3 minimaalinen
 6. Käyttäjätestiperspektiivi (ks. alla)
+7. **COMPONENTS.md-tarkistus:** Löytyykö kaikki task T<n>:n luomat/muuttamat tiedostot COMPONENTS.md-taulukosta?
+   - Aja `git diff --name-only HEAD~1` — mitkä tiedostot muuttuivat?
+   - Vertaa COMPONENTS.md-taulukkoon — onko jokainen `src/*.ts` / `server/*.ts` kirjattu?
+   - Jos puuttuu tai status on vanhentunut → kutsu `/karttamaster-arkkitehtuuri sync-spec`
 
 **Jos testi puuttuu** → kirjoita se itse tai kutsu `/ck:spec` lisäämään §T-taskin.
 **Jos bugi löytyy testissä** → kutsu `/ck:spec bug: <kuvaus>` välittömästi.
@@ -235,6 +239,29 @@ Liputa ja kutsu `/karttamaster-arkkitehtuuri` kun:
 - Sama logiikka copy-pastettu kahteen paikkaan
 
 ---
+
+## Haiku-subagentit (token-säästö)
+
+Testien ajo ja tiedostonavigaatio delegoidaan `Agent(model="haiku")`:
+
+**test-runner** (käytä aina `bun run test`-kutsuissa):
+```
+Agent(model="haiku", prompt="""
+Aja: bun run test 2>&1 | tail -40
+Aja myös: bun run test [yksittäinen tiedosto] jos täsmätesti.
+Raportoi: pass-count, fail-count, failing test names + ensimmäinen virherivi.
+Älä korjaa mitään — vain raportti.
+""")
+```
+
+**grep-navigator** (ennen COMPONENTS.md-tarkistusta):
+```
+Agent(model="haiku", prompt="""
+Lue COMPONENTS.md. Laske git diff --name-only HEAD~1.
+Onko jokainen muuttunut src/*.ts / server/*.ts kirjattu COMPONENTS.md-taulukkoon?
+Raportoi: [tiedosto] → löytyy / PUUTTUU COMPONENTS.md:stä
+""")
+```
 
 ## Suhde muihin skilleihin
 

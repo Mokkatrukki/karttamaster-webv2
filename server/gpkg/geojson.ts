@@ -3,14 +3,13 @@ export interface GpkgMarkerRow {
   type: string
   lat: number
   lon: number
-  bearing: number
   description: string | null
 }
 
 export interface GpkgFeature {
   type: 'Feature'
   geometry: { type: 'Point'; coordinates: [number, number] }
-  properties: { id: string; type: string; bearing: number; description: string | null }
+  properties: { id: string; type: string; description: string | null }
 }
 
 export interface GpkgFeatureCollection {
@@ -27,7 +26,6 @@ export function markersToGeoJSON(rows: GpkgMarkerRow[]): GpkgFeatureCollection {
       properties: {
         id: row.id,
         type: row.type,
-        bearing: row.bearing,
         description: row.description,
       },
     })),
@@ -38,7 +36,6 @@ export function geoJSONToMarkers(fc: GpkgFeatureCollection): GpkgMarkerRow[] {
   return fc.features.map((feature) => ({
     id: feature.properties.id,
     type: feature.properties.type,
-    bearing: feature.properties.bearing,
     description: feature.properties.description ?? null,
     lon: feature.geometry.coordinates[0],
     lat: feature.geometry.coordinates[1],

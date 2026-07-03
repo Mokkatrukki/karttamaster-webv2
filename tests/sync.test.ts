@@ -6,7 +6,6 @@ const SERVER_MARKER = {
   type: 'right',
   lat: 61.0,
   lon: 25.0,
-  bearing: 90,
   distance_from_start: 1000,
   route_ids: ['35km'],
   status: 'suunniteltu',

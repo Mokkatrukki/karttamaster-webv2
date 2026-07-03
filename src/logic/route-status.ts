@@ -19,7 +19,7 @@ export function calcRouteStatus(markers: SignMarker[], routeId: string): RouteSt
   }
 
   const done = total - byStatus['suunniteltu']
-  const completionPercent = total === 0 ? 100 : Math.round((done / total) * 100)
+  const completionPercent = total === 0 ? 0 : Math.round((done / total) * 100)
 
   return { routeId, total, byStatus, completionPercent }
 }

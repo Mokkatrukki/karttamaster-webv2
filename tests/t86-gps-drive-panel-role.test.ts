@@ -4,7 +4,7 @@ import type { SignMarker } from '../src/logic/types'
 
 function makeUnsetMarker(): SignMarker {
   return {
-    id: 'm1', type: 'right', lat: 0, lon: 0, bearing: 0,
+    id: 'm1', type: 'right', lat: 0, lon: 0,
     distanceFromStart: 500, routeIds: ['35km'], status: 'suunniteltu',
   }
 }

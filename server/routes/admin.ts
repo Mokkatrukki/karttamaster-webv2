@@ -86,7 +86,6 @@ interface MarkerRow {
   type: string
   lat: number
   lon: number
-  bearing: number
   distance_from_start: number
   route_ids: string
   status: string
@@ -164,8 +163,8 @@ adminRoutes.post('/snapshots/:id/restore', requireAuth(), requireRole('admin', '
     db.run('DELETE FROM markers')
     for (const m of markers) {
       db.run(
-        'INSERT INTO markers (id, type, lat, lon, bearing, distance_from_start, route_ids, status, location_note, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [m.id, m.type, m.lat, m.lon, m.bearing, m.distance_from_start, m.route_ids, m.status, m.location_note ?? null, m.updated_at, m.updated_by ?? null],
+        'INSERT INTO markers (id, type, lat, lon, distance_from_start, route_ids, status, location_note, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [m.id, m.type, m.lat, m.lon, m.distance_from_start, m.route_ids, m.status, m.location_note ?? null, m.updated_at, m.updated_by ?? null],
       )
     }
     const createdBy = session.display_name ?? session.role

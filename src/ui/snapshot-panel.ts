@@ -90,6 +90,10 @@ export class SnapshotPanel {
     const listEl = document.createElement('ul')
     listEl.id = 'snapshot-list'
     listEl.className = 'snapshot-list'
+    const defaultEmpty = document.createElement('li')
+    defaultEmpty.className = 'snapshot-empty'
+    defaultEmpty.textContent = 'Ei varmuuskopioita'
+    listEl.appendChild(defaultEmpty)
     modal.appendChild(listEl)
 
     backdrop.appendChild(modal)

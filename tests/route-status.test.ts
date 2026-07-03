@@ -3,14 +3,14 @@ import { calcRouteStatus, calcAllRouteStatus } from '../src/logic/route-status'
 import type { SignMarker } from '../src/logic/types'
 
 function marker(id: string, status: SignMarker['status'], routeIds: string[]): SignMarker {
-  return { id, type: 'right', lat: 0, lon: 0, bearing: 0, distanceFromStart: 0, routeIds, status }
+  return { id, type: 'right', lat: 0, lon: 0, distanceFromStart: 0, routeIds, status }
 }
 
 describe('calcRouteStatus', () => {
-  it('returns 100% completion when no markers', () => {
+  it('returns 0% completion when no markers', () => {
     const result = calcRouteStatus([], '35km')
     expect(result.total).toBe(0)
-    expect(result.completionPercent).toBe(100)
+    expect(result.completionPercent).toBe(0)
   })
 
   it('V9: all suunniteltu → 0% completion', () => {

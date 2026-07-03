@@ -42,7 +42,7 @@ describe('GET /api/gpkg/export', () => {
     await app.request('/api/markers', {
       method: 'POST',
       headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'huolto', lat: 65.1, lon: 27.1, bearing: 0, description: 'Testi' }),
+      body: JSON.stringify({ type: 'huolto', lat: 65.1, lon: 27.1, description: 'Testi' }),
     })
     const res = await app.request('/api/gpkg/export', { headers: authHeaders(db, 'järjestäjä') })
     expect(res.status).toBe(200)

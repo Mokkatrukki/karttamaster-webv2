@@ -27,7 +27,7 @@ server/       ← Hono + Bun + SQLite
 
 | Komponentti | Moduuli | Tila | E2E | Docs |
 |---|---|---|---|---|
-| BearingMath | `src/logic/bearing.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
+| RouteGeoMath | `src/logic/bearing.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
 | GpxLoader | `src/logic/gpx.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
 | MultiRouteAssigner | `src/logic/multi-route.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
 | SignTypes | `src/logic/sign-picker.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
@@ -52,8 +52,7 @@ server/       ← Hono + Bun + SQLite
 | Sync | `src/logic/sync.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
 | SignIcon | `src/map/icons.ts` | ✓ valmis | critical-paths: "toolbar-dropdown" | [map.md](docs/components/map.md) |
 | DriveMode | `src/map/drive.ts` | ✓ valmis | critical-paths: "Drive mode" | [map.md](docs/components/map.md) |
-| MarkerManager | `src/map/markers.ts` 362 riv | ✓+B1+B45 | critical-paths: "Merkki kartalle", "Drag-to-move" | [map.md](docs/components/map.md) |
-| MarkerInteraction | `src/map/marker-interaction.ts` 179 riv | ✓ | critical-paths: "dblclick", "Rotation arm sticky" | [map.md](docs/components/map.md) |
+| MarkerManager | `src/map/markers.ts` 292 riv | ✓+B1+B45+T130 (bearing poistettu) | critical-paths: "Merkki kartalle", "Drag-to-move" | [map.md](docs/components/map.md) |
 | RouteBar | `src/map/route-bar.ts` 125 riv | ✓ pilkko | — | [map.md](docs/components/map.md) |
 | GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30 | critical-paths: "GPS-paikannin" | [map.md](docs/components/map.md) |
 | AreaOverlay | `src/map/area-overlay.ts` 261 riv | ✓ valmis | area-interaction | [map.md](docs/components/map.md) |
@@ -111,7 +110,7 @@ server/       ← Hono + Bun + SQLite
 ---
 
 **Vaihe 1 — Suunnittelu + merkinnät** (yksi laite, perustoiminnot): **VALMIS ✓**
-GPX-lataus, merkit kartalle, bearing, drive mode, sign library, persistointi.
+GPX-lataus, merkit kartalle, drive mode, sign library, persistointi.
 Taskit: T1–T6, T8–T12, T15–T16, T22–T23, T29–T33, T37–T38, T40, T44–T46.
 
 **Vaihe 2 — Multi-device + auth** (backend totuus, useampi laite): **VALMIS ✓**
@@ -157,8 +156,7 @@ Lisää: [backend.md — Vaiheistus](docs/components/backend.md)
 | `src/ui/sign-library-panel.ts` | **340** | Seuraa |
 | `src/ui/marker-detail-modal.ts` | **343** | Seuraa — kasvoi T103:ssa (kuvaus+kuvat), harkitse pilkkoa jos >400 riv |
 | `src/map/area-overlay.ts` | **261** | Seuraa |
-| `src/map/markers.ts` | **294** | Seuraa — pilkottava ennen T10 |
-| `src/map/marker-interaction.ts` | **179** | Seuraa — jos kasvaa >250 riv, erota rotation omaksi |
+| `src/map/markers.ts` | **292** | Seuraa — pilkottava ennen T10 |
 
 ---
 

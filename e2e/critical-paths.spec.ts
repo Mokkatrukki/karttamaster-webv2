@@ -141,37 +141,8 @@ test.describe('Rooli-toggle', () => {
   })
 })
 
-test.describe('Rotation arm sticky — T40', () => {
-  test('karttaklikki ei poista armia — Esc poistaa', async ({ page }) => {
-    await mockAuthAsJarjestaja(page)
-    await page.setViewportSize({ width: 1280, height: 720 })
-    await page.goto('/')
-    await page.waitForTimeout(1500)
-
-    // Lisää merkki dblclick-pickerillä — se on heti armed
-    await page.dblclick('#map', { position: { x: 460, y: 260 } })
-    await page.waitForTimeout(500)
-    await page.click('#floating-picker .sign-type-btn[data-type="right"]')
-    await page.waitForTimeout(800)
-
-    // Merkki on armed (marker-armed class)
-    const armedLocator = page.locator('.leaflet-marker-pane .leaflet-marker-icon.marker-armed')
-    await expect(armedLocator).toBeVisible()
-
-    // Klikkaa karttaa kaukana merkistä — arm EI saa poistua (V16)
-    await page.click('#map', { position: { x: 100, y: 100 } })
-    await page.waitForTimeout(300)
-    await expect(armedLocator).toBeVisible()
-
-    // Esc poistaa armin
-    await page.keyboard.press('Escape')
-    await page.waitForTimeout(300)
-    await expect(armedLocator).not.toBeVisible()
-  })
-})
-
 test.describe('Drag-to-move — T37', () => {
-  test('merkki voidaan siirtää drag&drop — bearing + routeIds päivittyy', async ({ page }) => {
+  test('merkki voidaan siirtää drag&drop — routeIds päivittyy', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')

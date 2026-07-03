@@ -18,7 +18,6 @@ interface MarkerJson {
   type: string
   lat: number
   lon: number
-  bearing: number
   distance_from_start: number
   route_ids: string[]
   status: string
@@ -31,7 +30,6 @@ const MARKER_BODY = {
   type: 'nuoli-oikealle',
   lat: 65.1,
   lon: 27.5,
-  bearing: 90,
   distance_from_start: 1000,
   route_ids: ['35km'],
 }
@@ -192,12 +190,11 @@ describe('T47: Markers REST API', () => {
       const res = await makeApp(db).request(`/api/markers/${id}`, {
         method: 'PUT',
         headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lat: 65.2, lon: 27.6, bearing: 180 }),
+        body: JSON.stringify({ lat: 65.2, lon: 27.6 }),
       })
       expect(res.status).toBe(200)
       const body = await res.json() as MarkerJson
       expect(body.lat).toBe(65.2)
-      expect(body.bearing).toBe(180)
     })
 
     test('updated_by set on status update', async () => {

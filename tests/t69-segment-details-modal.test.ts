@@ -189,7 +189,6 @@ describe('T69 — SegmentDetailsModal', () => {
       id: 'mk1',
       lat: 63.1,
       lon: 27.1,
-      bearing: 90,
       type: 'right',
       distanceFromStart: 7000,
       routeIds: ['35km'],

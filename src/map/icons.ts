@@ -15,7 +15,7 @@ const STATUS_DOT_COLOR: Partial<Record<MarkerStatus, string>> = {
   ei_tarpeen:  '#fbbf24',
 }
 
-function circleSvg(type: string, bearing: number, status: MarkerStatus, colorOverride?: string, shortLabelOverride?: string, iconId?: string): string {
+function circleSvg(type: string, status: MarkerStatus, colorOverride?: string, shortLabelOverride?: string, iconId?: string): string {
   let arrow: string
   let color: string
   let shortLabel: string
@@ -48,14 +48,7 @@ function circleSvg(type: string, bearing: number, status: MarkerStatus, colorOve
     <div style="position:relative;width:${W}px;height:${H}px">
       <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"
            viewBox="0 0 ${W} ${H}"
-           style="transform:rotate(${bearing}deg);transform-origin:${CX}px ${CY}px;display:block;overflow:visible">
-        <g class="sign-handle">
-          <line x1="${CX}" y1="6" x2="${CX}" y2="18"
-                stroke="${color}" stroke-width="3" stroke-linecap="round"/>
-          <circle cx="${CX}" cy="5" r="5" fill="${color}" stroke="white" stroke-width="2"/>
-          <line x1="${CX - 4}" y1="5" x2="${CX + 4}" y2="5"
-                stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-        </g>
+           style="display:block;overflow:visible">
         ${isUpcoming
           ? `<circle cx="${CX}" cy="${CY}" r="${R}" fill="${color}" stroke="white" stroke-width="2" stroke-dasharray="4 2" opacity="0.9"/>`
           : status === 'suunniteltu'
@@ -70,9 +63,9 @@ function circleSvg(type: string, bearing: number, status: MarkerStatus, colorOve
     </div>`
 }
 
-export function createSignIcon(type: string, bearing: number, status: MarkerStatus = 'suunniteltu', color?: string, shortLabel?: string, iconId?: string): L.DivIcon {
+export function createSignIcon(type: string, status: MarkerStatus = 'suunniteltu', color?: string, shortLabel?: string, iconId?: string): L.DivIcon {
   return L.divIcon({
-    html: circleSvg(type, bearing, status, color, shortLabel, iconId),
+    html: circleSvg(type, status, color, shortLabel, iconId),
     className: '',
     iconSize: [W, H],
     iconAnchor: [CX, H],

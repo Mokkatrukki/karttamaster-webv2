@@ -9,7 +9,6 @@ function makeMarker(id: string, status: SignMarker['status'] = 'suunniteltu'): S
     type: 'right',
     lat: 0,
     lon: 0,
-    bearing: 0,
     distanceFromStart: 1000,
     routeIds: ['35km'],
     status,

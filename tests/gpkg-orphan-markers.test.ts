@@ -9,7 +9,6 @@ function makeMarker(overrides: Partial<SignMarker> = {}): SignMarker {
     type: 'huolto',
     lat: 65.0,
     lon: 27.0,
-    bearing: 0,
     distanceFromStart: 0,
     routeIds: [],
     status: 'suunniteltu',
@@ -64,13 +63,13 @@ describe('MarkerManager.fixOrphanRouteIds — B1/V21-tyylinen ghost-marker-korja
   it('ei koske merkkeihin joilla on jo routeIds', () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({}) })))
     const map = makeMap()
-    const assigned = makeMarker({ id: 'has-route', routeIds: ['r1'], bearing: 42 })
+    const assigned = makeMarker({ id: 'has-route', routeIds: ['r1'] })
     const mgr = new MarkerManager(map, routes, () => {}, [assigned])
 
     const fixedCount = mgr.fixOrphanRouteIds()
 
     expect(fixedCount).toBe(0)
-    expect(mgr.getAll().find((m) => m.id === 'has-route')?.bearing).toBe(42)
+    expect(mgr.getAll().find((m) => m.id === 'has-route')?.routeIds).toEqual(['r1'])
   })
 
   it('orpo-merkki tulee näkyväksi kartalla (getAll palauttaa sen) korjauksen jälkeen', () => {

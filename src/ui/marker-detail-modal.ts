@@ -32,7 +32,6 @@ export class MarkerDetailModal {
     private manager: MarkerManager,
     private getLibrary: () => SignLibrary | null,
     private getRole: () => string,
-    private onArmRequest: (id: string) => void,
     private onUpdate: () => void,
   ) {}
 
@@ -285,15 +284,6 @@ export class MarkerDetailModal {
       this.close()
     })
     actions.appendChild(saveBtn)
-
-    const rotateBtn = document.createElement('button')
-    rotateBtn.className = 'modal-btn-secondary'
-    rotateBtn.textContent = '↻ Käännä'
-    rotateBtn.addEventListener('click', () => {
-      this.onArmRequest(marker.id)
-      this.close()
-    })
-    actions.appendChild(rotateBtn)
 
     footer.appendChild(actions)
 

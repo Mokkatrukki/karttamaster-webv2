@@ -7,7 +7,6 @@ const MARKER: SignMarker = {
   type: 'right',
   lat: 61.0,
   lon: 25.0,
-  bearing: 90,
   distanceFromStart: 1000,
   routeIds: ['35km'],
   status: 'suunniteltu',

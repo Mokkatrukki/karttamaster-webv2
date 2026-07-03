@@ -11,14 +11,12 @@ interface MarkerRow {
   type: string
   lat: number
   lon: number
-  bearing: number
   distance_from_start: number
   route_ids: string
   status: string
   location_note: string | null
   color: string | null
   short_label: string | null
-  bearing_manual: number
   description: string | null
   updated_at: string
   updated_by: string | null
@@ -51,14 +49,12 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
     type?: string
     lat?: number
     lon?: number
-    bearing?: number
     distance_from_start?: number
     route_ids?: string[]
     status?: string
     location_note?: string
     color?: string | null
     short_label?: string | null
-    bearing_manual?: boolean
     description?: string | null
   }>()
 
@@ -66,7 +62,6 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
     body.type === undefined ||
     body.lat === undefined ||
     body.lon === undefined ||
-    body.bearing === undefined ||
     body.distance_from_start === undefined ||
     !body.route_ids
   ) {
@@ -76,20 +71,18 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
   const id = body.id ?? randomUUID()
   const now = new Date().toISOString()
   db.run(
-    'INSERT INTO markers (id, type, lat, lon, bearing, distance_from_start, route_ids, status, location_note, color, short_label, bearing_manual, description, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO markers (id, type, lat, lon, distance_from_start, route_ids, status, location_note, color, short_label, description, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       id,
       body.type,
       body.lat,
       body.lon,
-      body.bearing,
       body.distance_from_start,
       JSON.stringify(body.route_ids),
       body.status ?? 'suunniteltu',
       body.location_note ?? null,
       body.color ?? null,
       body.short_label ?? null,
-      body.bearing_manual ? 1 : 0,
       body.description ?? null,
       now,
       session.display_name,
@@ -114,15 +107,13 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
     location_note?: string
     lat?: number
     lon?: number
-    bearing?: number
-    bearing_manual?: boolean
     type?: string
     distance_from_start?: number
     route_ids?: string[]
     description?: string | null
   }>()
 
-  const positionFields = ['lat', 'lon', 'bearing', 'type', 'distance_from_start', 'route_ids', 'description'] as const
+  const positionFields = ['lat', 'lon', 'type', 'distance_from_start', 'route_ids', 'description'] as const
   const hasPositionFields = positionFields.some((f) => f in body)
   if (hasPositionFields && !['admin', 'järjestäjä'].includes(session.role)) {
     return c.json({ error: 'forbidden' }, 403)
@@ -135,8 +126,6 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
   if (body.location_note !== undefined) { fields.push('location_note = ?'); values.push(body.location_note) }
   if (body.lat !== undefined) { fields.push('lat = ?'); values.push(body.lat) }
   if (body.lon !== undefined) { fields.push('lon = ?'); values.push(body.lon) }
-  if (body.bearing !== undefined) { fields.push('bearing = ?'); values.push(body.bearing) }
-  if (body.bearing_manual !== undefined) { fields.push('bearing_manual = ?'); values.push(body.bearing_manual ? 1 : 0) }
   if (body.type !== undefined) { fields.push('type = ?'); values.push(body.type) }
   if (body.distance_from_start !== undefined) { fields.push('distance_from_start = ?'); values.push(body.distance_from_start) }
   if (body.route_ids !== undefined) { fields.push('route_ids = ?'); values.push(JSON.stringify(body.route_ids)) }

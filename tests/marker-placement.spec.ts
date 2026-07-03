@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildRoutePoints, nearestPointIndex, bearingAtIndex } from '../src/logic/bearing'
+import { buildRoutePoints, nearestPointIndex } from '../src/logic/bearing'
 
 // Spec: how markers behave when placed on the map
 // Written BEFORE any new implementation.
@@ -28,24 +28,6 @@ describe('Marker placement', () => {
     })
   })
 
-  describe('bearing calculation', () => {
-    it('bearing at segment midpoint averages adjacent leg directions', () => {
-      // 0→1 = 337° (NW), 1→2 = 58° (NE), circular avg ≈ 18° (NNE)
-      const idx = nearestPointIndex(SYOTE_SEGMENT, 65.6278, 27.6274)
-      const bearing = bearingAtIndex(SYOTE_SEGMENT, idx)
-      expect(bearing).toBeGreaterThan(0)
-      expect(bearing).toBeLessThan(45)
-    })
-
-    it('bearing changes at route bend', () => {
-      const idxStart = 0
-      const idxEnd = SYOTE_SEGMENT.length - 1
-      const b1 = bearingAtIndex(SYOTE_SEGMENT, idxStart)
-      const b2 = bearingAtIndex(SYOTE_SEGMENT, idxEnd)
-      expect(Math.abs(b1 - b2)).toBeGreaterThan(5) // route bends
-    })
-  })
-
   describe('marker ordering in list', () => {
     it('markers appear sorted by distance from start regardless of insertion order', () => {
       // simulate inserting in reverse order
@@ -62,7 +44,6 @@ describe('Marker placement', () => {
   })
 
   // Pending specs — not yet implemented, act as roadmap
-  it.todo('moved marker recalculates bearing at new position')
   it.todo('duplicate marker at same location is prevented')
   it.todo('marker too far from route (>50m) shows warning')
 })

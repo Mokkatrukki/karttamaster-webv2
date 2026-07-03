@@ -9,7 +9,6 @@ function makeMarker(id: string, dist: number, status: SignMarker['status'] = 'su
     type: 'right',
     lat: 0,
     lon: 0,
-    bearing: 45,
     distanceFromStart: dist,
     routeIds: ['35km'],
     status,

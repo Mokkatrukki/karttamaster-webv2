@@ -9,7 +9,6 @@ function makeMarker(overrides: Partial<SignMarker> = {}): SignMarker {
     type: 'right',
     lat: 63.0,
     lon: 27.0,
-    bearing: 90,
     distanceFromStart: 1000,
     routeIds: ['35km'],
     status: 'suunniteltu',

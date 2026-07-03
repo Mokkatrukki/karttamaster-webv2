@@ -7,7 +7,6 @@ function makeMarker(overrides: Partial<SignMarker>): SignMarker {
     id: 'test-id',
     type: 'right',
     lat: 0, lon: 0,
-    bearing: 0,
     distanceFromStart: 0,
     routeIds: ['r1'],
     status: 'suunniteltu',

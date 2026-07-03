@@ -30,6 +30,11 @@ Tämä skill on ohut wrapper `/ck:build`:n ympärillä. Lisää automaattisen
    → Tarkista COMPONENTS.md E2E-sarake: onko muutetulla komponentilla testi?
    → Jos testi hajoaa: korjaa ennen ✓-merkintää
    → Jos E2E-sarake on "—" mutta src/map/-komponentti on kriittinen: lisää testi
+9. AINA taskin jälkeen — COMPONENTS.md-synkronointi:
+   → Tarkista: loiko ck:build uuden .ts-tiedoston src/:ssa tai server/:ssa?
+   → Tarkista: muuttuiko olemassa olevan komponentin status (○ → ✓)?
+   → Jos kyllä: kutsu /karttamaster-arkkitehtuuri sync-spec
+   → COMPONENTS.md ei saa jäädä vanhentuneeksi — tämä on pakollinen askel ennen ✓
 ```
 
 ## Käyttö
@@ -39,6 +44,40 @@ Tämä skill on ohut wrapper `/ck:build`:n ympärillä. Lisää automaattisen
 /rakennus --next       → build seuraava auki-task, sitten testaaja
 /rakennus --all        → build kaikki auki-taskit järjestyksessä, testaaja per task
 ```
+
+## Haiku-subagentit (token-säästö)
+
+Mekaaniset askeleet delegoidaan `Agent(model="haiku")`:
+
+**1. grep-navigator — ennen koodimuutosta (askeleet ennen Editiä)**
+```
+Agent(model="haiku", prompt="""
+Lue ensin COMPONENTS.md — löydä komponentin tiedostopolku.
+Sitten grep näistä tiedostoista: [symbolit].
+Raportoi: tiedosto + rivinumero per symboli. Ei muuta.
+""")
+```
+COMPONENTS.md on index — Haiku lukee sen ensin, greppaa vain oikeat tiedostot.
+
+**2. test-runner — testien ajo + raportti**
+```
+Agent(model="haiku", prompt="""
+Aja: bun run test 2>&1 | tail -30
+Raportoi: pass-count, fail-count, failing test names + virherivi.
+Älä korjaa mitään.
+""")
+```
+
+**3. git-committer — taskin lopussa**
+```
+Agent(model="haiku", prompt="""
+Seuraa caveman-commit-säännöt (conventional commits, ≤50 chars subject).
+git add [tiedostot]
+git commit -m "[viesti jonka pääagentti on valmistellut]"
+Raportoi onnistuiko.
+""")
+```
+Pääagentti (Sonnet) päättää commit-viestin sisällön — Haiku vain ajaa komennot.
 
 ## Ei tee
 

@@ -87,7 +87,6 @@ CREATE TABLE markers (
   type TEXT NOT NULL,
   lat REAL NOT NULL,
   lon REAL NOT NULL,
-  bearing REAL NOT NULL,
   distance_from_start REAL NOT NULL,
   route_ids TEXT NOT NULL,          -- JSON: ["35km","55km"]
   status TEXT NOT NULL DEFAULT 'suunniteltu',
@@ -428,19 +427,19 @@ TEST_USERS.talkoolainen.code      // 'TEST-KOODI-1'
 
 ## GpkgGeoJSON
 
-**Vastuu:** Muuntaa markerit GeoJSON-muotoon (id, type, bearing, description + Point-geometria) ja takaisin — GPKG-export/import-featuren rakennuspalikka.
+**Vastuu:** Muuntaa markerit GeoJSON-muotoon (id, type, description + Point-geometria) ja takaisin — GPKG-export/import-featuren rakennuspalikka. (bearing-kenttä poistettu T132, ks. SPEC.md T129-T133)
 **Käyttäjä:** järjestäjä (vie/tuo kylttidataa kaverin QGIS-sovellukseen).
 **Moduuli:** `server/gpkg/geojson.ts`
 **Testattavuus:** Bun-integraatiotesti (`server/gpkg/geojson.test.ts`) — ei DB:tä, puhdas muunnos
 
 ### Ominaisuudet
-- ✓ `markersToGeoJSON(rows)` — MarkerRow[] → FeatureCollection<Point>, vain id/type/bearing/description (ei color/status/routeIds/locationNote/images)
+- ✓ `markersToGeoJSON(rows)` — MarkerRow[] → FeatureCollection<Point>, vain id/type/description (ei color/status/routeIds/locationNote/images)
 - ✓ `geoJSONToMarkers(fc)` — käänteinen parsinta, puuttuva description → null
 
 ### Ominaisuudet (T125, T126)
 - ✓ `server/gpkg/convert.ts` — `geoJSONToGpkg`/`gpkgToGeoJSON`, ogr2ogr subprocess (tempdir per kutsu, siivoaa jälkensä)
 - ✓ `GET /api/gpkg/export` (`server/routes/gpkg.ts`) — järjestäjä+, koko markerdata → `.gpkg`-lataus (layer "kyltit"). 503 jos GDAL ei asennettu palvelimella.
-- ✓ `POST /api/gpkg/import` — multipart upload `.gpkg`, upsert id:n perusteella: olemassa oleva id päivittää `type/bearing/lat/lon/description` (status+routeIds koskematta), uusi id luo `status='suunniteltu'`-merkin. Palauttaa `{created, updated}`.
+- ✓ `POST /api/gpkg/import` — multipart upload `.gpkg`, upsert id:n perusteella: olemassa oleva id päivittää `type/lat/lon/description` (status+routeIds koskematta), uusi id luo `status='suunniteltu'`-merkin. Palauttaa `{created, updated}`.
 
 ### Tulossa
 - [ ] UI-napit järjestäjän näkymään (T127)

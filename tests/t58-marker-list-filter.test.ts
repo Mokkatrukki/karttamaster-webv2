@@ -9,7 +9,6 @@ function makeMarker(id: string, dist: number): SignMarker {
     type: 'right',
     lat: 0,
     lon: 0,
-    bearing: 0,
     distanceFromStart: dist,
     routeIds: ['35km'],
     status: 'suunniteltu',

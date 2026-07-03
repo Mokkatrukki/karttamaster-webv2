@@ -17,7 +17,6 @@ function makeMarker(id: string, status: MarkerStatus, dist: number = 5000): Sign
     type: 'right',
     lat: 0,
     lon: 0,
-    bearing: 0,
     distanceFromStart: dist,
     routeIds: ['r1'],
     status,

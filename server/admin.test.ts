@@ -40,7 +40,6 @@ async function seedMarker(db: Database, app: ReturnType<typeof makeApp>): Promis
       type: 'nuoli-oikealle',
       lat: 65.1,
       lon: 27.5,
-      bearing: 90,
       distance_from_start: 1000,
       route_ids: ['35km'],
     }),

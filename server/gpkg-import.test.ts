@@ -42,7 +42,7 @@ describe('POST /api/gpkg/import', () => {
 
   const maybe = hasOgr2ogr() ? test : test.skip
   maybe(
-    'olemassa oleva id päivittää type/bearing/lat/lon/description, status/route_ids koskematta; uusi id luo suunniteltu-merkin (vaatii ogr2ogr)',
+    'olemassa oleva id päivittää type/lat/lon/description, status/route_ids koskematta; uusi id luo suunniteltu-merkin (vaatii ogr2ogr)',
     async () => {
       const app = makeApp(db)
 
@@ -53,7 +53,6 @@ describe('POST /api/gpkg/import', () => {
           type: 'huolto',
           lat: 65.1,
           lon: 27.1,
-          bearing: 0,
           distance_from_start: 500,
           route_ids: ['r1'],
           status: 'asetettu',
@@ -63,8 +62,8 @@ describe('POST /api/gpkg/import', () => {
       const existing = (await createRes.json()) as { id: string }
 
       const fc = markersToGeoJSON([
-        { id: existing.id, type: 'nuoli-oikea', lat: 65.2, lon: 27.2, bearing: 180, description: 'Kaverin muokkaama' },
-        { id: '', type: 'huolto', lat: 65.3, lon: 27.3, bearing: 45, description: 'Uusi kaverilta' },
+        { id: existing.id, type: 'nuoli-oikea', lat: 65.2, lon: 27.2, description: 'Kaverin muokkaama' },
+        { id: '', type: 'huolto', lat: 65.3, lon: 27.3, description: 'Uusi kaverilta' },
       ])
       // ogr2ogr generates its own fid if id is empty-string dupe risk avoided by giving a real uuid
       fc.features[1].properties.id = crypto.randomUUID()
@@ -84,14 +83,13 @@ describe('POST /api/gpkg/import', () => {
 
       const rows = db
         .query<
-          { id: string; type: string; bearing: number; description: string | null; status: string; route_ids: string },
+          { id: string; type: string; description: string | null; status: string; route_ids: string },
           []
-        >('SELECT id, type, bearing, description, status, route_ids FROM markers ORDER BY type ASC')
+        >('SELECT id, type, description, status, route_ids FROM markers ORDER BY type ASC')
         .all()
 
       const updatedRow = rows.find((r) => r.id === existing.id)!
       expect(updatedRow.type).toBe('nuoli-oikea')
-      expect(updatedRow.bearing).toBe(180)
       expect(updatedRow.description).toBe('Kaverin muokkaama')
       expect(updatedRow.status).toBe('asetettu')
       expect(JSON.parse(updatedRow.route_ids)).toEqual(['r1'])

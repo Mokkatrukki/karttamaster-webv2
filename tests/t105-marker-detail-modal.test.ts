@@ -7,7 +7,6 @@ const makeMarker = (overrides: Partial<SignMarker> = {}): SignMarker => ({
   type: 'right',
   lat: 63.0,
   lon: 27.0,
-  bearing: 0,
   distanceFromStart: 1500,
   routeIds: ['35km'],
   status: 'suunniteltu',
@@ -38,7 +37,6 @@ describe('MarkerDetailModal', () => {
       () => null,
       () => 'järjestäjä',
       vi.fn(),
-      vi.fn(),
     )
     modal.open('test-id')
     const title = document.querySelector('.marker-detail-title')
@@ -52,7 +50,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'järjestäjä',
-      vi.fn(),
       vi.fn(),
     )
     modal.open('test-id')
@@ -68,7 +65,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'järjestäjä',
-      vi.fn(),
       onUpdate,
     )
     modal.open('test-id')
@@ -89,7 +85,6 @@ describe('MarkerDetailModal', () => {
       () => null,
       () => 'järjestäjä',
       vi.fn(),
-      vi.fn(),
     )
     modal.open('test-id')
     expect(document.querySelector('.marker-detail-modal')).not.toBeNull()
@@ -107,7 +102,6 @@ describe('MarkerDetailModal', () => {
       () => null,
       () => 'järjestäjä',
       vi.fn(),
-      vi.fn(),
     )
     modal.open('test-id')
     const backdrop = document.querySelector<HTMLElement>('.marker-detail-backdrop')
@@ -123,14 +117,13 @@ describe('MarkerDetailModal', () => {
       () => null,
       () => 'järjestäjä',
       vi.fn(),
-      vi.fn(),
     )
     modal.open('test-id')
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
     expect(document.querySelector('.marker-detail-modal')).toBeNull()
   })
 
-  it('järjestäjä näkee type-select + rotate + delete', () => {
+  it('järjestäjä näkee type-select + delete', () => {
     const marker = makeMarker()
     const manager = makeMockManager(marker)
     const modal = new MarkerDetailModal(
@@ -138,11 +131,9 @@ describe('MarkerDetailModal', () => {
       () => null,
       () => 'järjestäjä',
       vi.fn(),
-      vi.fn(),
     )
     modal.open('test-id')
     expect(document.querySelector('.marker-detail-type-select')).not.toBeNull()
-    expect(document.querySelector('.modal-btn-secondary')).not.toBeNull() // ↻ Käännä
     expect(document.querySelector('.modal-btn-destructive')).not.toBeNull() // Poista
   })
 
@@ -153,7 +144,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'järjestäjä',
-      vi.fn(),
       vi.fn(),
     )
     modal.open('test-id')
@@ -169,7 +159,6 @@ describe('MarkerDetailModal', () => {
       () => null,
       () => 'talkoolainen',
       vi.fn(),
-      vi.fn(),
     )
     modal.open('test-id')
     expect(document.querySelector('.marker-detail-type-select')).toBeNull()
@@ -183,7 +172,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'talkoolainen',
-      vi.fn(),
       vi.fn(),
     )
     modal.open('test-id')
@@ -199,7 +187,6 @@ describe('MarkerDetailModal', () => {
       () => null,
       () => 'talkoolainen',
       vi.fn(),
-      vi.fn(),
     )
     modal.open('test-id')
     const btns = document.querySelectorAll('.modal-btn-primary')
@@ -214,7 +201,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'järjestäjä',
-      vi.fn(),
       vi.fn(),
     )
     modal.open('test-id')
@@ -232,7 +218,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'järjestäjä',
-      vi.fn(),
       vi.fn(),
     )
     modal.open('test-id')
@@ -252,7 +237,6 @@ describe('MarkerDetailModal', () => {
       () => null,
       () => 'järjestäjä',
       vi.fn(),
-      vi.fn(),
     )
     modal.open('test-id')
     const textarea = document.querySelector<HTMLTextAreaElement>('.marker-detail-description')
@@ -267,7 +251,6 @@ describe('MarkerDetailModal', () => {
       manager as any,
       () => null,
       () => 'järjestäjä',
-      vi.fn(),
       onUpdate,
     )
     modal.open('test-id')
@@ -286,7 +269,6 @@ describe('MarkerDetailModal', () => {
       () => null,
       () => 'talkoolainen',
       vi.fn(),
-      vi.fn(),
     )
     modal.open('test-id')
     expect(document.querySelector('.marker-detail-description')).toBeNull()
@@ -301,7 +283,6 @@ describe('MarkerDetailModal', () => {
       () => null,
       () => 'talkoolainen',
       vi.fn(),
-      vi.fn(),
     )
     modal.open('test-id')
     expect(document.querySelector('.marker-detail-description-readonly')?.textContent).toBe('Ei kuvausta')
@@ -310,13 +291,13 @@ describe('MarkerDetailModal', () => {
   it('T103: järjestäjä näkee "Lisää kuva" -napin, talkoolainen ei', () => {
     const marker = makeMarker()
     const jManager = makeMockManager(marker)
-    const jModal = new MarkerDetailModal(jManager as any, () => null, () => 'järjestäjä', vi.fn(), vi.fn())
+    const jModal = new MarkerDetailModal(jManager as any, () => null, () => 'järjestäjä', vi.fn())
     jModal.open('test-id')
     expect(document.querySelector('.marker-detail-add-image-btn')).not.toBeNull()
 
     document.body.innerHTML = ''
     const tManager = makeMockManager(marker)
-    const tModal = new MarkerDetailModal(tManager as any, () => null, () => 'talkoolainen', vi.fn(), vi.fn())
+    const tModal = new MarkerDetailModal(tManager as any, () => null, () => 'talkoolainen', vi.fn())
     tModal.open('test-id')
     expect(document.querySelector('.marker-detail-add-image-btn')).toBeNull()
   })
@@ -324,7 +305,7 @@ describe('MarkerDetailModal', () => {
   it('T103: renderöi kuva-thumbnailit marker.images-listasta', () => {
     const marker = makeMarker({ images: ['/api/markers/test-id/images/a', '/api/markers/test-id/images/b'] })
     const manager = makeMockManager(marker)
-    const modal = new MarkerDetailModal(manager as any, () => null, () => 'järjestäjä', vi.fn(), vi.fn())
+    const modal = new MarkerDetailModal(manager as any, () => null, () => 'järjestäjä', vi.fn())
     modal.open('test-id')
     const thumbs = document.querySelectorAll('.marker-detail-image-thumb')
     expect(thumbs.length).toBe(2)
@@ -333,7 +314,7 @@ describe('MarkerDetailModal', () => {
   it('T103: kuva-onerror näyttää offline-placeholderin lazy-loadin sijaan', () => {
     const marker = makeMarker({ images: ['/api/markers/test-id/images/a'] })
     const manager = makeMockManager(marker)
-    const modal = new MarkerDetailModal(manager as any, () => null, () => 'järjestäjä', vi.fn(), vi.fn())
+    const modal = new MarkerDetailModal(manager as any, () => null, () => 'järjestäjä', vi.fn())
     modal.open('test-id')
     const img = document.querySelector<HTMLImageElement>('.marker-detail-image-thumb')!
     img.dispatchEvent(new Event('error'))
@@ -344,7 +325,7 @@ describe('MarkerDetailModal', () => {
   it('T103: tiedoston valinta kutsuu manager.addImage', async () => {
     const marker = makeMarker()
     const manager = makeMockManager(marker)
-    const modal = new MarkerDetailModal(manager as any, () => null, () => 'järjestäjä', vi.fn(), vi.fn())
+    const modal = new MarkerDetailModal(manager as any, () => null, () => 'järjestäjä', vi.fn())
     modal.open('test-id')
     const fileInput = document.querySelector<HTMLInputElement>('.marker-detail-image-input')!
     const file = new File(['x'], 'kuva.jpg', { type: 'image/jpeg' })
@@ -352,23 +333,5 @@ describe('MarkerDetailModal', () => {
     fileInput.dispatchEvent(new Event('change'))
     await Promise.resolve()
     expect(manager.addImage).toHaveBeenCalledWith('test-id', file)
-  })
-
-  it('rotate-nappi kutsuu onArmRequest + sulkee modaalin', () => {
-    const marker = makeMarker()
-    const manager = makeMockManager(marker)
-    const onArmRequest = vi.fn()
-    const modal = new MarkerDetailModal(
-      manager as any,
-      () => null,
-      () => 'järjestäjä',
-      onArmRequest,
-      vi.fn(),
-    )
-    modal.open('test-id')
-    const rotateBtn = document.querySelector<HTMLButtonElement>('.modal-btn-secondary')
-    rotateBtn!.click()
-    expect(onArmRequest).toHaveBeenCalledWith('test-id')
-    expect(document.querySelector('.marker-detail-modal')).toBeNull()
   })
 })

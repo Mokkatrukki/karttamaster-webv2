@@ -38,7 +38,7 @@ export class StatusPanel {
     const detail = document.createElement('span')
     detail.className = 'status-panel-detail'
     const done = s.total - s.byStatus['suunniteltu']
-    detail.textContent = `${done}/${s.total}`
+    detail.textContent = s.total === 0 ? '—' : `${done}/${s.total}`
 
     row.appendChild(label)
     row.appendChild(progress)
