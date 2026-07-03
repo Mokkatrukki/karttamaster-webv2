@@ -13,7 +13,8 @@
     "test:ci": "vitest run --reporter=dot",
     "test:server": "bun test server/",
     "server": "bun server/index.ts",
-    "dev:all": "bun run server & bun run dev"
+    "dev:all": "bun run server & bun run dev",
+    "dev:e2e": "DB_PATH=./dev.e2e.db PORT=3099 bun run server & API_PROXY_TARGET=http://localhost:3099 vite --port 5180"
   },
   "dependencies": {
     "hono": "^4.12.26",

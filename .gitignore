@@ -6,3 +6,6 @@ dist/
 .playwright-mcp/
 test-results/
 screenshots/
+*.db
+*.db-shm
+*.db-wal

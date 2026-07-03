@@ -3,10 +3,10 @@
  * Kolme polkua jotka vaativat oikean selaimen (Leaflet + DOM yhdessä):
  *   1. Merkki asetetaan kartalle → näkyy merkkilistassa
  *   2. Drive mode käynnistyy + navigoi eteenpäin
- *   3. Rooli-toggle muuttaa toolbaria
+ *   3. Rooli (backendistä) muuttaa toolbaria
  */
 import { test, expect } from 'playwright/test'
-import { mockAuthAsJarjestaja } from './helpers/auth'
+import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen } from './helpers/auth'
 
 // Dev-server pyörii ulkopuolella (bun run dev) — playwright.config.ts baseURL
 
@@ -100,44 +100,27 @@ test.describe('Drive mode', () => {
   })
 })
 
-test.describe('Rooli-toggle', () => {
-  test('järjestäjä → talkoolainen muuttaa toolbaria', async ({ page }) => {
+test.describe('Rooli backendistä (V80: #btn-role-toggle on dead code tili-per-rooli-authin jälkeen)', () => {
+  test('järjestäjä-tili näyttää järjestäjän toolbarin', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
-    await page.waitForTimeout(1000)
+    await page.waitForTimeout(1500)
 
-    // Alkutila: järjestäjä — +Merkki näkyy
-    await expect(page.locator('#btn-add-sign')).toBeVisible()
-    expect(await page.locator('#btn-role').innerText()).toBe('Järjestäjä')
-
-    // Toggle → talkoolainen
-    await page.click('#btn-role')
-    await page.waitForTimeout(300)
-
-    expect(await page.locator('#btn-role').innerText()).toBe('Talkoolainen')
-
-    // Talkoolaisella #btn-add-sign piilotettu (V13/T32)
-    await expect(page.locator('#btn-add-sign')).not.toBeVisible()
-
-    // Palauta järjestäjäksi
-    await page.click('#btn-role')
-    await page.waitForTimeout(300)
-    expect(await page.locator('#btn-role').innerText()).toBe('Järjestäjä')
-    await expect(page.locator('#btn-add-sign')).toBeVisible()
+    expect(await page.evaluate(() => document.body.dataset.role)).toBe('järjestäjä')
+    await expect(page.locator('#btn-role')).toHaveText('Järjestäjä')
+    await expect(page.locator('#segment-panel')).toBeVisible()
   })
 
-  test('rooli persistoi localStorageen', async ({ page }) => {
-    await mockAuthAsJarjestaja(page)
+  test('talkoolainen-tili näyttää rajatun toolbarin (V13/T32)', async ({ page }) => {
+    await mockAuthAsTalkoolainen(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
-    await page.waitForTimeout(1000)
+    await page.waitForTimeout(1500)
 
-    await page.click('#btn-role')
-    await page.waitForTimeout(300)
-
-    const stored = await page.evaluate(() => localStorage.getItem('karttamaster-role'))
-    expect(stored).toBe('talkoolainen')
+    expect(await page.evaluate(() => document.body.dataset.role)).toBe('talkoolainen')
+    await expect(page.locator('#btn-role')).toHaveText('Talkoolainen')
+    await expect(page.locator('#segment-panel')).not.toBeVisible()
   })
 })
 
@@ -148,11 +131,7 @@ test.describe('Drag-to-move — T37', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    // Lisää merkki reitille
-    await page.click('#btn-add-sign')
-    await page.waitForTimeout(300)
-    await page.click('.sign-type-btn[data-type="right"]')
-    await page.waitForTimeout(300)
+    // Lisää merkki reitille (T85: dblclick → floating picker → tyyppi)
     const routePath = page.locator('.leaflet-overlay-pane path').first()
     const routeBox = await routePath.boundingBox()
     expect(routeBox).not.toBeNull()
@@ -160,27 +139,22 @@ test.describe('Drag-to-move — T37', () => {
     expect(mapBox).not.toBeNull()
     const clickX = Math.round(routeBox!.x + routeBox!.width * 0.15 - mapBox!.x)
     const clickY = Math.round(routeBox!.y + routeBox!.height * 0.5 - mapBox!.y)
-    await page.click('#map', { position: { x: clickX, y: clickY }, timeout: 10000 })
+    await page.dblclick('#map', { position: { x: clickX, y: clickY }, timeout: 10000 })
+    await page.waitForTimeout(500)
+    await expect(page.locator('#floating-picker')).toHaveClass(/open/)
+    await page.click('#floating-picker .sign-type-btn[data-type="right"]')
     await page.waitForTimeout(800)
 
-    // Lue alkuperäinen sijainti
-    const lsBefore = await page.evaluate(() => localStorage.getItem('karttamaster-markers'))
-    const dataBefore = JSON.parse(lsBefore!)
-    expect(dataBefore.markers.length).toBeGreaterThan(0)
-    const latBefore = dataBefore.markers[0].lat
-    const lonBefore = dataBefore.markers[0].lon
-
-    // Reload — merkki latautuu ilman arm-tilaa → drag käytössä
-    await page.reload()
-    await page.waitForTimeout(1500)
-
-    // Hae marker-elementti kartalla
+    // Merkit persistoituvat backendiin fire-and-forget-POSTilla (src/map/markers.ts apiPost,
+    // .catch(() => {})) — E2E mockaa vain client-puolen /api/auth/me:n, ei oikeaa sessiota,
+    // joten GET /api/markers ei ole luotettava tarkistustapa täällä. Todennus tehdään
+    // Leaflet-markerin ruutukoordinaattien kautta (draggable: true, ks. markers.ts:254).
     const markerEl = page.locator('.leaflet-marker-pane .leaflet-marker-icon').first()
-    const markerBox = await markerEl.boundingBox()
-    expect(markerBox).not.toBeNull()
+    const boxBefore = await markerEl.boundingBox()
+    expect(boxBefore).not.toBeNull()
 
-    const startX = markerBox!.x + markerBox!.width / 2
-    const startY = markerBox!.y + markerBox!.height / 2
+    const startX = boxBefore!.x + boxBefore!.width / 2
+    const startY = boxBefore!.y + boxBefore!.height / 2
 
     // Drag 120px oikealle ja 60px alas
     await page.mouse.move(startX, startY)
@@ -191,19 +165,11 @@ test.describe('Drag-to-move — T37', () => {
     await page.mouse.up()
     await page.waitForTimeout(800)
 
-    // Tarkista localStorage — sijainti muuttunut
-    const lsAfter = await page.evaluate(() => localStorage.getItem('karttamaster-markers'))
-    const dataAfter = JSON.parse(lsAfter!)
-    expect(dataAfter.markers.length).toBeGreaterThan(0)
-    const latAfter = dataAfter.markers[0].lat
-    const lonAfter = dataAfter.markers[0].lon
-
-    // Sijainti muuttunut (V15)
-    const positionChanged = Math.abs(latAfter - latBefore) > 0.00001 || Math.abs(lonAfter - lonBefore) > 0.00001
-    expect(positionChanged).toBe(true)
-
-    // routeIds ei koskaan tyhjä (V21)
-    expect(dataAfter.markers[0].routeIds.length).toBeGreaterThan(0)
+    // Sijainti muuttunut ruudulla (V15)
+    const boxAfter = await markerEl.boundingBox()
+    expect(boxAfter).not.toBeNull()
+    const moved = Math.abs(boxAfter!.x - boxBefore!.x) > 20 || Math.abs(boxAfter!.y - boxBefore!.y) > 20
+    expect(moved).toBe(true)
   })
 })
 
@@ -215,14 +181,14 @@ test.describe('GPS-paikannin — T30', () => {
     })
     await context.route('/api/auth/me', route =>
       route.fulfill({ status: 200, contentType: 'application/json',
-        body: JSON.stringify({ role: 'järjestäjä', display_name: 'Testi' }) })
+        body: JSON.stringify({ role: 'talkoolainen', code: 'TEST01', display_name: 'Testi' }) })
     )
     const page = await context.newPage()
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    // Alkutila: GPS ei aktiivinen
+    // GPS on talkoolainen-only (data-role-hide="järjestäjä") — alkutila: GPS ei aktiivinen
     await expect(page.locator('#btn-gps')).not.toHaveClass(/gps-active/)
 
     // Käynnistä GPS

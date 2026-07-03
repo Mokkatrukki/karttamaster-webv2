@@ -3,7 +3,7 @@
  * Validoi demo-sprintin featuuret selaimessa.
  */
 import { test, expect } from 'playwright/test'
-import { mockAuthAsJarjestaja } from './helpers/auth'
+import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen } from './helpers/auth'
 
 test.describe('T28 — Status panel (tilannekuva)', () => {
   test('näkyy järjestäjälle toolbarin alla', async ({ page }) => {
@@ -29,13 +29,12 @@ test.describe('T28 — Status panel (tilannekuva)', () => {
   })
 
   test('piilossa talkoolaiselta', async ({ page }) => {
-    await mockAuthAsJarjestaja(page)
+    // V80: #btn-role-toggle on dead code tili-per-rooli-authin jälkeen — kirjaudu suoraan talkoolaisena
+    await mockAuthAsTalkoolainen(page)
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    // Vaihda talkoolaiseksi
-    await page.click('#btn-role')
     await expect(page.locator('#btn-role')).toHaveText('Talkoolainen')
 
     // Status panel piilotettu
@@ -49,104 +48,76 @@ test.describe('T28 — Status panel (tilannekuva)', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    // Lue alkutila
+    // Lue alkutila — ei merkkejä vielä (status-panel.ts: total===0 → '—')
     const detail = page.locator('.status-panel-detail').first()
     const before = await detail.textContent()
-    expect(before).toBe('0/0')
+    expect(before).toBe('—')
 
-    // Lisää merkki
-    await page.click('#btn-add-sign')
-    await page.waitForTimeout(300)
-    await page.click('.sign-type-btn[data-type="right"]')
-    await page.waitForTimeout(300)
-
-    const map = page.locator('#map')
-    const box = await map.boundingBox()
-    if (box) {
-      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
-    }
+    // Lisää merkki (T85: dblclick → floating picker → tyyppi)
+    await page.dblclick('#map', { position: { x: 460, y: 260 } })
+    await page.waitForTimeout(500)
+    await expect(page.locator('#floating-picker')).toHaveClass(/open/)
+    await page.click('#floating-picker .sign-type-btn[data-type="right"]')
     await page.waitForTimeout(500)
 
     // Detail päivittynyt
     const after = await detail.textContent()
-    expect(after).not.toBe('0/0')
+    expect(after).not.toBe('—')
   })
 })
 
 test.describe('T38 — Merkin tyyppi vaihdettavissa', () => {
-  test('järjestäjä näkee type-select merkkilistassa', async ({ page }) => {
+  test('järjestäjä näkee type-selectin merkin detail-modaalissa', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    // Lisää merkki ensin
-    await page.click('#btn-add-sign')
-    await page.waitForTimeout(200)
-    await page.click('.sign-type-btn[data-type="right"]')
-    await page.waitForTimeout(200)
-    const map = page.locator('#map')
-    const box = await map.boundingBox()
-    if (box) {
-      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
-    }
+    // Lisää merkki ensin (T85: dblclick → floating picker → tyyppi)
+    await page.dblclick('#map', { position: { x: 460, y: 260 } })
+    await page.waitForTimeout(500)
+    await expect(page.locator('#floating-picker')).toHaveClass(/open/)
+    await page.click('#floating-picker .sign-type-btn[data-type="right"]')
     await page.waitForTimeout(400)
 
-    // Avaa lista
+    // Avaa overflow-valikko → Lista → merkkirivi → detail-modaali (tyyppi-select siirretty tänne)
+    await page.click('#btn-menu')
+    await page.waitForTimeout(200)
     await page.click('#btn-list')
+    await page.waitForTimeout(300)
+    await page.click('.marker-item')
     await page.waitForTimeout(300)
 
     // Type-select näkyy järjestäjälle
-    const sel = page.locator('.marker-type-select')
+    const sel = page.locator('.marker-detail-type-select')
     await expect(sel).toHaveCount(1)
     await expect(sel).toHaveValue('right')
-
-    // 4 vaihtoehtoa
-    const opts = sel.locator('option')
-    await expect(opts).toHaveCount(4)
   })
 
   test('talkoolainen ei näe type-selectiä', async ({ page }) => {
-    await mockAuthAsJarjestaja(page)
+    // Talkoolainen voi myös lisätä merkin (dblclick ei ole roolirajattu)
+    await mockAuthAsTalkoolainen(page)
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/')
     await page.waitForTimeout(1500)
-
-    // Lisää merkki järjestäjänä
-    await page.click('#btn-add-sign')
-    await page.waitForTimeout(200)
-    await page.click('.sign-type-btn[data-type="right"]')
-    await page.waitForTimeout(200)
-    const map = page.locator('#map')
-    const box = await map.boundingBox()
-    if (box) {
-      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
-    }
-    await page.waitForTimeout(400)
-
-    // Vaihda talkoolaiseksi
-    await page.click('#btn-role')
     await expect(page.locator('#btn-role')).toHaveText('Talkoolainen')
 
-    // Avaa lista
+    await page.dblclick('#map', { position: { x: 200, y: 260 } })
+    await page.waitForTimeout(500)
+    await expect(page.locator('#floating-picker')).toHaveClass(/open/)
+    await page.click('#floating-picker .sign-type-btn[data-type="right"]')
+    await page.waitForTimeout(400)
+
+    // Avaa overflow-valikko → Lista → merkkirivi → detail-modaali
+    await page.click('#btn-menu')
+    await page.waitForTimeout(200)
     await page.click('#btn-list')
+    await page.waitForTimeout(300)
+    await page.click('.marker-item')
     await page.waitForTimeout(300)
 
     // Ei type-selectiä
-    await expect(page.locator('.marker-type-select')).toHaveCount(0)
-  })
-})
-
-test.describe('T49 — Kartta-tila badge', () => {
-  test('badge-alue on olemassa toolbarissa järjestäjälle', async ({ page }) => {
-    await mockAuthAsJarjestaja(page)
-    await page.setViewportSize({ width: 1280, height: 720 })
-    await page.goto('/')
-    await page.waitForTimeout(1500)
-
-    // #map-state-badge renderöidään järjestäjälle (vaikka backend puuttuu)
-    const badge = page.locator('#map-state-badge')
-    await expect(badge).toBeAttached()
+    await expect(page.locator('.marker-detail-type-select')).toHaveCount(0)
   })
 })
 

@@ -9,6 +9,9 @@ import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen } from './helpers/auth'
 
 /** Helper: create a segment via 2-click modal flow + Tallenna */
 async function createSegmentViaModal(page: import('playwright/test').Page) {
+  // T73: panel collapsed by default — expand before touching its footer button
+  await page.locator('.segment-panel-header').click()
+  await page.waitForTimeout(200)
   await page.click('#btn-segment-create')
   await page.waitForTimeout(200)
 
@@ -69,7 +72,9 @@ test.describe('T25 — SegmentPanel', () => {
 
     await expect(page.locator('#btn-role')).toHaveText('Järjestäjä')
 
-    // Avaa luontimodaali
+    // Avaa panel (T73: collapsed by default), sitten luontimodaali
+    await page.locator('.segment-panel-header').click()
+    await page.waitForTimeout(200)
     await page.click('#btn-segment-create')
     await page.waitForTimeout(200)
 
@@ -103,8 +108,8 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(page.locator('[data-testid="creation-modal"]')).not.toBeAttached()
     const items = page.locator('#segment-list .segment-item')
     await expect(items).toHaveCount(1)
-    const infoText = await items.first().locator('.segment-info').innerText()
-    expect(infoText).toContain('km')
+    const kmText = await items.first().locator('.segment-km').innerText()
+    expect(kmText).toContain('km')
   })
 
   test('T56a — ensimmäisen klikkauksen jälkeen circleMarker kartalla (T94)', async ({ page }) => {
@@ -113,6 +118,8 @@ test.describe('T25 — SegmentPanel', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
 
+    await page.locator('.segment-panel-header').click()
+    await page.waitForTimeout(200)
     await page.click('#btn-segment-create')
     await page.waitForTimeout(200)
 
@@ -139,6 +146,8 @@ test.describe('T25 — SegmentPanel', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
 
+    await page.locator('.segment-panel-header').click()
+    await page.waitForTimeout(200)
     await page.click('#btn-segment-create')
     await page.waitForTimeout(200)
 
@@ -163,7 +172,7 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(page.locator('.segment-creation-marker')).toHaveCount(0)
   })
 
-  test('T56b — "Muokkaa pisteitä" -nappi näkyy pätkärivillä', async ({ page }) => {
+  test('T56b — "Muokkaa pisteitä" -nappi näkyy SegmentDetailsModalissa (siirretty T77-modaaliin)', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
@@ -171,9 +180,16 @@ test.describe('T25 — SegmentPanel', () => {
 
     await createSegmentViaModal(page)
 
-    const editBtn = page.locator('.btn-segment-edit-pts')
+    await page.evaluate(() => {
+      const paths = document.querySelectorAll<SVGPathElement>('.leaflet-overlay-pane path')
+      const last = paths[paths.length - 1]
+      if (last) last.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+    await page.waitForTimeout(400)
+
+    const editBtn = page.locator('.btn-segment-edit-pts-modal')
     await expect(editBtn).toBeVisible()
-    await expect(editBtn).toHaveText('Muokkaa pisteitä')
+    await expect(editBtn).toHaveText('Muokkaa pisteitä kartalla')
   })
 
   test('T77 — klikkaus pätkän polylineen avaa SegmentDetailsModal', async ({ page }) => {
@@ -228,8 +244,16 @@ test.describe('T25 — SegmentPanel', () => {
 
     await expect(page.locator('.segment-item')).toHaveCount(1)
 
-    await page.click('.btn-segment-delete')
-    await page.waitForTimeout(200)
+    // Poisto siirretty SegmentDetailsModaliin (T77) — avaa se ja hyväksy confirm()
+    page.once('dialog', dialog => dialog.accept())
+    await page.evaluate(() => {
+      const paths = document.querySelectorAll<SVGPathElement>('.leaflet-overlay-pane path')
+      const last = paths[paths.length - 1]
+      if (last) last.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+    await page.waitForTimeout(400)
+    await page.click('.btn-segment-delete-modal')
+    await page.waitForTimeout(300)
 
     await expect(page.locator('.segment-empty')).toBeVisible()
   })
