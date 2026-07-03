@@ -7,6 +7,7 @@ import {
   getSegmentsForPhase,
   getSegmentForCode,
   getMarkersForSegment,
+  getSegmentStatusCounts,
   validateNoOverlap,
   type Segment,
   type SegmentStore,
@@ -201,6 +202,40 @@ describe('segments', () => {
     it('palauttaa tyhjän taulukon jos ei osumia', () => {
       const segment = createSegment(store, baseSegment)
       expect(getMarkersForSegment(segment, [])).toEqual([])
+    })
+  })
+
+  // T141/V88: lukumäärä per status kartan-alle-palkkia varten
+  describe('getSegmentStatusCounts', () => {
+    it('palauttaa 0 kaikille statuksille tyhjällä pätkällä', () => {
+      const segment = createSegment(store, baseSegment)
+      expect(getSegmentStatusCounts(segment, [])).toEqual({
+        suunniteltu: 0, asetettu: 0, tarkistettu: 0, kerätty: 0, ei_tarpeen: 0,
+      })
+    })
+
+    it('laskee lukumäärän per status vain segmentin omista merkeistä', () => {
+      const segment = createSegment(store, baseSegment)
+      const markers: SignMarker[] = [
+        { ...makeMarker('m1', ['route-35km'], 2000), status: 'asetettu' },
+        { ...makeMarker('m2', ['route-35km'], 3000), status: 'asetettu' },
+        { ...makeMarker('m3', ['route-35km'], 4000), status: 'kerätty' },
+        { ...makeMarker('outside', ['route-35km'], 9000), status: 'asetettu' },
+      ]
+      expect(getSegmentStatusCounts(segment, markers)).toEqual({
+        suunniteltu: 0, asetettu: 2, tarkistettu: 0, kerätty: 1, ei_tarpeen: 0,
+      })
+    })
+
+    it('täysi pätkä: kaikki yhdessä statuksessa', () => {
+      const segment = createSegment(store, baseSegment)
+      const markers: SignMarker[] = [
+        { ...makeMarker('m1', ['route-35km'], 2000), status: 'kerätty' },
+        { ...makeMarker('m2', ['route-35km'], 3000), status: 'kerätty' },
+      ]
+      expect(getSegmentStatusCounts(segment, markers)).toEqual({
+        suunniteltu: 0, asetettu: 0, tarkistettu: 0, kerätty: 2, ei_tarpeen: 0,
+      })
     })
   })
 

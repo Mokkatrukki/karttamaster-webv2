@@ -68,6 +68,7 @@ server/       ← Hono + Bun + SQLite
 | SegmentCreationModal | `src/ui/segment-creation-modal.ts` 195 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
 | SegmentDetailsModal | `src/ui/segment-details-modal.ts` 490 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
 | EquipmentList | `src/ui/segment-view.ts` | ✓ T27 | — | [ui.md](docs/components/ui.md) |
+| SegmentStatusBar | `src/ui/segment-status-bar.ts` | ✓ T141 | korvaa T95:n kuolleen kutsun (B60); jsdom-testi komponenttia vasten, ei main.ts-integraatiotestiä (ei harnessia) | [ui.md](docs/components/ui.md) |
 | AuthScreen | `src/ui/auth-screen.ts` 160 riv | ✓ T51 | — | [ui.md](docs/components/ui.md) |
 | MapStateBadge | `src/ui/map-state-badge.ts` | stub — approval-konsepti poistettu (B46/V79), ei renderöi mitään | — | [ui.md](docs/components/ui.md) |
 | SnapshotPanel | `src/ui/snapshot-panel.ts` 172 riv | ✓ T50 | — | [ui.md](docs/components/ui.md) |

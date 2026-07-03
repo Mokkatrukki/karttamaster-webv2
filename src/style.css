@@ -2152,6 +2152,7 @@ button {
 }
 
 body[data-role="talkoolainen"] #left-panel { display: none; }
+body[data-role="talkoolainen"] #segment-status-bar-container { display: none; }
 
 #left-panel-header {
   display: flex;
@@ -2245,6 +2246,32 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+}
+
+/* === SegmentStatusBar (T141) === */
+#segment-status-bar {
+  flex-shrink: 0;
+  max-height: 64px;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding: 6px 10px;
+  background: var(--surface-app);
+  border-top: 1px solid var(--border-subtle);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.segment-status-row {
+  margin-right: 16px;
+}
+
+.segment-status-row strong {
+  color: var(--text-body);
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  #segment-status-bar { max-height: 48px; }
 }
 
 /* === MarkerDetailModal (T105) === */

@@ -1,4 +1,4 @@
-import type { SignMarker } from './types'
+import type { SignMarker, MarkerStatus } from './types'
 
 export interface EquipmentItem {
   name: string
@@ -85,6 +85,24 @@ export function getSegmentProgress(segment: Segment, markers: SignMarker[]): num
     m => m.status === 'asetettu' || m.status === 'tarkistettu' || m.status === 'kerätty',
   ).length
   return Math.round((done / segMarkers.length) * 100)
+}
+
+// T141/V88: lukumäärä per status, kartan-alle-palkkia varten. Vain count>0 -statukset näytetään UI:ssa.
+export function getSegmentStatusCounts(
+  segment: Segment,
+  markers: SignMarker[],
+): Record<MarkerStatus, number> {
+  const counts: Record<MarkerStatus, number> = {
+    suunniteltu: 0,
+    asetettu: 0,
+    tarkistettu: 0,
+    kerätty: 0,
+    ei_tarpeen: 0,
+  }
+  for (const m of getMarkersForSegment(segment, markers)) {
+    counts[m.status]++
+  }
+  return counts
 }
 
 // V49: overlap = startDist2 < endDist1 && startDist1 < endDist2. excludeId skips own segment on edit.
