@@ -108,8 +108,10 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(page.locator('[data-testid="creation-modal"]')).not.toBeAttached()
     const items = page.locator('#segment-list .segment-item')
     await expect(items).toHaveCount(1)
-    const kmText = await items.first().locator('.segment-km').innerText()
-    expect(kmText).toContain('km')
+    // T142/B61: .segment-km näyttää nyt status-lukumäärän, km-alue on title-attribuutissa (hover)
+    const kmSpan = items.first().locator('.segment-km')
+    await expect(kmSpan).toContainText('ei merkkejä')
+    expect(await kmSpan.getAttribute('title')).toContain('km')
   })
 
   test('T56a — ensimmäisen klikkauksen jälkeen circleMarker kartalla (T94)', async ({ page }) => {
@@ -258,19 +260,18 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(page.locator('.segment-empty')).toBeVisible()
   })
 
-  // T141/V88: main.ts wiring regression guard — T95 died silently this exact way (B60)
-  test('SegmentStatusBar näkyy kartan alla ja päivittyy pätkän luonnista (T141, B60)', async ({ page }) => {
+  // T141/B61/V88: main.ts wiring regression guard — T95 died silently this exact way (B60).
+  // Status-lukumäärä näkyy suoraan pätkäjako-listan rivillä (.segment-km), ei enää erillisenä kartan-alle-palkkina.
+  test('pätkärivi näyttää status-lukumäärän km-alueen tilalla (T141/B61)', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    const bar = page.locator('#segment-status-bar')
-    await expect(bar).toBeHidden()
-
     await createSegmentViaModal(page)
 
-    await expect(bar).toBeVisible()
-    await expect(bar).toContainText('ei merkkejä')
+    const kmSpan = page.locator('.segment-item .segment-km').first()
+    await expect(kmSpan).toBeVisible()
+    await expect(kmSpan).toContainText('ei merkkejä')
   })
 })

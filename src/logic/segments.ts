@@ -87,7 +87,7 @@ export function getSegmentProgress(segment: Segment, markers: SignMarker[]): num
   return Math.round((done / segMarkers.length) * 100)
 }
 
-// T141/V88: lukumäärä per status, kartan-alle-palkkia varten. Vain count>0 -statukset näytetään UI:ssa.
+// T141/B61/V88: lukumäärä per status, pätkäjako-listan riville. Vain count>0 -statukset näytetään UI:ssa.
 export function getSegmentStatusCounts(
   segment: Segment,
   markers: SignMarker[],
@@ -103,6 +103,21 @@ export function getSegmentStatusCounts(
     counts[m.status]++
   }
   return counts
+}
+
+const STATUS_COUNT_LABELS: Record<MarkerStatus, string> = {
+  suunniteltu: 'suunniteltu',
+  asetettu: 'asetettu',
+  tarkistettu: 'tarkistettu',
+  kerätty: 'kerätty',
+  ei_tarpeen: 'ei tarpeen',
+}
+
+export function formatStatusCounts(counts: Record<MarkerStatus, number>): string {
+  const parts = (Object.keys(STATUS_COUNT_LABELS) as MarkerStatus[])
+    .filter(status => counts[status] > 0)
+    .map(status => `${counts[status]} ${STATUS_COUNT_LABELS[status]}`)
+  return parts.length > 0 ? parts.join(' · ') : 'ei merkkejä'
 }
 
 // V49: overlap = startDist2 < endDist1 && startDist1 < endDist2. excludeId skips own segment on edit.

@@ -21,7 +21,6 @@ import { GpsNavigator } from './map/gps-navigator'
 import { GpsDrivePanel } from './ui/gps-drive-panel'
 import { SegmentOverlay } from './map/segment-overlay'
 import { SegmentPanel } from './ui/segment-panel'
-import { SegmentStatusBar } from './ui/segment-status-bar'
 import { SegmentView } from './ui/segment-view'
 import { LeftPanel } from './ui/left-panel'
 import { SignLibraryPanel, createSignLibrary } from './ui/sign-library-panel'
@@ -203,16 +202,12 @@ async function init(talkoolainenCode?: string) {
 
   const segmentSaveErrorEl = document.getElementById('distance-warning')!
   const markerManagerRef: { current: MarkerManager | null } = { current: null }
-  const segmentStatusBar = new SegmentStatusBar(document.getElementById('segment-status-bar-container')!)
 
   const segmentPanel = new SegmentPanel(
     document.getElementById('segment-panel-container')!,
     routes,
     segmentStore,
-    () => {
-      segmentOverlay.update(segmentStore)
-      segmentStatusBar.update(segmentStore, markerManagerRef.current?.getAll() ?? [])
-    },
+    () => segmentOverlay.update(segmentStore),
     {
       onFirstPoint: (lat, lon) => {
         tempCreationMarker?.remove()
@@ -258,7 +253,7 @@ async function init(talkoolainenCode?: string) {
     renderMarkerList(markerManager, undefined, undefined, signLibrary, onOpenMarkerDetail)
     progressBar.refreshDots()
     statusPanel?.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
-    segmentStatusBar.update(segmentStore, markerManager.getAll())
+    segmentPanel.refreshCounts()
     if (segmentView) {
       const seg = talkoolainenCode ? getSegmentForCode(segmentStore, talkoolainenCode) : undefined
       if (seg) segmentView.update(getMarkersForSegment(seg, markerManager.getAll()))
@@ -266,7 +261,6 @@ async function init(talkoolainenCode?: string) {
   }, initialMarkers, showDistanceWarning)
   markerManagerRef.current = markerManager
   activeMarkerManager = markerManager
-  segmentStatusBar.update(segmentStore, markerManager.getAll())
 
   markerDetailModal = new MarkerDetailModal(
     markerManager,

@@ -313,7 +313,7 @@ metsässä, hanskat kädessä.
 - Header: `11px uppercase text-muted`, "Luo uusi pätkä" -nappi `min-height: 44px` (§R pakollinen)
 - Luomistila: `12px text-muted`, "Klikkaa reittiä: 1. / 2. piste" — kaksi klikkausta reitillä → luo pätkän
 - Lista: `max-height: 220px`, scrollable, `border-card`-separaattorit
-- Segmenttirivi: `padding: 6px 10px`, nimi `text-primary 12px`, km-väli `text-muted 11px`
+- Segmenttirivi: `padding: 6px 10px`, nimi `text-primary 12px`, `.segment-km` `text-muted 11px` — **T142/B61/V89:** näyttää status-lukumäärän (`formatStatusCounts`, esim. "2 suunniteltu · 1 asetettu · 1 tarkistettu · 2 kerätty" tai "ei merkkejä"), ei km-aluetta. Km-alue (`0.0–2.2 km`) siirretty `title`-attribuutiksi (hover-tooltip), ei enää näkyvä teksti.
 - Poista-nappi: `rgba(239,68,68,0.10)` tausta, `#f87171` teksti — vaarallinen toiminto
 - "Lisätiedot & varusteet" -nappi: `min-height: 44px`, avaa `SegmentDetailsModal` (alla)
 
@@ -440,17 +440,6 @@ CSS-luokat:
 - SEGMENT_COLORS (6 väriä, rotaatio indeksin mukaan):
   `['#10b981', '#ec4899', '#3b82f6', '#ef4444', '#06b6d4', '#64748b']`
 
-### SegmentStatusBar (`#segment-status-bar`, T141 — korvaa poistetun sivupalkki-%:n, ks. B60/V88)
-- Vain järjestäjälle (`hidden` muille)
-- Sijainti: `#map-area`:n sisällä, `#map`:n **jälkeen** (flex-column-sibling) — ohut palkki kartan alla, ei sivupalkkiin. Ei paneeli, ei modaali.
-- `flex-shrink: 0`, `max-height: 64px` (mobiili: `max-height: 48px`, `overflow-x: auto` yksi rivi)
-- Tausta: `bg-primary`, top-border: `border-subtle` (sama pattern kuin muut paneelin reunat)
-- Tyhjä tila (ei pätkiä): koko elementti `hidden` — ei tyhjää laatikkoa
-- Sisältö: yksi rivi per pätkä, vaakascrollattava jos ei mahdu (`overflow-x: auto`, `white-space: nowrap`, ei wrappaa)
-- Per pätkä -chip: `<pätkän nimi tai km-väli>: <lukumäärä> <status>` -parit erottimella `·`, näytä vain statukset joilla count>0. Esim: `Etelä 1: 12 asetettu · 3 tarkistettu · 2 kerätty`. Kaikki asetettu (esim. kaikki kerätty): `10/10 kerätty` -muoto sallittu kun yksi status kattaa kaiken.
-- Fontti: `11px text-muted`, pätkän nimi `text-primary` painotettu (bold tai eri väri, ei molempia)
-- Ei klikattava, ei interaktiivinen elementti tässä versiossa (pelkkä tilannekuva) — touch-target-sääntö ei koske koska ei nappi
-- Päivittyy `SegmentPanel`-tyylisesti: kutsutaan aina kun `segmentStore` tai `markerManager` muuttuu (sama `onUpdate`-hook-kuvio kuin `SegmentPanel.render()`)
 
 **Regressiosuoja (V88):** `getSegmentStatusCounts()` (src/logic/segments.ts) yksikkötestaus ei riitä — T95 hävisi juuri koska pelkkä logiikkatesti jäi vihreäksi vaikka kutsupaikka katosi UI:sta. Pakollinen lisäksi: Vitest-jsdom-testi joka rakentaa oikean `main.ts`-wiring-polun (ei eristettyä komponenttia) ja tarkistaa että `#segment-status-bar` DOM-teksti sisältää oikean lukumäärän segmentStoren mutaation jälkeen. Tulevat refaktorit jotka koskevat `#map-area`-lasten järjestystä tai `SegmentPanel`/`segment-view`-riviä eivät saa läpäistä testejä jos tämä kutsu putoaa pois.
 

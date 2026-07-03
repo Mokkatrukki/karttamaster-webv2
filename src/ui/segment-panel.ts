@@ -1,5 +1,5 @@
 import { nearestPointIndex, haversineDistance } from '../logic/bearing'
-import { validateNoOverlap } from '../logic/segments'
+import { validateNoOverlap, getSegmentStatusCounts, formatStatusCounts } from '../logic/segments'
 import type { SegmentStore, Segment } from '../logic/segments'
 import type { RouteConfig } from '../logic/multi-route'
 import type { SignMarker } from '../logic/types'
@@ -66,6 +66,12 @@ export class SegmentPanel {
       },
     )
 
+    this.render()
+  }
+
+  // T141/B61: kutsutaan merkin status-muutoksesta (main.ts MarkerManager onUpdate) — päivittää
+  // rivien status-lukumäärät ilman että segmentin oma data on muuttunut.
+  refreshCounts(): void {
     this.render()
   }
 
@@ -263,7 +269,9 @@ export class SegmentPanel {
 
     const kmSpan = document.createElement('span')
     kmSpan.className = 'segment-km'
-    kmSpan.textContent = `${(seg.startDist / 1000).toFixed(1)}–${(seg.endDist / 1000).toFixed(1)} km`
+    const markers = this.callbacks.getMarkers?.() ?? []
+    kmSpan.textContent = formatStatusCounts(getSegmentStatusCounts(seg, markers))
+    kmSpan.title = `${(seg.startDist / 1000).toFixed(1)}–${(seg.endDist / 1000).toFixed(1)} km`
 
     const detailsBtn = document.createElement('button')
     detailsBtn.className = 'btn-segment-details-open'

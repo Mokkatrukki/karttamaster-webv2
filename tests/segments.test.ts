@@ -8,6 +8,7 @@ import {
   getSegmentForCode,
   getMarkersForSegment,
   getSegmentStatusCounts,
+  formatStatusCounts,
   validateNoOverlap,
   type Segment,
   type SegmentStore,
@@ -236,6 +237,27 @@ describe('segments', () => {
       expect(getSegmentStatusCounts(segment, markers)).toEqual({
         suunniteltu: 0, asetettu: 0, tarkistettu: 0, kerätty: 2, ei_tarpeen: 0,
       })
+    })
+  })
+
+  // T141/B61: sivupalkin pätkärivin teksti (korvaa km-alueen)
+  describe('formatStatusCounts', () => {
+    it('"ei merkkejä" kun kaikki nollassa', () => {
+      expect(formatStatusCounts({
+        suunniteltu: 0, asetettu: 0, tarkistettu: 0, kerätty: 0, ei_tarpeen: 0,
+      })).toBe('ei merkkejä')
+    })
+
+    it('yhdistää useamman statuksen pistein', () => {
+      expect(formatStatusCounts({
+        suunniteltu: 2, asetettu: 1, tarkistettu: 1, kerätty: 2, ei_tarpeen: 0,
+      })).toBe('2 suunniteltu · 1 asetettu · 1 tarkistettu · 2 kerätty')
+    })
+
+    it('yksi status: ei erotinta', () => {
+      expect(formatStatusCounts({
+        suunniteltu: 3, asetettu: 0, tarkistettu: 0, kerätty: 0, ei_tarpeen: 0,
+      })).toBe('3 suunniteltu')
     })
   })
 
