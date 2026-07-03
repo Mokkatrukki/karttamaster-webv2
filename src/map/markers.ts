@@ -281,11 +281,13 @@ export class MarkerManager {
     })
 
     const el = lm.getElement()
-    if (!el) return
-    el.style.cursor = 'pointer'
+    if (el) el.style.cursor = 'pointer'
 
-    el.addEventListener('click', (e) => {
-      e.stopPropagation()
+    // V82: lm.on('click', ...) uses Leaflet's own event system, which suppresses
+    // the synthetic click that follows a real drag (Draggable._onUp). A raw DOM
+    // addEventListener('click', ...) on the element does not get that suppression.
+    lm.on('click', (e) => {
+      L.DomEvent.stopPropagation(e)
       this.onMarkerClick?.(m.id)
     })
   }
