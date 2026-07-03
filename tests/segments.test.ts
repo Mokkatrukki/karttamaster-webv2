@@ -274,7 +274,7 @@ describe('segments', () => {
         { ...makeMarker('m4', ['route-35km'], 4500), status: 'kerätty' },
       ]
       const progress = getPhaseProgress(segment, markers)
-      expect(progress).toEqual({ done: 3, total: 4, label: 'asetettu' })
+      expect(progress).toEqual({ kind: 'count', done: 3, total: 4, label: 'asetettu' })
       expect(formatPhaseProgress(progress)).toBe('3/4 asetettu')
     })
 
@@ -285,13 +285,28 @@ describe('segments', () => {
         { ...makeMarker('m2', ['route-35km'], 3000), status: 'kerätty' },
       ]
       const progress = getPhaseProgress(segment, markers)
-      expect(progress).toEqual({ done: 1, total: 2, label: 'kerätty' })
+      expect(progress).toEqual({ kind: 'count', done: 1, total: 2, label: 'kerätty' })
       expect(formatPhaseProgress(progress)).toBe('1/2 kerätty')
     })
 
     it('tyhjä pätkä: "ei merkkejä"', () => {
       const segment = createSegment(store, { ...baseSegment, phase: 'asettaminen' })
       expect(formatPhaseProgress(getPhaseProgress(segment, []))).toBe('ei merkkejä')
+    })
+
+    // T144/V91: tarkastus-phase — boolean-muotoinen, ei numeerinen
+    it('tarkastus-pätkä: uusi segmentti default inspected=false', () => {
+      const segment = createSegment(store, { ...baseSegment, phase: 'tarkastus' })
+      const progress = getPhaseProgress(segment, [])
+      expect(progress).toEqual({ kind: 'boolean', done: false, label: 'tarkastettu' })
+      expect(formatPhaseProgress(progress)).toBe('ei vielä tarkastettu')
+    })
+
+    it('tarkastus-pätkä: inspected=true näkyy progressissa', () => {
+      const segment = createSegment(store, { ...baseSegment, phase: 'tarkastus', inspected: true })
+      const progress = getPhaseProgress(segment, [])
+      expect(progress).toEqual({ kind: 'boolean', done: true, label: 'tarkastettu' })
+      expect(formatPhaseProgress(progress)).toBe('tarkastettu ✓')
     })
   })
 

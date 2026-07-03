@@ -14,7 +14,9 @@ export interface Segment {
   displayName?: string
   description?: string
   equipment: EquipmentItem[]
-  phase: 'asettaminen' | 'purku'
+  phase: 'asettaminen' | 'tarkastus' | 'purku'
+  inspected?: boolean
+  inspectionNote?: string
 }
 
 export type SegmentStore = Map<string, Segment>
@@ -121,23 +123,32 @@ export function formatStatusCounts(counts: Record<MarkerStatus, number>): string
 }
 
 // T143/V90: yksi phase-tietoinen luku täyden breakdownin sijaan — mahtuu ahtaaseen sivupalkkiriviin.
-// Lookup-taulu (ei if-ketju) jotta tuleva 'tarkastus'-phase on helppo lisätä.
-const PHASE_TARGET: Record<Segment['phase'], { label: string; doneStatuses: MarkerStatus[] }> = {
+// Lookup-taulu (ei if-ketju) jotta uudet phaset on helppo lisätä.
+const COUNT_PHASE_TARGET: Record<'asettaminen' | 'purku', { label: string; doneStatuses: MarkerStatus[] }> = {
   asettaminen: { label: 'asetettu', doneStatuses: ['asetettu', 'tarkistettu', 'kerätty'] },
   purku: { label: 'kerätty', doneStatuses: ['kerätty'] },
 }
 
-export function getPhaseProgress(
-  segment: Segment,
-  markers: SignMarker[],
-): { done: number; total: number; label: string } {
+// T144/V91: tarkastus-phase ei laske per-merkki-statusta (ei ole marker-tason "tarkastettu"-statusta,
+// ks. V92) — segmentin oma inspected-boolean sen sijaan. Discriminated union ettei count-muoto valehtele.
+export type PhaseProgress =
+  | { kind: 'count'; done: number; total: number; label: string }
+  | { kind: 'boolean'; done: boolean; label: string }
+
+export function getPhaseProgress(segment: Segment, markers: SignMarker[]): PhaseProgress {
+  if (segment.phase === 'tarkastus') {
+    return { kind: 'boolean', done: segment.inspected ?? false, label: 'tarkastettu' }
+  }
   const segMarkers = getMarkersForSegment(segment, markers)
-  const target = PHASE_TARGET[segment.phase]
+  const target = COUNT_PHASE_TARGET[segment.phase]
   const done = segMarkers.filter(m => target.doneStatuses.includes(m.status)).length
-  return { done, total: segMarkers.length, label: target.label }
+  return { kind: 'count', done, total: segMarkers.length, label: target.label }
 }
 
-export function formatPhaseProgress(progress: { done: number; total: number; label: string }): string {
+export function formatPhaseProgress(progress: PhaseProgress): string {
+  if (progress.kind === 'boolean') {
+    return progress.done ? `${progress.label} ✓` : `ei vielä ${progress.label}`
+  }
   if (progress.total === 0) return 'ei merkkejä'
   return `${progress.done}/${progress.total} ${progress.label}`
 }
