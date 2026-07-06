@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { createSignLibrary, SignLibraryPanel } from '../src/ui/sign-library-panel'
-import { signCatalog, placeSignIds } from '../src/logic/sign-catalog'
+import { listTemplates } from '../src/logic/sign-library'
+import { signCatalog } from '../src/logic/sign-catalog'
 
 afterEach(() => { document.body.innerHTML = '' })
 
@@ -10,47 +11,50 @@ function setup() {
   return c
 }
 
-describe('T161-kuratointi: kertakäyttöiset paikkamerkit', () => {
-  it('katalogi merkitsee paikannimet category=place, palvelut=sign', () => {
-    const byId = Object.fromEntries(signCatalog().map(e => [e.id, e.category]))
-    expect(byId['iso-syote-430']).toBe('place')
-    expect(byId['pitamavaara-262']).toBe('place')
-    expect(byId['wc']).toBe('sign')
-    expect(byId['huolto-service']).toBe('sign')
-  })
-
-  it('placeSignIds sisältää paikannimet, ei palveluita', () => {
-    const ids = placeSignIds()
-    expect(ids.has('iso-syote-430')).toBe(true)
-    expect(ids.has('wc')).toBe(false)
-  })
-
-  it('paikkaosio on piilossa oletuksena, pääosio ei sisällä paikkamerkkejä', () => {
+describe('T161-kuratointi: yksi lista + haku + suosikit ekana', () => {
+  it('kaikki merkit yhdessä listassa (myös paikannimet)', () => {
     const c = setup()
     new SignLibraryPanel(c, createSignLibrary(), vi.fn(), vi.fn())
-    const placeHeader = c.querySelector('.sign-lib-place-header')!
-    expect(placeHeader.textContent).toContain('Paikkamerkit')
-    // collapsed → ei hakua, ei paikkalistaa
-    expect(c.querySelector('.sign-lib-place-search')).toBeNull()
-    expect(c.querySelector('.sign-lib-place-list')).toBeNull()
-    // päälistan napit eivät sisällä paikkamerkkiä
-    const mainIds = [...c.querySelectorAll<HTMLElement>('.sign-lib-list .sign-lib-place-btn')].map(b => b.dataset.id)
-    expect(mainIds).not.toContain('iso-syote-430')
+    const rows = c.querySelectorAll('.sign-lib-list .sign-lib-row')
+    expect(rows.length).toBe(listTemplates(createSignLibrary()).length)
+    const ids = [...c.querySelectorAll<HTMLElement>('.sign-lib-place-btn')].map(b => b.dataset.id)
+    expect(ids).toContain('iso-syote-430') // paikannimi mukana samassa listassa
+    expect(ids).toContain('wc')
   })
 
-  it('paikkaosion avaus näyttää haun + paikkarivit, haku suodattaa', () => {
+  it('suosikit (suosituimmat) ovat listan alussa', () => {
     const c = setup()
     new SignLibraryPanel(c, createSignLibrary(), vi.fn(), vi.fn())
-    c.querySelector<HTMLElement>('.sign-lib-place-header')!.click() // expand
-    const search = c.querySelector<HTMLInputElement>('.sign-lib-place-search')!
+    const ids = [...c.querySelectorAll<HTMLElement>('.sign-lib-place-btn')].map(b => b.dataset.id!)
+    const favs = listTemplates(createSignLibrary()).filter(t => t.favorite).map(t => t.id)
+    // ensimmäiset N riviä = suosikkijoukko (järjestyksestä riippumatta)
+    expect(new Set(ids.slice(0, favs.length))).toEqual(new Set(favs))
+  })
+
+  it('lista on scrollattava (max-height + overflow)', () => {
+    const c = setup()
+    new SignLibraryPanel(c, createSignLibrary(), vi.fn(), vi.fn())
+    const list = c.querySelector<HTMLElement>('.sign-lib-list')!
+    expect(list.style.overflowY).toBe('auto')
+    expect(list.style.maxHeight).toContain('vh')
+  })
+
+  it('haku suodattaa koko listaa DOM:ssa', () => {
+    const c = setup()
+    new SignLibraryPanel(c, createSignLibrary(), vi.fn(), vi.fn())
+    const search = c.querySelector<HTMLInputElement>('.sign-lib-search')!
     expect(search).toBeTruthy()
-    const rows = c.querySelectorAll<HTMLElement>('.sign-lib-place-list .sign-lib-row')
-    expect(rows.length).toBeGreaterThan(10)
-
+    const rows = c.querySelectorAll<HTMLElement>('.sign-lib-list .sign-lib-row')
     search.value = 'pitämä'
     search.dispatchEvent(new Event('input'))
     const visible = [...rows].filter(r => r.style.display !== 'none')
     expect(visible.length).toBeGreaterThan(0)
     expect(visible.length).toBeLessThan(rows.length)
+  })
+
+  it('katalogi säilyttää category-datan (paikka vs merkki)', () => {
+    const byId = Object.fromEntries(signCatalog().map(e => [e.id, e.category]))
+    expect(byId['iso-syote-430']).toBe('place')
+    expect(byId['wc']).toBe('sign')
   })
 })

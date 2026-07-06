@@ -427,9 +427,11 @@ CSS-luokat:
 
 ### SignLibraryPanel (`src/ui/sign-library-panel.ts`)
 - Vain järjestäjälle — sijaitsee `#left-panel-content`:ssä
-- **Kaksi osiota (T161-kuratointi):**
-  - **Merkkikirjasto** (`this.collapsed`) — arjen merkit (palvelut/varoitukset/matkat/nuolet), `category!=='place'`. `+ Uusi merkki` -footer.
-  - **Paikkamerkit (N)** (`.sign-lib-place-header`, `this.placeCollapsed` — **piilossa oletuksena**) — kertakäyttöiset paikannimet (`category==='place'`, `sign-catalog.ts placeSignIds()`). Sijoitetaan kartalle yleensä kerran → erotettu ettei arjen lista täyty. Auki: hakukenttä `.sign-lib-place-search` (`type=search`, `min-height:44px`, `field-tint`) suodattaa rivit **DOM:ssa** (`data-label`-attribuutti, `display:none`) — ei re-renderiä → syöttöfokus säilyy.
+- **Yksi lista (T161-kuratointi):** kaikki merkit samassa listassa. Ei osiojakoa.
+  - Rakenne: section-header `[▼/▶ Merkkikirjasto]` → hakukenttä `.sign-lib-search` (`type=search`, `min-height:44px`, `field-tint`, placeholder "Hae merkkiä…") → scrollattava lista → `+ Uusi merkki` -footer.
+  - **Järjestys:** suosikit (`favorite:true`, "suosituimmat") listan alussa, muut perässä.
+  - **Scroll:** lista `max-height:min(60vh,620px);overflow-y:auto` → ~10–15 riviä näkyvissä, loput scrollilla. Hakukenttä ja footer pysyvät listan ulkopuolella (eivät scrollaa pois).
+  - **Haku:** suodattaa rivit **DOM:ssa** (`data-label`-attribuutti, `display:none`) — ei re-renderiä → syöttöfokus säilyy. `sign-catalog.ts category` ('sign'/'place') on datassa mutta ei enää jaa UI:ta.
 - Rivit (`.sign-lib-row`): `display:flex;align-items:center;gap:4px`, border-bottom `border-card`, `data-label` (lowercase, hakua varten)
 - Swatch: `22×22px`, `border-radius:radius-sm`, `font-size:10px;font-weight:900;color:#fff`. Sisältö **kuva > ikoni > compactLabel** -precedence (V99/T158): template-kuva `object-fit:contain;background:#fff;position:absolute;inset:0` `<img onerror>`-fallbackilla (`overflow:hidden` swatchissa; contain = koko kyltti näkyy, ei crop), muuten Lucide-ikoni (`renderIconSvg`), muuten compactLabel-teksti. Sama precedence sign-picker-napeissa (`.sign-type-btn` `#floating-picker`).
 - Suosikki-nappi (`.sign-lib-fav-btn`): `min-width:44px;min-height:44px` (§R pakollinen)

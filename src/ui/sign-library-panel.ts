@@ -13,7 +13,7 @@ import {
 import { CURATED_ICONS, getIconById, renderIconSvg } from '../logic/icon-set'
 import { signImageTag } from '../logic/sign-images'
 import { compactLabel } from '../logic/sign-visual'
-import { signCatalog, placeSignIds } from '../logic/sign-catalog'
+import { signCatalog } from '../logic/sign-catalog'
 import { registerEscClose, createBackdrop, signPreviewHtml } from './modal-helpers'
 
 const DEFAULT_IDS = new Set(['right', 'left', 'upcoming-right', 'upcoming-left'])
@@ -53,8 +53,7 @@ export class SignLibraryPanel {
   private activeModal: HTMLElement | null = null
   private unregEsc: (() => void) | null = null
   private collapsed = false
-  private placeCollapsed = true // kertakäyttö-osio piilossa oletuksena
-  private placeQuery = ''
+  private query = '' // hakusuodatin (yksi lista, scrollattava)
 
   constructor(
     private readonly container: HTMLElement,
@@ -67,12 +66,11 @@ export class SignLibraryPanel {
 
   private render(): void {
     const all = listTemplates(this.library)
-    const placeIds = placeSignIds()
-    const mainTemplates = all.filter(t => !placeIds.has(t.id))
-    const placeTemplates = all.filter(t => placeIds.has(t.id))
+    // Suosituimmat (favorite) ensin, muut perässä — muuten järjestys säilyy.
+    const ordered = [...all.filter(t => t.favorite), ...all.filter(t => !t.favorite)]
     this.container.innerHTML = ''
 
-    // ── Osio 1: Merkkikirjasto (arjen merkit) ──
+    // Section header
     const sectionHeader = document.createElement('div')
     sectionHeader.className = 'left-panel-section-header'
     sectionHeader.setAttribute('role', 'button')
@@ -87,62 +85,41 @@ export class SignLibraryPanel {
     })
     this.container.appendChild(sectionHeader)
 
-    if (!this.collapsed) {
-      const list = document.createElement('div')
-      list.className = 'sign-lib-list'
-      list.innerHTML = mainTemplates.map(t => this.buildRow(t)).join('')
-      this.container.appendChild(list)
+    if (this.collapsed) { this.bindEvents(); return }
 
-      const footer = document.createElement('button')
-      footer.className = 'sign-lib-add-btn sign-lib-section-footer'
-      footer.style.cssText = 'min-height:44px;width:100%;background:var(--field-tint);border:1px solid var(--border-default);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);color:var(--text-muted);font-size:12px;cursor:pointer;text-align:left;padding:0 12px'
-      footer.textContent = '+ Uusi merkki'
-      this.container.appendChild(footer)
-    }
+    // Hakukenttä — suodattaa yhtä listaa
+    const search = document.createElement('input')
+    search.type = 'search'
+    search.className = 'sign-lib-search'
+    search.placeholder = 'Hae merkkiä…'
+    search.value = this.query
+    search.style.cssText = 'width:100%;box-sizing:border-box;min-height:44px;padding:0 12px;background:var(--field-tint);border:1px solid var(--border-default);color:var(--text-body);font-size:13px'
+    this.container.appendChild(search)
 
-    // ── Osio 2: Paikkamerkit (kertakäyttöiset) — oma kokoontaitettava osio + haku ──
-    if (placeTemplates.length) {
-      const placeHeader = document.createElement('div')
-      placeHeader.className = 'left-panel-section-header sign-lib-place-header'
-      placeHeader.setAttribute('role', 'button')
-      placeHeader.setAttribute('aria-expanded', String(!this.placeCollapsed))
-      placeHeader.innerHTML = `
-        <span class="section-header-toggle">${this.placeCollapsed ? '▶' : '▼'}</span>
-        <span class="section-header-name">Paikkamerkit (${placeTemplates.length})</span>
-      `
-      placeHeader.addEventListener('click', () => {
-        this.placeCollapsed = !this.placeCollapsed
-        this.render()
+    // Yksi scrollattava lista — ~10–15 riviä näkyvissä, loput scrollilla. Suosikit ekana.
+    const list = document.createElement('div')
+    list.className = 'sign-lib-list'
+    list.style.cssText = 'max-height:min(60vh,620px);overflow-y:auto'
+    list.innerHTML = ordered.map(t => this.buildRow(t)).join('')
+    this.container.appendChild(list)
+
+    // Haku suodattaa rivit DOM:ssa (ei re-renderiä → syöttökenttä ei menetä fokusta).
+    const applyFilter = () => {
+      const q = search.value.trim().toLowerCase()
+      this.query = search.value
+      list.querySelectorAll<HTMLElement>('.sign-lib-row').forEach(row => {
+        row.style.display = (row.dataset.label ?? '').includes(q) ? '' : 'none'
       })
-      this.container.appendChild(placeHeader)
-
-      if (!this.placeCollapsed) {
-        const search = document.createElement('input')
-        search.type = 'search'
-        search.className = 'sign-lib-place-search'
-        search.placeholder = 'Hae paikkamerkkiä…'
-        search.value = this.placeQuery
-        search.style.cssText = 'width:100%;box-sizing:border-box;min-height:44px;padding:0 12px;background:var(--field-tint);border:1px solid var(--border-default);border-top:none;color:var(--text-body);font-size:13px'
-        this.container.appendChild(search)
-
-        const placeList = document.createElement('div')
-        placeList.className = 'sign-lib-list sign-lib-place-list'
-        placeList.innerHTML = placeTemplates.map(t => this.buildRow(t)).join('')
-        this.container.appendChild(placeList)
-
-        // Haku suodattaa rivit DOM:ssa (ei re-renderiä → syöttökenttä ei menetä fokusta).
-        const applyFilter = () => {
-          const q = search.value.trim().toLowerCase()
-          this.placeQuery = search.value
-          placeList.querySelectorAll<HTMLElement>('.sign-lib-row').forEach(row => {
-            const label = row.dataset.label ?? ''
-            row.style.display = label.includes(q) ? '' : 'none'
-          })
-        }
-        search.addEventListener('input', applyFilter)
-        if (this.placeQuery) applyFilter()
-      }
     }
+    search.addEventListener('input', applyFilter)
+    if (this.query) applyFilter()
+
+    // Section footer
+    const footer = document.createElement('button')
+    footer.className = 'sign-lib-add-btn sign-lib-section-footer'
+    footer.style.cssText = 'min-height:44px;width:100%;background:var(--field-tint);border:1px solid var(--border-default);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);color:var(--text-muted);font-size:12px;cursor:pointer;text-align:left;padding:0 12px'
+    footer.textContent = '+ Uusi merkki'
+    this.container.appendChild(footer)
 
     this.bindEvents()
   }
