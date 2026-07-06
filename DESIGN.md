@@ -428,6 +428,7 @@ CSS-luokat:
 - **Lomake (`.sign-lib-form`):**
   - Tausta: `surface-raised`, `border-radius:radius-md`, padding `10px 8px`
   - Kaikki kentät: `min-height:44px`, `field-tint` tausta, `border-default`, `radius-sm`
+  - **Tunnus-input (`.sign-lib-id-input`, T156/V97):** VAIN luonnissa (edit-modaalissa ei renderöidä — id on muuttumaton avain). Label "Tunnus (uniikki, esim. N-OIK)". Käsin annettu, uniikki, filename-safe `[A-Za-z0-9_-]+` (toimii GPKG-export-`type`-koodina + kuva-avaimena). Virhe: `.sign-lib-id-error` (`danger-text`, `12px`, `role=alert`, `display:none`→`block`) — duplikaatti/kelvoton estää tallennuksen, modaali pysyy auki, fokus takaisin id-inputiin.
   - Lyhenne+väri rivi: `display:flex;gap:6px` — lyhenne-input `flex:1;min-width:0`, color-input `width:44px;height:44px` ilman tekstilabelia (§R: color-picker on itsessään selvä)
   - Tallenna-nappi: `confirm` tausta, `confirm-text`, `min-height:44px`, `flex:1`
   - Peruuta-nappi: `field-tint` tausta, `border-default`, `min-height:44px`

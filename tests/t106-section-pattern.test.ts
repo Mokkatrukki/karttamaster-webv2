@@ -37,7 +37,7 @@ describe('T106 — Yhtenäinen section-pattern (V61, V62)', () => {
       const container = document.createElement('div')
       document.body.appendChild(container)
       const lib = createSignLibrary()
-      const t = createTemplate(lib, { label: 'Testi', shortLabel: 'T', color: '#f00', description: '', favorite: false })
+      const t = createTemplate(lib, { label: 'Testi', shortLabel: 'T', color: '#f00', description: '', favorite: false }, 'testi')
       new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       container.querySelector<HTMLButtonElement>(`.sign-lib-dots-btn[data-id="${t.id}"]`)!.click()
       expect(bodyQuery('.modal-btn-destructive')).toBeTruthy()

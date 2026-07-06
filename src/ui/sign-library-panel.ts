@@ -5,6 +5,8 @@ import {
   deleteTemplate,
   listTemplates,
   loadLibrary,
+  validateTemplateId,
+  type IdValidationReason,
   type SignLibrary,
   type SignTemplate,
 } from '../logic/sign-library'
@@ -12,6 +14,12 @@ import { CURATED_ICONS, getIconById, renderIconSvg } from '../logic/icon-set'
 import { registerEscClose, createBackdrop } from './modal-helpers'
 
 const DEFAULT_IDS = new Set(['right', 'left', 'upcoming-right', 'upcoming-left'])
+
+const ID_ERROR_MSG: Record<IdValidationReason, string> = {
+  empty: 'Anna tunnus.',
+  format: 'Vain A-Z, a-z, 0-9, _ ja - sallittu.',
+  duplicate: 'Tunnus on jo käytössä.',
+}
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -160,6 +168,29 @@ export class SignLibraryPanel {
     header.appendChild(closeBtn)
     modal.appendChild(header)
 
+    // V97: id-kenttä — vain luonnissa (id on muuttumaton avain, editissä lukittu)
+    let idInput: HTMLInputElement | null = null
+    let idError: HTMLElement | null = null
+    if (!template) {
+      const idSectionLabel = document.createElement('div')
+      idSectionLabel.style.cssText = 'font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em'
+      idSectionLabel.textContent = 'Tunnus (uniikki, esim. N-OIK)'
+      modal.appendChild(idSectionLabel)
+
+      idInput = document.createElement('input')
+      idInput.className = 'sign-lib-id-input'
+      idInput.type = 'text'
+      idInput.placeholder = 'A-Z, 0-9, _ ja -'
+      idInput.style.cssText = 'padding:8px 10px;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-body);font-size:13px;width:100%;box-sizing:border-box'
+      modal.appendChild(idInput)
+
+      idError = document.createElement('div')
+      idError.className = 'sign-lib-id-error'
+      idError.style.cssText = 'font-size:12px;color:var(--danger-text);min-height:0;display:none'
+      idError.setAttribute('role', 'alert')
+      modal.appendChild(idError)
+    }
+
     // Icon section label
     const iconSectionLabel = document.createElement('div')
     iconSectionLabel.style.cssText = 'font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em'
@@ -296,8 +327,18 @@ export class SignLibraryPanel {
       const favorite = favCheckbox.checked
 
       if (!template) {
+        const id = idInput!.value.trim()
+        const v = validateTemplateId(this.library, id)
+        if (!v.valid) {
+          if (idError) {
+            idError.textContent = ID_ERROR_MSG[v.reason]
+            idError.style.display = 'block'
+          }
+          idInput!.focus()
+          return
+        }
         const color = colorInput?.value ?? '#f59e0b'
-        createTemplate(this.library, { label, shortLabel, color, description, favorite, iconId })
+        createTemplate(this.library, { label, shortLabel, color, description, favorite, iconId }, id)
       } else {
         const patch: Partial<Omit<SignTemplate, 'id'>> = { label, shortLabel, description, iconId, favorite }
         if (colorInput) patch.color = colorInput.value

@@ -1,8 +1,23 @@
 const LS_KEY = 'karttamaster-sign-library'
+const STORE_VERSION = 2 // T156: bump 1→2 — v1 UUID-id:t hylätään (greenfield reset, ei migraatiota)
+
+// V97: template-id käsin annettu, filename-safe (toimii export-type-koodina + kuva-avaimena)
+const ID_RE = /^[A-Za-z0-9_-]+$/
 
 interface StoredLibrary {
   version: number
   templates: SignTemplate[]
+}
+
+export type IdValidationReason = 'empty' | 'format' | 'duplicate'
+export type IdValidation = { valid: true } | { valid: false; reason: IdValidationReason }
+
+// V97: validoi käsin annettu template-id ennen createTemplatea (UI näyttää syyn)
+export function validateTemplateId(library: SignLibrary, id: string): IdValidation {
+  if (!id) return { valid: false, reason: 'empty' }
+  if (!ID_RE.test(id)) return { valid: false, reason: 'format' }
+  if (library.has(id)) return { valid: false, reason: 'duplicate' }
+  return { valid: true }
 }
 
 export interface SignTemplate {
@@ -21,13 +36,17 @@ export function createLibrary(): SignLibrary {
   return new Map()
 }
 
+// V97: id on pakollinen, käsin annettu & uniikki. Ei random-UUID:ta.
+// Heittää jos id on virheellinen/duplikaatti — kutsuja validoi ensin (validateTemplateId).
 export function createTemplate(
   library: SignLibrary,
   template: Omit<SignTemplate, 'id'>,
-  id?: string,
+  id: string,
 ): SignTemplate {
-  const entry: SignTemplate = { id: id ?? crypto.randomUUID(), ...template }
-  library.set(entry.id, entry)
+  const v = validateTemplateId(library, id)
+  if (!v.valid) throw new Error(`createTemplate: kelvoton id "${id}" (${v.reason})`)
+  const entry: SignTemplate = { id, ...template }
+  library.set(id, entry)
   return entry
 }
 
@@ -57,7 +76,7 @@ export function listFavorites(library: SignLibrary): SignTemplate[] {
 
 export function saveLibrary(library: SignLibrary): void {
   try {
-    const stored: StoredLibrary = { version: 1, templates: Array.from(library.values()) }
+    const stored: StoredLibrary = { version: STORE_VERSION, templates: Array.from(library.values()) }
     localStorage.setItem(LS_KEY, JSON.stringify(stored))
   } catch {
     console.warn('saveLibrary: failed to write localStorage')
@@ -72,7 +91,7 @@ export function loadLibrary(): SignLibrary | null {
     const parsed = JSON.parse(raw) as unknown
     if (
       typeof parsed !== 'object' || parsed === null ||
-      (parsed as StoredLibrary).version !== 1 ||
+      (parsed as StoredLibrary).version !== STORE_VERSION ||
       !Array.isArray((parsed as StoredLibrary).templates)
     ) {
       console.warn('loadLibrary: corrupt data, resetting')
