@@ -53,6 +53,8 @@ server/       ← Hono + Bun + SQLite
 | MarkerAssign | `src/logic/marker-assign.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | RouteStatus | `src/logic/route-status.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | SegmentActions | `src/logic/segment-actions.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
+| SignVisual | `src/logic/sign-visual.ts` | ✓ T158 | — | [logic.md](docs/components/logic.md) |
+| SignImages | `src/logic/sign-images.ts` | ✓ T158 (Vite glob, kuvia ei vielä) | — | [logic.md](docs/components/logic.md) |
 | SegmentPersistence | `src/logic/segment-persistence.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | Sync | `src/logic/sync.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | SignIcon | `src/map/icons.ts` | ✓ T140 | critical-paths: "toolbar-dropdown" | [map.md](docs/components/map.md) |

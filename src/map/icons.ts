@@ -19,7 +19,7 @@ const STATUS_RING: Partial<Record<MarkerStatus, string>> = {
   ei_tarpeen:  '#78716c', // neutraali harmaa — ei tarvita, pois fokuksesta
 }
 
-function circleSvg(type: string, status: MarkerStatus, colorOverride?: string, shortLabelOverride?: string, iconId?: string): string {
+function circleSvg(type: string, status: MarkerStatus, colorOverride?: string, shortLabelOverride?: string, iconId?: string, imageSrc?: string): string {
   let arrow: string
   let color: string
   let isUpcoming = false
@@ -46,6 +46,13 @@ function circleSvg(type: string, status: MarkerStatus, colorOverride?: string, s
     ? `<g transform="translate(6, 18) scale(0.833)" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none">${iconEntry.svgContent}</g>`
     : `<text x="${CX}" y="${CY + 5}" text-anchor="middle" font-size="13" fill="white" font-family="sans-serif" font-weight="bold">${arrow}</text>`
 
+  // V99/T158: template-kuva täyttää ympyrän tyyppi-identiteettinä. Kuva istuu statusreunan (stroke)
+  // SISÄPUOLELLA (halkaisija 24 < 2·R−stroke) → V87 säilyy: täyttö=tyyppi, status=ulkoreuna näkyy.
+  // onerror poistaa kuvan → alla oleva ikoni/label paljastuu (fallback, T103-pattern).
+  const imageOverlay = imageSrc
+    ? `<img src="${imageSrc}" alt="" onerror="this.remove()" style="position:absolute;left:4px;top:16px;width:24px;height:24px;border-radius:50%;object-fit:cover;pointer-events:none">`
+    : ''
+
   return `
     <div style="position:relative;width:${W}px;height:${H}px">
       <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"
@@ -59,13 +66,14 @@ function circleSvg(type: string, status: MarkerStatus, colorOverride?: string, s
         }
         ${circleContent}
       </svg>
+      ${imageOverlay}
       ${tipHtml}
     </div>`
 }
 
-export function createSignIcon(type: string, status: MarkerStatus = 'suunniteltu', color?: string, shortLabel?: string, iconId?: string): L.DivIcon {
+export function createSignIcon(type: string, status: MarkerStatus = 'suunniteltu', color?: string, shortLabel?: string, iconId?: string, imageSrc?: string): L.DivIcon {
   return L.divIcon({
-    html: circleSvg(type, status, color, shortLabel, iconId),
+    html: circleSvg(type, status, color, shortLabel, iconId, imageSrc),
     className: '',
     iconSize: [W, H],
     iconAnchor: [CX, H],

@@ -1,5 +1,6 @@
 import { positionPicker } from '../logic/sign-picker'
 import { listFavorites, type SignLibrary, type SignTemplate } from '../logic/sign-library'
+import { signImageTag } from '../logic/sign-images'
 import type { MarkerType } from '../logic/types'
 import type { MarkerManager } from '../map/markers'
 
@@ -49,7 +50,7 @@ export class PlaceMode {
     this.pendingDblClick = { lat, lon }
     this.floatingPicker.innerHTML = listFavorites(this.library).map(t => `
       <button class="sign-type-btn" data-type="${escapeHtml(t.id)}" data-color="${escapeHtml(t.color)}" data-short="${escapeHtml(t.shortLabel)}">
-        <span class="sign-swatch" style="background:${escapeHtml(t.color)}">${escapeHtml(t.shortLabel)}</span>
+        <span class="sign-swatch" style="background:${escapeHtml(t.color)};position:relative;overflow:hidden">${escapeHtml(t.shortLabel)}${signImageTag(t.imageId ?? t.id, 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover')}</span>
         ${escapeHtml(t.label)}
       </button>`).join('')
     this.floatingPicker.classList.add('open')

@@ -124,6 +124,31 @@ Puhtaat funktiot. Ei Leafletia, ei DOM:ia. **Testattavuus: Vitest-pure.**
 
 ---
 
+## SignVisual ✓ (T158)
+**Vastuu:** Puhdas valintafunktio sign-visualin precedenssille (V99)
+**Käyttäjä:** molemmat (järjestäjä kirjastossa, talkoolainen kartalla)
+**Moduuli:** `src/logic/sign-visual.ts`
+**Testattavuus:** Vitest-pure
+
+### Ominaisuudet
+- ✓ `signVisual(template, imageSrc?)` → `{kind:'image'|'icon'|'label', ...}`
+- ✓ Precedence **kuva > ikoni > shortLabel** (V99) — DOM-riippumaton, imageSrc kutsujasta
+
+---
+
+## SignImages ✓ (T158)
+**Vastuu:** Template-kuvien resolvointi (asset-konventio) + fallback-img-tag
+**Käyttäjä:** molemmat
+**Moduuli:** `src/logic/sign-images.ts`
+**Testattavuus:** Vitest-jsdom
+
+### Ominaisuudet
+- ✓ Vite glob `src/assets/signs/<id>.webp` → `signImageSrc(id)` (imageId-konventio = template.id)
+- ✓ `signImageTag(id, style)` → `<img onerror="this.remove()">` (T103-fallback) tai `''`
+- ⚠ Kuvia ei vielä ole → glob tyhjä, kaikki fallbackaa ikoniin/labeliin. Resize/resoluutio erillinen myöhempi §T.
+
+---
+
 ## MarkerStatus ✓ (T10)
 **Vastuu:** Merkin elinkaari-tila ja tila-siirtymälogiikka
 **Käyttäjä:** molemmat

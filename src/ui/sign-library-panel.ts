@@ -11,6 +11,7 @@ import {
   type SignTemplate,
 } from '../logic/sign-library'
 import { CURATED_ICONS, getIconById, renderIconSvg } from '../logic/icon-set'
+import { signImageTag } from '../logic/sign-images'
 import { registerEscClose, createBackdrop } from './modal-helpers'
 
 const DEFAULT_IDS = new Set(['right', 'left', 'upcoming-right', 'upcoming-left'])
@@ -101,7 +102,7 @@ export class SignLibraryPanel {
 
     // T136/V83: kaikki mallit (myös custom) ovat suoraan sijoitettavissa kartalle — ei suosikkivaatimusta
     const placeBtn = `<button class="sign-type-btn sign-lib-place-btn" data-id="${escapeHtml(t.id)}" aria-label="Aseta ${escapeHtml(t.label)} kartalle" style="flex:1;min-height:44px;display:flex;align-items:center;gap:8px;padding:6px 8px;background:none;border:none;color:var(--text-body);font-size:13px;cursor:pointer;text-align:left;border-radius:var(--radius-sm)">
-           <span class="sign-swatch" style="background:${escapeHtml(t.color)};color:#fff;border-radius:var(--radius-sm);min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900">${swatchInner}</span>
+           <span class="sign-swatch" style="background:${escapeHtml(t.color)};color:#fff;border-radius:var(--radius-sm);min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;position:relative;overflow:hidden">${swatchInner}${signImageTag(t.imageId ?? t.id, 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit')}</span>
            ${escapeHtml(t.label)}
          </button>`
 

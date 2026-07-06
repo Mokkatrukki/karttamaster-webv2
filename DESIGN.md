@@ -226,7 +226,7 @@ metsässä, hanskat kädessä.
 - Ympyrän **täyttö on aina tyyppiväri/-kuva** (V87) — tyyppi-identiteetti (nuoli/ikoni/väri) ei koskaan muutu statuksen mukaan, myös kerätty/ei_tarpeen näyttävät saman kuvan.
 - Upcoming-tyyppi (`upcoming-left`/`upcoming-right`): pääympyrä pysyy aina tyyppivärillä + `stroke-dasharray="4 2"`, ei osallistu statusväritykseen (esikatselu-tyyppi, ei operatiivinen kuittausflow).
 
-**Status-visualisointi (T23/V51/T140, `createSignIcon(type, status, color?, shortLabel?, iconId?)`):**
+**Status-visualisointi (T23/V51/T140, `createSignIcon(type, status, color?, shortLabel?, iconId?, imageSrc?)`):**
 - `suunniteltu` → pääympyrä `fill=tyyppiväri fill-opacity:0.55` + `stroke:white stroke-dasharray:"4 2"` — "haalistunut/katkoviiva = ei tehty" (V51), ennallaan
 - `asetettu`/`tarkistettu`/`kerätty`/`ei_tarpeen` → täyttö pysyy tyyppivärinä, **statusväri näkyy ulkoreunassa** (`stroke`, leveys `4px`, T140/V87/B59 — kokeiltiin ensin täyttöväriä T139:ssä, mutta käyttäjä halusi tyyppikuvan pysyvän tunnistettavana joka statuksessa):
   - `asetettu`: reunus `#22c55e` (vihreä)
@@ -234,7 +234,8 @@ metsässä, hanskat kädessä.
   - `kerätty`: reunus `#8b5cf6` (violetti)
   - `ei_tarpeen`: reunus `#78716c` (harmaa)
   - Neljä väriä valittu eri sävyperheistä tarkoituksella — ei saman perheen pastelleja (alkuperäinen 8px badge-versio #4ade80/#93c5fd/#6ee7b7 oli liian samankaltainen, B58)
-- Ympyrän sisällä: tyyppi-ikoni (Lucide, custom-malleille) tai arrow/shortLabel-teksti — **sama kaikissa statuksissa**, ei glyfikorvausta.
+- Ympyrän sisällä: **kuva > ikoni > shortLabel** -precedence (V99/T158, `signVisual`). Template-kuva (`src/assets/signs/<id>.webp`) täyttää ympyrän tyyppi-identiteettinä (halkaisija `24px`, statusreunan sisäpuolella → V87 säilyy); muuten Lucide-ikoni (`iconId`); muuten arrow/shortLabel-teksti. **Sama kaikissa statuksissa**, ei glyfikorvausta.
+- Kuva-fallback: `<img onerror="this.remove()">` (T103-pattern) — puuttuva/rikki kuvatiedosto poistaa kuvakerroksen → alla oleva ikoni/label paljastuu, ei rikkoudu. **Kuvia ei vielä ole** → kaikki resolvoituu ikoniin/labeliin kunnes assetit lisätään.
 - **Ei erillistä nurkkabadgea** (poistettu T138:ssa, oli B57: "kaksi kertaa sama teksti"). Muoto on aina teardrop.
 
 ### LeftPanel (`#left-panel`)
@@ -420,7 +421,7 @@ CSS-luokat:
 ### SignLibraryPanel (`src/ui/sign-library-panel.ts`)
 - Vain järjestäjälle — sijaitsee `#left-panel-content`:ssä
 - Rivit (`.sign-lib-row`): `display:flex;align-items:center;gap:4px`, border-bottom `border-card`
-- Swatch: `22×22px`, `border-radius:radius-sm`, `font-size:10px;font-weight:900;color:#fff`
+- Swatch: `22×22px`, `border-radius:radius-sm`, `font-size:10px;font-weight:900;color:#fff`. Sisältö **kuva > ikoni > shortLabel** -precedence (V99/T158): template-kuva `object-fit:cover;position:absolute;inset:0` `<img onerror>`-fallbackilla (`overflow:hidden` swatchissa), muuten Lucide-ikoni (`renderIconSvg`), muuten shortLabel-teksti. Sama precedence sign-picker-napeissa (`.sign-type-btn` `#floating-picker`).
 - Suosikki-nappi (`.sign-lib-fav-btn`): `min-width:44px;min-height:44px` (§R pakollinen)
 - Muokkaa-nappi (`.sign-lib-edit-btn`): `min-width:44px;min-height:44px`
 - Poista-nappi (`.sign-lib-delete-btn`): `min-width:44px;min-height:44px`, `danger-soft` tausta, `danger-text` väri

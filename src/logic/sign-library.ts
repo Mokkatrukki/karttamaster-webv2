@@ -28,6 +28,7 @@ export interface SignTemplate {
   description: string // free text, e.g. "Käänny oikealle"
   favorite: boolean
   iconId?: string     // V50: optional Lucide icon name; if set, shown instead of shortLabel in circle
+  imageId?: string    // V99/T158: optional template image key (convention = template.id); resolves src/assets/signs/<id>.webp
 }
 
 export type SignLibrary = Map<string, SignTemplate>
