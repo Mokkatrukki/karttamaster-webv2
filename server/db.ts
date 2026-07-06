@@ -130,6 +130,8 @@ function initSchema(db: Database): void {
   try { db.exec('ALTER TABLE markers ADD COLUMN short_label TEXT') } catch { /* already exists */ }
   try { db.exec('ALTER TABLE users ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1') } catch { /* already exists */ }
   try { db.exec('ALTER TABLE markers ADD COLUMN description TEXT') } catch { /* already exists */ }
+  // T157/V98: label denormalisoitu markers-tauluun (GPKG-export properties.name)
+  try { db.exec('ALTER TABLE markers ADD COLUMN label TEXT') } catch { /* already exists */ }
   // T149/V93: tarkastuskuittaus persistoituu segmentille
   try { db.exec('ALTER TABLE segments ADD COLUMN inspected INTEGER NOT NULL DEFAULT 0') } catch { /* already exists */ }
   try { db.exec('ALTER TABLE segments ADD COLUMN inspection_note TEXT') } catch { /* already exists */ }

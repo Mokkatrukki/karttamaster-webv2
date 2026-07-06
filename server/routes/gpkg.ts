@@ -14,6 +14,7 @@ const LAYER_NAME = 'kyltit'
 interface MarkerRow {
   id: string
   type: string
+  label: string | null
   lat: number
   lon: number
   description: string | null
@@ -26,11 +27,12 @@ gpkgRoutes.get('/export', requireAuth(), requireRole('admin', 'järjestäjä'), 
   }
   const db: Database = c.get('db')
   const rows = db
-    .query<MarkerRow, []>('SELECT id, type, lat, lon, description FROM markers ORDER BY id ASC')
+    .query<MarkerRow, []>('SELECT id, type, label, lat, lon, description FROM markers ORDER BY id ASC')
     .all()
   const markerRows: GpkgMarkerRow[] = rows.map((r) => ({
     id: r.id,
     type: r.type,
+    label: r.label,
     lat: r.lat,
     lon: r.lon,
     description: r.description,
@@ -71,13 +73,13 @@ gpkgRoutes.post('/import', requireAuth(), requireRole('admin', 'järjestäjä'),
     const existing = db.query<{ id: string }, [string]>('SELECT id FROM markers WHERE id = ?').get(marker.id)
     if (existing) {
       db.run(
-        'UPDATE markers SET type = ?, lat = ?, lon = ?, description = ?, updated_at = ?, updated_by = ? WHERE id = ?',
-        [marker.type, marker.lat, marker.lon, marker.description, now, session.display_name, marker.id],
+        'UPDATE markers SET type = ?, label = ?, lat = ?, lon = ?, description = ?, updated_at = ?, updated_by = ? WHERE id = ?',
+        [marker.type, marker.label, marker.lat, marker.lon, marker.description, now, session.display_name, marker.id],
       )
       updated++
     } else {
       db.run(
-        'INSERT INTO markers (id, type, lat, lon, distance_from_start, route_ids, status, location_note, color, short_label, description, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO markers (id, type, lat, lon, distance_from_start, route_ids, status, location_note, color, short_label, label, description, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           marker.id || randomUUID(),
           marker.type,
@@ -89,6 +91,7 @@ gpkgRoutes.post('/import', requireAuth(), requireRole('admin', 'järjestäjä'),
           null,
           null,
           null,
+          marker.label,
           marker.description,
           now,
           session.display_name,
