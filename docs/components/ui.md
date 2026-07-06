@@ -63,26 +63,23 @@ DOM-komponentit ilman Leafletia. **Testattavuus: Vitest-jsdom.**
 ---
 
 ## AppController
-**Vastuu:** Sovelluksen init ja komponenttien wiring
+**Vastuu:** Sovelluksen entry point — orkestroi wiring-moduulit, ei itse liiketoimintalogiikkaa
 **Käyttäjä:** molemmat (entry point)
-**Moduuli:** `src/main.ts` (414 riv) ⚠️ **KRIITTINEN pilkkohälytys — ks. COMPONENTS.md, pilkottava ennen T12/T32**
+**Moduuli:** `src/main.ts` (T155: pilkottu 472 riv → ~110 riv)
 **Testattavuus:** Playwright (critical-paths kattaa kaikki)
 
 ### Ominaisuudet
-- ✓ Auth-flow: `AuthScreen` ensin, sitten `init(code)` — kartta ei renderöidy ennen kirjautumista
-- ✓ GPX-lataus kaikille reiteille rinnakkain, Leaflet-polylinjojen luonti + fitBounds
-- ✓ Tile layer -sykli + localStorage-persistointi
-- ✓ Rooli backendistä (`lockedRole`) — `RoleSelector`, `data-role-hide`-piilotus, `applyRoleView`
-- ✓ Segmenttien lataus (koko lista järjestäjälle, yksi segmentti + code talkoolaiselle) ja wiring `SegmentPanel`/`SegmentOverlay`/`SegmentView`:lle
-- ✓ Alueiden (`AreaOverlay`, `AreaPanel`, `MapRectEditor`) lataus ja wiring, `/a/<hash>`-syväliinkin käsittely (`initAreaView`)
-- ✓ `MarkerManager` + `MarkerDetailModal` + `PlaceMode` + `MarkerListUI` wiring, merkkimodaalin avaus/sulkeminen
-- ✓ `DriveMode` + `RouteBar` + `ProgressBar` + `GpsNavigator` + `GpsDrivePanel` (talkoolaiselle) wiring
-- ✓ `StatusPanel`, `SignLibraryPanel`, `SnapshotPanel`, `GpkgControls` wiring toolbar-valikkoon
-- ✓ Keyboard shortcuts (Escape sulkee aktiivisen tilan prioriteettijärjestyksessä, ←→ drive mode -navigointi)
-- ✓ Etäisyysvaroitus (`showDistanceWarning`) kun merkki kaukana reitistä
+- ✓ T155: init + wiring pilkottu viiteen `src/app/`-moduuliin, main.ts jää orkestroijaksi:
+  - `map-init.ts` — Leaflet-kartta, tile layer -sykli + localStorage, toolbar-menu, left-panel, GPS-nappi
+  - `role-view.ts` — `applyRoleView`/`applyRoleHide` + `wireAuth` (AuthScreen, RoleSelector, SnapshotPanel, GpkgControls)
+  - `areas-wiring.ts` — `AreaOverlay`/`AreaPanel`/`MapRectEditor`, `/a/<hash>`-syväliinkin käsittely
+  - `segments-wiring.ts` — pätkävarasto, `SegmentOverlay`/`SegmentPanel`/`PhaseSwitcher`
+  - `markers-wiring.ts` — `MarkerManager`/`MarkerDetailModal`/`PlaceMode`/`DriveMode`/`RouteBar`/`ProgressBar`/`StatusPanel`/`SignLibraryPanel`/`GpsDrivePanel`/`SegmentView`
+- ✓ main.ts: GPX-lataus + polylinjat + fitBounds, kartan click/dblclick/keydown-glue (koskettaa useaa wiring-moduulia, siksi jää orkestroijaan), etäisyys/tallennusvaroitukset (`showWarning`)
+- ✓ Ei uutta logiikkaa T155:ssä — puhdas siirto, kaikki testit pysyivät vihreinä + Playwright critical-paths (16/16) vahvisti käyttäytymisen
 
 ### Käyttäjätarkistus
-> Molemmat: yksi entry point hoitaa koko wiringin — pilkkotarve tiedostetty (5× liian iso init-tiedostolle, ks. Pilkkohälytykset COMPONENTS.md:ssä)
+> Molemmat: sama käyttäytyminen kuin ennen pilkkoa, vahvistettu Playwright-kriittispoluilla — pilkko ei näy käyttäjälle
 
 ---
 
