@@ -235,4 +235,67 @@ describe('T82 — SnapshotPanel modal pattern', () => {
       expect(postCalls.length).toBe(0)
     })
   })
+
+  // ── T164/V102: lataa / palauta tiedostosta ─────────────────────────────────
+  describe('lataa/palauta tiedostosta', () => {
+    const VALID_BACKUP = JSON.stringify({
+      version: 1, markers: [], segments: [], areas: [], areaFeatures: [],
+    })
+
+    it('renderoi lataa- ja palauta-tiedostosta -napit', () => {
+      mockFetch({ 'GET /api/admin/snapshots': [] })
+      new SnapshotPanel('järjestäjä')
+      expect(document.querySelector('#btn-snapshot-download')).not.toBeNull()
+      expect(document.querySelector('#btn-snapshot-restore-file')).not.toBeNull()
+    })
+
+    it('lataa-nappi triggeröi <a href=/api/admin/backup> latauksen', () => {
+      mockFetch({ 'GET /api/admin/snapshots': [] })
+      const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+      new SnapshotPanel('järjestäjä')
+      document.querySelector<HTMLButtonElement>('#btn-snapshot-download')!.click()
+      expect(clickSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('palauta tiedostosta → POST /api/admin/backup/restore confirmin jälkeen', async () => {
+      vi.stubGlobal('confirm', vi.fn(() => true))
+      vi.stubGlobal('alert', vi.fn())
+      const fetchMock = vi.fn(async (url: string, opts?: RequestInit) => {
+        if ((opts?.method ?? 'GET') === 'POST') return { ok: true, status: 200, json: async () => ({ ok: true }) }
+        return { ok: true, status: 200, json: async () => [] }
+      })
+      vi.stubGlobal('fetch', fetchMock)
+
+      new SnapshotPanel('järjestäjä')
+      const fileInput = document.querySelector<HTMLInputElement>('.snapshot-file-input')!
+      const file = new File([VALID_BACKUP], 'backup.json', { type: 'application/json' })
+      Object.defineProperty(fileInput, 'files', { value: [file], configurable: true })
+      fileInput.dispatchEvent(new Event('change'))
+
+      await vi.waitFor(() => {
+        const calls = fetchMock.mock.calls as Array<[string, RequestInit?]>
+        expect(calls.some(([url, opts]) =>
+          url === '/api/admin/backup/restore' && opts?.method === 'POST',
+        )).toBe(true)
+      })
+    })
+
+    it('EI POST jos käyttäjä peruu confirmin', async () => {
+      vi.stubGlobal('confirm', vi.fn(() => false))
+      vi.stubGlobal('alert', vi.fn())
+      const fetchMock = vi.fn(async () => ({ ok: true, status: 200, json: async () => [] }))
+      vi.stubGlobal('fetch', fetchMock)
+
+      new SnapshotPanel('järjestäjä')
+      const fileInput = document.querySelector<HTMLInputElement>('.snapshot-file-input')!
+      const file = new File([VALID_BACKUP], 'backup.json', { type: 'application/json' })
+      Object.defineProperty(fileInput, 'files', { value: [file], configurable: true })
+      fileInput.dispatchEvent(new Event('change'))
+
+      await new Promise(r => setTimeout(r, 50))
+      const postCalls = (fetchMock.mock.calls as Array<[string, RequestInit?]>)
+        .filter(([, opts]) => opts?.method === 'POST')
+      expect(postCalls.length).toBe(0)
+    })
+  })
 })

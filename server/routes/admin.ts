@@ -4,7 +4,7 @@ import type { Database } from 'bun:sqlite'
 import type { AuthEnv } from '../middleware/auth'
 import { requireAuth, requireRole } from '../middleware/auth'
 import type { User, SessionData } from '../types'
-import { createSnapshot, restoreDataset, insertRows, type DatasetV1 } from '../snapshot-data'
+import { createSnapshot, serializeDataset, restoreDataset, insertRows, type DatasetV1 } from '../snapshot-data'
 
 export const adminRoutes = new Hono<AuthEnv>()
 
@@ -152,6 +152,44 @@ adminRoutes.post('/snapshots/:id/restore', requireAuth(), requireRole('admin', '
     createSnapshot(db, `Palautus: ${snap.label}`, createdBy, 'restore')
   })()
 
+  return c.json({ ok: true })
+})
+
+// ── V102/T164: lataa/palauta koko dataset tiedostona (off-site-turva) ─────────
+
+// GET /api/admin/backup — lataa koko dataset (V100-blob) tiedostona
+adminRoutes.get('/backup', requireAuth(), requireRole('admin', 'järjestäjä'), (c) => {
+  const db: Database = c.get('db')
+  const data = serializeDataset(db)
+  const filename = `karttamaster-backup-${new Date().toISOString().slice(0, 10)}.json`
+  return new Response(JSON.stringify(data, null, 2), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    },
+  })
+})
+
+// POST /api/admin/backup/restore — palauta koko dataset ladatusta tiedostosta
+adminRoutes.post('/backup/restore', requireAuth(), requireRole('admin', 'järjestäjä'), async (c) => {
+  const db: Database = c.get('db')
+  const session: SessionData = c.get('session')
+  const data = await c.req.json<DatasetV1>().catch(() => null)
+  // Validoi V100-formaatti ennen mitään kirjoitusta (ei osittaista restorea)
+  if (
+    !data || data.version !== 1 ||
+    !Array.isArray(data.markers) || !Array.isArray(data.segments) ||
+    !Array.isArray(data.areas) || !Array.isArray(data.areaFeatures)
+  ) {
+    return c.json({ error: 'invalid_backup' }, 400)
+  }
+  // V24/V100: atominen — kaikki tai ei mitään
+  db.transaction(() => {
+    restoreDataset(db, data)
+    const createdBy = session.display_name ?? session.role
+    createSnapshot(db, `Palautus tiedostosta ${new Date().toISOString().slice(0, 10)}`, createdBy, 'restore')
+  })()
   return c.json({ ok: true })
 })
 

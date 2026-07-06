@@ -166,7 +166,10 @@ metsässä, hanskat kädessä.
 - Sulkeutuu: ✕-nappi, backdrop-klikki, Esc
 - Modal: `background:surface-card`, `border-radius:radius-lg (14px)`, `width:min(480px,92vw)`, `max-height:80vh` scrollable
 - Header: `14px 700` otsikko + ✕-nappi `min-height:44px`
-- "Luo varmuuskopio" -nappi `min-height:44px` (§R pakollinen)
+- Toimintorivi `.snapshot-modal-actions`: flex, wrap, `gap:6px` — kaikki napit `min-height:44px` (§R pakollinen)
+- "Luo varmuuskopio" -nappi (neutraali `hover`-tausta)
+- "⬇ Lataa varmuuskopio" (`btn-snapshot-download`, T164): neutraali tausta — turvallinen (vain luku), lataa koko datasetin JSON-tiedostona `<a download>`-triggerillä (session-cookie mukana)
+- "⬆ Palauta tiedostosta" (`btn-snapshot-restore-file`, T164): `danger-soft`/`danger-text` — tuhoava (korvaa koko datan), `confirm()` ennen; piilotettu `.snapshot-file-input` avataan napista
 - Lista: scrollable, `border-card`-separaattorit, `11px text-muted`
 - Palauta-nappi: `danger-soft` tausta, `danger-text` — vaarallinen toiminto = punainen
 

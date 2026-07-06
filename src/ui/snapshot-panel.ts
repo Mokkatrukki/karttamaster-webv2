@@ -80,12 +80,40 @@ export class SnapshotPanel {
 
     modal.appendChild(header)
 
+    const actions = document.createElement('div')
+    actions.className = 'snapshot-modal-actions'
+
     const createBtn = document.createElement('button')
     createBtn.id = 'btn-snapshot-create'
     createBtn.textContent = 'Luo varmuuskopio'
     createBtn.className = 'btn-snapshot-create'
     createBtn.addEventListener('click', () => { this.handleCreate().catch(console.error) })
-    modal.appendChild(createBtn)
+    actions.appendChild(createBtn)
+
+    // V102/T164: off-site-turva — lataa koko dataset tiedostona / palauta tiedostosta
+    const downloadBtn = document.createElement('button')
+    downloadBtn.id = 'btn-snapshot-download'
+    downloadBtn.className = 'btn-snapshot-download'
+    downloadBtn.textContent = '⬇ Lataa varmuuskopio'
+    downloadBtn.addEventListener('click', () => this.handleDownload())
+    actions.appendChild(downloadBtn)
+
+    const fileInput = document.createElement('input')
+    fileInput.type = 'file'
+    fileInput.accept = 'application/json,.json'
+    fileInput.className = 'snapshot-file-input'
+    fileInput.hidden = true
+    fileInput.addEventListener('change', () => { this.handleRestoreFromFile(fileInput).catch(console.error) })
+    actions.appendChild(fileInput)
+
+    const restoreFileBtn = document.createElement('button')
+    restoreFileBtn.id = 'btn-snapshot-restore-file'
+    restoreFileBtn.className = 'btn-snapshot-restore-file'
+    restoreFileBtn.textContent = '⬆ Palauta tiedostosta'
+    restoreFileBtn.addEventListener('click', () => fileInput.click())
+    actions.appendChild(restoreFileBtn)
+
+    modal.appendChild(actions)
 
     const listEl = document.createElement('ul')
     listEl.id = 'snapshot-list'
@@ -144,6 +172,48 @@ export class SnapshotPanel {
       li.appendChild(restoreBtn)
 
       this.listEl.appendChild(li)
+    }
+  }
+
+  private handleDownload(): void {
+    // Server asettaa Content-Disposition: attachment → selain lataa, ei navigoi.
+    // <a> vie session-cookien mukana (GET /api/admin/backup vaatii auth).
+    const a = document.createElement('a')
+    a.href = '/api/admin/backup'
+    a.download = ''
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  }
+
+  private async handleRestoreFromFile(input: HTMLInputElement): Promise<void> {
+    const file = input.files?.[0]
+    input.value = ''
+    if (!file) return
+    if (!confirm('Palautetaanko varmuuskopio tiedostosta?\n\nKoko nykyinen data (merkit, pätkät, alueet) korvataan.')) return
+    let payload: string
+    try {
+      payload = await file.text()
+    } catch {
+      alert('Tiedoston luku epäonnistui.')
+      return
+    }
+    try {
+      const res = await fetch('/api/admin/backup/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+      })
+      if (res.ok) {
+        await this.refresh()
+        alert('Varmuuskopio palautettu.')
+      } else if (res.status === 400) {
+        alert('Virheellinen varmuuskopiotiedosto.')
+      } else {
+        alert(`Palautus epäonnistui (${res.status}).`)
+      }
+    } catch {
+      alert('Palautus epäonnistui (verkkovirhe).')
     }
   }
 

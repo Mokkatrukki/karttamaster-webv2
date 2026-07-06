@@ -401,3 +401,85 @@ describe('T162: snapshot kattaa koko datasetin (V100)', () => {
     expect(count('segments')).toBe(0)
   })
 })
+
+// ── T164/V102: lataa/palauta koko dataset tiedostona ─────────────────────────
+
+describe('T164: backup export/restore (V102)', () => {
+  let db: Database
+  let app: ReturnType<typeof makeApp>
+
+  beforeEach(() => {
+    db = createDb(':memory:')
+    seedTestUsers(db)
+    app = makeApp(db)
+  })
+
+  afterEach(() => db.close())
+
+  function count(table: string): number {
+    return (db.query<{ n: number }, []>(`SELECT COUNT(*) as n FROM ${table}`).get()!).n
+  }
+
+  test('GET /backup → koko dataset + Content-Disposition attachment', async () => {
+    seedMarkerDirect(db, 'm1')
+    seedSegment(db, 's1')
+
+    const res = await app.request('/api/admin/backup', { headers: authHeaders(db, 'järjestäjä') })
+    expect(res.status).toBe(200)
+    expect(res.headers.get('Content-Disposition')).toContain('attachment')
+    const body = await res.json() as { version: number; markers: unknown[]; segments: unknown[]; areas: unknown[]; areaFeatures: unknown[] }
+    expect(body.version).toBe(1)
+    expect(body.markers.length).toBe(1)
+    expect(body.segments.length).toBe(1)
+    expect(Array.isArray(body.areas)).toBe(true)
+    expect(Array.isArray(body.areaFeatures)).toBe(true)
+  })
+
+  test('GET /backup talkoolainen → 403', async () => {
+    const res = await app.request('/api/admin/backup', { headers: authHeaders(db, 'talkoolainen') })
+    expect(res.status).toBe(403)
+  })
+
+  test('POST /backup/restore validilla blobilla → korvaa datasetin', async () => {
+    seedMarkerDirect(db, 'vanha')
+    const blob = {
+      version: 1,
+      markers: [{ id: 'uusi-m', type: 'x', lat: 1, lon: 2, distance_from_start: 0, route_ids: '[]', status: 'suunniteltu', updated_at: 'now' }],
+      segments: [{ id: 'seg', route_ids: '[]', start_dist: 0, end_dist: 10, phase: 'purku', updated_at: 'now' }],
+      areas: [],
+      areaFeatures: [],
+    }
+    const res = await app.request('/api/admin/backup/restore', {
+      method: 'POST',
+      headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+      body: JSON.stringify(blob),
+    })
+    expect(res.status).toBe(200)
+    expect(count('markers')).toBe(1)
+    expect(db.query<{ id: string }, []>('SELECT id FROM markers').get()!.id).toBe('uusi-m')
+    expect(count('segments')).toBe(1)
+    // restore luo "Palautus tiedostosta" -snapshotin
+    expect(count('snapshots')).toBe(1)
+  })
+
+  test('POST /backup/restore virheellinen (väärä version) → 400, ei muutosta', async () => {
+    seedMarkerDirect(db, 'vanha')
+    const res = await app.request('/api/admin/backup/restore', {
+      method: 'POST',
+      headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ version: 99, markers: [] }),
+    })
+    expect(res.status).toBe(400)
+    expect(count('markers')).toBe(1)
+    expect(db.query<{ id: string }, []>('SELECT id FROM markers').get()!.id).toBe('vanha')
+  })
+
+  test('POST /backup/restore roskadata → 400', async () => {
+    const res = await app.request('/api/admin/backup/restore', {
+      method: 'POST',
+      headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+      body: 'ei json',
+    })
+    expect(res.status).toBe(400)
+  })
+})

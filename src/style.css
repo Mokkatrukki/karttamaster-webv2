@@ -1144,6 +1144,46 @@ button {
   background: var(--hover-strong);
 }
 
+/* T164: lataa/palauta tiedostosta -napit */
+.snapshot-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 10px;
+}
+
+.snapshot-modal-actions > button {
+  flex: 1 1 auto;
+}
+
+.btn-snapshot-download,
+.btn-snapshot-restore-file {
+  font-size: 11px;
+  padding: 4px 10px;
+  min-height: 44px;
+}
+
+.btn-snapshot-download {
+  background: var(--hover);
+  color: var(--text-body);
+  border: 1px solid var(--border-default);
+}
+
+.btn-snapshot-download:hover {
+  background: var(--hover-strong);
+}
+
+.btn-snapshot-restore-file {
+  background: var(--danger-soft);
+  color: var(--danger-text);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.btn-snapshot-restore-file:hover {
+  background: var(--danger-soft-hover);
+  color: #fca5a5;
+}
+
 .snapshot-list {
   list-style: none;
   max-height: 160px;
