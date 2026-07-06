@@ -19,7 +19,28 @@ const STATUS_RING: Partial<Record<MarkerStatus, string>> = {
   ei_tarpeen:  '#78716c', // neutraali harmaa — ei tarvita, pois fokuksesta
 }
 
-function circleSvg(type: string, status: MarkerStatus, colorOverride?: string, compactOverride?: string, iconId?: string, imageSrc?: string): string {
+// T161/T-C: kuva-kyltti suorakaide-korttina — koko kyltti näkyy (object-fit:contain),
+// EI enää croppausta 24px-ympyrään. V87 säilyy: kortin reuna = status, sisältö (kuva) = tyyppi.
+// Fallback (V99/T103): valkotaustainen <img> peittää alla olevan compact-chipin; onerror poistaa
+// kuvan → chip (tyyppiväri + compact-teksti) paljastuu. Sama onerror-sopimus kuin ennen.
+const CARD = 40   // kortin sivu px
+const TIP = 8     // osoitin-kolmion korkeus
+function imageMarkerSvg(imageSrc: string, status: MarkerStatus, compact: string, color: string): string {
+  const isPlanned = status === 'suunniteltu'
+  const bColor = STATUS_RING[status] ?? '#64748b' // suunniteltu/ei-status → neutraali
+  const bStyle = isPlanned ? 'dashed' : 'solid'
+  const tip = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="${TIP}" viewBox="0 0 16 8" style="position:absolute;bottom:0;left:${(CARD - 16) / 2}px;pointer-events:none;display:block"><path d="M0,0 L8,8 L16,0 Z" fill="${bColor}"/></svg>`
+  return `
+    <div style="position:relative;width:${CARD}px;height:${CARD + TIP}px">
+      <div style="position:absolute;top:0;left:0;width:${CARD}px;height:${CARD}px;box-sizing:border-box;background:white;border:3px ${bStyle} ${bColor};border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.3)">
+        <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:${color};color:white;font-family:sans-serif;font-weight:bold;font-size:12px">${compact}</span>
+        <img src="${imageSrc}" alt="" onerror="this.remove()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;pointer-events:none">
+      </div>
+      ${tip}
+    </div>`
+}
+
+function circleSvg(type: string, status: MarkerStatus, colorOverride?: string, compactOverride?: string, iconId?: string): string {
   let arrow: string
   let color: string
   let isUpcoming = false
@@ -46,13 +67,6 @@ function circleSvg(type: string, status: MarkerStatus, colorOverride?: string, c
     ? `<g transform="translate(6, 18) scale(0.833)" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none">${iconEntry.svgContent}</g>`
     : `<text x="${CX}" y="${CY + 5}" text-anchor="middle" font-size="13" fill="white" font-family="sans-serif" font-weight="bold">${arrow}</text>`
 
-  // V99/T158: template-kuva täyttää ympyrän tyyppi-identiteettinä. Kuva istuu statusreunan (stroke)
-  // SISÄPUOLELLA (halkaisija 24 < 2·R−stroke) → V87 säilyy: täyttö=tyyppi, status=ulkoreuna näkyy.
-  // onerror poistaa kuvan → alla oleva ikoni/label paljastuu (fallback, T103-pattern).
-  const imageOverlay = imageSrc
-    ? `<img src="${imageSrc}" alt="" onerror="this.remove()" style="position:absolute;left:4px;top:16px;width:24px;height:24px;border-radius:50%;object-fit:cover;pointer-events:none">`
-    : ''
-
   return `
     <div style="position:relative;width:${W}px;height:${H}px">
       <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"
@@ -66,14 +80,23 @@ function circleSvg(type: string, status: MarkerStatus, colorOverride?: string, c
         }
         ${circleContent}
       </svg>
-      ${imageOverlay}
       ${tipHtml}
     </div>`
 }
 
 export function createSignIcon(type: string, status: MarkerStatus = 'suunniteltu', color?: string, compact?: string, iconId?: string, imageSrc?: string): L.DivIcon {
+  // Kuva → suorakaide-kortti (koko kyltti näkyy). Muut → ympyrä (nuoli/ikoni/label).
+  if (imageSrc) {
+    return L.divIcon({
+      html: imageMarkerSvg(imageSrc, status, compact ?? '', color ?? '#94a3b8'),
+      className: '',
+      iconSize: [CARD, CARD + TIP],
+      iconAnchor: [CARD / 2, CARD + TIP],
+      popupAnchor: [0, -(CARD + TIP + 4)],
+    })
+  }
   return L.divIcon({
-    html: circleSvg(type, status, color, compact, iconId, imageSrc),
+    html: circleSvg(type, status, color, compact, iconId),
     className: '',
     iconSize: [W, H],
     iconAnchor: [CX, H],

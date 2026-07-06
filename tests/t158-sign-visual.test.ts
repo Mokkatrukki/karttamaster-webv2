@@ -73,9 +73,10 @@ describe('T158/V99: circleSvg kuvan täyttö + onerror-fallback (T103-pattern)',
     expect(h).toContain('onerror="this.remove()"')
   })
 
-  it('fallback-sisältö (shortLabel) on aina alla → jos kuva poistuu, tyyppi näkyy silti', () => {
+  it('fallback-sisältö (compact) on aina alla → jos kuva poistuu, tyyppi näkyy silti', () => {
+    // T-C: kuva-kyltti on suorakaide-kortti; fallback-chip <span> img:n alla (ei <text>).
     const h = html('data:image/webp;base64,AA')
-    expect(h).toContain('>X</text>')
+    expect(h).toContain('>X</span>')
   })
 
   it('ilman imageSrc → ei <img> (pelkkä ikoni/label)', () => {

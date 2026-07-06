@@ -51,7 +51,7 @@ export class PlaceMode {
     this.pendingDblClick = { lat, lon }
     this.floatingPicker.innerHTML = listFavorites(this.library).map(t => `
       <button class="sign-type-btn" data-type="${escapeHtml(t.id)}" data-color="${escapeHtml(t.color)}" data-label="${escapeHtml(t.label)}">
-        <span class="sign-swatch" style="background:${escapeHtml(t.color)};position:relative;overflow:hidden">${escapeHtml(compactLabel(t.label))}${signImageTag(t.imageId ?? t.id, 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover')}</span>
+        <span class="sign-swatch" style="background:${escapeHtml(t.color)};position:relative;overflow:hidden">${escapeHtml(compactLabel(t.label))}${signImageTag(t.imageId ?? t.id, 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff')}</span>
         ${escapeHtml(t.label)}
       </button>`).join('')
     this.floatingPicker.classList.add('open')
