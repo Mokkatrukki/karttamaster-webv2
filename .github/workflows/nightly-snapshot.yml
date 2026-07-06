@@ -1,0 +1,20 @@
+name: Nightly snapshot
+
+# V101/T163: luotettava yökopio ulkoisesta ajastimesta.
+# In-process setInterval kuolee kun fly-kone auto-stoppaa (auto_stop_machines=stop),
+# joten kopio laukaistaan täältä. curl herättää koneen (auto_start_machines=true).
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # 03:00 UTC
+  workflow_dispatch: {} # manuaalinen laukaisu
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger nightly snapshot
+        run: |
+          curl -fsS -X POST https://karttamaster-web.fly.dev/api/cron/snapshot \
+            -H "X-Cron-Token: ${{ secrets.SNAPSHOT_CRON_TOKEN }}" \
+            --retry 5 --retry-delay 30 --retry-all-errors --max-time 180

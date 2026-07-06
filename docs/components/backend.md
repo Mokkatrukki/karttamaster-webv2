@@ -212,20 +212,43 @@ Järjestäjä klikkaa "Hyväksy kartta" → POST /api/admin/map-state {status: '
 
 ## Backup / versiohistoria
 
+**Kattavuus (V100/T162):** snapshot kattaa **koko datasetin** — markers + segments
+(pätkäjako) + areas + area_features — yhtenä versioituna JSON-blobina
+(`dataset_json`). Serialisointi on yksi kanoninen funktio `server/snapshot-data.ts`
+(`serializeDataset`/`restoreDataset`/`createSnapshot`) — sekä scheduler, cron,
+manuaali että restore käyttävät samaa (ei copy-pastea). Legacy markers-only-snapshot
+(`dataset_json` NULL) palautuu yhä: restore korvaa vain markers, ei tyhjennä
+segments/areas.
+
 ### Milloin snapshot luodaan
 
 | Trigger | Milloin |
 |---------|---------|
-| `approve` | Aina kun järjestäjä hyväksyy kartan |
-| `auto` | Päivittäin klo 03:00 (Bun cron tai yksinkertainen interval) |
+| `auto-yö` | Päivittäin klo 03:00 UTC — **ulkoinen cron** (GitHub Action → `POST /api/cron/snapshot`, V101/T163) |
 | `manual` | Järjestäjä klikkaa "Luo backup nyt" |
+| `restore` | Automaattisesti restoren yhteydessä ("Palautus: [label]") |
+
+**Miksi ulkoinen cron (V101/B67):** in-process `setInterval` (`snapshot-scheduler.ts`)
+kuolee kun fly-kone auto-stoppaa (`auto_stop_machines=stop`) → yökopio ei laukea
+luotettavasti. GitHub Action `.github/workflows/nightly-snapshot.yml` pingaa
+endpointtia (herättää koneen, `auto_start_machines`). In-process-ajastin jää
+best-effort-toissijaiseksi.
+
+`POST /api/cron/snapshot` on suojattu jaetulla salaisuudella: header `X-Cron-Token`
+=== `SNAPSHOT_CRON_TOKEN` (env), EI session-auth. Väärä/puuttuva/asettamaton token →
+401 (fail closed).
+
+**Env / secrets:**
+```
+SNAPSHOT_CRON_TOKEN=<satunnainen-salaisuus>   ← fly secrets + GitHub repo secret (sama arvo)
+```
 
 ### Restore
 
 ```
 Järjestäjä: lista snapshotseista → valitse → "Palauta tämä versio"
   → POST /api/admin/snapshots/:id/restore
-  → server: korvaa kaikki merkit snapshot-datalla (transaction)
+  → server: korvaa koko dataset (markers+segments+areas+area_features) atomisesti (transaction, V24/V100)
   → server: luo uusi snapshot ("Palautus: [alkuperäinen label]")
 ```
 
