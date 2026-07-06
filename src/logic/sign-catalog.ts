@@ -57,21 +57,45 @@ const LABELS: Record<string, string> = {
   portinoja: 'Portinoja', lauttaoja: 'Lauttaoja', myllyn_laavu: 'Myllyn laavu',
 }
 
+// Kertakäyttöiset paikkamerkit — sijoitetaan kartalle yleensä yhden kerran (paikannimi/kohta).
+// Erotellaan omaan katalogi-osioon ettei arjen pikavalinta täyty (~20 nimeä).
+const PLACE_IDS = new Set([
+  'iso-syote-430', 'pikku-syote', 'annintupa-208', 'myllyharju-228', 'niskavaara-195',
+  'kellarilampi-199', 'pitamavaara-262', 'pitamavaara-320', 'luokanvaara-297',
+  'puolivalinlampi-222', 'pytkynharju-185', 'romekangas-207', 'parjanjoen-rantabulevardi-207',
+  'sakkisenlammit', 'soininsuo', 'riihisuo', 'portinoja', 'lauttaoja', 'myllyn_laavu',
+  'antti-kestin-polku', 'peikkopolku',
+])
+
 function humanize(id: string): string {
   const s = id.replace(/[-_]+/g, ' ').trim()
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
+export type SignCategory = 'sign' | 'place'
+
 export interface CatalogEntry {
   id: string
   label: string
   favorite: boolean
+  category: SignCategory
 }
 
 // Kaikki webp-taustaiset merkit (paitsi SKIP) katalogimuodossa, id-järjestyksessä.
+// category 'place' = kertakäyttöinen paikkamerkki (oma osio kirjastossa), muuten 'sign'.
 export function signCatalog(): CatalogEntry[] {
   return signImageIds()
     .filter((id) => !SKIP.has(id))
     .sort()
-    .map((id) => ({ id, label: LABELS[id] ?? humanize(id), favorite: FAVORITES.has(id) }))
+    .map((id) => ({
+      id,
+      label: LABELS[id] ?? humanize(id),
+      favorite: FAVORITES.has(id),
+      category: PLACE_IDS.has(id) ? 'place' : 'sign',
+    }))
+}
+
+// Kertakäyttöisten paikkamerkkien id:t (kirjastopaneelin oma osio).
+export function placeSignIds(): Set<string> {
+  return new Set(signCatalog().filter((e) => e.category === 'place').map((e) => e.id))
 }

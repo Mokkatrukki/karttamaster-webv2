@@ -13,7 +13,7 @@ import {
 import { CURATED_ICONS, getIconById, renderIconSvg } from '../logic/icon-set'
 import { signImageTag } from '../logic/sign-images'
 import { compactLabel } from '../logic/sign-visual'
-import { signCatalog } from '../logic/sign-catalog'
+import { signCatalog, placeSignIds } from '../logic/sign-catalog'
 import { registerEscClose, createBackdrop, signPreviewHtml } from './modal-helpers'
 
 const DEFAULT_IDS = new Set(['right', 'left', 'upcoming-right', 'upcoming-left'])
@@ -53,6 +53,8 @@ export class SignLibraryPanel {
   private activeModal: HTMLElement | null = null
   private unregEsc: (() => void) | null = null
   private collapsed = false
+  private placeCollapsed = true // kertakäyttö-osio piilossa oletuksena
+  private placeQuery = ''
 
   constructor(
     private readonly container: HTMLElement,
@@ -64,10 +66,13 @@ export class SignLibraryPanel {
   }
 
   private render(): void {
-    const templates = listTemplates(this.library)
+    const all = listTemplates(this.library)
+    const placeIds = placeSignIds()
+    const mainTemplates = all.filter(t => !placeIds.has(t.id))
+    const placeTemplates = all.filter(t => placeIds.has(t.id))
     this.container.innerHTML = ''
 
-    // Section header
+    // ── Osio 1: Merkkikirjasto (arjen merkit) ──
     const sectionHeader = document.createElement('div')
     sectionHeader.className = 'left-panel-section-header'
     sectionHeader.setAttribute('role', 'button')
@@ -82,20 +87,62 @@ export class SignLibraryPanel {
     })
     this.container.appendChild(sectionHeader)
 
-    if (this.collapsed) return
+    if (!this.collapsed) {
+      const list = document.createElement('div')
+      list.className = 'sign-lib-list'
+      list.innerHTML = mainTemplates.map(t => this.buildRow(t)).join('')
+      this.container.appendChild(list)
 
-    // Item list
-    const list = document.createElement('div')
-    list.className = 'sign-lib-list'
-    list.innerHTML = templates.map(t => this.buildRow(t)).join('')
-    this.container.appendChild(list)
+      const footer = document.createElement('button')
+      footer.className = 'sign-lib-add-btn sign-lib-section-footer'
+      footer.style.cssText = 'min-height:44px;width:100%;background:var(--field-tint);border:1px solid var(--border-default);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);color:var(--text-muted);font-size:12px;cursor:pointer;text-align:left;padding:0 12px'
+      footer.textContent = '+ Uusi merkki'
+      this.container.appendChild(footer)
+    }
 
-    // Section footer
-    const footer = document.createElement('button')
-    footer.className = 'sign-lib-add-btn sign-lib-section-footer'
-    footer.style.cssText = 'min-height:44px;width:100%;background:var(--field-tint);border:1px solid var(--border-default);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);color:var(--text-muted);font-size:12px;cursor:pointer;text-align:left;padding:0 12px'
-    footer.textContent = '+ Uusi merkki'
-    this.container.appendChild(footer)
+    // ── Osio 2: Paikkamerkit (kertakäyttöiset) — oma kokoontaitettava osio + haku ──
+    if (placeTemplates.length) {
+      const placeHeader = document.createElement('div')
+      placeHeader.className = 'left-panel-section-header sign-lib-place-header'
+      placeHeader.setAttribute('role', 'button')
+      placeHeader.setAttribute('aria-expanded', String(!this.placeCollapsed))
+      placeHeader.innerHTML = `
+        <span class="section-header-toggle">${this.placeCollapsed ? '▶' : '▼'}</span>
+        <span class="section-header-name">Paikkamerkit (${placeTemplates.length})</span>
+      `
+      placeHeader.addEventListener('click', () => {
+        this.placeCollapsed = !this.placeCollapsed
+        this.render()
+      })
+      this.container.appendChild(placeHeader)
+
+      if (!this.placeCollapsed) {
+        const search = document.createElement('input')
+        search.type = 'search'
+        search.className = 'sign-lib-place-search'
+        search.placeholder = 'Hae paikkamerkkiä…'
+        search.value = this.placeQuery
+        search.style.cssText = 'width:100%;box-sizing:border-box;min-height:44px;padding:0 12px;background:var(--field-tint);border:1px solid var(--border-default);border-top:none;color:var(--text-body);font-size:13px'
+        this.container.appendChild(search)
+
+        const placeList = document.createElement('div')
+        placeList.className = 'sign-lib-list sign-lib-place-list'
+        placeList.innerHTML = placeTemplates.map(t => this.buildRow(t)).join('')
+        this.container.appendChild(placeList)
+
+        // Haku suodattaa rivit DOM:ssa (ei re-renderiä → syöttökenttä ei menetä fokusta).
+        const applyFilter = () => {
+          const q = search.value.trim().toLowerCase()
+          this.placeQuery = search.value
+          placeList.querySelectorAll<HTMLElement>('.sign-lib-row').forEach(row => {
+            const label = row.dataset.label ?? ''
+            row.style.display = label.includes(q) ? '' : 'none'
+          })
+        }
+        search.addEventListener('input', applyFilter)
+        if (this.placeQuery) applyFilter()
+      }
+    }
 
     this.bindEvents()
   }
@@ -113,7 +160,7 @@ export class SignLibraryPanel {
            ${escapeHtml(t.label)}
          </button>`
 
-    return `<div class="sign-lib-row" style="display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--border-card);padding:0">
+    return `<div class="sign-lib-row" data-label="${escapeHtml(t.label.toLowerCase())}" style="display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--border-card);padding:0">
       ${placeBtn}
       <button class="sign-lib-dots-btn" data-id="${t.id}" aria-label="Muokkaa mallia" style="min-width:44px;min-height:44px;background:none;border:none;border-radius:var(--radius-sm);color:var(--text-muted);font-size:14px;cursor:pointer;letter-spacing:0.05em">···</button>
     </div>`

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { createSignLibrary, SignLibraryPanel } from '../src/ui/sign-library-panel'
 import { createTemplate, listTemplates, listFavorites } from '../src/logic/sign-library'
+import { placeSignIds } from '../src/logic/sign-catalog'
 import { compactLabel } from '../src/logic/sign-visual'
 
 function setup() {
@@ -12,6 +13,8 @@ function setup() {
 // T161-kuratointi: seed-määrä johdetaan katalogista → testi ei katkea kun kylttejä lisätään.
 const seedCount = () => listTemplates(createSignLibrary()).length
 const favCount = () => listFavorites(createSignLibrary()).length
+// Paikkaosio on piilossa oletuksena → näkyvät rivit = ei-place-templatet (pääosio).
+const mainCount = () => listTemplates(createSignLibrary()).filter(t => !placeSignIds().has(t.id)).length
 
 afterEach(() => {
   document.body.innerHTML = ''
@@ -53,7 +56,7 @@ describe('T22 SignLibraryPanel — V10', () => {
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       const btns = container.querySelectorAll('.sign-type-btn')
-      expect(btns.length).toBe(seedCount())
+      expect(btns.length).toBe(mainCount())
     })
 
     it('default-napilla on data-id joka vastaa MarkerType:a (T136: place-btn käyttää data-id:tä)', () => {
@@ -73,7 +76,7 @@ describe('T22 SignLibraryPanel — V10', () => {
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       const dotsBtns = container.querySelectorAll('.sign-lib-dots-btn')
-      expect(dotsBtns.length).toBe(seedCount())
+      expect(dotsBtns.length).toBe(mainCount())
     })
 
     // V62: no inline delete in item rows
@@ -382,7 +385,7 @@ describe('T22 SignLibraryPanel — V10', () => {
       openCustomDotsModal(container)
       bodyQuery<HTMLButtonElement>('.modal-btn-destructive')!.click()
       const rows = container.querySelectorAll('.sign-lib-row')
-      expect(rows.length).toBe(seedCount())
+      expect(rows.length).toBe(mainCount())
     })
   })
 })
