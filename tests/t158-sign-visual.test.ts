@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { signVisual } from '../src/logic/sign-visual'
+import { signVisual, compactLabel } from '../src/logic/sign-visual'
 import { signImageSrc, signImageTag } from '../src/logic/sign-images'
 
 vi.mock('leaflet', () => ({
@@ -10,24 +10,39 @@ vi.mock('leaflet', () => ({
 
 import { createSignIcon } from '../src/map/icons'
 
-describe('T158/V99: signVisual precedence (kuva > ikoni > shortLabel)', () => {
+describe('T160/V99: compactLabel — kartta-teksti johdettu labelista', () => {
+  it('3 ekaa merkkiä isolla', () => {
+    expect(compactLabel('Oikealle')).toBe('OIK')
+  })
+
+  it('alle 3 merkin nimi → koko nimi isolla', () => {
+    expect(compactLabel('Ei')).toBe('EI')
+    expect(compactLabel('V')).toBe('V')
+  })
+
+  it('tyhjä string → tyhjä', () => {
+    expect(compactLabel('')).toBe('')
+  })
+})
+
+describe('T158/V99: signVisual precedence (kuva > ikoni > compactLabel(label))', () => {
   it('kuva-ämpäri: imageSrc voittaa kaiken', () => {
-    const v = signVisual({ iconId: 'flag', shortLabel: 'X' }, 'blob:kuva')
+    const v = signVisual({ iconId: 'flag', label: 'Oikealle' }, 'blob:kuva')
     expect(v).toEqual({ kind: 'image', src: 'blob:kuva' })
   })
 
   it('ikoni-ämpäri: ei kuvaa mutta iconId → ikoni', () => {
-    const v = signVisual({ iconId: 'flag', shortLabel: 'X' }, undefined)
+    const v = signVisual({ iconId: 'flag', label: 'Oikealle' }, undefined)
     expect(v).toEqual({ kind: 'icon', id: 'flag' })
   })
 
-  it('label-ämpäri: ei kuvaa eikä ikonia → shortLabel', () => {
-    const v = signVisual({ shortLabel: 'X' }, undefined)
-    expect(v).toEqual({ kind: 'label', text: 'X' })
+  it('label-ämpäri: ei kuvaa eikä ikonia → compactLabel(label)', () => {
+    const v = signVisual({ label: 'Oikealle' }, undefined)
+    expect(v).toEqual({ kind: 'label', text: 'OIK' })
   })
 
   it('tyhjä imageSrc kohdellaan puuttuvana (fallback ikoniin)', () => {
-    const v = signVisual({ iconId: 'flag', shortLabel: 'X' }, '')
+    const v = signVisual({ iconId: 'flag', label: 'Oikealle' }, '')
     expect(v).toEqual({ kind: 'icon', id: 'flag' })
   })
 })

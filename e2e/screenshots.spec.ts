@@ -29,7 +29,7 @@ const MOCK_AREA = {
 const MOCK_MARKER = {
   id: 'mk-01', type: 'right', lat: 65.627, lon: 27.628,
   distance_from_start: 3200, route_ids: ['35km'],
-  status: 'suunniteltu', location_note: null, color: null, short_label: null,
+  status: 'suunniteltu', location_note: null, color: null, label: null,
 }
 
 async function mockAllApis(page: Page) {

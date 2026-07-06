@@ -10,7 +10,7 @@ interface ServerMarker {
   status: string
   location_note: string | null
   color: string | null
-  short_label: string | null
+  label: string | null
   description: string | null
   images: string[]
 }
@@ -26,7 +26,7 @@ function fromServer(row: ServerMarker): SignMarker {
     status: row.status as MarkerStatus,
     ...(row.location_note != null ? { locationNote: row.location_note } : {}),
     ...(row.color != null ? { color: row.color } : {}),
-    ...(row.short_label != null ? { shortLabel: row.short_label } : {}),
+    ...(row.label != null ? { label: row.label } : {}),
     ...(row.description != null ? { description: row.description } : {}),
     ...(row.images && row.images.length > 0 ? { images: row.images } : {}),
   }

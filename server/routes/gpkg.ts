@@ -79,7 +79,7 @@ gpkgRoutes.post('/import', requireAuth(), requireRole('admin', 'järjestäjä'),
       updated++
     } else {
       db.run(
-        'INSERT INTO markers (id, type, lat, lon, distance_from_start, route_ids, status, location_note, color, short_label, label, description, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO markers (id, type, lat, lon, distance_from_start, route_ids, status, location_note, color, label, description, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           marker.id || randomUUID(),
           marker.type,
@@ -88,7 +88,6 @@ gpkgRoutes.post('/import', requireAuth(), requireRole('admin', 'järjestäjä'),
           0,
           '[]',
           'suunniteltu',
-          null,
           null,
           null,
           marker.label,

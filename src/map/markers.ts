@@ -3,6 +3,7 @@ import type { SignMarker, MarkerType, RoutePoint } from '../logic/types'
 import { nearestPointIndex, haversineDistance } from '../logic/bearing'
 import { createSignIcon } from './icons'
 import { signImageSrc } from '../logic/sign-images'
+import { compactLabel } from '../logic/sign-visual'
 import { assignRoutesToMarker } from '../logic/multi-route'
 import { ensureRouteIds, FAR_FROM_ROUTE_M } from '../logic/marker-assign'
 import { DEFAULT_STATUS, transitionStatus } from '../logic/marker-status'
@@ -10,6 +11,11 @@ import type { StatusAction } from '../logic/marker-status'
 import type { MarkerStatus } from '../logic/types'
 
 interface RouteRef { id: string; routePoints: RoutePoint[] }
+
+// V99/T160: kompakti kartta-teksti johdetaan labelista (custom-tyypeille; default-tyypit käyttävät nuolta)
+function compactOf(m: SignMarker): string | undefined {
+  return m.label ? compactLabel(m.label) : undefined
+}
 
 export class MarkerManager {
   private markers: SignMarker[] = []
@@ -49,7 +55,7 @@ export class MarkerManager {
         status: marker.status,
         location_note: marker.locationNote ?? null,
         color: marker.color ?? null,
-        short_label: marker.shortLabel ?? null,
+        label: marker.label ?? null,
       }),
     }).catch(() => {})
   }
@@ -84,7 +90,7 @@ export class MarkerManager {
     return { routeIds, distanceFromStart: point.distanceFromStart }
   }
 
-  add(lat: number, lon: number, type: MarkerType, color?: string, shortLabel?: string): SignMarker {
+  add(lat: number, lon: number, type: MarkerType, color?: string, label?: string): SignMarker {
     const { routeIds, distanceFromStart } = this.nearestRouteAssignment(lat, lon)
 
     const marker: SignMarker = {
@@ -94,7 +100,7 @@ export class MarkerManager {
       routeIds,
       status: DEFAULT_STATUS,
       ...(color ? { color } : {}),
-      ...(shortLabel ? { shortLabel } : {}),
+      ...(label ? { label } : {}),
     }
     this.markers.push(marker)
     this.apiPost(marker)
@@ -195,7 +201,7 @@ export class MarkerManager {
     if (!m) return
     m.status = transitionStatus(m.status, action)
     const lm = this.leafletMarkers.get(id)
-    if (lm) lm.setIcon(createSignIcon(m.type, m.status, m.color, m.shortLabel, undefined, signImageSrc(m.type)))
+    if (lm) lm.setIcon(createSignIcon(m.type, m.status, m.color, compactOf(m), undefined, signImageSrc(m.type)))
     this.apiPut(id, { status: m.status })
     this.onUpdate()
   }
@@ -206,21 +212,21 @@ export class MarkerManager {
       if (!m) return
       m.status = status
       const lm = this.leafletMarkers.get(id)
-      if (lm) lm.setIcon(createSignIcon(m.type, m.status, m.color, m.shortLabel, undefined, signImageSrc(m.type)))
+      if (lm) lm.setIcon(createSignIcon(m.type, m.status, m.color, compactOf(m), undefined, signImageSrc(m.type)))
       this.apiPut(id, { status })
     })
     if (ids.length > 0) this.onUpdate()
   }
 
-  updateType(id: string, newType: MarkerType, color?: string, shortLabel?: string): void {
+  updateType(id: string, newType: MarkerType, color?: string, label?: string): void {
     const m = this.markers.find((x) => x.id === id)
     if (!m) return
     m.type = newType
     m.color = color ?? undefined
-    m.shortLabel = shortLabel ?? undefined
+    m.label = label ?? undefined
     const lm = this.leafletMarkers.get(id)
-    if (lm) lm.setIcon(createSignIcon(newType, m.status, m.color, m.shortLabel, undefined, signImageSrc(newType)))
-    this.apiPut(id, { type: newType, color: color ?? null, short_label: shortLabel ?? null })
+    if (lm) lm.setIcon(createSignIcon(newType, m.status, m.color, compactOf(m), undefined, signImageSrc(newType)))
+    this.apiPut(id, { type: newType, color: color ?? null })
     this.onUpdate()
   }
 
@@ -251,7 +257,7 @@ export class MarkerManager {
   }
 
   private addLeafletMarker(m: SignMarker): void {
-    const icon = createSignIcon(m.type, m.status, m.color, m.shortLabel, undefined, signImageSrc(m.type))
+    const icon = createSignIcon(m.type, m.status, m.color, compactOf(m), undefined, signImageSrc(m.type))
     const lm = L.marker([m.lat, m.lon], { icon, draggable: true }).addTo(this.map)
     this.leafletMarkers.set(m.id, lm)
 

@@ -1,6 +1,7 @@
 import { positionPicker } from '../logic/sign-picker'
 import { listFavorites, type SignLibrary, type SignTemplate } from '../logic/sign-library'
 import { signImageTag } from '../logic/sign-images'
+import { compactLabel } from '../logic/sign-visual'
 import type { MarkerType } from '../logic/types'
 import type { MarkerManager } from '../map/markers'
 
@@ -41,7 +42,7 @@ export class PlaceMode {
   placeArmedAt(lat: number, lon: number): boolean {
     if (!this.armedTemplate) return false
     const t = this.armedTemplate
-    this.markerManager.add(lat, lon, t.id as MarkerType, t.color, t.shortLabel)
+    this.markerManager.add(lat, lon, t.id as MarkerType, t.color, t.label)
     this.disarm()
     return true
   }
@@ -49,8 +50,8 @@ export class PlaceMode {
   openPicker(lat: number, lon: number, clientX: number, clientY: number): void {
     this.pendingDblClick = { lat, lon }
     this.floatingPicker.innerHTML = listFavorites(this.library).map(t => `
-      <button class="sign-type-btn" data-type="${escapeHtml(t.id)}" data-color="${escapeHtml(t.color)}" data-short="${escapeHtml(t.shortLabel)}">
-        <span class="sign-swatch" style="background:${escapeHtml(t.color)};position:relative;overflow:hidden">${escapeHtml(t.shortLabel)}${signImageTag(t.imageId ?? t.id, 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover')}</span>
+      <button class="sign-type-btn" data-type="${escapeHtml(t.id)}" data-color="${escapeHtml(t.color)}" data-label="${escapeHtml(t.label)}">
+        <span class="sign-swatch" style="background:${escapeHtml(t.color)};position:relative;overflow:hidden">${escapeHtml(compactLabel(t.label))}${signImageTag(t.imageId ?? t.id, 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover')}</span>
         ${escapeHtml(t.label)}
       </button>`).join('')
     this.floatingPicker.classList.add('open')
@@ -72,7 +73,7 @@ export class PlaceMode {
       const btn = (e.target as HTMLElement).closest('.sign-type-btn') as HTMLElement | null
       if (!btn || !this.pendingDblClick) return
       const { lat, lon } = this.pendingDblClick
-      this.markerManager.add(lat, lon, btn.dataset.type as MarkerType, btn.dataset.color, btn.dataset.short)
+      this.markerManager.add(lat, lon, btn.dataset.type as MarkerType, btn.dataset.color, btn.dataset.label)
       this.closePicker()
     })
 

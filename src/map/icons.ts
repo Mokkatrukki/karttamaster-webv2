@@ -19,7 +19,7 @@ const STATUS_RING: Partial<Record<MarkerStatus, string>> = {
   ei_tarpeen:  '#78716c', // neutraali harmaa — ei tarvita, pois fokuksesta
 }
 
-function circleSvg(type: string, status: MarkerStatus, colorOverride?: string, shortLabelOverride?: string, iconId?: string, imageSrc?: string): string {
+function circleSvg(type: string, status: MarkerStatus, colorOverride?: string, compactOverride?: string, iconId?: string, imageSrc?: string): string {
   let arrow: string
   let color: string
   let isUpcoming = false
@@ -29,7 +29,7 @@ function circleSvg(type: string, status: MarkerStatus, colorOverride?: string, s
     case 'left':           arrow = '←'; color = '#2563eb'; break
     case 'upcoming-right': arrow = '↱'; color = '#b45309'; isUpcoming = true; break
     case 'upcoming-left':  arrow = '↰'; color = '#7c3aed'; isUpcoming = true; break
-    default:               arrow = shortLabelOverride ?? '?'; color = colorOverride ?? '#94a3b8'; break
+    default:               arrow = compactOverride ?? '?'; color = colorOverride ?? '#94a3b8'; break
   }
   const tipHtml = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="10" viewBox="0 0 32 10" style="position:absolute;bottom:0;left:0;pointer-events:none;display:block"><path d="M8,0 L16,10 L24,0 Z" fill="${color}" stroke="white" stroke-width="1.5" stroke-linejoin="round"/></svg>`
 
@@ -71,9 +71,9 @@ function circleSvg(type: string, status: MarkerStatus, colorOverride?: string, s
     </div>`
 }
 
-export function createSignIcon(type: string, status: MarkerStatus = 'suunniteltu', color?: string, shortLabel?: string, iconId?: string, imageSrc?: string): L.DivIcon {
+export function createSignIcon(type: string, status: MarkerStatus = 'suunniteltu', color?: string, compact?: string, iconId?: string, imageSrc?: string): L.DivIcon {
   return L.divIcon({
-    html: circleSvg(type, status, color, shortLabel, iconId, imageSrc),
+    html: circleSvg(type, status, color, compact, iconId, imageSrc),
     className: '',
     iconSize: [W, H],
     iconAnchor: [CX, H],

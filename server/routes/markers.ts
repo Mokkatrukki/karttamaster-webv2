@@ -55,7 +55,6 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
     status?: string
     location_note?: string
     color?: string | null
-    short_label?: string | null
     label?: string | null
     description?: string | null
   }>()
@@ -73,7 +72,7 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
   const id = body.id ?? randomUUID()
   const now = new Date().toISOString()
   db.run(
-    'INSERT INTO markers (id, type, lat, lon, distance_from_start, route_ids, status, location_note, color, short_label, label, description, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO markers (id, type, lat, lon, distance_from_start, route_ids, status, location_note, color, label, description, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       id,
       body.type,
@@ -84,7 +83,6 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
       body.status ?? 'suunniteltu',
       body.location_note ?? null,
       body.color ?? null,
-      body.short_label ?? null,
       body.label ?? null,
       body.description ?? null,
       now,

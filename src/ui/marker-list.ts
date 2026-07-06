@@ -2,6 +2,7 @@ import type { MarkerManager } from '../map/markers'
 import { routePositionPct, nearestPointIndex } from '../logic/bearing'
 import type { RoutePoint, MarkerStatus } from '../logic/types'
 import { SIGN_TYPES } from '../logic/sign-picker'
+import { compactLabel } from '../logic/sign-visual'
 import type { SignLibrary } from '../logic/sign-library'
 import { getRole } from '../logic/role'
 import { isTerminal } from '../logic/marker-status'
@@ -113,9 +114,9 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
     : markers.map((m) => {
         const info = typeInfo(m.type)
         const displayColor = m.color ?? info.color
-        const displayShortLabel = m.shortLabel ?? info.shortLabel
         const templateLabel = library?.get(m.type)?.label
         const displayLabel = templateLabel ?? info.label
+        const displayShortLabel = compactLabel(m.label ?? displayLabel)
         const km = (m.distanceFromStart / 1000).toFixed(2)
         const highlighted = m.id === highlightId ? ' marker-item--new' : ''
         const statusBadge = `<span class="marker-status marker-status--${m.status}">${STATUS_LABELS[m.status]}</span>`
@@ -247,7 +248,7 @@ export function renderSignDots(
     const pct = routePositionPct(dist, totalDistance)
     const info = typeInfo(m.type)
     const dotColor = m.color ?? info.color
-    const dotShortLabel = m.shortLabel ?? info.shortLabel
+    const dotShortLabel = compactLabel(m.label ?? info.label)
     const km = (dist / 1000).toFixed(2)
     const label = `${dotShortLabel} · ${km} km`
 

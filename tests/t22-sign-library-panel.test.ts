@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { createSignLibrary, SignLibraryPanel } from '../src/ui/sign-library-panel'
 import { createTemplate, listTemplates, listFavorites } from '../src/logic/sign-library'
+import { compactLabel } from '../src/logic/sign-visual'
 
 function setup() {
   const container = document.createElement('div')
@@ -25,11 +26,11 @@ describe('T22 SignLibraryPanel — V10', () => {
       expect(templates).toHaveLength(4)
     })
 
-    it('oletusmalleilla V10-kentät: label, shortLabel, color, description', () => {
+    it('oletusmalleilla V10-kentät: label, color, description (kompakti johdetaan labelista)', () => {
       const lib = createSignLibrary()
       for (const t of listTemplates(lib)) {
         expect(t.label).toBeTruthy()
-        expect(t.shortLabel).toBeTruthy()
+        expect(compactLabel(t.label)).toBeTruthy()
         expect(t.color).toMatch(/^#[0-9a-f]{6}$/i)
       }
     })
@@ -130,8 +131,6 @@ describe('T22 SignLibraryPanel — V10', () => {
       dotsBtn.click()
       const labelInput = bodyQuery<HTMLInputElement>('.sign-lib-label-input')!
       labelInput.value = 'Muutettu nimi'
-      const shortInput = bodyQuery<HTMLInputElement>('.sign-lib-short-input')!
-      shortInput.value = 'M'
       bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
       const templates = listTemplates(lib)
       const updated = templates.find(t => t.label === 'Muutettu nimi')
@@ -146,7 +145,6 @@ describe('T22 SignLibraryPanel — V10', () => {
       const dotsBtn = container.querySelector<HTMLButtonElement>('.sign-lib-dots-btn')!
       dotsBtn.click()
       bodyQuery<HTMLInputElement>('.sign-lib-label-input')!.value = 'X'
-      bodyQuery<HTMLInputElement>('.sign-lib-short-input')!.value = 'X'
       bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
       expect(onChange).toHaveBeenCalledOnce()
     })
@@ -192,13 +190,12 @@ describe('T22 SignLibraryPanel — V10', () => {
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
       bodyQuery<HTMLInputElement>('.sign-lib-id-input')!.value = 'huolto-25'
       bodyQuery<HTMLInputElement>('.sign-lib-label-input')!.value = 'Huolto 25km'
-      bodyQuery<HTMLInputElement>('.sign-lib-short-input')!.value = 'H'
       bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
       const templates = listTemplates(lib)
       expect(templates).toHaveLength(5)
       const newT = templates.find(t => t.label === 'Huolto 25km')
       expect(newT).toBeTruthy()
-      expect(newT?.shortLabel).toBe('H')
+      expect(compactLabel(newT!.label)).toBe('HUO')
     })
 
     it('T156/V97: duplikaatti-id näyttää virheviestin eikä luo mallia', () => {
@@ -208,7 +205,6 @@ describe('T22 SignLibraryPanel — V10', () => {
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
       bodyQuery<HTMLInputElement>('.sign-lib-id-input')!.value = 'left' // seed-default id
       bodyQuery<HTMLInputElement>('.sign-lib-label-input')!.value = 'Klooni'
-      bodyQuery<HTMLInputElement>('.sign-lib-short-input')!.value = 'K'
       bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
       const err = bodyQuery<HTMLElement>('.sign-lib-id-error')!
       expect(err.style.display).toBe('block')
@@ -224,7 +220,6 @@ describe('T22 SignLibraryPanel — V10', () => {
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
       bodyQuery<HTMLInputElement>('.sign-lib-id-input')!.value = 'ei kelpaa!'
       bodyQuery<HTMLInputElement>('.sign-lib-label-input')!.value = 'X'
-      bodyQuery<HTMLInputElement>('.sign-lib-short-input')!.value = 'X'
       bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
       expect(bodyQuery<HTMLElement>('.sign-lib-id-error')!.style.display).toBe('block')
       expect(listTemplates(lib)).toHaveLength(4)
@@ -243,7 +238,6 @@ describe('T22 SignLibraryPanel — V10', () => {
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
-      bodyQuery<HTMLInputElement>('.sign-lib-short-input')!.value = 'H'
       bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
       expect(listTemplates(lib)).toHaveLength(4)
     })
@@ -255,7 +249,6 @@ describe('T22 SignLibraryPanel — V10', () => {
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
       bodyQuery<HTMLInputElement>('.sign-lib-id-input')!.value = 'kasa'
       bodyQuery<HTMLInputElement>('.sign-lib-label-input')!.value = 'Kasa'
-      bodyQuery<HTMLInputElement>('.sign-lib-short-input')!.value = 'K'
       bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
       // Open the custom template's dots btn
       const allDotsBtns = container.querySelectorAll<HTMLButtonElement>('.sign-lib-dots-btn')
@@ -277,7 +270,7 @@ describe('T22 SignLibraryPanel — V10', () => {
     it('checkbox tallentuu favorite:ksi', () => {
       const container = setup()
       const lib = createSignLibrary()
-      const t = createTemplate(lib, { label: 'Testi', shortLabel: 'T', color: '#000', description: '', favorite: false }, 'testi')
+      const t = createTemplate(lib, { label: 'Testi', color: '#000', description: '', favorite: false }, 'testi')
       const onChange = vi.fn()
       new SignLibraryPanel(container, lib, onChange, vi.fn())
       const dotsBtn = container.querySelector<HTMLButtonElement>(`.sign-lib-dots-btn[data-id="${t.id}"]`)!
@@ -286,7 +279,6 @@ describe('T22 SignLibraryPanel — V10', () => {
       const checkbox = bodyQuery<HTMLInputElement>('.sign-lib-fav-checkbox')!
       checkbox.checked = true
       bodyQuery<HTMLInputElement>('.sign-lib-label-input')!.value = 'Testi'
-      bodyQuery<HTMLInputElement>('.sign-lib-short-input')!.value = 'T'
       bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
       expect(lib.get(t.id)?.favorite).toBe(true)
       expect(onChange).toHaveBeenCalled()
@@ -305,7 +297,6 @@ describe('T22 SignLibraryPanel — V10', () => {
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
       bodyQuery<HTMLInputElement>('.sign-lib-id-input')!.value = 'uusi'
       bodyQuery<HTMLInputElement>('.sign-lib-label-input')!.value = 'Uusi'
-      bodyQuery<HTMLInputElement>('.sign-lib-short-input')!.value = 'U'
       bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
       const templates = listTemplates(lib)
       const custom = templates.find(t => t.label === 'Uusi')!
@@ -317,23 +308,15 @@ describe('T22 SignLibraryPanel — V10', () => {
     it('label jossa HTML-tagi ei luo DOM-elementtiä', () => {
       const container = setup()
       const lib = createSignLibrary()
-      createTemplate(lib, { label: '<img src=x id="xss-label">', shortLabel: 'X', color: '#000', description: '', favorite: false }, 'xss-a')
+      createTemplate(lib, { label: '<img src=x id="xss-label">', color: '#000', description: '', favorite: false }, 'xss-a')
       new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       expect(document.getElementById('xss-label')).toBeNull()
-    })
-
-    it('shortLabel jossa HTML-tagi ei luo DOM-elementtiä', () => {
-      const container = setup()
-      const lib = createSignLibrary()
-      createTemplate(lib, { label: 'Ok', shortLabel: '<img src=x id="xss-short">', color: '#000', description: '', favorite: false }, 'xss-b')
-      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
-      expect(document.getElementById('xss-short')).toBeNull()
     })
 
     it('description jossa HTML-tagi ei luo DOM-elementtiä lomakkeessa', () => {
       const container = setup()
       const lib = createSignLibrary()
-      createTemplate(lib, { label: 'Ok', shortLabel: 'O', color: '#000', description: '<img src=x id="xss-desc">', favorite: false }, 'xss-c')
+      createTemplate(lib, { label: 'Ok', color: '#000', description: '<img src=x id="xss-desc">', favorite: false }, 'xss-c')
       new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       const dotsBtn = container.querySelector<HTMLButtonElement>('.sign-lib-dots-btn')!
       dotsBtn.click()
@@ -347,7 +330,6 @@ describe('T22 SignLibraryPanel — V10', () => {
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
       bodyQuery<HTMLInputElement>('.sign-lib-id-input')!.value = 'poistettava'
       bodyQuery<HTMLInputElement>('.sign-lib-label-input')!.value = 'Poistettava'
-      bodyQuery<HTMLInputElement>('.sign-lib-short-input')!.value = 'P'
       bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
     }
 

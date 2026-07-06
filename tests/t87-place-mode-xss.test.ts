@@ -24,7 +24,7 @@ describe('T87 PlaceMode XSS-suojaus (B21/V44)', () => {
   })
 
   it('label jossa HTML-tagi ei luo DOM-elementtiä pickerissä', () => {
-    createTemplate(lib, { label: '<img src=x id="xss-pm-label">', shortLabel: 'X', color: '#000', description: '', favorite: true }, 'xss-pm-a')
+    createTemplate(lib, { label: '<img src=x id="xss-pm-label">', color: '#000', description: '', favorite: true }, 'xss-pm-a')
     new PlaceMode(makeMarkerManagerStub(), lib)
     const picker = document.getElementById('floating-picker')!
     picker.dispatchEvent(Object.assign(new MouseEvent('mousedown'), {}))
@@ -34,15 +34,15 @@ describe('T87 PlaceMode XSS-suojaus (B21/V44)', () => {
     expect(document.getElementById('xss-pm-label')).toBeNull()
   })
 
-  it('shortLabel jossa HTML-tagi ei luo DOM-elementtiä pickerissä', () => {
-    createTemplate(lib, { label: 'Ok', shortLabel: '<img src=x id="xss-pm-short">', color: '#000', description: '', favorite: true }, 'xss-pm-b')
+  it('V99: labelista johdettu kompakti-swatch escapetaan (ei DOM-elementtiä)', () => {
+    createTemplate(lib, { label: '<img src=x id="xss-pm-short">', color: '#000', description: '', favorite: true }, 'xss-pm-b')
     const pm = new PlaceMode(makeMarkerManagerStub(), lib)
     ;(pm as any).openPicker(0, 0, 10, 10)
     expect(document.getElementById('xss-pm-short')).toBeNull()
   })
 
   it('color jossa HTML-attribuutti ei injektoidu pickerissä', () => {
-    createTemplate(lib, { label: 'Ok', shortLabel: 'O', color: '#000" onmouseover="alert(1)', description: '', favorite: true }, 'xss-pm-c')
+    createTemplate(lib, { label: 'Ok', color: '#000" onmouseover="alert(1)', description: '', favorite: true }, 'xss-pm-c')
     const pm = new PlaceMode(makeMarkerManagerStub(), lib)
     ;(pm as any).openPicker(0, 0, 10, 10)
     const picker = document.getElementById('floating-picker')!
@@ -54,7 +54,7 @@ describe('T87 PlaceMode XSS-suojaus (B21/V44)', () => {
   })
 
   it('normaali template renderöityy oikein pickerin kautta', () => {
-    createTemplate(lib, { label: 'Vasemmalle', shortLabel: 'V', color: '#2563eb', description: '', favorite: true }, 'left')
+    createTemplate(lib, { label: 'Vasemmalle', color: '#2563eb', description: '', favorite: true }, 'left')
     const pm = new PlaceMode(makeMarkerManagerStub(), lib)
     ;(pm as any).openPicker(0, 0, 10, 10)
     const picker = document.getElementById('floating-picker')!

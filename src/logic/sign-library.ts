@@ -22,12 +22,11 @@ export function validateTemplateId(library: SignLibrary, id: string): IdValidati
 
 export interface SignTemplate {
   id: string
-  label: string       // display name, e.g. "Oikealle"
-  shortLabel: string  // compact label for map icons, e.g. "O"
+  label: string       // display name, e.g. "Oikealle" — kompakti kartta-teksti johdetaan tästä (V99/T160 compactLabel)
   color: string       // hex color for icon and swatch
   description: string // free text, e.g. "Käänny oikealle"
   favorite: boolean
-  iconId?: string     // V50: optional Lucide icon name; if set, shown instead of shortLabel in circle
+  iconId?: string     // V50: optional Lucide icon name; if set, shown instead of compactLabel in circle
   imageId?: string    // V99/T158: optional template image key (convention = template.id); resolves src/assets/signs/<id>.webp
 }
 

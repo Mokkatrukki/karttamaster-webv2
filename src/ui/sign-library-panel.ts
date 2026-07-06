@@ -12,6 +12,7 @@ import {
 } from '../logic/sign-library'
 import { CURATED_ICONS, getIconById, renderIconSvg } from '../logic/icon-set'
 import { signImageTag } from '../logic/sign-images'
+import { compactLabel } from '../logic/sign-visual'
 import { registerEscClose, createBackdrop } from './modal-helpers'
 
 const DEFAULT_IDS = new Set(['right', 'left', 'upcoming-right', 'upcoming-left'])
@@ -28,10 +29,10 @@ function escapeHtml(s: string): string {
 
 function seedDefaults(library: SignLibrary): void {
   if (library.size > 0) return
-  createTemplate(library, { label: 'Vasemmalle', shortLabel: 'V', color: '#2563eb', description: 'Käänny vasemmalle', favorite: true }, 'left')
-  createTemplate(library, { label: 'Oikealle', shortLabel: 'O', color: '#16a34a', description: 'Käänny oikealle', favorite: true }, 'right')
-  createTemplate(library, { label: 'Tuleva vasemmalle', shortLabel: 'TV', color: '#7c3aed', description: '', favorite: true }, 'upcoming-left')
-  createTemplate(library, { label: 'Tuleva oikealle', shortLabel: 'TO', color: '#b45309', description: '', favorite: true }, 'upcoming-right')
+  createTemplate(library, { label: 'Vasemmalle', color: '#2563eb', description: 'Käänny vasemmalle', favorite: true }, 'left')
+  createTemplate(library, { label: 'Oikealle', color: '#16a34a', description: 'Käänny oikealle', favorite: true }, 'right')
+  createTemplate(library, { label: 'Tuleva vasemmalle', color: '#7c3aed', description: '', favorite: true }, 'upcoming-left')
+  createTemplate(library, { label: 'Tuleva oikealle', color: '#b45309', description: '', favorite: true }, 'upcoming-right')
 }
 
 export function createSignLibrary(): SignLibrary {
@@ -98,7 +99,7 @@ export class SignLibraryPanel {
     // Safe: iconEntry.svgContent is from CURATED_ICONS (not user input)
     const swatchInner = iconEntry
       ? renderIconSvg(t.iconId!, 14)
-      : escapeHtml(t.shortLabel)
+      : escapeHtml(compactLabel(t.label))
 
     // T136/V83: kaikki mallit (myös custom) ovat suoraan sijoitettavissa kartalle — ei suosikkivaatimusta
     const placeBtn = `<button class="sign-type-btn sign-lib-place-btn" data-id="${escapeHtml(t.id)}" aria-label="Aseta ${escapeHtml(t.label)} kartalle" style="flex:1;min-height:44px;display:flex;align-items:center;gap:8px;padding:6px 8px;background:none;border:none;color:var(--text-body);font-size:13px;cursor:pointer;text-align:left;border-radius:var(--radius-sm)">
@@ -257,29 +258,20 @@ export class SignLibraryPanel {
     labelInput.style.cssText = 'padding:8px 10px;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-body);font-size:13px;width:100%;box-sizing:border-box'
     modal.appendChild(labelInput)
 
-    // ShortLabel + Color row
-    const shortColorRow = document.createElement('div')
-    shortColorRow.style.cssText = 'display:flex;gap:6px'
-
-    const shortInput = document.createElement('input')
-    shortInput.className = 'sign-lib-short-input'
-    shortInput.type = 'text'
-    shortInput.placeholder = 'Lyhenne (1-3)'
-    shortInput.value = template?.shortLabel ?? ''
-    shortInput.maxLength = 3
-    shortInput.style.cssText = 'flex:1;min-width:0;padding:8px 10px;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-body);font-size:13px'
-    shortColorRow.appendChild(shortInput)
-
+    // V99/T160: ei erillistä lyhenne-kenttää — kartta-teksti johdetaan labelista (compactLabel).
+    // Color-rivi (vain custom-malleille; oletusmalleilla väri lukittu).
     let colorInput: HTMLInputElement | null = null
     if (!isDefault) {
+      const colorRow = document.createElement('div')
+      colorRow.style.cssText = 'display:flex;gap:6px'
       colorInput = document.createElement('input')
       colorInput.type = 'color'
       colorInput.className = 'sign-lib-color-input'
       colorInput.value = template?.color ?? '#f59e0b'
       colorInput.style.cssText = 'width:44px;height:44px;border:1px solid var(--border-default);border-radius:var(--radius-sm);cursor:pointer;background:none;padding:2px;flex-shrink:0'
-      shortColorRow.appendChild(colorInput)
+      colorRow.appendChild(colorInput)
+      modal.appendChild(colorRow)
     }
-    modal.appendChild(shortColorRow)
 
     // Description
     const descInput = document.createElement('input')
@@ -320,8 +312,7 @@ export class SignLibraryPanel {
 
     saveBtn.addEventListener('click', () => {
       const label = labelInput.value.trim()
-      const shortLabel = shortInput.value.trim()
-      if (!label || !shortLabel) return
+      if (!label) return
 
       const description = descInput.value.trim()
       const iconId = selectedIconId ?? undefined
@@ -339,9 +330,9 @@ export class SignLibraryPanel {
           return
         }
         const color = colorInput?.value ?? '#f59e0b'
-        createTemplate(this.library, { label, shortLabel, color, description, favorite, iconId }, id)
+        createTemplate(this.library, { label, color, description, favorite, iconId }, id)
       } else {
-        const patch: Partial<Omit<SignTemplate, 'id'>> = { label, shortLabel, description, iconId, favorite }
+        const patch: Partial<Omit<SignTemplate, 'id'>> = { label, description, iconId, favorite }
         if (colorInput) patch.color = colorInput.value
         updateTemplate(this.library, template.id, patch)
       }

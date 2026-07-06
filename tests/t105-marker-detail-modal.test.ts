@@ -370,16 +370,16 @@ describe('MarkerDetailModal', () => {
     expect(onUpdate).toHaveBeenCalled()
   })
 
-  it('kirjaston templaatin valinta välittää color+shortLabel updateType:lle', () => {
+  it('kirjaston templaatin valinta välittää color+label updateType:lle', () => {
     const marker = makeMarker()
     const manager = makeMockManager(marker)
     const library = createLibrary()
-    createTemplate(library, { label: 'Vaara', shortLabel: 'X', color: '#ff0000', description: '', favorite: true }, 'custom-1')
+    createTemplate(library, { label: 'Vaara', color: '#ff0000', description: '', favorite: true }, 'custom-1')
     const modal = new MarkerDetailModal(manager as any, () => library, () => 'järjestäjä', vi.fn())
     modal.open('test-id')
     const select = document.querySelector<HTMLSelectElement>('.marker-detail-type-select')!
     select.value = 'custom-1'
     select.dispatchEvent(new Event('change'))
-    expect(manager.updateType).toHaveBeenCalledWith('test-id', 'custom-1', '#ff0000', 'X')
+    expect(manager.updateType).toHaveBeenCalledWith('test-id', 'custom-1', '#ff0000', 'Vaara')
   })
 })

@@ -295,7 +295,7 @@ export class MarkerDetailModal {
     typeSelect.addEventListener('change', () => {
       const newType = typeSelect.value
       const template = library?.get(newType)
-      this.manager.updateType(marker.id, newType, template?.color, template?.shortLabel)
+      this.manager.updateType(marker.id, newType, template?.color, template?.label)
       this.onUpdate()
     })
 

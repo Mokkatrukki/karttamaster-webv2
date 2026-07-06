@@ -18,7 +18,7 @@ export interface SignMarker {
   status: MarkerStatus    // lifecycle: suunniteltu → asetettu → tarkistettu → kerätty | ei_tarpeen
   locationNote?: string   // vapaa teksti: mihin tarkasti kiinnitetään
   color?: string          // custom template color (ei default-4 tyypeille)
-  shortLabel?: string     // custom template lyhenne
+  label?: string          // V99/T160: denormalisoitu template-label; kompakti kartta-teksti = compactLabel(label)
   description?: string    // T103: lisäkuvaus, järjestäjä muokkaa
   images?: string[]       // T103: kuva-URL:t (server/routes/markers.ts POST :id/images)
 }

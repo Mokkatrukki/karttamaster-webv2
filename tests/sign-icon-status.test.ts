@@ -82,18 +82,18 @@ describe('T23: createSignIcon status-visualisointi', () => {
     })
   })
 
-  describe('T84: custom type — fallback color/shortLabel', () => {
+  describe('T84/V99: custom type — fallback color/compactLabel', () => {
     it('tuntematon type käyttää fallback-väriä #94a3b8', () => {
       const html = getHtml('custom-uuid-123', 'suunniteltu')
       expect(html).toContain('#94a3b8')
     })
 
-    it('tuntematon type käyttää shortLabel "?"', () => {
+    it('tuntematon type ilman compact-override käyttää fallback "?"', () => {
       const html = getHtml('custom-uuid-123', 'suunniteltu')
       expect(html).toContain('?')
     })
 
-    it('custom type: color override toimii', () => {
+    it('custom type: color + compactLabel override toimii', () => {
       const icon = createSignIcon('my-type', 'suunniteltu', '#ff0000', 'X') as unknown as { html: string }
       expect(icon.html).toContain('#ff0000')
       expect(icon.html).toContain('X')
