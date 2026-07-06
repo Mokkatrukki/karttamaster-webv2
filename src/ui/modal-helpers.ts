@@ -11,6 +11,10 @@
  *   // close():
  *   this.unregEsc?.(); this.unregEsc = null
  */
+import { signVisual, compactLabel } from '../logic/sign-visual'
+import { signImageSrc } from '../logic/sign-images'
+import { getIconById } from '../logic/icon-set'
+
 export function registerEscClose(onClose: () => void): () => void {
   const fn = (e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose()
@@ -30,4 +34,31 @@ export function createBackdrop(className: string, onClose: () => void): HTMLDivE
     if (e.target === backdrop) onClose()
   })
   return backdrop
+}
+
+function escHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+/**
+ * signPreviewHtml — iso, hyvin sommiteltu merkki-esikatselu modaaleihin (DESIGN.md §K SignPreview).
+ * V99-precedence: template-kuva (contain, valkotausta, ei crop) > Lucide-ikoni (iso, väritausta) >
+ * compactLabel-tiili. Kuva onerror → poistuu → alla oleva ikoni/label paljastuu (T103-fallback).
+ * Palauttaa HTML-stringin; kutsuja asettaa `el.innerHTML`.
+ */
+export function signPreviewHtml(opts: { id: string; imageId?: string; label: string; color: string; iconId?: string }): string {
+  const src = signImageSrc(opts.imageId ?? opts.id)
+  const v = signVisual({ iconId: opts.iconId, label: opts.label }, src)
+  const color = escHtml(opts.color)
+  const iconEntry = opts.iconId ? getIconById(opts.iconId) : null
+  const fallbackInner = iconEntry
+    ? `<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconEntry.svgContent}</svg>`
+    : `<span style="font:900 40px sans-serif;color:#fff;letter-spacing:0.04em">${escHtml(compactLabel(opts.label))}</span>`
+  const img = v.kind === 'image'
+    ? `<img src="${v.src}" alt="" onerror="this.remove()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;padding:10px;box-sizing:border-box;pointer-events:none">`
+    : ''
+  return `<div class="sign-preview" style="position:relative;width:100%;height:150px;border-radius:var(--radius-sm);border:1px solid var(--border-default);overflow:hidden;background:#fff">
+    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:${color}">${fallbackInner}</div>
+    ${img}
+  </div>`
 }

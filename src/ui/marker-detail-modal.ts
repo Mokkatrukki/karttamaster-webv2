@@ -4,7 +4,7 @@ import type { SignMarker, MarkerStatus } from '../logic/types'
 import { SIGN_TYPES } from '../logic/sign-picker'
 import { listTemplates } from '../logic/sign-library'
 import { validActions, canTransition } from '../logic/marker-status'
-import { registerEscClose } from './modal-helpers'
+import { registerEscClose, signPreviewHtml } from './modal-helpers'
 
 const STATUS_LABELS: Record<MarkerStatus, string> = {
   suunniteltu: 'Suunniteltu',
@@ -113,6 +113,19 @@ export class MarkerDetailModal {
     // Body
     const body = document.createElement('div')
     body.className = 'marker-detail-body'
+
+    // SignPreview (DESIGN.md §K): iso, hyvin sommiteltu esikatselu mistä merkistä on kyse.
+    // V99-precedence kuva>ikoni>compactLabel, contain (ei crop). Näkyy molemmille rooleille.
+    const template = library?.get(marker.type)
+    const preview = document.createElement('div')
+    preview.innerHTML = signPreviewHtml({
+      id: marker.type,
+      imageId: template?.imageId,
+      label: typeLabel,
+      color: marker.color ?? template?.color ?? '#94a3b8',
+      iconId: template?.iconId,
+    })
+    body.appendChild(preview)
 
     // locationNote textarea
     const noteLabel = document.createElement('label')

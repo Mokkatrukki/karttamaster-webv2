@@ -13,7 +13,7 @@ import {
 import { CURATED_ICONS, getIconById, renderIconSvg } from '../logic/icon-set'
 import { signImageTag } from '../logic/sign-images'
 import { compactLabel } from '../logic/sign-visual'
-import { registerEscClose, createBackdrop } from './modal-helpers'
+import { registerEscClose, createBackdrop, signPreviewHtml } from './modal-helpers'
 
 const DEFAULT_IDS = new Set(['right', 'left', 'upcoming-right', 'upcoming-left'])
 
@@ -176,6 +176,19 @@ export class SignLibraryPanel {
     header.appendChild(titleEl)
     header.appendChild(closeBtn)
     modal.appendChild(header)
+
+    // SignPreview (DESIGN.md §K): editissä iso esikatselu templaten kuvasta/ikonista/labelista.
+    if (template) {
+      const preview = document.createElement('div')
+      preview.innerHTML = signPreviewHtml({
+        id: template.id,
+        imageId: template.imageId,
+        label: template.label,
+        color: template.color,
+        iconId: template.iconId,
+      })
+      modal.appendChild(preview)
+    }
 
     // V97: id-kenttä — vain luonnissa (id on muuttumaton avain, editissä lukittu)
     let idInput: HTMLInputElement | null = null

@@ -234,9 +234,16 @@ metsässä, hanskat kädessä.
   - `kerätty`: reunus `#8b5cf6` (violetti)
   - `ei_tarpeen`: reunus `#78716c` (harmaa)
   - Neljä väriä valittu eri sävyperheistä tarkoituksella — ei saman perheen pastelleja (alkuperäinen 8px badge-versio #4ade80/#93c5fd/#6ee7b7 oli liian samankaltainen, B58)
-- Ympyrän sisällä: **kuva > ikoni > shortLabel** -precedence (V99/T158, `signVisual`). Template-kuva (`src/assets/signs/<id>.webp`) täyttää ympyrän tyyppi-identiteettinä (halkaisija `24px`, statusreunan sisäpuolella → V87 säilyy); muuten Lucide-ikoni (`iconId`); muuten arrow/shortLabel-teksti. **Sama kaikissa statuksissa**, ei glyfikorvausta.
-- Kuva-fallback: `<img onerror="this.remove()">` (T103-pattern) — puuttuva/rikki kuvatiedosto poistaa kuvakerroksen → alla oleva ikoni/label paljastuu, ei rikkoudu. **Kuvia ei vielä ole** → kaikki resolvoituu ikoniin/labeliin kunnes assetit lisätään.
-- **Ei erillistä nurkkabadgea** (poistettu T138:ssa, oli B57: "kaksi kertaa sama teksti"). Muoto on aina teardrop.
+- Sisältö: **kuva > ikoni > shortLabel** -precedence (V99/T158, `signVisual`). Ikoni/label-tyypit = teardrop-ympyrä yllä. **Kuvatyyppi (T-C): suorakaide-kortti ei ympyrätäyttö** — koko kyltti näkyy croppaamatta (kuvasuhteet vaihtelevat 2.2:1…0.7:1). Kortti `40×40px` valkotausta, `border-radius:8px`, `box-shadow`, `object-fit:contain`; kärki-kolmio `16×8px` kortin alla, ankkuri `(20,48)`. Status = **kortin reuna** (V87): `suunniteltu` katkoviiva neutraali `#64748b`, muuten solid statusväri (vihreä/sininen/violetti/harmaa). Fallback-chip (tyyppiväri + compactLabel) img:n alla, `onerror="this.remove()"` paljastaa sen.
+- Kuva-fallback: `<img onerror="this.remove()">` (T103-pattern) — puuttuva/rikki kuvatiedosto poistaa kuvakerroksen → alla oleva ikoni/label paljastuu, ei rikkoudu. Assetit: `src/assets/signs/<id>.webp` (T161 konversio-pipeline, ~79 kpl).
+- **Ei erillistä nurkkabadgea** (poistettu T138:ssa, oli B57: "kaksi kertaa sama teksti").
+
+### SignPreview — iso merkki-esikatselu modaaleissa (`.sign-preview`, `src/ui/modal-helpers.ts` `signPreviewHtml`)
+- **Missä:** MarkerDetailModal bodyn yläosassa (molemmat roolit näkevät mikä kyltti) + SignLibraryPanel edit-modaalissa headerin alla (järjestäjä katsoo/muokkaa templatea).
+- **Koko:** `width:100%; height:150px`, `border:1px solid border-default`, `border-radius:radius-sm`, `overflow:hidden`.
+- **Sisältö (V99-precedence):** kuva → `object-fit:contain` valkotaustalla `padding:10px` (koko kyltti näkyy, ei crop); ikoni → Lucide `72×72` valkoisella tyyppiväri-taustalla; label → `compactLabel` `900 40px` valkoisella tyyppiväri-taustalla.
+- **Fallback (V99/T103):** kuvakerros img:n alla on aina ikoni/label tyyppiväri-taustalla; `onerror="this.remove()"` paljastaa sen jos kuva puuttuu/rikki.
+- Käyttäjä: molemmat.
 
 ### LeftPanel (`#left-panel`)
 - Vain järjestäjälle — `body[data-role="talkoolainen"] #left-panel { display: none }`
