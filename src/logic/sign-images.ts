@@ -9,6 +9,12 @@ for (const [path, url] of Object.entries(modules)) {
   imageMap.set(id, url as string)
 }
 
+// Kaikki käytettävissä olevat kuva-idt (webp-tiedostojen nimet ilman päätettä).
+// T161-kuratointi: sign-catalog rakentaa näistä templatet automaattisesti.
+export function signImageIds(): string[] {
+  return [...imageMap.keys()]
+}
+
 // imageId-konventio = template.id. Palauttaa undefined jos kuvatiedostoa ei ole.
 export function signImageSrc(imageId: string | undefined): string | undefined {
   if (!imageId) return undefined
