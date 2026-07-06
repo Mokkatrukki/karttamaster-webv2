@@ -33,6 +33,13 @@ function seedDefaults(library: SignLibrary): void {
   createTemplate(library, { label: 'Oikealle', color: '#16a34a', description: 'Käänny oikealle', favorite: true }, 'right')
   createTemplate(library, { label: 'Tuleva vasemmalle', color: '#7c3aed', description: '', favorite: true }, 'upcoming-left')
   createTemplate(library, { label: 'Tuleva oikealle', color: '#b45309', description: '', favorite: true }, 'upcoming-right')
+  // T161-jatko: muutama palvelukyltti kuvana — id == webp-nimi (src/assets/signs/<id>.webp),
+  // signVisual-precedence näyttää kuvan automaattisesti (imageId ?? id). Kuratoinnin eka erä.
+  createTemplate(library, { label: 'WC', color: '#1d4ed8', description: '', favorite: false }, 'wc')
+  createTemplate(library, { label: 'Pesutilat', color: '#1d4ed8', description: '', favorite: false }, 'pesutilat')
+  createTemplate(library, { label: 'Uimaranta', color: '#1d4ed8', description: '', favorite: false }, 'uimaranta')
+  createTemplate(library, { label: 'Pysäköinti', color: '#1d4ed8', description: '', favorite: false }, 'p')
+  createTemplate(library, { label: 'Park & Ride', color: '#1d4ed8', description: '', favorite: false }, 'park-and-ride-vas')
 }
 
 export function createSignLibrary(): SignLibrary {

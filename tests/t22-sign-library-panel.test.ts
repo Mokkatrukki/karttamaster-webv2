@@ -20,10 +20,10 @@ function bodyQuery<T extends Element>(selector: string): T | null {
 
 describe('T22 SignLibraryPanel — V10', () => {
   describe('seedDefaults', () => {
-    it('luo kirjaston 4 oletusmalleilla', () => {
+    it('luo kirjaston 9 oletusmalleilla (4 nuolta + 5 palvelukylttiä T161)', () => {
       const lib = createSignLibrary()
       const templates = listTemplates(lib)
-      expect(templates).toHaveLength(4)
+      expect(templates).toHaveLength(9)
     })
 
     it('oletusmalleilla V10-kentät: label, color, description (kompakti johdetaan labelista)', () => {
@@ -39,7 +39,7 @@ describe('T22 SignLibraryPanel — V10', () => {
       const lib = createSignLibrary()
       const lib2 = lib
       createSignLibrary()
-      expect(listTemplates(lib2)).toHaveLength(4)
+      expect(listTemplates(lib2)).toHaveLength(9)
     })
   })
 
@@ -49,7 +49,7 @@ describe('T22 SignLibraryPanel — V10', () => {
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       const btns = container.querySelectorAll('.sign-type-btn')
-      expect(btns.length).toBe(4)
+      expect(btns.length).toBe(9)
     })
 
     it('default-napilla on data-id joka vastaa MarkerType:a (T136: place-btn käyttää data-id:tä)', () => {
@@ -69,7 +69,7 @@ describe('T22 SignLibraryPanel — V10', () => {
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       const dotsBtns = container.querySelectorAll('.sign-lib-dots-btn')
-      expect(dotsBtns.length).toBe(4)
+      expect(dotsBtns.length).toBe(9)
     })
 
     // V62: no inline delete in item rows
@@ -157,7 +157,7 @@ describe('T22 SignLibraryPanel — V10', () => {
       dotsBtn.click()
       bodyQuery<HTMLButtonElement>('.sign-lib-cancel-btn')!.click()
       expect(bodyQuery('.sign-lib-modal')).toBeNull()
-      expect(listTemplates(lib)).toHaveLength(4)
+      expect(listTemplates(lib)).toHaveLength(9)
     })
 
     it('default-mallin modaalissa ei ole poisto-nappia', () => {
@@ -192,7 +192,7 @@ describe('T22 SignLibraryPanel — V10', () => {
       bodyQuery<HTMLInputElement>('.sign-lib-label-input')!.value = 'Huolto 25km'
       bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
       const templates = listTemplates(lib)
-      expect(templates).toHaveLength(5)
+      expect(templates).toHaveLength(10)
       const newT = templates.find(t => t.label === 'Huolto 25km')
       expect(newT).toBeTruthy()
       expect(compactLabel(newT!.label)).toBe('HUO')
@@ -209,7 +209,7 @@ describe('T22 SignLibraryPanel — V10', () => {
       const err = bodyQuery<HTMLElement>('.sign-lib-id-error')!
       expect(err.style.display).toBe('block')
       expect(err.textContent).toBeTruthy()
-      expect(listTemplates(lib)).toHaveLength(4) // ei uutta
+      expect(listTemplates(lib)).toHaveLength(9) // ei uutta
       expect(bodyQuery('.sign-lib-modal')).toBeTruthy() // modaali pysyy auki
     })
 
@@ -222,7 +222,7 @@ describe('T22 SignLibraryPanel — V10', () => {
       bodyQuery<HTMLInputElement>('.sign-lib-label-input')!.value = 'X'
       bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
       expect(bodyQuery<HTMLElement>('.sign-lib-id-error')!.style.display).toBe('block')
-      expect(listTemplates(lib)).toHaveLength(4)
+      expect(listTemplates(lib)).toHaveLength(9)
     })
 
     it('T156: edit-modaalissa ei ole id-inputtia (id lukittu)', () => {
@@ -239,7 +239,7 @@ describe('T22 SignLibraryPanel — V10', () => {
       new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
       bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
-      expect(listTemplates(lib)).toHaveLength(4)
+      expect(listTemplates(lib)).toHaveLength(9)
     })
 
     it('uudella custom-mallin modaalissa on poisto-nappi (V62)', () => {
@@ -345,7 +345,7 @@ describe('T22 SignLibraryPanel — V10', () => {
       addCustom(container, lib)
       openCustomDotsModal(container)
       bodyQuery<HTMLButtonElement>('.modal-btn-destructive')!.click()
-      expect(listTemplates(lib)).toHaveLength(4)
+      expect(listTemplates(lib)).toHaveLength(9)
     })
 
     it('poisto kutsuu onChange', () => {
@@ -367,7 +367,7 @@ describe('T22 SignLibraryPanel — V10', () => {
       addCustom(container, lib)
       openCustomDotsModal(container)
       bodyQuery<HTMLButtonElement>('.modal-btn-destructive')!.click()
-      expect(listTemplates(lib)).toHaveLength(5)
+      expect(listTemplates(lib)).toHaveLength(10)
     })
 
     it('poistettu malli ei näy listassa', () => {
@@ -378,7 +378,7 @@ describe('T22 SignLibraryPanel — V10', () => {
       openCustomDotsModal(container)
       bodyQuery<HTMLButtonElement>('.modal-btn-destructive')!.click()
       const rows = container.querySelectorAll('.sign-lib-row')
-      expect(rows.length).toBe(4)
+      expect(rows.length).toBe(9)
     })
   })
 })
