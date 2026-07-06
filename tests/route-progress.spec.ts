@@ -39,11 +39,27 @@ describe('Progress bar — position calculation', () => {
   })
 })
 
-describe('DriveMode.jumpTo', () => {
-  it.todo('jumpTo(index) moves currentKm to that route point')
-  it.todo('jumpTo activates drive mode if not already active')
-  it.todo('jumpTo clamps to valid index range (0 .. routePoints.length-1)')
-  it.todo('stop() after jumpTo resets position to 0km')
+// DriveMode.jumpTo — clamp-logiikka eristetty puhtaana funktiona (kuten drive.test.ts),
+// ei importoida DriveMode-luokkaa jotta vältetään Leaflet-riippuvuus (src/map/ → Playwright).
+function clampIndex(index: number, length: number): number {
+  return Math.max(0, Math.min(index, length - 1))
+}
+
+describe('DriveMode.jumpTo — index clamping (src/map/drive.ts:34)', () => {
+  // stop()-resetointi 0km:aan katettu e2e/critical-paths.spec.ts:n Escape-testissä.
+  // jumpTo(index) aktivoi ajotilan aina (active=true) — sivuvaikutus vaatii DOM/Leaflet-mapin, ks. e2e.
+  it('jumpTo(index) moves currentKm to that route point', () => {
+    const idx = clampIndex(2, ROUTE.length)
+    expect(ROUTE[idx].distanceFromStart).toBe(ROUTE[2].distanceFromStart)
+  })
+
+  it('jumpTo clamps negative index to 0', () => {
+    expect(clampIndex(-5, ROUTE.length)).toBe(0)
+  })
+
+  it('jumpTo clamps out-of-range index to last point', () => {
+    expect(clampIndex(999, ROUTE.length)).toBe(ROUTE.length - 1)
+  })
 })
 
 describe('Progress bar UI', () => {

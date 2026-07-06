@@ -14,8 +14,12 @@ import {
   validateNoOverlap,
   cloneSegmentToNextPhase,
   NEXT_PHASE,
+  colorForSegment,
+  segmentLineState,
+  SEGMENT_COLORS,
   type Segment,
   type SegmentStore,
+  type PhaseProgress,
 } from '../src/logic/segments'
 import type { SignMarker } from '../src/logic/types'
 
@@ -319,37 +323,43 @@ describe('segments', () => {
     })
 
     it('palauttaa true jos ei overlapia (ennen olemassa olevaa)', () => {
-      expect(validateNoOverlap(store, 'r1', 0, 999)).toBe(true)
+      expect(validateNoOverlap(store, 'r1', 0, 999, 'asettaminen')).toBe(true)
     })
 
     it('palauttaa true jos ei overlapia (jälkeen olemassa olevan)', () => {
-      expect(validateNoOverlap(store, 'r1', 5001, 8000)).toBe(true)
+      expect(validateNoOverlap(store, 'r1', 5001, 8000, 'asettaminen')).toBe(true)
     })
 
     it('palauttaa false täydellä overlapilla', () => {
-      expect(validateNoOverlap(store, 'r1', 500, 6000)).toBe(false)
+      expect(validateNoOverlap(store, 'r1', 500, 6000, 'asettaminen')).toBe(false)
     })
 
     it('palauttaa false osittaisella overlapilla (alkupää)', () => {
-      expect(validateNoOverlap(store, 'r1', 500, 2000)).toBe(false)
+      expect(validateNoOverlap(store, 'r1', 500, 2000, 'asettaminen')).toBe(false)
     })
 
     it('palauttaa false osittaisella overlapilla (loppupää)', () => {
-      expect(validateNoOverlap(store, 'r1', 4000, 7000)).toBe(false)
+      expect(validateNoOverlap(store, 'r1', 4000, 7000, 'asettaminen')).toBe(false)
     })
 
     it('palauttaa true vierekkäisille pätkille (exact touch)', () => {
       // startDist2 == endDist1: ei overlap koska overlap = startDist2 < endDist1
-      expect(validateNoOverlap(store, 'r1', 5000, 8000)).toBe(true)
-      expect(validateNoOverlap(store, 'r1', 0, 1000)).toBe(true)
+      expect(validateNoOverlap(store, 'r1', 5000, 8000, 'asettaminen')).toBe(true)
+      expect(validateNoOverlap(store, 'r1', 0, 1000, 'asettaminen')).toBe(true)
     })
 
     it('palauttaa true eri routeId:llä vaikka sama distRange', () => {
-      expect(validateNoOverlap(store, 'r2', 1000, 5000)).toBe(true)
+      expect(validateNoOverlap(store, 'r2', 1000, 5000, 'asettaminen')).toBe(true)
     })
 
     it('excludeId ohittaa oman segmentin (muokkaus)', () => {
-      expect(validateNoOverlap(store, 'r1', 1000, 5000, 'existing')).toBe(true)
+      expect(validateNoOverlap(store, 'r1', 1000, 5000, 'asettaminen', 'existing')).toBe(true)
+    })
+
+    // T151/V95: overlap vain saman phasen sisällä — eri vaiheiden pätkät saavat olla päällekkäin
+    it('palauttaa true eri phasessa vaikka sama route + distRange (V91)', () => {
+      expect(validateNoOverlap(store, 'r1', 500, 6000, 'purku')).toBe(true)
+      expect(validateNoOverlap(store, 'r1', 500, 6000, 'tarkastus')).toBe(true)
     })
   })
 
@@ -368,7 +378,8 @@ describe('segments', () => {
         assignedCode: 'ABC1',
         equipment: [{ name: 'nauhaa', count: 5 }],
       })
-      const cloned = cloneSegmentToNextPhase(store, original)
+      const cloned = cloneSegmentToNextPhase(store, original)!
+      expect(cloned).not.toBeNull()
       expect(cloned.id).not.toBe(original.id)
       expect(cloned.phase).toBe('tarkastus')
       expect(cloned.routeIds).toEqual(original.routeIds)
@@ -384,7 +395,7 @@ describe('segments', () => {
         description: 'vanha ohje',
         equipment: [{ name: 'nauhaa', count: 5 }],
       })
-      const cloned = cloneSegmentToNextPhase(store, original)
+      const cloned = cloneSegmentToNextPhase(store, original)!
       expect(cloned.assignedCode).toBeUndefined()
       expect(cloned.description).toBeUndefined()
       expect(cloned.equipment).toEqual([])
@@ -395,6 +406,60 @@ describe('segments', () => {
       cloneSegmentToNextPhase(store, original)
       const stillThere = store.get(original.id)
       expect(stillThere).toEqual(original)
+    })
+
+    // T151/V95: tuplaklikki ei saa luoda kahta identtistä kohde-phasen pätkää
+    it('toistettu kloonaus samaan kohde-phaseen palauttaa null (ei duplikaattia)', () => {
+      const original = createSegment(store, { ...baseSegment })
+      const first = cloneSegmentToNextPhase(store, original)
+      expect(first).not.toBeNull()
+      const second = cloneSegmentToNextPhase(store, original)
+      expect(second).toBeNull()
+      expect(getSegmentsForPhase(store, 'tarkastus')).toHaveLength(1)
+    })
+  })
+
+  // T152/V96: kartan väri = tunniste (stabiili), viivatyyli = status
+  describe('colorForSegment (V96)', () => {
+    it('sama id → aina sama väri (deterministinen)', () => {
+      expect(colorForSegment('abc-123')).toBe(colorForSegment('abc-123'))
+    })
+
+    it('palauttaa aina paletin värin', () => {
+      for (const id of ['a', 'xyz', crypto.randomUUID(), '']) {
+        expect(SEGMENT_COLORS).toContain(colorForSegment(id))
+      }
+    })
+
+    it('poisto ei siirrä muiden värejä — väri riippuu vain id:stä, ei järjestyksestä', () => {
+      const a = createSegment(store, { ...baseSegment, startDist: 0, endDist: 1000 }, 'seg-a')
+      const b = createSegment(store, { ...baseSegment, startDist: 2000, endDist: 3000 }, 'seg-b')
+      const colorBefore = colorForSegment(b.id)
+      deleteSegment(store, a.id)
+      expect(colorForSegment(b.id)).toBe(colorBefore)
+    })
+  })
+
+  describe('segmentLineState (V96)', () => {
+    const count = (done: number, total: number): PhaseProgress => ({ kind: 'count', done, total, label: 'asetettu' })
+
+    it('done=0 → ei_alkanut', () => {
+      expect(segmentLineState(count(0, 5))).toBe('ei_alkanut')
+    })
+    it('total=0 (ei merkkejä) → ei_alkanut', () => {
+      expect(segmentLineState(count(0, 0))).toBe('ei_alkanut')
+    })
+    it('0<done<total → kesken', () => {
+      expect(segmentLineState(count(2, 5))).toBe('kesken')
+    })
+    it('done=total → valmis', () => {
+      expect(segmentLineState(count(5, 5))).toBe('valmis')
+    })
+    it('tarkastus inspected=false → ei_alkanut', () => {
+      expect(segmentLineState({ kind: 'boolean', done: false, label: 'tarkastettu' })).toBe('ei_alkanut')
+    })
+    it('tarkastus inspected=true → valmis', () => {
+      expect(segmentLineState({ kind: 'boolean', done: true, label: 'tarkastettu' })).toBe('valmis')
     })
   })
 })

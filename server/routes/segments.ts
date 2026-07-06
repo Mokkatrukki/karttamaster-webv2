@@ -14,6 +14,8 @@ interface SegmentRow {
   description: string | null
   equipment: string
   phase: string
+  inspected: number
+  inspection_note: string | null
   updated_at: string
 }
 
@@ -27,7 +29,9 @@ function rowToSegment(row: SegmentRow) {
     displayName: row.display_name ?? undefined,
     description: row.description ?? undefined,
     equipment: JSON.parse(row.equipment) as { name: string; count: number }[],
-    phase: row.phase as 'asettaminen' | 'purku',
+    phase: row.phase as 'asettaminen' | 'tarkastus' | 'purku',
+    inspected: !!row.inspected,
+    inspectionNote: row.inspection_note ?? undefined,
   }
 }
 
@@ -53,14 +57,16 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
     description?: string
     equipment?: { name: string; count: number }[]
     phase?: string
+    inspected?: boolean
+    inspectionNote?: string
   }>()
 
   const id = body.id ?? randomUUID()
   const now = new Date().toISOString()
 
   db.run(
-    `INSERT INTO segments (id, route_ids, start_dist, end_dist, assigned_code, display_name, description, equipment, phase, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO segments (id, route_ids, start_dist, end_dist, assigned_code, display_name, description, equipment, phase, inspected, inspection_note, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        route_ids = excluded.route_ids,
        start_dist = excluded.start_dist,
@@ -70,6 +76,8 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
        description = excluded.description,
        equipment = excluded.equipment,
        phase = excluded.phase,
+       inspected = excluded.inspected,
+       inspection_note = excluded.inspection_note,
        updated_at = excluded.updated_at`,
     [
       id,
@@ -81,6 +89,8 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
       body.description ?? null,
       JSON.stringify(body.equipment ?? []),
       body.phase ?? 'asettaminen',
+      body.inspected ? 1 : 0,
+      body.inspectionNote ?? null,
       now,
     ],
   )
@@ -89,11 +99,12 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
   return c.json(rowToSegment(row), 201)
 })
 
-// Järjestäjä: päivitä (patch)
-segmentRoutes.put('/:id', requireAuth(), requireRole('admin', 'järjestäjä'), async (c) => {
+// Päivitä (patch). Järjestäjä+ kaikki kentät; talkoolainen vain oma pätkä + rajatut kentät (V93/V43).
+segmentRoutes.put('/:id', requireAuth(), async (c) => {
   const db: Database = c.get('db')
+  const session = c.get('session')
   const id = c.req.param('id')
-  const body = await c.req.json<Partial<{
+  const raw = await c.req.json<Partial<{
     routeIds: string[]
     startDist: number
     endDist: number
@@ -102,26 +113,49 @@ segmentRoutes.put('/:id', requireAuth(), requireRole('admin', 'järjestäjä'), 
     description: string
     equipment: { name: string; count: number }[]
     phase: string
+    inspected: boolean
+    inspectionNote: string
   }>>()
 
   const existing = db.query<SegmentRow, [string]>('SELECT * FROM segments WHERE id = ?').get(id)
   if (!existing) return c.json({ error: 'not_found' }, 404)
 
+  const isOrganizer = session.role === 'admin' || session.role === 'järjestäjä'
+  const isOwnTalkoolainen =
+    session.role === 'talkoolainen' &&
+    session.talkoolainen_code != null &&
+    existing.assigned_code != null &&
+    session.talkoolainen_code.toUpperCase() === existing.assigned_code.toUpperCase()
+  if (!isOrganizer && !isOwnTalkoolainen) return c.json({ error: 'forbidden' }, 403)
+
+  // V93: talkoolainen saa muuttaa vain inspected/inspectionNote/startDist/endDist (oma kenttätyö)
+  const body = isOrganizer
+    ? raw
+    : {
+        inspected: raw.inspected,
+        inspectionNote: raw.inspectionNote,
+        startDist: raw.startDist,
+        endDist: raw.endDist,
+      }
+
   const now = new Date().toISOString()
   db.run(
     `UPDATE segments SET
       route_ids = ?, start_dist = ?, end_dist = ?, assigned_code = ?,
-      display_name = ?, description = ?, equipment = ?, phase = ?, updated_at = ?
+      display_name = ?, description = ?, equipment = ?, phase = ?,
+      inspected = ?, inspection_note = ?, updated_at = ?
      WHERE id = ?`,
     [
-      body.routeIds ? JSON.stringify(body.routeIds) : existing.route_ids,
+      'routeIds' in body && body.routeIds ? JSON.stringify(body.routeIds) : existing.route_ids,
       body.startDist ?? existing.start_dist,
       body.endDist ?? existing.end_dist,
       'assignedCode' in body ? (body.assignedCode?.toUpperCase() ?? null) : existing.assigned_code,
-      body.displayName ?? existing.display_name,
-      body.description !== undefined ? body.description : existing.description,
-      body.equipment ? JSON.stringify(body.equipment) : existing.equipment,
-      body.phase ?? existing.phase,
+      'displayName' in body ? (body.displayName ?? existing.display_name) : existing.display_name,
+      'description' in body && body.description !== undefined ? body.description : existing.description,
+      'equipment' in body && body.equipment ? JSON.stringify(body.equipment) : existing.equipment,
+      'phase' in body ? (body.phase ?? existing.phase) : existing.phase,
+      body.inspected !== undefined ? (body.inspected ? 1 : 0) : existing.inspected,
+      body.inspectionNote !== undefined ? body.inspectionNote : existing.inspection_note,
       now,
       id,
     ],

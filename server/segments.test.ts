@@ -5,12 +5,24 @@ import { dbMiddleware } from './middleware/auth'
 import { segmentRoutes } from './routes/segments'
 import { authHeaders, seedTestUsers } from './test-fixtures'
 import type { Database } from 'bun:sqlite'
+import { randomUUID } from 'crypto'
 
 function makeApp(db: Database) {
   const app = new Hono()
   app.use('*', dbMiddleware(db))
   app.route('/api/segments', segmentRoutes)
   return app
+}
+
+// V93: talkoolainen-sessio joka on sidottu koodiin (fixture jättää talkoolainen_code=null)
+function talkoolainenCodeHeaders(db: Database, code: string): { Cookie: string } {
+  const id = randomUUID()
+  const expires = new Date(Date.now() + 3600 * 1000).toISOString()
+  db.run(
+    'INSERT INTO sessions (id, user_id, talkoolainen_code, role, display_name, expires_at) VALUES (?, ?, ?, ?, ?, ?)',
+    [id, null, code, 'talkoolainen', 'Testi Talkoolainen', expires],
+  )
+  return { Cookie: `session=${id}` }
 }
 
 const SEG_BODY = {
@@ -219,6 +231,85 @@ describe('T61: Segments API', () => {
       const app = makeApp(db)
       const res = await app.request('/api/segments/ei-ole', { method: 'DELETE' })
       expect(res.status).toBe(401)
+    })
+  })
+
+  // ── T149/V93: tarkastuskuittaus persistoituu + talkoolainen muokkaa omaa pätkää ──
+  describe('T149/V93: inspected + talkoolaisen oma pätkä', () => {
+    async function createOwnSegment(app: Hono, db: Database, code: string): Promise<string> {
+      const res = await app.request('/api/segments', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...SEG_BODY, phase: 'tarkastus', assignedCode: code }),
+      })
+      const { id } = await res.json() as { id: string }
+      return id
+    }
+
+    test('inspected/inspectionNote roundtrippaa (järjestäjä PUT → GET)', async () => {
+      const app = makeApp(db)
+      const headers = { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' }
+      const postRes = await app.request('/api/segments', {
+        method: 'POST', headers, body: JSON.stringify({ ...SEG_BODY, phase: 'tarkastus' }),
+      })
+      const { id } = await postRes.json() as { id: string }
+      // POST default: inspected false
+      const created = await (await app.request('/api/segments', { headers })).json() as Record<string, unknown>[]
+      expect(created[0].inspected).toBe(false)
+
+      const putRes = await app.request(`/api/segments/${id}`, {
+        method: 'PUT', headers,
+        body: JSON.stringify({ inspected: true, inspectionNote: 'Ajettu läpi, kaikki ok' }),
+      })
+      expect(putRes.status).toBe(200)
+      const updated = await putRes.json() as Record<string, unknown>
+      expect(updated.inspected).toBe(true)
+      expect(updated.inspectionNote).toBe('Ajettu läpi, kaikki ok')
+    })
+
+    test('talkoolainen muokkaa omaa pätkäänsä (inspected) — 200', async () => {
+      const app = makeApp(db)
+      const code = 'TARK-KOODI-9'
+      const id = await createOwnSegment(app, db, code)
+
+      const res = await app.request(`/api/segments/${id}`, {
+        method: 'PUT',
+        headers: { ...talkoolainenCodeHeaders(db, code), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inspected: true, inspectionNote: 'Tarkastettu' }),
+      })
+      expect(res.status).toBe(200)
+      const updated = await res.json() as Record<string, unknown>
+      expect(updated.inspected).toBe(true)
+      expect(updated.inspectionNote).toBe('Tarkastettu')
+    })
+
+    test('talkoolaisen kenttärajaus: displayName-yritys ei muuta järjestäjän kenttää (V93)', async () => {
+      const app = makeApp(db)
+      const code = 'TARK-KOODI-8'
+      const id = await createOwnSegment(app, db, code)
+
+      const res = await app.request(`/api/segments/${id}`, {
+        method: 'PUT',
+        headers: { ...talkoolainenCodeHeaders(db, code), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inspected: true, displayName: 'HAKKEROITU', description: 'x' }),
+      })
+      expect(res.status).toBe(200)
+      const updated = await res.json() as Record<string, unknown>
+      expect(updated.inspected).toBe(true)
+      expect(updated.displayName).toBe('Pätkä 1') // ennallaan
+      expect(updated.description).toBeUndefined()
+    })
+
+    test('talkoolainen vieraaseen pätkään (eri koodi) — 403', async () => {
+      const app = makeApp(db)
+      const id = await createOwnSegment(app, db, 'OMA-KOODI')
+
+      const res = await app.request(`/api/segments/${id}`, {
+        method: 'PUT',
+        headers: { ...talkoolainenCodeHeaders(db, 'VIERAS-KOODI'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inspected: true }),
+      })
+      expect(res.status).toBe(403)
     })
   })
 })

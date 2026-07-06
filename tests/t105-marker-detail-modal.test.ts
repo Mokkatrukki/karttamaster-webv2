@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MarkerDetailModal } from '../src/ui/marker-detail-modal'
 import type { SignMarker } from '../src/logic/types'
+import { createLibrary, createTemplate } from '../src/logic/sign-library'
 
 const makeMarker = (overrides: Partial<SignMarker> = {}): SignMarker => ({
   id: 'test-id',
@@ -334,5 +335,51 @@ describe('MarkerDetailModal', () => {
     fileInput.dispatchEvent(new Event('change'))
     await Promise.resolve()
     expect(manager.addImage).toHaveBeenCalledWith('test-id', file)
+  })
+
+  // ── T154: type-select interaktio (siirretty tests/t38-type-change.test.ts:stä — T105 korvasi T38 UI:n, B50) ──
+
+  it('type-select sisältää 4 vaihtoehtoa — yksi per SIGN_TYPES', () => {
+    const marker = makeMarker()
+    const manager = makeMockManager(marker)
+    const modal = new MarkerDetailModal(manager as any, () => null, () => 'järjestäjä', vi.fn())
+    modal.open('test-id')
+    const select = document.querySelector<HTMLSelectElement>('.marker-detail-type-select')!
+    expect(select.options.length).toBe(4)
+  })
+
+  it('type-select esivalitsee merkin nykyisen tyypin', () => {
+    const marker = makeMarker({ type: 'upcoming-left' })
+    const manager = makeMockManager(marker)
+    const modal = new MarkerDetailModal(manager as any, () => null, () => 'järjestäjä', vi.fn())
+    modal.open('test-id')
+    const select = document.querySelector<HTMLSelectElement>('.marker-detail-type-select')!
+    expect(select.value).toBe('upcoming-left')
+  })
+
+  it('valinnan muutos kutsuu manager.updateType uudella tyypillä', () => {
+    const marker = makeMarker()
+    const manager = makeMockManager(marker)
+    const onUpdate = vi.fn()
+    const modal = new MarkerDetailModal(manager as any, () => null, () => 'järjestäjä', onUpdate)
+    modal.open('test-id')
+    const select = document.querySelector<HTMLSelectElement>('.marker-detail-type-select')!
+    select.value = 'left'
+    select.dispatchEvent(new Event('change'))
+    expect(manager.updateType).toHaveBeenCalledWith('test-id', 'left', undefined, undefined)
+    expect(onUpdate).toHaveBeenCalled()
+  })
+
+  it('kirjaston templaatin valinta välittää color+shortLabel updateType:lle', () => {
+    const marker = makeMarker()
+    const manager = makeMockManager(marker)
+    const library = createLibrary()
+    createTemplate(library, { label: 'Vaara', shortLabel: 'X', color: '#ff0000', description: '', favorite: true }, 'custom-1')
+    const modal = new MarkerDetailModal(manager as any, () => library, () => 'järjestäjä', vi.fn())
+    modal.open('test-id')
+    const select = document.querySelector<HTMLSelectElement>('.marker-detail-type-select')!
+    select.value = 'custom-1'
+    select.dispatchEvent(new Event('change'))
+    expect(manager.updateType).toHaveBeenCalledWith('test-id', 'custom-1', '#ff0000', 'X')
   })
 })

@@ -145,10 +145,18 @@ async function init(talkoolainenCode?: string) {
   const visibleSegments = (): Segment[] =>
     talkoolainenCode ? Array.from(segmentStore.values()) : getSegmentsForPhase(segmentStore, getActivePhase())
 
-  const renderSegmentOverlay = (): void => {
+  const phaseFilteredStore = (): Map<string, Segment> => {
     const filtered = new Map<string, Segment>()
     for (const seg of visibleSegments()) filtered.set(seg.id, seg)
-    segmentOverlay.update(filtered)
+    return filtered
+  }
+
+  // Ref täytetään kun MarkerManager on luotu — renderSegmentOverlay tarvitsee merkit progressiin
+  const markerManagerRef: { current: MarkerManager | null } = { current: null }
+
+  // T152/V96: pätkän viivatyyli = status → tarvitsee merkit. Ennen markerManageria: initialMarkers.
+  const renderSegmentOverlay = (): void => {
+    segmentOverlay.update(phaseFilteredStore(), markerManagerRef.current?.getAll() ?? initialMarkers)
   }
 
   const segmentOverlay = new SegmentOverlay(map, routes)
@@ -213,7 +221,6 @@ async function init(talkoolainenCode?: string) {
   let tempCreationMarker: L.CircleMarker | null = null
 
   const segmentSaveErrorEl = document.getElementById('distance-warning')!
-  const markerManagerRef: { current: MarkerManager | null } = { current: null }
 
   const segmentPanel = new SegmentPanel(
     document.getElementById('segment-panel-container')!,
@@ -237,7 +244,8 @@ async function init(talkoolainenCode?: string) {
       onExitEditMode: () => segmentOverlay.exitEditMode(),
       onEnterCreationMode: () => { map.getContainer().style.cursor = 'crosshair' },
       onExitCreationMode: () => { map.getContainer().style.cursor = '' },
-      onShowSnapMarkers: (onSnap) => segmentOverlay.showCreationSnapMarkers(segmentStore, onSnap),
+      // T150/V94: snap-pisteet vain aktiivisen phasen pätkistä — ei piilotettujen vaiheiden endpointteja
+      onShowSnapMarkers: (onSnap) => segmentOverlay.showCreationSnapMarkers(phaseFilteredStore(), onSnap),
       onHideSnapMarkers: () => segmentOverlay.hideCreationSnapMarkers(),
       onSaveError: () => {
         segmentSaveErrorEl.textContent = '⚠ Pätkän tallennus epäonnistui (muisti täynnä?)'
@@ -274,6 +282,8 @@ async function init(talkoolainenCode?: string) {
     progressBar.refreshDots()
     statusPanel?.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
     segmentPanel.refreshCounts()
+    // T152/V96: merkin status-muutos päivittää myös kartan pätkän viivatyylin (ei vain sivupalkkia)
+    renderSegmentOverlay()
     if (segmentView) {
       const seg = talkoolainenCode ? getSegmentForCode(segmentStore, talkoolainenCode) : undefined
       if (seg) segmentView.update(getMarkersForSegment(seg, markerManager.getAll()))
@@ -304,7 +314,15 @@ async function init(talkoolainenCode?: string) {
         },
         (inspected, note) => {
           const updatedSeg = updateSegment(segmentStore, seg.id, { inspected, inspectionNote: note || undefined })
-          updateSegmentRemote(seg.id, { inspected, inspectionNote: note || undefined }).catch(() => {})
+          // T149/V93: tarkastuskuittaus EI saa hävitä hiljaa — false-paluu tai reject → virhebanneri
+          const flagInspectError = () => {
+            segmentSaveErrorEl.textContent = '⚠ Tarkastuskuittauksen tallennus epäonnistui — yritä uudelleen'
+            segmentSaveErrorEl.style.display = 'block'
+            setTimeout(() => { segmentSaveErrorEl.style.display = 'none' }, 5000)
+          }
+          updateSegmentRemote(seg.id, { inspected, inspectionNote: note || undefined })
+            .then(ok => { if (!ok) flagInspectError() })
+            .catch(() => flagInspectError())
           if (updatedSeg) segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
         },
       )

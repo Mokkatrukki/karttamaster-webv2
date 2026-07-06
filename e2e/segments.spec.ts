@@ -275,6 +275,24 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(kmSpan).toContainText('ei merkkejä')
   })
 
+  // T152/V96: pätkän viivatyyli koodaa statuksen kartalla. Uusi pätkä ilman merkkejä
+  // = ei_alkanut = katkoviiva (stroke-dasharray). Guard: overlay-render saa merkit + tyylin.
+  test('pätkän viivatyyli koodaa statuksen — tyhjä pätkä = katkoviiva (T152)', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await createSegmentViaModal(page)
+
+    // Segmenttikaista renderöi stroke-dasharrayn; reitit + aukot ovat ehjiä (ei dasharrayta)
+    const dashedCount = await page.evaluate(() => {
+      const paths = Array.from(document.querySelectorAll<SVGPathElement>('.leaflet-overlay-pane path'))
+      return paths.filter(p => (p.getAttribute('stroke-dasharray') ?? '') !== '').length
+    })
+    expect(dashedCount).toBeGreaterThan(0)
+  })
+
   // T147: tarkastus-vaiheen pätkäjako (luotu T146:n klooni-mekanismilla) näyttää
   // talkoolaisen segment-view:ssä tarkastus-UI:n numeerisen X/N-progressin sijaan.
   test('tarkastus-segmentti näyttää segment-view:ssä "Merkitse tarkastetuksi" -UI:n', async ({ page }) => {

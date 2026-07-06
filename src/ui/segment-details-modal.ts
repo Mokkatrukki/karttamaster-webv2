@@ -469,7 +469,13 @@ export class SegmentDetailsModal {
     btn.className = 'btn-segment-clone-phase'
     btn.textContent = `Kloonaa ${PHASE_LABELS[nextPhase]}-vaiheeseen`
     btn.addEventListener('click', () => {
+      // T151/V95: overlap kohde-phasessa → null (esim. tuplaklikki) → älä luo, näytä virhe
       const cloned = cloneSegmentToNextPhase(this.store, seg)
+      if (!cloned) {
+        btn.textContent = `${PHASE_LABELS[nextPhase]}-vaiheessa on jo tämä pätkä`
+        btn.disabled = true
+        return
+      }
       pushSegment(cloned).catch(() => {})
       this.close()
       this.onRender()

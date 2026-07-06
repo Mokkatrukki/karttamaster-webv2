@@ -75,14 +75,21 @@ export const NEXT_PHASE: Record<Segment['phase'], Segment['phase']> = {
 // T146: korjaa UI-aukon — ei ollut mitään tapaa luoda tarkastus/purku-vaiheen pätkäjakoa.
 // Kopioi routeIds/startDist/endDist/displayName, TYHJÄ assignedCode/equipment/description
 // (V26: eri talkoolainen eri vaiheessa, ei peri edellisen koodia). Vanha segmentti koskematon.
-export function cloneSegmentToNextPhase(store: SegmentStore, segment: Segment): Segment {
+// T151/V95: validoi kohde-phasen overlap ennen luontia — duplikaattiklooni (tuplaklikki) → null.
+export function cloneSegmentToNextPhase(store: SegmentStore, segment: Segment): Segment | null {
+  const targetPhase = NEXT_PHASE[segment.phase]
+  for (const routeId of segment.routeIds) {
+    if (!validateNoOverlap(store, routeId, segment.startDist, segment.endDist, targetPhase)) {
+      return null
+    }
+  }
   return createSegment(store, {
     routeIds: [...segment.routeIds],
     startDist: segment.startDist,
     endDist: segment.endDist,
     displayName: segment.displayName,
     equipment: [],
-    phase: NEXT_PHASE[segment.phase],
+    phase: targetPhase,
   })
 }
 
@@ -99,16 +106,6 @@ export function getSegmentForCode(
 ): Segment | undefined {
   const upper = code.toUpperCase()
   return Array.from(store.values()).find(s => s.assignedCode?.toUpperCase() === upper)
-}
-
-// T95: progress % = (asetettu+tarkistettu+kerätty) / all markers in segment
-export function getSegmentProgress(segment: Segment, markers: SignMarker[]): number {
-  const segMarkers = getMarkersForSegment(segment, markers)
-  if (segMarkers.length === 0) return 0
-  const done = segMarkers.filter(
-    m => m.status === 'asetettu' || m.status === 'tarkistettu' || m.status === 'kerätty',
-  ).length
-  return Math.round((done / segMarkers.length) * 100)
 }
 
 // T141/B61/V88: lukumäärä per status, pätkäjako-listan riville. Vain count>0 -statukset näytetään UI:ssa.
@@ -175,16 +172,44 @@ export function formatPhaseProgress(progress: PhaseProgress): string {
   return `${progress.done}/${progress.total} ${progress.label}`
 }
 
-// V49: overlap = startDist2 < endDist1 && startDist1 < endDist2. excludeId skips own segment on edit.
+// T152/V96: pätkän tunnistehue stabiili per id (⊥ lista-indeksi — poisto ei siirrä muiden värejä).
+// Paletti EI sisällä route-värejä (main.ts ROUTE_DEFS #f59e0b/#8b5cf6, DESIGN.md §K).
+export const SEGMENT_COLORS = ['#10b981', '#ec4899', '#3b82f6', '#ef4444', '#06b6d4', '#64748b']
+
+export function colorForSegment(id: string): string {
+  let hash = 0
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) | 0
+  }
+  return SEGMENT_COLORS[Math.abs(hash) % SEGMENT_COLORS.length]
+}
+
+// T152/V96: viivatyyli kartalla kertoo statuksen — kolme ämpäriä getPhaseProgress-tuloksesta.
+// ei_alkanut = haalea katko, kesken = täysi katko, valmis = ehjä.
+export type SegmentLineState = 'ei_alkanut' | 'kesken' | 'valmis'
+
+export function segmentLineState(progress: PhaseProgress): SegmentLineState {
+  if (progress.kind === 'boolean') {
+    return progress.done ? 'valmis' : 'ei_alkanut'
+  }
+  if (progress.total === 0 || progress.done === 0) return 'ei_alkanut'
+  if (progress.done >= progress.total) return 'valmis'
+  return 'kesken'
+}
+
+// V49/V95: overlap = startDist2 < endDist1 && startDist1 < endDist2, vain saman phasen sisällä
+// (eri vaiheiden pätkät saavat olla päällekkäin, V91). excludeId skips own segment on edit.
 export function validateNoOverlap(
   store: SegmentStore,
   routeId: string,
   startDist: number,
   endDist: number,
+  phase: Segment['phase'],
   excludeId?: string,
 ): boolean {
   for (const seg of store.values()) {
     if (seg.id === excludeId) continue
+    if (seg.phase !== phase) continue
     if (!seg.routeIds.includes(routeId)) continue
     if (startDist < seg.endDist && seg.startDist < endDist) return false
   }

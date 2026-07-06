@@ -18,6 +18,8 @@ export class SegmentCreationModal {
     private readonly store: SegmentStore,
     private readonly onCancel: () => void,
     private readonly onSaved: (seg: Segment) => void,
+    // T150/V94: uusi pätkä syntyy järjestäjän aktiiviseen phase-näkymään, ei hardcoded 'asettaminen'
+    private readonly getPhase: () => Segment['phase'] = () => 'asettaminen',
   ) {
     this.segmentCounter = store.size
   }
@@ -174,7 +176,7 @@ export class SegmentCreationModal {
       const seg = createSegment(this.store, {
         routeIds, startDist, endDist,
         equipment: [],
-        phase: 'asettaminen',
+        phase: this.getPhase(),
         displayName,
         description,
       })

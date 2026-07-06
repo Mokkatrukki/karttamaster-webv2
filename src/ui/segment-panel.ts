@@ -62,6 +62,7 @@ export class SegmentPanel {
         this.onUpdate()
         void seg
       },
+      () => this.creationPhase(),
     )
 
     this.detailsModal = new SegmentDetailsModal(
@@ -86,6 +87,11 @@ export class SegmentPanel {
 
   isCreationMode(): boolean {
     return this.state.mode !== 'idle'
+  }
+
+  // T150/T151/V94: uusi pätkä + overlap-validointi kohdistuu aktiiviseen phase-näkymään
+  private creationPhase(): Segment['phase'] {
+    return this.callbacks.getActivePhase?.() ?? 'asettaminen'
   }
 
   cancelCreation(): void {
@@ -133,7 +139,7 @@ export class SegmentPanel {
         return
       }
 
-      if (!validateNoOverlap(this.store, first.routeId, startDist, endDist)) {
+      if (!validateNoOverlap(this.store, first.routeId, startDist, endDist, this.creationPhase())) {
         this.creationModal.setError('Pätkä menee päällekkäin — valitse eri pisteet')
         return
       }

@@ -68,19 +68,8 @@ karttamaster-pm    →  karttamaster-spec   →  karttamaster-       →  kartta
 
 ## localStorage-mock (Node v26 conflict)
 
-Testeissä jotka käyttävät localStorage — käytä aina `vi.stubGlobal`:
-
-```typescript
-beforeEach(() => {
-  let store: Record<string, string> = {}
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => store[k] ?? null,
-    setItem: (k: string, v: string) => { store[k] = v },
-    removeItem: (k: string) => { delete store[k] },
-    clear: () => { store = {} },
-  })
-})
-```
+localStorage-testeissä aina `vi.stubGlobal`-mock — natiivi localStorage konfliktoi Node v26:ssa.
+Pohja: `/karttamaster-testaaja` → "localStorage-mock" (ainoa koti, ei kopioita tänne).
 
 ## Arkkitehtuurirajat
 
@@ -92,10 +81,10 @@ beforeEach(() => {
 
 Logiikka väärässä kerroksessa = bugi. Kutsu `/karttamaster-arkkitehtuuri`.
 
-## Pilkkohälytykset (tarkista ennen T10/T12)
+## Pilkkohälytykset
 
-- `src/main.ts` — 385 riviä, 4 vastuuta → pilkottava ennen T12/T32
-- `src/map/markers.ts` — 309 riviä → pilkottava ennen T10
+Ajantasaiset liput: **COMPONENTS.md §Pilkkohälytykset** — ainoa lista.
+Rivimäärät laskee `/karttamaster-arkkitehtuuri analysoi` livenä. Älä kirjaa lukuja tänne — ne mätänevät.
 
 ## Testaus
 

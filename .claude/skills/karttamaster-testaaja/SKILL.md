@@ -38,6 +38,13 @@ Nämä kutsut tehdään saman session aikana — ei pelkkää raportointia.
 3. Aja `find src/ui -name "*.ts" | sort` — listaa UI-komponentit
 4. Vertaa — onko jsdom-testi per UI-komponentti?
 5. Aja `bun run test` — laske `↓`-rivit (todo-testit)
+6. **Testit ajautuvat -tarkistus** — testi joka ei aja on valhetta:
+   - Aja `find src server -name "*.test.ts" -o -name "*.spec.ts" | grep -v node_modules` ja
+     vertaa vitest includeen (`vite.config.ts` → `tests/**`) sekä `bun test server/`-piiriin.
+     Testitiedosto jota mikään runner ei poimi = kuollut → poista tai siirrä oikeaan paikkaan.
+     (Syy: `src/logic/tile-layers.test.ts` makasi kuukausia ajamattomana ja duplikoi tests/-testin.)
+   - Todo-testit: jos `it.todo` kuvaa featurea joka on jo katettu muualla (esim. e2e:ssä) tai
+     UI:ta joka on poistettu, poista todo — stale-todot hämärtävät "↓ = roadmap" -signaalin.
 
 **Jokainen puuttuva Taso 1 -testi → kutsu `/ck:spec`** lisätäksesi §T-taskin.
 

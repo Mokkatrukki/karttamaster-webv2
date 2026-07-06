@@ -1,13 +1,19 @@
 import L from 'leaflet'
 import { nearestPointIndex } from '../logic/bearing'
-import type { RoutePoint } from '../logic/types'
-import type { Segment, SegmentStore } from '../logic/segments'
+import type { RoutePoint, SignMarker } from '../logic/types'
+import type { Segment, SegmentStore, SegmentLineState } from '../logic/segments'
+import { colorForSegment, segmentLineState, getPhaseProgress } from '../logic/segments'
 
 interface RouteRef { id: string; routePoints: RoutePoint[] }
 
-// DESIGN.md §K SegmentOverlay — värit valittu erilleen route-paletista (main.ts ROUTE_DEFS: #f59e0b, #8b5cf6)
-const SEGMENT_COLORS = ['#10b981', '#ec4899', '#3b82f6', '#ef4444', '#06b6d4', '#64748b']
 const GAP_COLOR = '#94a3b8'
+
+// T152/V96: viivatyyli = status. Väri = tunniste (colorForSegment), tyyli näistä.
+const LINE_STATE_STYLE: Record<SegmentLineState, { opacity: number; weight: number; dashArray?: string }> = {
+  valmis:     { opacity: 0.9,  weight: 11 },              // ehjä
+  kesken:     { opacity: 0.85, weight: 11, dashArray: '1 9' }, // täysi katko
+  ei_alkanut: { opacity: 0.4,  weight: 9,  dashArray: '1 9' }, // haalea katko
+}
 
 export class SegmentOverlay {
   private layers: L.Layer[] = []
@@ -24,7 +30,7 @@ export class SegmentOverlay {
     this.onSegmentClick = cb
   }
 
-  update(store: SegmentStore): void {
+  update(store: SegmentStore, markers: SignMarker[] = []): void {
     this.clear()
     const segments = Array.from(store.values())
 
@@ -39,20 +45,25 @@ export class SegmentOverlay {
       }
     }
 
-    // Colored segment stripes on top
-    segments.forEach((seg, idx) => {
-      const color = SEGMENT_COLORS[idx % SEGMENT_COLORS.length]
+    // T152/V96: väri = tunniste (stabiili per id), viivatyyli = phase-status
+    for (const seg of segments) {
+      const color = colorForSegment(seg.id)
+      const progress = getPhaseProgress(seg, markers)
+      const state = segmentLineState(progress)
+      const style = LINE_STATE_STYLE[state]
+      // tarkastus-vaiheen valmis-pätkä saa ✓ tooltipiin
+      const labelSuffix = seg.phase === 'tarkastus' && state === 'valmis' ? ' ✓' : ''
       for (const routeId of seg.routeIds) {
         const route = this.routes.find(r => r.id === routeId)
         if (!route) continue
         const pts = sliceRoutePoints(route.routePoints, seg.startDist, seg.endDist)
         if (pts.length < 2) continue
         const line = L.polyline(pts, {
-          color, weight: 11, opacity: 0.85,
-          dashArray: '1 9', lineCap: 'round',
+          color, weight: style.weight, opacity: style.opacity,
+          dashArray: style.dashArray, lineCap: 'round',
         })
         if (seg.displayName) {
-          line.bindTooltip(seg.displayName, { permanent: true, className: 'segment-label', direction: 'center' })
+          line.bindTooltip(seg.displayName + labelSuffix, { permanent: true, className: 'segment-label', direction: 'center' })
         }
         if (this.onSegmentClick) {
           const clickedSeg = seg
@@ -64,7 +75,7 @@ export class SegmentOverlay {
         line.addTo(this.map)
         this.layers.push(line)
       }
-    })
+    }
   }
 
   clear(): void {

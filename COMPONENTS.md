@@ -1,9 +1,13 @@
 # COMPONENTS.md — Karttamaster komponenttirekisteri (indeksi)
 
-Lähde totuus arkkitehtuurista. Päivitetään ennen kuin feature lisätään.
-Ohjaavat periaatteet: VISION.md. Taskit ja invariantit: SPEC.md.
+Totuus **arkkitehtuurista**: komponentit, kerrokset, pilkkoliput.
+Task-statukset: SPEC.md §T (ainoa totuus). Periaatteet: VISION.md.
 
 **Yksityiskohdat hakemistossa:** `docs/components/`
+
+**Ei rivimääriä tähän tiedostoon** — ne vanhenevat päivissä. `/karttamaster-arkkitehtuuri analysoi`
+laskee ne livenä (`wc -l`). Tila-soluun vain: tila + viimeisin T-id + korkeintaan yksi elävä huomio.
+Historia on gitissä ja SPEC §T/§B:ssä.
 
 ---
 
@@ -27,121 +31,94 @@ server/       ← Hono + Bun + SQLite
 
 | Komponentti | Moduuli | Tila | E2E | Docs |
 |---|---|---|---|---|
-| RouteGeoMath | `src/logic/bearing.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
-| GpxLoader | `src/logic/gpx.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
-| MultiRouteAssigner | `src/logic/multi-route.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
-| SignTypes | `src/logic/sign-picker.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
-| TileLayers | `src/logic/tile-layers.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
-| Types | `src/logic/types.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
+| RouteGeoMath | `src/logic/bearing.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
+| GpxLoader | `src/logic/gpx.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
+| MultiRouteAssigner | `src/logic/multi-route.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
+| SignTypes | `src/logic/sign-picker.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
+| TileLayers | `src/logic/tile-layers.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
+| Types | `src/logic/types.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | PersistenceLayer | `src/logic/persistence.ts` | ✓ T29 | — | [logic.md](docs/components/logic.md) |
 | SignLibrary | `src/logic/sign-library.ts` | ✓ T8 | — | [logic.md](docs/components/logic.md) |
 | MarkerStatus | `src/logic/marker-status.ts` | ✓ T10 | — | [logic.md](docs/components/logic.md) |
-| SegmentManager | `src/logic/segments.ts` | ✓ T13,T144,T146 | — | [logic.md](docs/components/logic.md) |
+| SegmentManager | `src/logic/segments.ts` | ✓ T153 | — | [logic.md](docs/components/logic.md) |
 | PhaseView | `src/logic/phase-view.ts` | ✓ T148 | — | [logic.md](docs/components/logic.md) |
-| RoleController | `src/logic/role.ts` | ✓ T12, huom B48/V80 (#btn-role dead code, rooli backendistä) | critical-paths: "Rooli backendistä" | [logic.md](docs/components/logic.md) |
+| RoleController | `src/logic/role.ts` | ✓ T12 (V80: rooli backendistä, toggle dead code) | critical-paths: "Rooli backendistä" | [logic.md](docs/components/logic.md) |
 | SituationLogic | `src/logic/situation.ts` *(ei vielä)* | ○ T15 | — | [logic.md](docs/components/logic.md) |
 | NavigationLogic | `src/logic/navigation.ts` | ✓ T16 | — | [logic.md](docs/components/logic.md) |
 | SegmentSync | `src/logic/segment-sync.ts` | ✓ T62 | — | [logic.md](docs/components/logic.md) |
-| AreaTypes | `src/logic/area-types.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
-| AreaGeometry | `src/logic/area-geometry.ts` 126 riv | ✓ valmis | — | [logic.md](docs/components/logic.md) |
-| AreaSync | `src/logic/area-sync.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
-| IconSet | `src/logic/icon-set.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
-| MarkerAssign | `src/logic/marker-assign.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
-| RouteStatus | `src/logic/route-status.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
-| SegmentActions | `src/logic/segment-actions.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
-| SegmentPersistence | `src/logic/segment-persistence.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
-| Sync | `src/logic/sync.ts` | ✓ valmis | — | [logic.md](docs/components/logic.md) |
-| SignIcon | `src/map/icons.ts` | ✓+B57+T138+B58+T139+B59+T140 (poistettu duplikoiva nurkkabadge; statusväri ulkoreunassa, täyttö pysyy aina tyyppikuvana) | critical-paths: "toolbar-dropdown" | [map.md](docs/components/map.md) |
-| DriveMode | `src/map/drive.ts` | ✓ valmis | critical-paths: "Drive mode" | [map.md](docs/components/map.md) |
-| MarkerManager | `src/map/markers.ts` 294 riv | ✓+B1+B45+B54+T130+T135 (bearing poistettu, drag ei enää avaa modaalia) | critical-paths: "Merkki kartalle", "Drag-to-move" | [map.md](docs/components/map.md) |
-| RouteBar | `src/map/route-bar.ts` 125 riv | ✓ pilkko | — | [map.md](docs/components/map.md) |
+| AreaTypes | `src/logic/area-types.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
+| AreaGeometry | `src/logic/area-geometry.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
+| AreaSync | `src/logic/area-sync.ts` | ✓ T154 | — | [logic.md](docs/components/logic.md) |
+| IconSet | `src/logic/icon-set.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
+| MarkerAssign | `src/logic/marker-assign.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
+| RouteStatus | `src/logic/route-status.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
+| SegmentActions | `src/logic/segment-actions.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
+| SegmentPersistence | `src/logic/segment-persistence.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
+| Sync | `src/logic/sync.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
+| SignIcon | `src/map/icons.ts` | ✓ T140 | critical-paths: "toolbar-dropdown" | [map.md](docs/components/map.md) |
+| DriveMode | `src/map/drive.ts` | ✓ | critical-paths: "Drive mode" | [map.md](docs/components/map.md) |
+| MarkerManager | `src/map/markers.ts` | ✓ T135 | critical-paths: "Merkki kartalle", "Drag-to-move" | [map.md](docs/components/map.md) |
+| RouteBar | `src/map/route-bar.ts` | ✓ | — | [map.md](docs/components/map.md) |
 | GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30 | critical-paths: "GPS-paikannin" | [map.md](docs/components/map.md) |
-| AreaOverlay | `src/map/area-overlay.ts` 261 riv | ✓ valmis | area-interaction | [map.md](docs/components/map.md) |
-| MapRectEditor | `src/map/map-rect-editor.ts` 316 riv | ✓ T117 | area-interaction | [map.md](docs/components/map.md) |
-| SegmentOverlay | `src/map/segment-overlay.ts` 184 riv | ✓ valmis | — | [map.md](docs/components/map.md) |
-| MarkerListUI | `src/ui/marker-list.ts` 261 riv | ✓ T11,T24 | — | [ui.md](docs/components/ui.md) |
-| ProgressBar | `src/ui/progress-bar.ts` | ✓ pilkko | critical-paths: "Drive mode" | [ui.md](docs/components/ui.md) |
-| PlaceMode | `src/ui/place-mode.ts` | ✓+B2+B55+T136 (armFromSidebar/placeArmedAt) | critical-paths: "Merkki kartalle", "dblclick", "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
-| AppController | `src/main.ts` 454 riv ⚠️ | ✓ pilkko | critical-paths: kaikki | [ui.md](docs/components/ui.md) |
-| SignLibraryPanel | `src/ui/sign-library-panel.ts` 346 riv | ✓ T22+B55+T136 (kaikki rivit sijoitettavissa, ei suosikkivaatimusta) | critical-paths: "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
-| RoleSelector | `src/ui/role-selector.ts` | ✓ T12, huom B48/V80 (toggle-klikkaus dead code — `lockedRole` aina asetettu) | critical-paths: "Rooli backendistä" | [ui.md](docs/components/ui.md) |
-| SegmentPanel | `src/ui/segment-panel.ts` 294 riv | ✓ T25,T142,T143,T148 (phase-suodin) | e2e/segments.spec.ts ".segment-km näyttää status-lukumäärän" | [ui.md](docs/components/ui.md) |
-| SegmentCreationModal | `src/ui/segment-creation-modal.ts` 195 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
-| SegmentDetailsModal | `src/ui/segment-details-modal.ts` 518 riv ⚠️ | ✓ T146 (kloonaa seuraavaan vaiheeseen) — kasvanut isoksi (nimi/kuvaus/merkit/varusteet/assign/editpts/klooni/poisto), harkitse pilkkoa | — | [ui.md](docs/components/ui.md) |
-| EquipmentList | `src/ui/segment-view.ts` | ✓ T27,T147 (tarkastus-UI) | e2e/segments.spec.ts "tarkastus-segmentti näyttää..." | [ui.md](docs/components/ui.md) |
+| AreaOverlay | `src/map/area-overlay.ts` | ✓ | area-interaction | [map.md](docs/components/map.md) |
+| MapRectEditor | `src/map/map-rect-editor.ts` | ✓ T117 | area-interaction | [map.md](docs/components/map.md) |
+| SegmentOverlay | `src/map/segment-overlay.ts` | ✓ T152 | segments: "viivatyyli koodaa statuksen" | [map.md](docs/components/map.md) |
+| MarkerListUI | `src/ui/marker-list.ts` | ✓ T24 | — | [ui.md](docs/components/ui.md) |
+| ProgressBar | `src/ui/progress-bar.ts` | ✓ | critical-paths: "Drive mode" | [ui.md](docs/components/ui.md) |
+| PlaceMode | `src/ui/place-mode.ts` | ✓ T136 | critical-paths: "Merkki kartalle", "dblclick", "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
+| AppController | `src/main.ts` | ✓ ⚠️ pilkko | critical-paths: kaikki | [ui.md](docs/components/ui.md) |
+| SignLibraryPanel | `src/ui/sign-library-panel.ts` | ✓ T136 | critical-paths: "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
+| RoleSelector | `src/ui/role-selector.ts` | ✓ T12 (V80: toggle dead code) | critical-paths: "Rooli backendistä" | [ui.md](docs/components/ui.md) |
+| SegmentPanel | `src/ui/segment-panel.ts` | ✓ T148 | e2e/segments.spec.ts ".segment-km näyttää status-lukumäärän" | [ui.md](docs/components/ui.md) |
+| SegmentCreationModal | `src/ui/segment-creation-modal.ts` | ✓ T150 | — | [ui.md](docs/components/ui.md) |
+| SegmentDetailsModal | `src/ui/segment-details-modal.ts` | ✓ T146 ⚠️ pilkko | — | [ui.md](docs/components/ui.md) |
+| EquipmentList | `src/ui/segment-view.ts` | ✓ T147 | e2e/segments.spec.ts "tarkastus-segmentti näyttää..." | [ui.md](docs/components/ui.md) |
 | PhaseSwitcher | `src/ui/phase-switcher.ts` | ✓ T148 | — | [ui.md](docs/components/ui.md) |
-| AuthScreen | `src/ui/auth-screen.ts` 160 riv | ✓ T51 | — | [ui.md](docs/components/ui.md) |
+| AuthScreen | `src/ui/auth-screen.ts` | ✓ T51 | — | [ui.md](docs/components/ui.md) |
 | MapStateBadge | `src/ui/map-state-badge.ts` | stub — approval-konsepti poistettu (B46/V79), ei renderöi mitään | — | [ui.md](docs/components/ui.md) |
-| SnapshotPanel | `src/ui/snapshot-panel.ts` 172 riv | ✓ T50 | — | [ui.md](docs/components/ui.md) |
+| SnapshotPanel | `src/ui/snapshot-panel.ts` | ✓ T50 | — | [ui.md](docs/components/ui.md) |
 | LeftPanel | `src/ui/left-panel.ts` | ✓ T73 | critical-paths: "Left panel" | [ui.md](docs/components/ui.md) |
 | StatusPanel | `src/ui/status-panel.ts` | ✓ T28 | sprint-features: "T28" | [ui.md](docs/components/ui.md) |
-| ModalHelpers | `src/ui/modal-helpers.ts` | ✓ valmis | — | [ui.md](docs/components/ui.md) |
-| AreaDetailsModal | `src/ui/area-details-modal.ts` 370 riv | ✓ valmis | — | [ui.md](docs/components/ui.md) |
-| AreaPanel | `src/ui/area-panel.ts` 367 riv | ✓ valmis | area-interaction | [ui.md](docs/components/ui.md) |
-| AreaView | `src/ui/area-view.ts` | ✓ valmis | — | [ui.md](docs/components/ui.md) |
+| ModalHelpers | `src/ui/modal-helpers.ts` | ✓ | — | [ui.md](docs/components/ui.md) |
+| AreaDetailsModal | `src/ui/area-details-modal.ts` | ✓ | — | [ui.md](docs/components/ui.md) |
+| AreaPanel | `src/ui/area-panel.ts` | ✓ | area-interaction | [ui.md](docs/components/ui.md) |
+| AreaView | `src/ui/area-view.ts` | ✓ | — | [ui.md](docs/components/ui.md) |
 | GpkgControls | `src/ui/gpkg-controls.ts` | ✓ T127 | — | [ui.md](docs/components/ui.md) |
 | GpsDrivePanel | `src/ui/gps-drive-panel.ts` | ✓ T30 | — | [ui.md](docs/components/ui.md) |
-| MarkerDetailModal | `src/ui/marker-detail-modal.ts` 364 riv | ✓ T103+B56+T137 (järjestäjä voi asettaa minkä tahansa statuksen) | screenshots: "marker-detail-modal" | [ui.md](docs/components/ui.md) |
-| FeedbackWidget | `src/devtools/feedback-widget.ts` 494 riv | ✓ devtools | feedback-widget | — |
+| MarkerDetailModal | `src/ui/marker-detail-modal.ts` | ✓ T137 | screenshots: "marker-detail-modal" | [ui.md](docs/components/ui.md) |
+| FeedbackWidget | `src/devtools/feedback-widget.ts` | ✓ devtools | feedback-widget | — |
 | BackendServer | `server/index.ts` | ✓ T41 | — | [backend.md](docs/components/backend.md) |
-| DatabaseLayer | `server/db.ts` 151 riv | ✓ valmis | — | [backend.md](docs/components/backend.md) |
-| SegmentsAPI | `server/routes/segments.ts` | ✓ T61 | — | [backend.md](docs/components/backend.md) |
+| DatabaseLayer | `server/db.ts` | ✓ | — | [backend.md](docs/components/backend.md) |
+| SegmentsAPI | `server/routes/segments.ts` | ✓ T149 | — | [backend.md](docs/components/backend.md) |
 | AuthRoutes | `server/routes/auth.ts` | ✓ T36 | — | [backend.md](docs/components/backend.md) |
-| AdminRoutes | `server/routes/admin.ts` | ✓ T121 (users/invites/codes/is_active/reset-password) | — | [backend.md](docs/components/backend.md) |
-| MarkersAPI | `server/routes/markers.ts` | ✓ T47+T103 (description+images) | — | [backend.md](docs/components/backend.md) |
-| AreasAPI | `server/routes/areas.ts` 231 riv | ✓ valmis | area-interaction | [backend.md](docs/components/backend.md) |
-| DevFeedbackAPI | `server/routes/devfeedback.ts` | ✓ valmis | — | [backend.md](docs/components/backend.md) |
+| AdminRoutes | `server/routes/admin.ts` | ✓ T121 | — | [backend.md](docs/components/backend.md) |
+| MarkersAPI | `server/routes/markers.ts` | ✓ T103 | — | [backend.md](docs/components/backend.md) |
+| AreasAPI | `server/routes/areas.ts` | ✓ | area-interaction | [backend.md](docs/components/backend.md) |
+| DevFeedbackAPI | `server/routes/devfeedback.ts` | ✓ | — | [backend.md](docs/components/backend.md) |
 | GpkgGeoJSON | `server/gpkg/geojson.ts` | ✓ T124 | — | [backend.md](docs/components/backend.md) |
 | GpkgConvert | `server/gpkg/convert.ts` | ✓ T125 | — | [backend.md](docs/components/backend.md) |
-| GpkgRoutes | `server/routes/gpkg.ts` | ✓ T125,T126 | — | [backend.md](docs/components/backend.md) |
-| AuthMiddleware | `server/middleware/auth.ts` | ✓ valmis | — | [backend.md](docs/components/backend.md) |
-| SnapshotScheduler | `server/snapshot-scheduler.ts` | ✓ valmis | — | [backend.md](docs/components/backend.md) |
-| ServerTypes | `server/types.ts` | ✓ valmis | — | [backend.md](docs/components/backend.md) |
+| GpkgRoutes | `server/routes/gpkg.ts` | ✓ T126 | — | [backend.md](docs/components/backend.md) |
+| AuthMiddleware | `server/middleware/auth.ts` | ✓ | — | [backend.md](docs/components/backend.md) |
+| SnapshotScheduler | `server/snapshot-scheduler.ts` | ✓ | — | [backend.md](docs/components/backend.md) |
+| ServerTypes | `server/types.ts` | ✓ | — | [backend.md](docs/components/backend.md) |
 | MapStateAPI | `server/routes/admin.ts` | ○ T48 | — | [backend.md](docs/components/backend.md) |
 | OfflineManager | `public/sw.js` *(ei vielä)* | ○ T18 | — | [backend.md](docs/components/backend.md) |
 | AdminPage | `admin.html` + `src/admin.ts` + `src/ui/admin-page.ts` | ✓ T122 | — | [ui.md](docs/components/ui.md) |
 
-**Tila:** ✓ = valmis, ○ = tulossa, B# = avoin bugi, pilkko = rivimäärä kasvaa, ⚠️ = kriittinen pilkko
+**Tila:** ✓ = valmis (+ viimeisin T-id) | ○ T-id = tulossa | ⚠️ pilkko = pilkkolippu
 
 ---
 
-## MVP-rajaus
+## MVP-vaiheet
 
-> **Huom 2026-06-25:** Vaihe 1/2a/2b-jako poistettu — se kuvasi offline-first/localStorage-arkkitehtuuria joka on korvattu. Backend on ainoa totuus (V18). localStorage ei enää käytetä merkeille eikä segmenteille (T63–T65). T42 sync-logiikka ja T43 merge-UI ovat vanhentuneita — backend-write on synkronointi.
+Task-statukset ja sisällöt: **SPEC.md §T**. Tässä vain vaihejako ja avoimet task-id:t.
 
----
-
-**Vaihe 1 — Suunnittelu + merkinnät** (yksi laite, perustoiminnot): **VALMIS ✓**
-GPX-lataus, merkit kartalle, drive mode, sign library, persistointi.
-Taskit: T1–T6, T8–T12, T15–T16, T22–T23, T29–T33, T37–T38, T40, T44–T46.
-
-**Vaihe 2 — Multi-device + auth** (backend totuus, useampi laite): **VALMIS ✓**
-Backend, auth, markers API, segments backend, direct-write, snapshot, auth screen.
-Taskit: T36, T41, T47–T55, T59–T68, T70–T73, T81–T101, T104–T105, T115–T117.
-
-**Vaihe 3 — Talkoolainen metsässä** (täysi kenttätyöflow):
-Kriittisin puuttuva: talkoolaisen UX viimeistely + reaaliaikainen sync järjestäjälle.
-- **T74** CheckIn bottom sheet — kuittaus-UX talkoolaiselle
-- **T78** Pätkän pituuden muokkaus kentällä
-- **T79** Reaaliaikainen sync (SSE/polling) — järjestäjä näkee muutokset <15s
-- **T75** Kommentti-systeemi (merkki/pätkä/vapaa piste)
-- **T72** Teema-toggle (daylight-teema metsässä auringossa)
-- **T134** UX-audit-korjaukset: `--text-meta`-kontrasti alle WCAG AA, U18/U19 36px-vaje, `.marker-item-checkbox` touch-target (todettu, ei korjattu — B51-B53)
-
-**Vaihe 4 — POI + purku:**
-- **T76** POI-järjestelmä (huoltoalueet, noutopisteet, kasat)
-- **T19** Purkupätkä (lähtösuunnan valinta)
-- **T20** Kasauspisteet (bulk-kerätty)
-- **T80** Materiaalien kirjaus purku-vaiheessa
-- **T103** Kuva + lisäkuvaus per merkki
-
-**Myöhemmin / tarvittaessa:**
-- T7 (GPX-reitit 3+4 — tiedostot ei saatavilla)
-- T18 (offline/PWA)
-- T21 (live tracking — oma GPS muille näkyviin)
-- T34 (GPX-korvaus merge-flow)
-- T39 (drive mode "hyppää seuraavaan")
-- T102 (merkkilista-haku — järjestäjälle)
+- **Vaihe 1 — Suunnittelu + merkinnät** (yksi laite): **VALMIS ✓**
+- **Vaihe 2 — Multi-device + auth** (backend totuus): **VALMIS ✓**
+  *(Huom 2026-06-25: offline-first/localStorage-arkkitehtuuri korvattu — backend on ainoa totuus (V18). T42/T43 vanhentuneet.)*
+- **Vaihe 3 — Talkoolainen metsässä** (täysi kenttätyöflow): T74, T78, T79, T75, T72, T134
+- **Vaihe 4 — POI + purku:** T76, T19, T20, T80, T103
+- **Myöhemmin / tarvittaessa:** T7, T18, T21, T34, T39, T102
 
 Lisää: [backend.md — Vaiheistus](docs/components/backend.md)
 
@@ -149,29 +126,33 @@ Lisää: [backend.md — Vaiheistus](docs/components/backend.md)
 
 ## Pilkkohälytykset
 
-| Moduuli | Rivit | Milloin pilkotaan |
+Rivimäärät laskee `/karttamaster-arkkitehtuuri analysoi` livenä (`wc -l`) — ei lukuja tähän.
+Lippu ilman toimenpidettä on hukkaa: ⚠️-tason lippu → varmista pilkko-§T-task SPEC:ssä.
+
+| Moduuli | Lippu | Peruste |
 |---|---|---|
-| `src/ui/segment-details-modal.ts` | **490** | Seuraa |
-| `src/ui/area-panel.ts` | **367** | Seuraa |
-| `src/devtools/feedback-widget.ts` | **494** | Devtools, ei tuotantoon — ei pilkota mutta ei kasvateta |
-| `src/main.ts` | **414** | ⚠️ KRIITTINEN — 5× liian iso init-tiedostolle, pilkottava (T12/T32) |
-| `src/map/map-rect-editor.ts` | **316** | Seuraa — erota drag-logiikka jos kasvaa >400 riv |
-| `src/ui/sign-library-panel.ts` | **346** | Seuraa |
-| `src/ui/marker-detail-modal.ts` | **364** | Seuraa — kasvoi T103/T137:ssä (kuvaus+kuvat, status-rivi), harkitse pilkkoa jos >400 riv |
-| `src/map/area-overlay.ts` | **261** | Seuraa |
-| `src/map/markers.ts` | **294** | Seuraa — pilkottava ennen T10 |
+| `src/main.ts` | ⚠️ KRIITTINEN | init-tiedosto, tavoite ~80 riv, moninkertaisesti yli — pilkko-task T155 |
+| `src/ui/segment-details-modal.ts` | ⚠️ | monta vastuuta: nimi/kuvaus/merkit/varusteet/assign/editpts/klooni/poisto |
+| `src/ui/area-panel.ts` | ⚠️ | ylittää 400 riv -kynnyksen (analysoi 2026-07-04) |
+| `src/ui/sign-library-panel.ts` | seuraa | — |
+| `src/ui/marker-detail-modal.ts` | seuraa | kasvoi T103/T137:ssä |
+| `src/map/map-rect-editor.ts` | seuraa | erota drag-logiikka jos vastuut eriytyvät |
+| `src/map/area-overlay.ts` | seuraa | — |
+| `src/map/markers.ts` | seuraa | — |
+| `src/devtools/feedback-widget.ts` | ei pilkota | devtools, ei tuotantoon — mutta ei kasvateta |
 
 ---
 
 ## Päivitysohjeet skilleille
 
-**`/karttamaster-arkkitehtuuri`** — kun lisätään uusi komponentti:
-1. Lisää rivi komponenttitaulukkoon tähän tiedostoon
+**`/karttamaster-arkkitehtuuri`** — uusi komponentti:
+1. Lisää rivi komponenttitaulukkoon (tila ○)
 2. Lisää yksityiskohdat oikeaan `docs/components/`-tiedostoon
+3. Ei rivimääriä eikä changelog-tekstiä taulukkosoluihin
 
-**`/ck:spec`** — kun uusi §T-task lisätään:
-1. Tarkista onko komponentti jo COMPONENTS.md:ssä (○ tai ✓)
-2. Jos ei ole, lisää komponenttitaulukkoon ensin
-3. Päivitä status ✓ kun task valmis
+**`/ck:spec`** — uusi §T-task:
+1. Tarkista onko komponentti taulukossa (○ tai ✓); jos ei, lisää ensin
+2. Task valmis → tila ✓ + T-id (src/logic/: vain jos Taso 1 -testi olemassa, ks. sync-spec)
 
-**Synkronointi:** SPEC.md §T task-id:t vastaavat `docs/components/`-tiedostojen Tulossa-listoja. Kun task merkitään ✓ SPEC:issä, päivitä ominaisuus → ✓ ja status → ✓ tässä tiedostossa.
+**Synkronointi:** `sync-spec` päivittää statukset SPEC §T:stä; `analysoi` päivittää pilkkoliput
+live-rivimääristä. Kumpaakaan ei ylläpidetä käsin muistin varassa.

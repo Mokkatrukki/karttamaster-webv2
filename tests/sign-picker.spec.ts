@@ -62,24 +62,6 @@ describe('Sign icons — all 4 types', () => {
   })
 })
 
-describe('Floating sign picker — dblclick flow', () => {
-  it.todo('dblclick on map opens floating picker ~20px below click point')
-  it.todo('picker position adapts when near viewport edges (shifts diagonally)')
-  it.todo('clicking sign type in picker places marker at dblclick coords')
-  it.todo('rotation mode activates immediately after placement')
-  it.todo('picker closes after type selection')
-  it.todo('Escape closes picker without placing marker')
-  it.todo('clicking outside picker closes it without placing marker')
-})
-
-describe('"Merkit" toolbar dropdown flow', () => {
-  it.todo('"Merkit" button exists in toolbar; old btn-add-right/btn-add-left absent')
-  it.todo('clicking "Merkit" opens sign type dropdown below button')
-  it.todo('dropdown shows all 4 sign types')
-  it.todo('selecting type enters place-mode (cursor changes to crosshair)')
-  it.todo('map click in place-mode places marker at click coords')
-  it.todo('new marker appears highlighted in marker list after placement')
-  it.todo('rotation mode activates immediately after map click placement')
-  it.todo('Escape in place-mode cancels without placing')
-  it.todo('clicking outside dropdown closes without entering place-mode')
-})
+// T154: dblclick-picker-flow (open/close/select/Escape) katettu e2e/critical-paths.spec.ts:ssä.
+// Edge-sijoittelu katettu yllä positionPicker-yksikkötesteissä.
+// "Merkit"-dropdown-flow poistettu — kuvasi T85:ssä korvatun vanhan UI:n.

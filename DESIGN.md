@@ -443,12 +443,18 @@ CSS-luokat:
 - Toimintonapit (`.admin-toggle-active-btn`, `.admin-copy-invite-btn`): `min-height:44px`, `field-tint` tausta
 
 ### SegmentOverlay (Leaflet-layer, `src/map/segment-overlay.ts`)
-- Pätkäkaista: `weight: 11, opacity: 0.85, dashArray: '1 9', lineCap: 'round'` — pistekuvio "merkkausteippi" reitin päällä, ei kiinteä viiva kuten reitti (erottuu myös harmaasävynäytöllä/värisokealle)
-- Väri rotaatiosta SEGMENT_COLORS (alla) — **paletti ei saa sisältää route-värejä** (`main.ts ROUTE_DEFS`: `#f59e0b`, `#8b5cf6`) — muuten pätkä sulautuu reittiin kun ne ovat samanvärisiä
+- **T152/V96: kaksi visuaalista kanavaa erikseen** — väri = *tunniste* (kuka), viivatyyli = *status* (missä vaiheessa). Järjestäjä lukee molemmat yhdellä silmäyksellä (VISION UX-testi).
+- **Väri = tunniste, stabiili per `segment.id`**: `colorForSegment(id)` (`src/logic/segments.ts`) hashaa id → SEGMENT_COLORS-indeksi. EI lista-indeksi — pätkän poisto ei saa vaihtaa muiden värejä. Törmäys (sama hue) ok, tooltip-nimi erottaa.
+- **Viivatyyli = status** (`segmentLineState(getPhaseProgress(seg, markers))`, kolme ämpäriä):
+  - `valmis` → ehjä, `opacity: 0.9, weight: 11` (ei dashArray)
+  - `kesken` → täysi katko, `opacity: 0.85, weight: 11, dashArray: '1 9'`
+  - `ei_alkanut` → haalea katko, `opacity: 0.4, weight: 9, dashArray: '1 9'`
+- `update(store, markers)` — tarvitsee merkit progressiin. Kutsutaan sekä segmentin mutaatiosta ETTÄ merkin status-muutoksesta (`main.ts` MarkerManager onUpdate) — muuten kartan status jää jälkeen.
+- tarkastus-vaiheen valmis-pätkä: tooltip-nimeen `✓`
 - DisplayName: pysyvä tooltip `permanent: true`, CSS-class `segment-label`
 - Aukko (gap): `color: text-muted hex (#94a3b8), weight: 8, opacity: 0.3`
-- SEGMENT_COLORS (6 väriä, rotaatio indeksin mukaan):
-  `['#10b981', '#ec4899', '#3b82f6', '#ef4444', '#06b6d4', '#64748b']`
+- SEGMENT_COLORS (6 väriä, **paletti ei saa sisältää route-värejä** `#f59e0b`/`#8b5cf6`):
+  `['#10b981', '#ec4899', '#3b82f6', '#ef4444', '#06b6d4', '#64748b']` (nyt `src/logic/segments.ts`)
 
 
 **Regressiosuoja (V88):** `getSegmentStatusCounts()` (src/logic/segments.ts) yksikkötestaus ei riitä — T95 hävisi juuri koska pelkkä logiikkatesti jäi vihreäksi vaikka kutsupaikka katosi UI:sta. Pakollinen lisäksi: Vitest-jsdom-testi joka rakentaa oikean `main.ts`-wiring-polun (ei eristettyä komponenttia) ja tarkistaa että `#segment-status-bar` DOM-teksti sisältää oikean lukumäärän segmentStoren mutaation jälkeen. Tulevat refaktorit jotka koskevat `#map-area`-lasten järjestystä tai `SegmentPanel`/`segment-view`-riviä eivät saa läpäistä testejä jos tämä kutsu putoaa pois.
