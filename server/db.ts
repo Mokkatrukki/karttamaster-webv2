@@ -135,6 +135,8 @@ function initSchema(db: Database): void {
   // T149/V93: tarkastuskuittaus persistoituu segmentille
   try { db.exec('ALTER TABLE segments ADD COLUMN inspected INTEGER NOT NULL DEFAULT 0') } catch { /* already exists */ }
   try { db.exec('ALTER TABLE segments ADD COLUMN inspection_note TEXT') } catch { /* already exists */ }
+  // T162/V100: snapshot kattaa koko datasetin (markers+segments+areas+area_features)
+  try { db.exec('ALTER TABLE snapshots ADD COLUMN dataset_json TEXT') } catch { /* already exists */ }
 
   const existing = db.query<{ count: number }, []>(
     "SELECT COUNT(*) as count FROM map_state WHERE key='status'"

@@ -4,6 +4,7 @@ import type { Database } from 'bun:sqlite'
 import type { AuthEnv } from '../middleware/auth'
 import { requireAuth, requireRole } from '../middleware/auth'
 import type { User, SessionData } from '../types'
+import { createSnapshot, restoreDataset, insertRows, type DatasetV1 } from '../snapshot-data'
 
 export const adminRoutes = new Hono<AuthEnv>()
 
@@ -80,41 +81,16 @@ adminRoutes.delete('/codes/:code', requireAuth(), requireRole('admin', 'järjest
 })
 
 // ── Snapshot helpers ────────────────────────────────────────────────────────
-
-interface MarkerRow {
-  id: string
-  type: string
-  lat: number
-  lon: number
-  distance_from_start: number
-  route_ids: string
-  status: string
-  location_note: string | null
-  updated_at: string
-  updated_by: string | null
-}
+// createSnapshot/restoreDataset/insertRows: ks. ../snapshot-data.ts (V100, jaettu)
 
 interface SnapshotRow {
   id: string
   label: string
   markers_json: string
+  dataset_json: string | null
   created_at: string
   created_by: string
   trigger: string
-}
-
-function createSnapshot(db: Database, label: string, createdBy: string, trigger: string): void {
-  const markers = db.query<MarkerRow, []>('SELECT * FROM markers').all()
-  db.run(
-    'INSERT INTO snapshots (id, label, markers_json, created_at, created_by, trigger) VALUES (?, ?, ?, ?, ?, ?)',
-    [randomUUID(), label, JSON.stringify(markers), new Date().toISOString(), createdBy, trigger],
-  )
-  // Prune: keep max 20 by insertion order (rowid is monotone, avoids timestamp ties)
-  db.run(`
-    DELETE FROM snapshots WHERE rowid NOT IN (
-      SELECT rowid FROM snapshots ORDER BY rowid DESC LIMIT 20
-    )
-  `)
 }
 
 // GET /api/admin/snapshots — max 20, newest first (no markers_json, too large)
@@ -151,21 +127,26 @@ adminRoutes.post('/snapshots/:id/restore', requireAuth(), requireRole('admin', '
   const snap = db.query<SnapshotRow, [string]>('SELECT * FROM snapshots WHERE id = ?').get(id)
   if (!snap) return c.json({ error: 'not_found' }, 404)
 
-  let markers: MarkerRow[]
+  // V100: dataset_json → koko dataset; legacy markers-only → vain markers (ei tyhjennä segments/areas)
+  let dataset: DatasetV1 | null = null
+  let legacyMarkers: Record<string, unknown>[] | null = null
   try {
-    markers = JSON.parse(snap.markers_json) as MarkerRow[]
+    if (snap.dataset_json) {
+      dataset = JSON.parse(snap.dataset_json) as DatasetV1
+    } else {
+      legacyMarkers = JSON.parse(snap.markers_json) as Record<string, unknown>[]
+    }
   } catch {
     return c.json({ error: 'corrupt_snapshot' }, 500)
   }
 
-  // V24: atomic — all or nothing
+  // V24/V100: atomic — all or nothing
   db.transaction(() => {
-    db.run('DELETE FROM markers')
-    for (const m of markers) {
-      db.run(
-        'INSERT INTO markers (id, type, lat, lon, distance_from_start, route_ids, status, location_note, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [m.id, m.type, m.lat, m.lon, m.distance_from_start, m.route_ids, m.status, m.location_note ?? null, m.updated_at, m.updated_by ?? null],
-      )
+    if (dataset) {
+      restoreDataset(db, dataset)
+    } else {
+      db.run('DELETE FROM markers')
+      insertRows(db, 'markers', legacyMarkers!)
     }
     const createdBy = session.display_name ?? session.role
     createSnapshot(db, `Palautus: ${snap.label}`, createdBy, 'restore')

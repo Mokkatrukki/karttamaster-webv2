@@ -1,5 +1,5 @@
-import { randomUUID } from 'crypto'
 import type { Database } from 'bun:sqlite'
+import { createSnapshot } from './snapshot-data'
 
 function msUntilNext03UTC(): number {
   const now = new Date()
@@ -12,22 +12,18 @@ function msUntilNext03UTC(): number {
 
 function takeNightlySnapshot(db: Database): void {
   try {
-    const markers = db.query('SELECT * FROM markers').all()
-    const label = `Yövarmuuskopio ${new Date().toISOString().slice(0, 10)}`
-    db.run(
-      'INSERT INTO snapshots (id, label, markers_json, created_at, created_by, trigger) VALUES (?, ?, ?, ?, ?, ?)',
-      [randomUUID(), label, JSON.stringify(markers), new Date().toISOString(), 'system', 'auto-yö'],
-    )
-    db.run(`
-      DELETE FROM snapshots WHERE rowid NOT IN (
-        SELECT rowid FROM snapshots ORDER BY rowid DESC LIMIT 20
-      )
-    `)
+    // V100: koko dataset. Jaettu createSnapshot — ei duplikoitua serialisointia (B66).
+    createSnapshot(db, `Yövarmuuskopio ${new Date().toISOString().slice(0, 10)}`, 'system', 'auto-yö')
   } catch (err) {
     console.error('[snapshot-scheduler] nightly snapshot failed:', err)
   }
 }
 
+/**
+ * HUOM (V101/B67): in-process-ajastin on best-effort — se kuolee kun fly-kone
+ * auto-stoppaa (auto_stop_machines=stop). Luotettava yökopio tulee ulkoisesta
+ * cron-pingistä (T163, POST /api/cron/snapshot). Tämä jää toissijaiseksi.
+ */
 export function scheduleNightlySnapshot(db: Database): void {
   const ms = msUntilNext03UTC()
   setTimeout(() => {

@@ -106,7 +106,8 @@ server/       ← Hono + Bun + SQLite
 | GpkgConvert | `server/gpkg/convert.ts` | ✓ T125 | — | [backend.md](docs/components/backend.md) |
 | GpkgRoutes | `server/routes/gpkg.ts` | ✓ T126 | — | [backend.md](docs/components/backend.md) |
 | AuthMiddleware | `server/middleware/auth.ts` | ✓ | — | [backend.md](docs/components/backend.md) |
-| SnapshotScheduler | `server/snapshot-scheduler.ts` | ✓ | — | [backend.md](docs/components/backend.md) |
+| SnapshotScheduler | `server/snapshot-scheduler.ts` | ✓ T162 (best-effort, ks. V101) | — | [backend.md](docs/components/backend.md) |
+| SnapshotData | `server/snapshot-data.ts` | ✓ T162 | — | [backend.md](docs/components/backend.md) |
 | ServerTypes | `server/types.ts` | ✓ | — | [backend.md](docs/components/backend.md) |
 | MapStateAPI | `server/routes/admin.ts` | ○ T48 | — | [backend.md](docs/components/backend.md) |
 | OfflineManager | `public/sw.js` *(ei vielä)* | ○ T18 | — | [backend.md](docs/components/backend.md) |
