@@ -1,20 +1,25 @@
 ---
-name: julkaise
+name: karttamaster-julkaise
 description: Commit + deploy skill for karttamaster-webv2. Use when user says "deployta", "julkaise", "laita tuotantoon", "vie liveksi", "commit ja deploy", "pushaa", or any variation of wanting to ship changes to fly.io. Runs tests first — stops on failure. Commits staged/unstaged changes then deploys to karttamaster-web.fly.dev.
 ---
 
-# Julkaise — Test → Commit → Deploy
+# Karttamaster-julkaise — Test → Commit → Deploy
 
 Workflow aina tässä järjestyksessä. Älä ohita vaiheita.
 
 ## 1. Testit
 
+Projekti on bun-only (ei npm) — ks. CLAUDE.md. Aja molemmat testitasot: Vitest (`src/`)
+ja Bun-integraatiotestit (`server/`). Pelkkä `test:ci` ei kata `server/`-koodia (Taso 4) —
+rikkinäinen server-testi pääsisi deployyn huomaamatta.
+
 ```bash
-npm run test:ci 2>&1
+bun run test:ci 2>&1
+bun run test:server 2>&1
 ```
 
-- Exit code 0 → tulosta "testit ok", jatka
-- Exit code != 0 → näytä virheet, **stop** — älä commitoi tai deployta
+- Molemmat exit code 0 → tulosta "testit ok", jatka
+- Jompikumpi exit code != 0 → näytä virheet, **stop** — älä commitoi tai deployta
 
 ## 2. Muutokset
 
