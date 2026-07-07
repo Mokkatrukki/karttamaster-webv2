@@ -1,0 +1,16 @@
+.env
+.env.*
+*.db
+*.db-shm
+*.db-wal
+node_modules
+.git
+.github
+dist
+test-results
+tests
+e2e
+.playwright-mcp
+.htpasswd
+claude-design-assets
+Kyltit Syöte MTB
