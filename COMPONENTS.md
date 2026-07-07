@@ -71,7 +71,7 @@ server/       ← Hono + Bun + SQLite
 | ProgressBar | `src/ui/progress-bar.ts` | ✓ | critical-paths: "Drive mode" | [ui.md](docs/components/ui.md) |
 | PlaceMode | `src/ui/place-mode.ts` | ✓ T172 | critical-paths: "Merkki kartalle", "dblclick", "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
 | AppController | `src/main.ts` | ✓ T155 | critical-paths: kaikki | [ui.md](docs/components/ui.md) |
-| MapInit | `src/app/map-init.ts` | ✓ T155 | critical-paths: kaikki (kartan pohja) | [ui.md](docs/components/ui.md) |
+| MapInit | `src/app/map-init.ts` | ✓ T179 | critical-paths: kaikki (kartan pohja); e2e/t179-map-invalidate-size.spec.ts | [ui.md](docs/components/ui.md) |
 | RoleView | `src/app/role-view.ts` | ✓ T155 | critical-paths: "Auth screen", "Rooli backendistä" | [ui.md](docs/components/ui.md) |
 | AreasWiring | `src/app/areas-wiring.ts` | ✓ T155 | area-interaction | [ui.md](docs/components/ui.md) |
 | SegmentsWiring | `src/app/segments-wiring.ts` | ✓ T155 | e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
@@ -86,7 +86,7 @@ server/       ← Hono + Bun + SQLite
 | AuthScreen | `src/ui/auth-screen.ts` | ✓ T51 | — | [ui.md](docs/components/ui.md) |
 | MapStateBadge | `src/ui/map-state-badge.ts` | stub — approval-konsepti poistettu (B46/V79), ei renderöi mitään | — | [ui.md](docs/components/ui.md) |
 | SnapshotPanel | `src/ui/snapshot-panel.ts` | ✓ T164 (lataa/palauta tiedostosta) | — | [ui.md](docs/components/ui.md) |
-| LeftPanel | `src/ui/left-panel.ts` | ✓ T73 | critical-paths: "Left panel" | [ui.md](docs/components/ui.md) |
+| LeftPanel | `src/ui/left-panel.ts` | ✓ T73,T179 (onToggle callback) | critical-paths: "Left panel"; e2e/t179-map-invalidate-size.spec.ts | [ui.md](docs/components/ui.md) |
 | StatusPanel | `src/ui/status-panel.ts` | ✓ T28 | sprint-features: "T28" | [ui.md](docs/components/ui.md) |
 | ModalHelpers | `src/ui/modal-helpers.ts` | ✓ T172 | — | [ui.md](docs/components/ui.md) |
 | AreaDetailsModal | `src/ui/area-details-modal.ts` | ✓ | — | [ui.md](docs/components/ui.md) |
