@@ -12,6 +12,8 @@ Työkalu SyöteMTB 2026 -tapahtuman reittimerkintöjen suunnitteluun, toteutukse
 
 **Konteksti:** toimisto tai koti, iso näyttö (laptop/desktop), hiiri, hyvä nettiyhteys, rauhallinen tilanne. Ei kiirettä mutta paljon yksityiskohtia hallittavana.
 
+**Mobiili (välttävä toiminta pakollinen):** Ensisijainen näkymä on desktop, mutta järjestäjän pitää pystyä *välttävään* toimintaan myös puhelimella: kartan katselu ja selailu, yksittäisen merkin lisäys/siirto, merkin tai pätkän tilanteen tarkistus, kokonaistilanteen silmäily. Tyypilliset tilanteet: jakaa testilinkkejä kaverille joka avaa mobiilissa, tai on itse kentällä ilman läppäriä. Ei täys-optimoitua mobiili-UI:ta (raskas suunnittelutyö jää desktopille), mutta core-toiminnot eivät saa olla rikki tai saavuttamattomissa mobiililla — kartan pitää latautua kokonaan, napit pitää osua, moodia ei saa vaihtaa vahingossa.
+
 **Mitä järjestäjä tekee:**
 - Lataa GPX-reitit (gravel + MTB, osin päällekkäiset). GPX voi päivittyä — merkit säilyvät, koska ne eivät ole sidottuja GPX-pisteisiin vaan kartalla itsenäisesti.
 - Rakentaa merkkikirjaston: "Huoltopiste 25km", "Alueella pyöräkilpailu", nuolet jne.

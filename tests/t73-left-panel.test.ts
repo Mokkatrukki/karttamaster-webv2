@@ -91,3 +91,54 @@ describe('T73 — LeftPanel toggle', () => {
     expect(toggleBtn.getAttribute('aria-label')).toBe('Sulje paneeli')
   })
 })
+
+describe('T179 — LeftPanel onToggle callback (map.invalidateSize hook)', () => {
+  let panel: HTMLElement
+  let toggleBtn: HTMLButtonElement
+
+  beforeEach(() => {
+    panel = document.createElement('div')
+    panel.id = 'left-panel'
+    const content = document.createElement('div')
+    content.id = 'left-panel-content'
+    toggleBtn = document.createElement('button')
+    toggleBtn.id = 'left-panel-toggle'
+    panel.appendChild(content)
+    panel.appendChild(toggleBtn)
+    document.body.appendChild(panel)
+  })
+
+  afterEach(() => {
+    document.body.removeChild(panel)
+  })
+
+  it('toggle() invokes onToggle callback', () => {
+    let calls = 0
+    const lp = new LeftPanel(panel, () => { calls++ })
+    lp.toggle()
+    expect(calls).toBe(1)
+    lp.toggle()
+    expect(calls).toBe(2)
+  })
+
+  it('open() invokes onToggle only when state actually changes', () => {
+    let calls = 0
+    const lp = new LeftPanel(panel, () => { calls++ })
+    lp.open()
+    expect(calls).toBe(0)
+    lp.toggle()
+    lp.open()
+    expect(calls).toBe(2)
+  })
+
+  it('constructor does not invoke onToggle on initial render', () => {
+    let calls = 0
+    new LeftPanel(panel, () => { calls++ })
+    expect(calls).toBe(0)
+  })
+
+  it('works without onToggle callback (optional param)', () => {
+    const lp = new LeftPanel(panel)
+    expect(() => lp.toggle()).not.toThrow()
+  })
+})

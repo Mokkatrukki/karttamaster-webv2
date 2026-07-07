@@ -39,7 +39,16 @@ export function initMap(): MapInit {
   const toolbarMenu = document.getElementById('toolbar-menu')!
 
   const leftPanelEl = document.getElementById('left-panel')
-  if (leftPanelEl) new LeftPanel(leftPanelEl)
+  if (leftPanelEl) new LeftPanel(leftPanelEl, () => map.invalidateSize())
+
+  let resizeTimer: ReturnType<typeof setTimeout> | undefined
+  const scheduleInvalidateSize = () => {
+    clearTimeout(resizeTimer)
+    resizeTimer = setTimeout(() => map.invalidateSize(), 150)
+  }
+  window.addEventListener('resize', scheduleInvalidateSize)
+  window.addEventListener('orientationchange', scheduleInvalidateSize)
+  window.visualViewport?.addEventListener('resize', scheduleInvalidateSize)
 
   document.getElementById('btn-menu')?.addEventListener('click', e => {
     e.stopPropagation()
