@@ -38,7 +38,7 @@ server/       ← Hono + Bun + SQLite
 | TileLayers | `src/logic/tile-layers.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | Types | `src/logic/types.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | PersistenceLayer | `src/logic/persistence.ts` | ✓ T29 | — | [logic.md](docs/components/logic.md) |
-| SignLibrary | `src/logic/sign-library.ts` | ✓ T8 | — | [logic.md](docs/components/logic.md) |
+| SignLibrary | `src/logic/sign-library.ts` | ✓ T171 | — | [logic.md](docs/components/logic.md) |
 | MarkerStatus | `src/logic/marker-status.ts` | ✓ T10 | — | [logic.md](docs/components/logic.md) |
 | SegmentManager | `src/logic/segments.ts` | ✓ T153 | — | [logic.md](docs/components/logic.md) |
 | PhaseView | `src/logic/phase-view.ts` | ✓ T148 | — | [logic.md](docs/components/logic.md) |
@@ -53,7 +53,7 @@ server/       ← Hono + Bun + SQLite
 | MarkerAssign | `src/logic/marker-assign.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | RouteStatus | `src/logic/route-status.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | SegmentActions | `src/logic/segment-actions.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
-| SignVisual | `src/logic/sign-visual.ts` | ✓ T158 | — | [logic.md](docs/components/logic.md) |
+| SignVisual | `src/logic/sign-visual.ts` | ✓ T171 | — | [logic.md](docs/components/logic.md) |
 | SignImages | `src/logic/sign-images.ts` | ✓ T158 (Vite glob, kuvia ei vielä) | — | [logic.md](docs/components/logic.md) |
 | SegmentPersistence | `src/logic/segment-persistence.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | Sync | `src/logic/sync.ts` | ✓ T170 | — | [logic.md](docs/components/logic.md) |
