@@ -131,6 +131,16 @@ describe('T176 — ImageGalleryPicker: kuva-galleria + zoom-lightbox (V99)', () 
   })
 
   describe('zoom-lightbox', () => {
+    it('zoom-napin klikattava alue on 44x44px (§A touch-target, myös hiirikäytössä)', () => {
+      const container = setup()
+      new SignLibraryPanel(container, createSignLibrary(), vi.fn(), vi.fn())
+      container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
+      document.body.querySelectorAll<HTMLButtonElement>('.sign-visual-tab')[1].click()
+      const zoomBtn = document.body.querySelector<HTMLElement>('.sign-image-zoom-btn')!
+      expect(zoomBtn.style.width).toBe('44px')
+      expect(zoomBtn.style.height).toBe('44px')
+    })
+
     it('zoom-napin klikkaus avaa lightboxin eikä valitse kuvaa', () => {
       const container = setup()
       const lib = createSignLibrary()
