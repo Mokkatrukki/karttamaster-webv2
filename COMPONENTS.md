@@ -55,7 +55,7 @@ server/       ← Hono + Bun + SQLite
 | RouteStatus | `src/logic/route-status.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | SegmentActions | `src/logic/segment-actions.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | SignVisual | `src/logic/sign-visual.ts` | ✓ T171 | — | [logic.md](docs/components/logic.md) |
-| SignImages | `src/logic/sign-images.ts` | ✓ T158 (Vite glob, kuvia ei vielä) | — | [logic.md](docs/components/logic.md) |
+| SignImages | `src/logic/sign-images.ts` | ✓ T158 (Vite glob, 89 kuvaa T161:stä) | — | [logic.md](docs/components/logic.md) |
 | SegmentPersistence | `src/logic/segment-persistence.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | Sync | `src/logic/sync.ts` | ✓ T172 | — | [logic.md](docs/components/logic.md) |
 | MarkerScale | `src/logic/marker-scale.ts` | ✓ T175 | — | [logic.md](docs/components/logic.md) |
