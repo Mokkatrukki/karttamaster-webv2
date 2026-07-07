@@ -48,13 +48,20 @@ function fromServer(row: ServerMarker): SignMarker {
   }
 }
 
-export async function fetchMarkers(): Promise<SignMarker[]> {
+// T184/V118: erottele "0 merkkiä" ja "lataus epäonnistui". Hiljainen []-paluu
+// piilotti verkko-/HTTP-virheen → tyhjä kartta luultiin todeksi → duplikaatit,
+// ja re-fetch (GPKG-tuonti, role-view) ylikirjoitti olemassa olevat merkit tyhjällä.
+export type MarkersResult =
+  | { ok: true; markers: SignMarker[] }
+  | { ok: false; error: 'http' | 'network' }
+
+export async function fetchMarkers(): Promise<MarkersResult> {
   try {
     const res = await fetch('/api/markers')
-    if (!res.ok) return []
+    if (!res.ok) return { ok: false, error: 'http' }
     const rows = await res.json() as ServerMarker[]
-    return rows.map(fromServer)
+    return { ok: true, markers: rows.map(fromServer) }
   } catch {
-    return []
+    return { ok: false, error: 'network' }
   }
 }

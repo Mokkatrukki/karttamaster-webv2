@@ -16,6 +16,14 @@ const SERVER_MARKER = {
 
 afterEach(() => vi.unstubAllGlobals())
 
+// T184/V118: fetchMarkers palauttaa diskriminoidun unionin — erottele
+// "lataus onnistui" (ok:true) ja "lataus epäonnistui" (ok:false). Testit
+// ottavat markkerit vain ok:true-haarasta.
+function okMarkers(res: Awaited<ReturnType<typeof fetchMarkers>>) {
+  if (!res.ok) throw new Error('expected ok:true')
+  return res.markers
+}
+
 describe('fetchMarkers', () => {
   it('fetches from server and maps to SignMarker', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
@@ -24,7 +32,7 @@ describe('fetchMarkers', () => {
       json: async () => [SERVER_MARKER],
     }))
 
-    const markers = await fetchMarkers()
+    const markers = okMarkers(await fetchMarkers())
     expect(markers).toHaveLength(1)
     expect(markers[0].id).toBe('test-id')
     expect(markers[0].distanceFromStart).toBe(1000)
@@ -40,34 +48,36 @@ describe('fetchMarkers', () => {
       json: async () => [withNote],
     }))
 
-    const markers = await fetchMarkers()
+    const markers = okMarkers(await fetchMarkers())
     expect(markers[0].locationNote).toBe('Puu vasemmalla')
   })
 
-  it('returns [] on network error', async () => {
+  // T184/V118: verkkovirhe → {ok:false, error:'network'} — EI hiljainen tyhjä.
+  it('returns ok:false network error on network failure', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network failure')))
-    const markers = await fetchMarkers()
-    expect(markers).toEqual([])
+    const res = await fetchMarkers()
+    expect(res).toEqual({ ok: false, error: 'network' })
   })
 
-  it('returns [] on server 500', async () => {
+  // T184/V118: HTTP 500 → {ok:false, error:'http'} — erottuu tyhjästä tuloksesta.
+  it('returns ok:false http error on server 500', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: false,
       status: 500,
       json: async () => ({}),
     }))
-    const markers = await fetchMarkers()
-    expect(markers).toEqual([])
+    const res = await fetchMarkers()
+    expect(res).toEqual({ ok: false, error: 'http' })
   })
 
-  it('returns [] on 401', async () => {
+  it('returns ok:false http error on 401', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: false,
       status: 401,
       json: async () => ({}),
     }))
-    const markers = await fetchMarkers()
-    expect(markers).toEqual([])
+    const res = await fetchMarkers()
+    expect(res).toEqual({ ok: false, error: 'http' })
   })
 
   it('T103: maps description and images from server', async () => {
@@ -82,7 +92,7 @@ describe('fetchMarkers', () => {
       json: async () => [withDesc],
     }))
 
-    const markers = await fetchMarkers()
+    const markers = okMarkers(await fetchMarkers())
     expect(markers[0].description).toBe('Kiinnitä puuhun')
     expect(markers[0].images).toEqual(['/api/markers/test-id/images/img1'])
   })
@@ -94,18 +104,19 @@ describe('fetchMarkers', () => {
       json: async () => [SERVER_MARKER],
     }))
 
-    const markers = await fetchMarkers()
+    const markers = okMarkers(await fetchMarkers())
     expect(markers[0].description).toBeUndefined()
     expect(markers[0].images).toBeUndefined()
   })
 
-  it('returns [] when server returns []', async () => {
+  // T184/V118: 200 + [] → {ok:true, markers:[]} — tyhjä on validi tulos, ei virhe.
+  it('returns ok:true with empty markers when server returns []', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => [],
     }))
-    const markers = await fetchMarkers()
-    expect(markers).toEqual([])
+    const res = await fetchMarkers()
+    expect(res).toEqual({ ok: true, markers: [] })
   })
 })

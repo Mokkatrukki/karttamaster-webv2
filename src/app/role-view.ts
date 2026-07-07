@@ -44,8 +44,15 @@ export function wireAuth(
       async () => {
         const activeMarkerManager = getActiveMarkerManager()
         if (!activeMarkerManager) return
-        const markers = await fetchMarkers()
-        activeMarkerManager.reload(markers)
+        // T184/V118: jos re-fetch epäonnistuu, ÄLÄ reload([]) — se pyyhkisi kaikki
+        // merkit kartalta. Säilytä nykyinen tila ja ilmoita virheestä.
+        const result = await fetchMarkers()
+        if (!result.ok) {
+          const statusEl = document.getElementById('gpkg-import-status')
+          if (statusEl) statusEl.textContent = '⚠ Merkkien lataus epäonnistui — päivitä sivu'
+          return
+        }
+        activeMarkerManager.reload(result.markers)
         activeMarkerManager.fixOrphanRouteIds()
       },
     )

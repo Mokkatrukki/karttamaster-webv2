@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fetchSegmentByCode, pushSegment, updateSegmentRemote, deleteSegmentRemote } from '../src/logic/segment-sync'
+import { fetchSegmentByCode, pushSegment, updateSegmentRemote, deleteSegmentRemote, fetchAllSegments } from '../src/logic/segment-sync'
 import { outbox } from '../src/logic/outbox-instance'
 import type { Segment } from '../src/logic/segments'
 
@@ -83,6 +83,29 @@ describe('T62: segment-sync — V36', () => {
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200 }))
       expect(await deleteSegmentRemote('seg-1')).toBe(true)
       expect(fetch).toHaveBeenCalledWith('/api/segments/seg-1', { method: 'DELETE' })
+    })
+  })
+
+  // T184/V118: erottele lataus-epäonnistuminen tyhjästä tuloksesta.
+  describe('fetchAllSegments', () => {
+    it('returns ok:true with segments on 200', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [SEG] }))
+      expect(await fetchAllSegments()).toEqual({ ok: true, segments: [SEG] })
+    })
+
+    it('returns ok:true empty on 200 + []', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [] }))
+      expect(await fetchAllSegments()).toEqual({ ok: true, segments: [] })
+    })
+
+    it('returns ok:false http on 500', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }))
+      expect(await fetchAllSegments()).toEqual({ ok: false, error: 'http' })
+    })
+
+    it('returns ok:false network on fetch reject', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')))
+      expect(await fetchAllSegments()).toEqual({ ok: false, error: 'network' })
     })
   })
 })

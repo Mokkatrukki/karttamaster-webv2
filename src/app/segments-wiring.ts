@@ -28,14 +28,20 @@ export async function wireSegments(
   initialMarkers: SignMarker[],
   markerManagerRef: { current: MarkerManager | null },
   onSaveError: () => void,
+  onLoadError: () => void = () => {},
 ): Promise<SegmentsWiring> {
   const segmentStore = new Map<string, Segment>()
   if (talkoolainenCode) {
     const remote = await fetchSegmentByCode(talkoolainenCode)
     if (remote) segmentStore.set(remote.id, remote)
   } else {
-    const all = await fetchAllSegments()
-    for (const seg of all) segmentStore.set(seg.id, seg)
+    // T184/V118: latausvirhe ≠ "0 pätkää" — älä jätä hiljaa tyhjää järjestäjän kartalle.
+    const result = await fetchAllSegments()
+    if (result.ok) {
+      for (const seg of result.segments) segmentStore.set(seg.id, seg)
+    } else {
+      onLoadError()
+    }
   }
 
   // T148: järjestäjä näkee kartalla vain aktiivisen phasen pätkät — talkoolainen aina omansa

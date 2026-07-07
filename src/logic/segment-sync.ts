@@ -48,12 +48,17 @@ export async function deleteSegmentRemote(id: string): Promise<boolean> {
   return delivered
 }
 
-export async function fetchAllSegments(): Promise<Segment[]> {
+// T184/V118: erottele "0 pätkää" ja "lataus epäonnistui" (sama peruste kuin fetchMarkers).
+export type SegmentsResult =
+  | { ok: true; segments: Segment[] }
+  | { ok: false; error: 'http' | 'network' }
+
+export async function fetchAllSegments(): Promise<SegmentsResult> {
   try {
     const resp = await fetch('/api/segments')
-    if (!resp.ok) return []
-    return (await resp.json()) as Segment[]
+    if (!resp.ok) return { ok: false, error: 'http' }
+    return { ok: true, segments: (await resp.json()) as Segment[] }
   } catch {
-    return []
+    return { ok: false, error: 'network' }
   }
 }

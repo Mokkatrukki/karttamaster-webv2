@@ -23,11 +23,13 @@ let activeMarkerManager: MarkerManager | null = null
 
 const warningEl = document.getElementById('distance-warning')!
 let warningTimer: ReturnType<typeof setTimeout> | null = null
+// ms <= 0 → persistentti (ei auto-piiloa) — käytetään latausvirheelle (T184/V118),
+// jottei viesti katoa ennen kuin käyttäjä ehtii päivittää sivun.
 function showWarning(msg: string, ms = 4000): void {
   warningEl.textContent = msg
   warningEl.style.display = 'block'
   if (warningTimer) clearTimeout(warningTimer)
-  warningTimer = setTimeout(() => { warningEl.style.display = 'none' }, ms)
+  if (ms > 0) warningTimer = setTimeout(() => { warningEl.style.display = 'none' }, ms)
 }
 
 async function init(talkoolainenCode?: string) {
@@ -35,7 +37,13 @@ async function init(talkoolainenCode?: string) {
   // vahvistamattomat kirjoitukset (startup + 'online' + periodinen backoff).
   startOutboxRetry()
 
-  const initialMarkers = await fetchMarkers()
+  // T184/V118: erottele lataus-epäonnistuminen tyhjästä tuloksesta. Epäonnistuessa
+  // näytä persistentti virhe eikä hiljaa tyhjää karttaa (→ estää duplikaatit).
+  const markersResult = await fetchMarkers()
+  if (!markersResult.ok) {
+    showWarning('⚠ Merkkien lataus epäonnistui — päivitä sivu', 0)
+  }
+  const initialMarkers = markersResult.ok ? markersResult.markers : []
 
   const routes: RouteConfig[] = await Promise.all(
     ROUTE_DEFS.map(async def => {
@@ -60,6 +68,7 @@ async function init(talkoolainenCode?: string) {
   const { segmentStore, segmentOverlay, renderSegmentOverlay, segmentPanel } = await wireSegments(
     map, routes, talkoolainenCode, initialMarkers, markerManagerRef,
     () => showWarning('⚠ Pätkän tallennus epäonnistui (muisti täynnä?)', 5000),
+    () => showWarning('⚠ Pätkien lataus epäonnistui — päivitä sivu', 0),
   )
 
   const { markerManager, driveMode, progressBar, placeMode, markerModal, closeMarkerModal } = wireMarkers(
