@@ -123,4 +123,34 @@ describe('T183/V116: WriteOutbox', () => {
     expect(ob.pending()).toBe(0)
     warn.mockRestore()
   })
+
+  // T187: onDelivered saa 2xx-vastauksen bodyn (reconcile); ei-2xx ei laukaise.
+  describe('onDelivered (T187 reconcile)', () => {
+    it('2xx → onDelivered saa vastaus-bodyn', async () => {
+      const body = JSON.stringify({ id: 'a', route_ids: ['35km', '55km'], distance_from_start: 500 })
+      const fetchFn = vi.fn(async () => new Response(body, { status: 201 }))
+      const ob = new WriteOutbox({ storage, fetchFn: fetchFn as unknown as typeof fetch })
+      const onDelivered = vi.fn()
+      await ob.enqueue({ resourceKey: 'marker:a', method: 'POST', url: '/api/markers', body: '{}', onDelivered })
+      expect(onDelivered).toHaveBeenCalledWith(body)
+    })
+
+    it('non-2xx → onDelivered EI kutsuta', async () => {
+      const fetchFn = vi.fn(async () => new Response('nope', { status: 500 }))
+      const ob = new WriteOutbox({ storage, fetchFn: fetchFn as unknown as typeof fetch })
+      const onDelivered = vi.fn()
+      await ob.enqueue({ resourceKey: 'marker:a', method: 'POST', url: '/api/markers', body: '{}', onDelivered })
+      expect(onDelivered).not.toHaveBeenCalled()
+    })
+
+    it('onDelivered heittää → ei kaada toimitusta (entry silti poistuu)', async () => {
+      const fetchFn = vi.fn(async () => new Response('{}', { status: 200 }))
+      const ob = new WriteOutbox({ storage, fetchFn: fetchFn as unknown as typeof fetch })
+      await ob.enqueue({
+        resourceKey: 'marker:a', method: 'POST', url: '/api/markers', body: '{}',
+        onDelivered: () => { throw new Error('boom') },
+      })
+      expect(ob.pending()).toBe(0)
+    })
+  })
 })

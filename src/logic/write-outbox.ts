@@ -17,6 +17,9 @@ export interface OutboxEntry {
   body: string | null
   attempts: number
   createdAt: number
+  // T187: valinnainen 2xx-vastauskuittaus (esim. POST reconcile). Ei persistoidu
+  // (funktio katoaa JSON.stringifyssä) → toimii vain live-yrityksellä, ei reload-retryssä.
+  onDelivered?: (responseText: string) => void
 }
 
 export interface EnqueueInput {
@@ -24,6 +27,7 @@ export interface EnqueueInput {
   method: OutboxMethod
   url: string
   body?: string | null
+  onDelivered?: (responseText: string) => void
 }
 
 interface Storageish {
@@ -124,6 +128,7 @@ export class WriteOutbox {
       body: input.body ?? null,
       attempts: 0,
       createdAt: Date.now(),
+      ...(input.onDelivered ? { onDelivered: input.onDelivered } : {}),
     }
     this.queue.push(entry)
     this.persist()
@@ -180,6 +185,10 @@ export class WriteOutbox {
         init.body = entry.body
       }
       const res = await this.fetchFn(entry.url, init)
+      // T187: reconcile 2xx-vastauksesta (esim. POST → palvelimen kanoniset kentät).
+      if (res.ok && entry.onDelivered) {
+        try { entry.onDelivered(await res.text()) } catch { /* reconcile ei saa kaataa toimitusta */ }
+      }
       return res.status
     } catch {
       return null

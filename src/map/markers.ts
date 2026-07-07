@@ -111,7 +111,27 @@ export class MarkerManager {
         icon_id: marker.iconId ?? null,
         parts_json: marker.parts ? JSON.stringify(marker.parts) : null,
       }),
+      onDelivered: (text) => this.reconcileFromServer(text),
     })
+  }
+
+  // T187: yhdenmukaista muistitila palvelimen kanonisen POST-vastauksen kanssa (id/route_ids/
+  // distance_from_start). Palvelin toistaa nyt clientin arvot, joten tämä on käytännössä
+  // no-op — mutta suojaa jos palvelin joskus laskee kentät itse (ei hiljaista eroa).
+  private reconcileFromServer(text: string): void {
+    let row: { id?: string; route_ids?: string[]; distance_from_start?: number }
+    try { row = JSON.parse(text) } catch { return }
+    if (!row.id) return
+    const m = this.markers.find((x) => x.id === row.id)
+    if (!m) return
+    let changed = false
+    if (Array.isArray(row.route_ids) && JSON.stringify(row.route_ids) !== JSON.stringify(m.routeIds)) {
+      m.routeIds = row.route_ids; changed = true
+    }
+    if (typeof row.distance_from_start === 'number' && row.distance_from_start !== m.distanceFromStart) {
+      m.distanceFromStart = row.distance_from_start; changed = true
+    }
+    if (changed) this.onUpdate()
   }
 
   private apiPut(id: string, patch: Record<string, unknown>): void {
