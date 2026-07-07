@@ -388,6 +388,46 @@ test.describe('Left panel — T73', () => {
     const after = await page.locator('.leaflet-marker-pane .leaflet-marker-icon').count()
     expect(after).toBe(before + 1)
   })
+
+  // T172/V107: yhdistelmämerkki — pystypino kepissä, yksi ankkuripiste
+  test('yhdistelmämerkki kartalla näyttää kaikki osat pinossa oikeassa järjestyksessä (T172)', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    // Luo uusi yhdistelmämalli: "+ Uusi merkki" → 2 osaa (flag, wrench) → tallenna
+    await page.click('#left-panel #sign-type-dropdown .sign-lib-add-btn')
+    await expect(page.locator('.sign-lib-modal')).toBeVisible()
+    await page.fill('.sign-lib-id-input', 'combo-e2e')
+    await page.fill('.sign-lib-label-input', 'Combo E2E')
+
+    await page.click('.sign-lib-part-add-toggle')
+    await page.click('.sign-lib-part-icon-btn >> nth=0')
+    await page.click('.sign-lib-part-add-toggle')
+    await page.click('.sign-lib-part-icon-btn >> nth=1')
+    await expect(page.locator('.sign-lib-part-row')).toHaveCount(2)
+
+    await page.click('.sign-lib-save-btn')
+    await expect(page.locator('.sign-lib-modal')).not.toBeVisible()
+
+    // Sijoita uusi malli kartalle sivupalkin place-napilla
+    await page.click('#left-panel #sign-type-dropdown .sign-lib-place-btn[data-id="combo-e2e"]')
+    await expect(page.locator('#map')).toHaveClass(/place-mode/)
+    const mapBox = await page.locator('#map').boundingBox()
+    expect(mapBox).not.toBeNull()
+    await page.mouse.click(mapBox!.x + mapBox!.width / 2, mapBox!.y + mapBox!.height / 2)
+    await page.waitForTimeout(500)
+
+    // Pino: yksi divIcon-elementti, kaksi osaa, yksi ankkuri (yksi tip-SVG)
+    const markerHtml = page.locator('.leaflet-marker-pane .leaflet-marker-icon').last()
+    await expect(markerHtml).toBeVisible()
+    const html = await markerHtml.innerHTML()
+    expect(html).toContain('flex-direction:column')
+    const svgCount = (html.match(/<svg/g) ?? []).length
+    expect(svgCount).toBeGreaterThanOrEqual(2) // 2 osa-ikonia + tip (icon-osalla oma svg, tip toinen)
+    expect(html.match(/viewBox="0 0 16 8"/g)).toHaveLength(1) // yksi tip = yksi ankkuripiste
+  })
 })
 
 // T108 — AreaOverlay: area piirtyy kartalle + klikkaus triggeroi flyTo

@@ -1,6 +1,7 @@
 import L from 'leaflet'
 import type { MarkerStatus } from '../logic/types'
 import { getIconById } from '../logic/icon-set'
+import type { SignVisual } from '../logic/sign-visual'
 
 const W = 32
 const H = 52
@@ -36,6 +37,40 @@ function imageMarkerSvg(imageSrc: string, status: MarkerStatus, compact: string,
         <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:${color};color:white;font-family:sans-serif;font-weight:bold;font-size:12px">${compact}</span>
         <img src="${imageSrc}" alt="" onerror="this.remove()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;pointer-events:none">
       </div>
+      ${tip}
+    </div>`
+}
+
+// T172/V107: yhdistelmämerkki — pystypino kepissä, parts[0] ylin. Sama leveys (STACK)
+// kaikilla osilla, 1px jakoviiva slottien välissä. Yksi ankkuripiste/tip koko pinolle
+// (ei per-osa tippiä) — koko pino on yksi kartta-objekti. Status = yhteinen ulkoreuna (V87).
+const STACK = 40
+function comboSlotSvg(part: SignVisual, color: string): string {
+  if (part.kind === 'image') {
+    return `<div style="width:100%;height:${STACK}px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden"><img src="${part.src}" alt="" onerror="this.remove()" style="width:100%;height:100%;object-fit:contain;pointer-events:none"></div>`
+  }
+  if (part.kind === 'icon') {
+    const iconEntry = getIconById(part.id)
+    const svg = iconEntry
+      ? `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${iconEntry.svgContent}</svg>`
+      : ''
+    return `<div style="width:100%;height:${STACK}px;background:${color};display:flex;align-items:center;justify-content:center">${svg}</div>`
+  }
+  return `<div style="width:100%;height:${STACK}px;background:${color};display:flex;align-items:center;justify-content:center;color:#fff;font:900 13px sans-serif">${part.text}</div>`
+}
+
+function comboMarkerSvg(parts: SignVisual[], status: MarkerStatus, color: string): string {
+  const isPlanned = status === 'suunniteltu'
+  const bColor = STATUS_RING[status] ?? '#64748b'
+  const bStyle = isPlanned ? 'dashed' : 'solid'
+  const height = parts.length * STACK
+  const slots = parts.map((p, i) =>
+    `${i > 0 ? `<div style="width:100%;height:1px;background:var(--border-default,#334155)"></div>` : ''}${comboSlotSvg(p, color)}`,
+  ).join('')
+  const tip = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="${TIP}" viewBox="0 0 16 8" style="position:absolute;bottom:0;left:${(STACK - 16) / 2}px;pointer-events:none;display:block"><path d="M0,0 L8,8 L16,0 Z" fill="${bColor}"/></svg>`
+  return `
+    <div style="position:relative;width:${STACK}px;height:${height + TIP}px">
+      <div style="position:absolute;top:0;left:0;width:${STACK}px;height:${height}px;box-sizing:border-box;border:3px ${bStyle} ${bColor};border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.3);display:flex;flex-direction:column">${slots}</div>
       ${tip}
     </div>`
 }
@@ -84,7 +119,19 @@ function circleSvg(type: string, status: MarkerStatus, colorOverride?: string, c
     </div>`
 }
 
-export function createSignIcon(type: string, status: MarkerStatus = 'suunniteltu', color?: string, compact?: string, iconId?: string, imageSrc?: string): L.DivIcon {
+export function createSignIcon(type: string, status: MarkerStatus = 'suunniteltu', color?: string, compact?: string, iconId?: string, imageSrc?: string, visualParts?: SignVisual[]): L.DivIcon {
+  // T172/V107: yhdistelmämerkki — pystypino kun 2+ osaa. Yksittäisen osan tapaus (0-1)
+  // käyttää olemassa olevaa yksi-visual-renderöintiä (backward-compat).
+  if (visualParts && visualParts.length > 1) {
+    const height = visualParts.length * STACK + TIP
+    return L.divIcon({
+      html: comboMarkerSvg(visualParts, status, color ?? '#94a3b8'),
+      className: '',
+      iconSize: [STACK, height],
+      iconAnchor: [STACK / 2, height],
+      popupAnchor: [0, -(height + 4)],
+    })
+  }
   // Kuva → suorakaide-kortti (koko kyltti näkyy). Muut → ympyrä (nuoli/ikoni/label).
   if (imageSrc) {
     return L.divIcon({

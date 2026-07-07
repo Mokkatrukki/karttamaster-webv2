@@ -9,6 +9,7 @@ import {
   type IdValidationReason,
   type SignLibrary,
   type SignTemplate,
+  type SignPart,
 } from '../logic/sign-library'
 import { CURATED_ICONS, getIconById, renderIconSvg } from '../logic/icon-set'
 import { signImageTag } from '../logic/sign-images'
@@ -17,6 +18,7 @@ import { signCatalog } from '../logic/sign-catalog'
 import { registerEscClose, createBackdrop, signPreviewHtml } from './modal-helpers'
 
 const DEFAULT_IDS = new Set(['right', 'left', 'upcoming-right', 'upcoming-left'])
+const MAX_PARTS = 4 // V107: yhdistelmämerkin osien katto
 
 const ID_ERROR_MSG: Record<IdValidationReason, string> = {
   empty: 'Anna tunnus.',
@@ -209,6 +211,7 @@ export class SignLibraryPanel {
         label: template.label,
         color: template.color,
         iconId: template.iconId,
+        parts: template.parts,
       })
       modal.appendChild(preview)
     }
@@ -287,6 +290,97 @@ export class SignLibraryPanel {
 
     modal.appendChild(iconGrid)
 
+    // T172/V107: yhdistelmämerkki — pystypino kepissä. parts[0] ylin, max MAX_PARTS osaa.
+    // Erillinen valinnainen lisä ylemmän yksi-ikoni-kentän rinnalla (ei korvaa sitä).
+    let selectedParts: SignPart[] = template?.parts ? [...template.parts] : []
+
+    const partsSectionLabel = document.createElement('div')
+    partsSectionLabel.style.cssText = 'font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em'
+    partsSectionLabel.textContent = 'Osat (yhdistelmämerkki, valinnainen)'
+    modal.appendChild(partsSectionLabel)
+
+    const partsList = document.createElement('div')
+    partsList.className = 'sign-lib-parts-list'
+    modal.appendChild(partsList)
+
+    const addPartRow = document.createElement('div')
+    addPartRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:6px'
+    const addPartBtn = document.createElement('button')
+    addPartBtn.className = 'sign-lib-part-add-toggle'
+    addPartBtn.type = 'button'
+    addPartBtn.textContent = '+ Lisää osa'
+    addPartBtn.style.cssText = 'min-height:36px;padding:4px 10px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-muted);font-size:12px;cursor:pointer'
+    addPartRow.appendChild(addPartBtn)
+    modal.appendChild(addPartRow)
+
+    const partIconGrid = document.createElement('div')
+    partIconGrid.className = 'sign-lib-part-icon-grid'
+    partIconGrid.style.cssText = 'display:none;grid-template-columns:repeat(6,1fr);gap:4px'
+    for (const icon of CURATED_ICONS) {
+      const btn = document.createElement('button')
+      btn.className = 'sign-lib-part-icon-btn'
+      btn.type = 'button'
+      btn.dataset.iconId = icon.id
+      btn.title = icon.label
+      btn.style.cssText = 'min-height:40px;background:var(--field-tint);color:var(--text-muted);border:1px solid var(--border-default);border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0'
+      btn.innerHTML = renderIconSvg(icon.id, 18) // safe: content from CURATED_ICONS only
+      partIconGrid.appendChild(btn)
+    }
+    modal.appendChild(partIconGrid)
+
+    const renderPartsList = () => {
+      partsList.innerHTML = selectedParts.map((p, i) => {
+        const entry = p.iconId ? getIconById(p.iconId) : null
+        const inner = entry ? renderIconSvg(p.iconId!, 16) : '?' // safe: CURATED_ICONS content only
+        return `<div class="sign-lib-part-row" data-idx="${i}" style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border-card)">
+          <span style="width:28px;height:28px;flex-shrink:0;border-radius:4px;background:var(--text-muted);color:#fff;display:flex;align-items:center;justify-content:center">${inner}</span>
+          <span style="flex:1;font-size:12px;color:var(--text-muted)">${i + 1}. ${escapeHtml(entry?.label ?? '?')}</span>
+          <button class="sign-lib-part-up" data-idx="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Siirrä ylös" style="min-width:32px;min-height:32px;background:none;border:none;color:var(--text-muted);cursor:pointer">↑</button>
+          <button class="sign-lib-part-down" data-idx="${i}" ${i === selectedParts.length - 1 ? 'disabled' : ''} aria-label="Siirrä alas" style="min-width:32px;min-height:32px;background:none;border:none;color:var(--text-muted);cursor:pointer">↓</button>
+          <button class="sign-lib-part-remove" data-idx="${i}" aria-label="Poista osa" style="min-width:32px;min-height:32px;background:none;border:none;color:var(--danger-text);cursor:pointer">×</button>
+        </div>`
+      }).join('')
+      addPartBtn.disabled = selectedParts.length >= MAX_PARTS
+      addPartBtn.style.opacity = addPartBtn.disabled ? '0.5' : '1'
+
+      partsList.querySelectorAll<HTMLButtonElement>('.sign-lib-part-up').forEach(b => {
+        b.addEventListener('click', () => {
+          const i = Number(b.dataset.idx)
+          if (i <= 0) return
+          ;[selectedParts[i - 1], selectedParts[i]] = [selectedParts[i], selectedParts[i - 1]]
+          renderPartsList()
+        })
+      })
+      partsList.querySelectorAll<HTMLButtonElement>('.sign-lib-part-down').forEach(b => {
+        b.addEventListener('click', () => {
+          const i = Number(b.dataset.idx)
+          if (i >= selectedParts.length - 1) return
+          ;[selectedParts[i + 1], selectedParts[i]] = [selectedParts[i], selectedParts[i + 1]]
+          renderPartsList()
+        })
+      })
+      partsList.querySelectorAll<HTMLButtonElement>('.sign-lib-part-remove').forEach(b => {
+        b.addEventListener('click', () => {
+          const i = Number(b.dataset.idx)
+          selectedParts = selectedParts.filter((_, idx) => idx !== i)
+          renderPartsList()
+        })
+      })
+    }
+    renderPartsList()
+
+    addPartBtn.addEventListener('click', () => {
+      partIconGrid.style.display = partIconGrid.style.display === 'none' ? 'grid' : 'none'
+    })
+
+    partIconGrid.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.sign-lib-part-icon-btn')
+      if (!btn || selectedParts.length >= MAX_PARTS) return
+      selectedParts = [...selectedParts, { iconId: btn.dataset.iconId }]
+      partIconGrid.style.display = 'none'
+      renderPartsList()
+    })
+
     // Label
     const labelSectionLabel = document.createElement('div')
     labelSectionLabel.style.cssText = 'font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em'
@@ -360,6 +454,7 @@ export class SignLibraryPanel {
       const description = descInput.value.trim()
       const iconId = selectedIconId ?? undefined
       const favorite = favCheckbox.checked
+      const parts = selectedParts.length > 0 ? selectedParts : undefined
 
       if (!template) {
         const id = idInput!.value.trim()
@@ -373,9 +468,9 @@ export class SignLibraryPanel {
           return
         }
         const color = colorInput?.value ?? '#f59e0b'
-        createTemplate(this.library, { label, color, description, favorite, iconId }, id)
+        createTemplate(this.library, { label, color, description, favorite, iconId, parts }, id)
       } else {
-        const patch: Partial<Omit<SignTemplate, 'id'>> = { label, description, iconId, favorite }
+        const patch: Partial<Omit<SignTemplate, 'id'>> = { label, description, iconId, favorite, parts }
         if (colorInput) patch.color = colorInput.value
         updateTemplate(this.library, template.id, patch)
       }

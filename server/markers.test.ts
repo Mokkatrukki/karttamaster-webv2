@@ -439,6 +439,37 @@ describe('T47: Markers REST API', () => {
       expect(body.icon_id).toBe('map-pin')
     })
   })
+
+  describe('T172/V107: parts_json roundtrip (yhdistelmämerkki)', () => {
+    const parts = JSON.stringify([{ iconId: 'flag' }, { iconId: 'wrench' }])
+
+    test('POST tallentaa parts_json ja GET palauttaa sen', async () => {
+      const app = makeApp(db)
+      const res = await app.request('/api/markers', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...MARKER_BODY, parts_json: parts }),
+      })
+      const body = await res.json() as { parts_json: string | null }
+      expect(JSON.parse(body.parts_json!)).toEqual([{ iconId: 'flag' }, { iconId: 'wrench' }])
+
+      const getRes = await app.request('/api/markers', { headers: authHeaders(db, 'järjestäjä') })
+      const rows = await getRes.json() as { parts_json: string | null }[]
+      expect(JSON.parse(rows[0].parts_json!)).toEqual([{ iconId: 'flag' }, { iconId: 'wrench' }])
+    })
+
+    test('PUT päivittää parts_json:n', async () => {
+      const id = await seedMarker(db)
+      const app = makeApp(db)
+      const res = await app.request(`/api/markers/${id}`, {
+        method: 'PUT',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parts_json: parts }),
+      })
+      const body = await res.json() as { parts_json: string | null }
+      expect(JSON.parse(body.parts_json!)).toEqual([{ iconId: 'flag' }, { iconId: 'wrench' }])
+    })
+  })
 })
 
 function makeUploadFile(): File {

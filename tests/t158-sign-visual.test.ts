@@ -134,6 +134,47 @@ describe('T158/V99: circleSvg kuvan täyttö + onerror-fallback (T103-pattern)',
   })
 })
 
+describe('T172/V107: createSignIcon combo-haara (pystypino)', () => {
+  function icon(visualParts?: ReturnType<typeof signVisualParts>) {
+    return createSignIcon('combo', 'asetettu', '#ff0000', 'X', undefined, undefined, visualParts) as unknown as {
+      html: string; iconSize: number[]; iconAnchor: number[]
+    }
+  }
+
+  it('0-1 osaa → ei combo-haaraa (backward-compat, tavallinen ympyrä)', () => {
+    const single = signVisualParts({ label: 'X' }, () => undefined)
+    const h = icon(single).html
+    expect(h).not.toContain('flex-direction:column')
+  })
+
+  it('2 osaa → korkeus = 2×40+8, leveys pysyy 40', () => {
+    const parts = signVisualParts({ label: 'X', parts: [{ iconId: 'flag' }, { iconId: 'wrench' }] }, () => undefined)
+    const ic = icon(parts)
+    expect(ic.iconSize).toEqual([40, 88])
+    expect(ic.iconAnchor).toEqual([20, 88])
+  })
+
+  it('4 osaa → korkeus = 4×40+8, järjestys säilyy htmlissä (flag ennen wrench ennen car ennen bike)', () => {
+    const parts = signVisualParts({
+      label: 'X',
+      parts: [{ iconId: 'flag' }, { iconId: 'wrench' }, { iconId: 'car' }, { iconId: 'bike' }],
+    }, () => undefined)
+    const ic = icon(parts)
+    expect(ic.iconSize).toEqual([40, 168])
+    const idxFlag = ic.html.indexOf('M4 15s1-1 4-1') // flag path fragment
+    const idxWrench = ic.html.indexOf('M14.7 6.3') // wrench path fragment
+    expect(idxFlag).toBeGreaterThan(-1)
+    expect(idxWrench).toBeGreaterThan(idxFlag)
+  })
+
+  it('yhteinen status-reunus koko pinolle (V87) — vain yksi tip-SVG', () => {
+    const parts = signVisualParts({ label: 'X', parts: [{ iconId: 'flag' }, { iconId: 'wrench' }] }, () => undefined)
+    const h = icon(parts).html
+    expect(h).toContain('#22c55e') // asetettu-status vihreä reunus
+    expect(h.match(/viewBox="0 0 16 8"/g)).toHaveLength(1) // yksi tip, ei per-osa
+  })
+})
+
 describe('T158: onerror poistaa kuvan jsdom-DOM:ssa (fallback paljastuu)', () => {
   it('img.error → element poistuu, alla oleva teksti jää', () => {
     const div = document.createElement('div')

@@ -241,6 +241,14 @@ metsässä, hanskat kädessä.
 - Kuva-fallback: `<img onerror="this.remove()">` (T103-pattern) — puuttuva/rikki kuvatiedosto poistaa kuvakerroksen → alla oleva ikoni/label paljastuu, ei rikkoudu. Assetit: `src/assets/signs/<id>.webp` (T161 konversio-pipeline, ~79 kpl).
 - **Ei erillistä nurkkabadgea** (poistettu T138:ssa, oli B57: "kaksi kertaa sama teksti").
 
+### ComboSignIcon — yhdistelmämerkki (T172/V107, `src/map/icons.ts` `comboMarkerSvg`)
+- **Konsepti:** oikea liikennemerkkikeppi — useampi kyltti päällekkäin samassa kepissä. `SignTemplate.parts[0]` on ylin, seuraavat alle järjestyksessä. Max 4 osaa.
+- **Koko:** jokainen osa `40×40px` slotti (sama leveys kuin kuva-kortti), pinottu pystysuunnassa. `1px border-default`-jakoviiva slottien välissä. Koko pinon leveys pysyy `40px` (ei levene), korkeus = `osien määrä × 40px`.
+- **Sisältö per osa (V107):** kuva>ikoni-precedence (`signVisualParts`), EI label-fallbackia — combo-osa on aina tarkoituksella valittu kuva/ikoni. Ikoni-osa: tyyppiväri-tausta + valkoinen Lucide-SVG keskitettynä. Kuva-osa: valkotausta + `object-fit:contain`.
+- **Yksi ankkuripiste koko pinolle:** kärki-kolmio (`16×8px`) vain pinon alimman osan alla — koko pino on yksi kartta-objekti, ei per-osa tippiä. `iconAnchor = [20, osien_määrä×40+8]`.
+- **Status:** yhteinen koko pinon ulkoreunana (V87-pattern, ei per-osa) — `suunniteltu` katkoviiva neutraali, muuten solid statusväri koko pinon ympärillä.
+- Käyttäjä: järjestäjä (rakentaa kirjastossa), talkoolainen (näkee kartalla).
+
 ### SignPreview — iso merkki-esikatselu modaaleissa (`.sign-preview`, `src/ui/modal-helpers.ts` `signPreviewHtml`)
 - **Missä:** MarkerDetailModal bodyn yläosassa (molemmat roolit näkevät mikä kyltti) + SignLibraryPanel edit-modaalissa headerin alla (järjestäjä katsoo/muokkaa templatea).
 - **Koko:** `width:100%; height:150px`, `border:1px solid border-default`, `border-radius:radius-sm`, `overflow:hidden`.

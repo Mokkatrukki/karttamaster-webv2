@@ -59,3 +59,41 @@ describe('T170/V106 — iconId denormalisoituu markerille', () => {
     expect(updated?.iconId).toBeUndefined()
   })
 })
+
+describe('T172/V107 — parts denormalisoituu markerille (yhdistelmämerkki)', () => {
+  it('add() tallentaa parts järjestyksessä kun annettu', () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({}) })))
+    const map = makeMap()
+    const mgr = new MarkerManager(map, routes, () => {}, [])
+    const m = mgr.add(65.0, 27.0, 'combo', '#ff0000', 'Combo', undefined, [{ iconId: 'flag' }, { iconId: 'wrench' }])
+    expect(m.parts).toEqual([{ iconId: 'flag' }, { iconId: 'wrench' }])
+  })
+
+  it('add() jättää parts pois kun ei annettu', () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({}) })))
+    const map = makeMap()
+    const mgr = new MarkerManager(map, routes, () => {}, [])
+    const m = mgr.add(65.0, 27.0, 'right')
+    expect(m.parts).toBeUndefined()
+  })
+
+  it('updateType() päivittää parts:n', () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({}) })))
+    const map = makeMap()
+    const mgr = new MarkerManager(map, routes, () => {}, [])
+    const m = mgr.add(65.0, 27.0, 'combo', '#ff0000', 'Combo', undefined, [{ iconId: 'flag' }])
+    mgr.updateType(m.id, 'combo2', '#00ff00', 'Combo2', undefined, [{ iconId: 'car' }, { iconId: 'bike' }])
+    const updated = mgr.getAll().find((x) => x.id === m.id)
+    expect(updated?.parts).toEqual([{ iconId: 'car' }, { iconId: 'bike' }])
+  })
+
+  it('updateType() tyhjentää parts:n kun ei annettu', () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({}) })))
+    const map = makeMap()
+    const mgr = new MarkerManager(map, routes, () => {}, [])
+    const m = mgr.add(65.0, 27.0, 'combo', '#ff0000', 'Combo', undefined, [{ iconId: 'flag' }])
+    mgr.updateType(m.id, 'right')
+    const updated = mgr.getAll().find((x) => x.id === m.id)
+    expect(updated?.parts).toBeUndefined()
+  })
+})

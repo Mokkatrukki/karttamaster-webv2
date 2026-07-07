@@ -124,6 +124,7 @@ export class MarkerDetailModal {
       label: typeLabel,
       color: marker.color ?? template?.color ?? '#94a3b8',
       iconId: template?.iconId,
+      parts: marker.parts ?? template?.parts,
     })
     body.appendChild(preview)
 
@@ -308,7 +309,7 @@ export class MarkerDetailModal {
     typeSelect.addEventListener('change', () => {
       const newType = typeSelect.value
       const template = library?.get(newType)
-      this.manager.updateType(marker.id, newType, template?.color, template?.label, template?.iconId)
+      this.manager.updateType(marker.id, newType, template?.color, template?.label, template?.iconId, template?.parts)
       this.onUpdate()
     })
 

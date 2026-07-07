@@ -19,6 +19,7 @@ interface MarkerRow {
   short_label: string | null
   label: string | null
   icon_id: string | null
+  parts_json: string | null
   description: string | null
   updated_at: string
   updated_by: string | null
@@ -58,6 +59,7 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
     color?: string | null
     label?: string | null
     icon_id?: string | null
+    parts_json?: string | null
     description?: string | null
   }>()
 
@@ -74,7 +76,7 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
   const id = body.id ?? randomUUID()
   const now = new Date().toISOString()
   db.run(
-    'INSERT INTO markers (id, type, lat, lon, distance_from_start, route_ids, status, location_note, color, label, icon_id, description, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO markers (id, type, lat, lon, distance_from_start, route_ids, status, location_note, color, label, icon_id, parts_json, description, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       id,
       body.type,
@@ -87,6 +89,7 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
       body.color ?? null,
       body.label ?? null,
       body.icon_id ?? null,
+      body.parts_json ?? null,
       body.description ?? null,
       now,
       session.display_name,
@@ -116,9 +119,10 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
     route_ids?: string[]
     description?: string | null
     icon_id?: string | null
+    parts_json?: string | null
   }>()
 
-  const positionFields = ['lat', 'lon', 'type', 'distance_from_start', 'route_ids', 'description', 'icon_id'] as const
+  const positionFields = ['lat', 'lon', 'type', 'distance_from_start', 'route_ids', 'description', 'icon_id', 'parts_json'] as const
   const hasPositionFields = positionFields.some((f) => f in body)
   if (hasPositionFields && !['admin', 'järjestäjä'].includes(session.role)) {
     return c.json({ error: 'forbidden' }, 403)
@@ -135,6 +139,7 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
   if (body.distance_from_start !== undefined) { fields.push('distance_from_start = ?'); values.push(body.distance_from_start) }
   if (body.route_ids !== undefined) { fields.push('route_ids = ?'); values.push(JSON.stringify(body.route_ids)) }
   if (body.icon_id !== undefined) { fields.push('icon_id = ?'); values.push(body.icon_id) }
+  if (body.parts_json !== undefined) { fields.push('parts_json = ?'); values.push(body.parts_json) }
   if (body.description !== undefined) { fields.push('description = ?'); values.push(body.description) }
 
   if (fields.length === 0) return c.json({ error: 'no_fields' }, 400)

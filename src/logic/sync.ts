@@ -1,4 +1,5 @@
 import type { SignMarker, MarkerType, MarkerStatus } from './types'
+import type { SignPart } from './sign-library'
 
 interface ServerMarker {
   id: string
@@ -12,8 +13,20 @@ interface ServerMarker {
   color: string | null
   label: string | null
   icon_id: string | null
+  parts_json: string | null
   description: string | null
   images: string[]
+}
+
+// T172/V107: parts_json on greenfield-data — malformed sisältö ei saa kaataa fetchMarkersia (V14-pattern)
+function parsePartsJson(raw: string | null): SignPart[] | undefined {
+  if (!raw) return undefined
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    return Array.isArray(parsed) ? parsed as SignPart[] : undefined
+  } catch {
+    return undefined
+  }
 }
 
 function fromServer(row: ServerMarker): SignMarker {
@@ -29,6 +42,7 @@ function fromServer(row: ServerMarker): SignMarker {
     ...(row.color != null ? { color: row.color } : {}),
     ...(row.label != null ? { label: row.label } : {}),
     ...(row.icon_id != null ? { iconId: row.icon_id } : {}),
+    ...(parsePartsJson(row.parts_json) ? { parts: parsePartsJson(row.parts_json) } : {}),
     ...(row.description != null ? { description: row.description } : {}),
     ...(row.images && row.images.length > 0 ? { images: row.images } : {}),
   }

@@ -139,6 +139,8 @@ function initSchema(db: Database): void {
   try { db.exec('ALTER TABLE snapshots ADD COLUMN dataset_json TEXT') } catch { /* already exists */ }
   // T170/V106: iconId denormalisoitu markers-tauluun (V99-ikonitier kartalle)
   try { db.exec('ALTER TABLE markers ADD COLUMN icon_id TEXT') } catch { /* already exists */ }
+  // T172/V107: yhdistelmämerkin osat (JSON-taulukko) denormalisoitu markers-tauluun
+  try { db.exec('ALTER TABLE markers ADD COLUMN parts_json TEXT') } catch { /* already exists */ }
 
   const existing = db.query<{ count: number }, []>(
     "SELECT COUNT(*) as count FROM map_state WHERE key='status'"
