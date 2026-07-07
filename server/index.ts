@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { createDb, seedAdmin } from './db'
+import { createDb, seedAdmin, gracefulClose } from './db'
 import { dbMiddleware } from './middleware/auth'
 import { authRoutes } from './routes/auth'
 import { adminRoutes } from './routes/admin'
@@ -14,6 +14,18 @@ import { scheduleNightlySnapshot } from './snapshot-scheduler'
 const db = createDb(process.env.DB_PATH)
 seedAdmin(db)
 scheduleNightlySnapshot(db)
+
+// V120/T188: fly `auto_stop_machines=stop` lähettää signaalin ennen VM-pysäytystä.
+// Taita WAL main-tiedostoon + sulje ennen exitiä, ettei checkpointtaamaton data katoa.
+let shuttingDown = false
+function shutdown(): void {
+  if (shuttingDown) return
+  shuttingDown = true
+  gracefulClose(db)
+  process.exit(0)
+}
+process.on('SIGINT', shutdown)
+process.on('SIGTERM', shutdown)
 
 const app = new Hono()
 app.use('*', dbMiddleware(db))

@@ -5,9 +5,27 @@ import type { User } from './types'
 export function createDb(path: string = ':memory:'): Database {
   const db = new Database(path)
   db.exec('PRAGMA journal_mode=WAL')
+  // V120/T188: synchronous=FULL fsyncaa WAL:n joka commitissa (ei vain checkpointissa).
+  // Ilman tätä fly `auto_stop_machines=stop` voi pysäyttää VM:n ennen fsynciä →
+  // checkpointtaamattomat kirjoitukset katoavat. NORMAL (Bun default) kestää vain
+  // prosessin kaatumisen, ei VM-stopia/virtakatkoa.
+  db.exec('PRAGMA synchronous=FULL')
   db.exec('PRAGMA foreign_keys=ON')
   initSchema(db)
   return db
+}
+
+// V120/T188: sammutuksessa taita WAL main-tiedostoon ja sulje siististi.
+// SIGINT/SIGTERM (fly-koneen auto-stop) kutsuu tätä ennen exitiä, jottei
+// checkpointtaamaton WAL jää alttiiksi VM-pysäytykselle. Best-effort:
+// checkpoint-virhe ei estä siistiä closea.
+export function gracefulClose(db: Database): void {
+  try {
+    db.exec('PRAGMA wal_checkpoint(TRUNCATE)')
+  } catch {
+    /* best-effort — sulje silti */
+  }
+  db.close()
 }
 
 function initSchema(db: Database): void {
