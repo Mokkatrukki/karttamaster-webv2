@@ -17,6 +17,13 @@ primary_region = "arn"
   min_machines_running = 0
   auto_stop_timeout = "5m"
 
+  [[http_service.checks]]
+    method = "GET"
+    path = "/api/health"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "15s"
+
 [[mounts]]
   source = "karttamaster_data"
   destination = "/data"
