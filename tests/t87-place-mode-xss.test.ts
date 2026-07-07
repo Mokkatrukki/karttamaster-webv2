@@ -62,4 +62,18 @@ describe('T87 PlaceMode XSS-suojaus (B21/V44)', () => {
     expect(btn).toBeTruthy()
     expect(btn?.textContent).toContain('Vasemmalle')
   })
+
+  // Bugi: käyttäjä raportoi 2026-07-07 — iconId-templaten swatch pickerissä näytti aina
+  // compactLabel-lyhenteen, ei ikonia, vaikka sivupaneeli (sign-library-panel buildRow) näytti sen
+  // oikein. openPicker() ei koskaan tarkistanut t.iconId:tä (vain compactLabel + kuva).
+  it('iconId-templaten swatch näyttää Lucide-SVG:n, ei compactLabelia (V99-precedence sama kuin sivupaneelissa)', () => {
+    createTemplate(lib, { label: 'Huolto', color: '#1d4ed8', description: '', favorite: true, iconId: 'wrench' }, 'huolto-icon')
+    const pm = new PlaceMode(makeMarkerManagerStub(), lib)
+    ;(pm as any).openPicker(0, 0, 10, 10)
+    const picker = document.getElementById('floating-picker')!
+    const swatch = picker.querySelector<HTMLElement>('.sign-type-btn[data-type="huolto-icon"] .sign-swatch')
+    expect(swatch).toBeTruthy()
+    expect(swatch!.innerHTML).toContain('<svg')
+    expect(swatch!.textContent).not.toContain('HUO')
+  })
 })
