@@ -498,3 +498,59 @@ test.describe('T108 — AreaOverlay', () => {
     expect(zoomBefore).not.toBe(18)
   })
 })
+
+// T175/V109: merkki-ikonit skaalautuvat zoomin mukaan (CSS transform, ei uudelleenpiirtoa)
+test.describe('Merkin zoom-skaalaus — T175', () => {
+  test('merkki skaalautuu pienemmäksi kaukana zoomattuna, kasvaa lähennettäessä, sijainti ei drifaa', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await page.dblclick('#map', { position: { x: 460, y: 260 } })
+    await page.waitForTimeout(500)
+    await page.click('#floating-picker .sign-type-btn[data-type="right"]')
+    await page.waitForTimeout(800)
+
+    const markerIcon = page.locator('.leaflet-marker-icon').first()
+    await expect(markerIcon).toHaveCount(1)
+
+    await page.evaluate(() => {
+      const m = (window as unknown as Record<string, unknown>)['__testMap'] as { setZoom(z: number): void } | undefined
+      m?.setZoom(11)
+    })
+    await page.waitForTimeout(300)
+    // Vertaa Leafletin oman position-elementin (outer, translate3d) ankkuripistettä (bottom-center)
+    // skaalatun sisäwrapperin (inner) ankkuripisteeseen — niiden pitää osua yhteen molemmilla
+    // zoom-tasoilla riippumatta siitä minne kartta on pannannut markerin ruudulla.
+    const readAnchors = () => markerIcon.evaluate((el) => {
+      const outer = el.getBoundingClientRect()
+      const inner = (el.firstElementChild as HTMLElement).getBoundingClientRect()
+      return {
+        transform: (el.firstElementChild as HTMLElement).style.transform,
+        outerAnchorX: outer.x + outer.width / 2,
+        outerAnchorY: outer.y + outer.height,
+        innerAnchorX: inner.x + inner.width / 2,
+        innerAnchorY: inner.y + inner.height,
+        innerWidth: inner.width,
+      }
+    })
+
+    const far = await readAnchors()
+    await page.evaluate(() => {
+      const m = (window as unknown as Record<string, unknown>)['__testMap'] as { setZoom(z: number): void } | undefined
+      m?.setZoom(17)
+    })
+    await page.waitForTimeout(300)
+    const near = await readAnchors()
+
+    expect(far.transform).toContain('scale(0.3')
+    expect(near.transform).toContain('scale(1')
+    expect(near.innerWidth).toBeGreaterThan(far.innerWidth)
+    // Skaalauksen transform-origin (center bottom) pitää ankkuripisteen paikallaan riippumatta scalesta
+    expect(Math.abs(far.outerAnchorX - far.innerAnchorX)).toBeLessThan(2)
+    expect(Math.abs(far.outerAnchorY - far.innerAnchorY)).toBeLessThan(2)
+    expect(Math.abs(near.outerAnchorX - near.innerAnchorX)).toBeLessThan(2)
+    expect(Math.abs(near.outerAnchorY - near.innerAnchorY)).toBeLessThan(2)
+  })
+})

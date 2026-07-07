@@ -10,6 +10,7 @@ import { ensureRouteIds, FAR_FROM_ROUTE_M } from '../logic/marker-assign'
 import { DEFAULT_STATUS, transitionStatus } from '../logic/marker-status'
 import type { StatusAction } from '../logic/marker-status'
 import type { MarkerStatus } from '../logic/types'
+import { markerScaleForZoom } from '../logic/marker-scale'
 
 interface RouteRef { id: string; routePoints: RoutePoint[] }
 
@@ -46,6 +47,24 @@ export class MarkerManager {
         this.addLeafletMarker(m)
       }
     })
+    map.on('zoomend', () => this.applyZoomScaleToAll())
+  }
+
+  // T175/V109: skaalaa marker-ikonin sisäwrapperia (EI Leafletin omaa .leaflet-marker-icon
+  // -elementtiä — se kantaa Leafletin positio-transformin (translate3d), ylikirjoitus siirtäisi
+  // markerin (0,0):aan). Kaikkien icons.ts-html-funktioiden juuri on yksi position:relative-div,
+  // joka on aina .leaflet-marker-icon:in ainoa lapsi — sitä skaalataan.
+  private applyZoomScale(lm: L.Marker): void {
+    const el = lm.getElement()
+    const inner = el?.firstElementChild as HTMLElement | null
+    if (!inner) return
+    const scale = markerScaleForZoom(this.map.getZoom())
+    inner.style.transformOrigin = 'center bottom'
+    inner.style.transform = `scale(${scale})`
+  }
+
+  private applyZoomScaleToAll(): void {
+    this.leafletMarkers.forEach((lm) => this.applyZoomScale(lm))
   }
 
   private apiPost(marker: SignMarker): void {
@@ -302,6 +321,7 @@ export class MarkerManager {
 
     const el = lm.getElement()
     if (el) el.style.cursor = 'pointer'
+    this.applyZoomScale(lm)
 
     // V82: lm.on('click', ...) uses Leaflet's own event system, which suppresses
     // the synthetic click that follows a real drag (Draggable._onUp). A raw DOM
