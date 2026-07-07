@@ -29,6 +29,10 @@ export class PhaseSwitcher {
     const select = document.createElement('select')
     select.className = 'phase-switcher-select'
     select.setAttribute('aria-label', 'Vaihda aktiivinen vaihe')
+    // T180/B80: dokumentti-tason ulkoklikki-sulkija (map-init.ts) ei saa
+    // katkaista natiivin pudotusvalikon avausta/valintaa kesken.
+    select.addEventListener('mousedown', e => e.stopPropagation())
+    select.addEventListener('click', e => e.stopPropagation())
     for (const phase of PHASE_ORDER) {
       const option = document.createElement('option')
       option.value = phase

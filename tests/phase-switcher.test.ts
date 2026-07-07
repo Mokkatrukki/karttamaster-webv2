@@ -53,4 +53,22 @@ describe('PhaseSwitcher (T148)', () => {
     select.dispatchEvent(new Event('change'))
     expect(received).toBe('purku')
   })
+
+  it('T180/B80: select-klikki ei bubblaa dokumenttiin (ei katkaise overflow-menun ulkoklikki-sulkijaa)', () => {
+    new PhaseSwitcher(container, () => {})
+    const select = container.querySelector('select') as HTMLSelectElement
+    let documentClickFired = false
+    document.addEventListener('click', () => { documentClickFired = true })
+    select.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    expect(documentClickFired).toBe(false)
+  })
+
+  it('T180/B80: select-mousedown ei bubblaa dokumenttiin', () => {
+    new PhaseSwitcher(container, () => {})
+    const select = container.querySelector('select') as HTMLSelectElement
+    let documentMousedownFired = false
+    document.addEventListener('mousedown', () => { documentMousedownFired = true })
+    select.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }))
+    expect(documentMousedownFired).toBe(false)
+  })
 })
