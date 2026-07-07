@@ -335,9 +335,9 @@ export class SignLibraryPanel {
         return `<div class="sign-lib-part-row" data-idx="${i}" style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border-card)">
           <span style="width:28px;height:28px;flex-shrink:0;border-radius:4px;background:var(--text-muted);color:#fff;display:flex;align-items:center;justify-content:center">${inner}</span>
           <span style="flex:1;font-size:12px;color:var(--text-muted)">${i + 1}. ${escapeHtml(entry?.label ?? '?')}</span>
-          <button class="sign-lib-part-up" data-idx="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Siirrä ylös" style="min-width:32px;min-height:32px;background:none;border:none;color:var(--text-muted);cursor:pointer">↑</button>
-          <button class="sign-lib-part-down" data-idx="${i}" ${i === selectedParts.length - 1 ? 'disabled' : ''} aria-label="Siirrä alas" style="min-width:32px;min-height:32px;background:none;border:none;color:var(--text-muted);cursor:pointer">↓</button>
-          <button class="sign-lib-part-remove" data-idx="${i}" aria-label="Poista osa" style="min-width:32px;min-height:32px;background:none;border:none;color:var(--danger-text);cursor:pointer">×</button>
+          <button class="sign-lib-part-up" data-idx="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Siirrä ylös" style="min-width:44px;min-height:44px;background:none;border:none;color:var(--text-muted);cursor:pointer">↑</button>
+          <button class="sign-lib-part-down" data-idx="${i}" ${i === selectedParts.length - 1 ? 'disabled' : ''} aria-label="Siirrä alas" style="min-width:44px;min-height:44px;background:none;border:none;color:var(--text-muted);cursor:pointer">↓</button>
+          <button class="sign-lib-part-remove" data-idx="${i}" aria-label="Poista osa" style="min-width:44px;min-height:44px;background:none;border:none;color:var(--danger-text);cursor:pointer">×</button>
         </div>`
       }).join('')
       addPartBtn.disabled = selectedParts.length >= MAX_PARTS
