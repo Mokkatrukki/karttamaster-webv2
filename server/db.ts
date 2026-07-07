@@ -151,10 +151,19 @@ export function seedAdmin(db: Database): void {
   const password = process.env.ADMIN_PASSWORD
   if (!username || !password) return
 
-  const exists = db.query<{ id: string }, [string]>(
-    'SELECT id FROM users WHERE username = ?'
+  const existing = db.query<{ id: string; password_hash: string }, [string]>(
+    'SELECT id, password_hash FROM users WHERE username = ?'
   ).get(username)
-  if (exists) return
+
+  if (existing) {
+    if (!Bun.password.verifySync(password, existing.password_hash)) {
+      db.run('UPDATE users SET password_hash = ? WHERE id = ?', [
+        Bun.password.hashSync(password),
+        existing.id,
+      ])
+    }
+    return
+  }
 
   const passwordHash = Bun.password.hashSync(password)
   db.run(

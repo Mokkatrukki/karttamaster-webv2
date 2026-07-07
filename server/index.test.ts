@@ -97,6 +97,56 @@ describe('T41: Backend server-perusta', () => {
       expect(count?.count).toBe(0)
       db2.close()
     })
+
+    test('T169: rotated ADMIN_PASSWORD updates existing admin hash', async () => {
+      const db2 = createDb(':memory:')
+      process.env.ADMIN_USERNAME = 'prodadmin'
+      process.env.ADMIN_PASSWORD = 'oldpassword'
+      seedAdmin(db2)
+      const before = db2.query<{ password_hash: string }, [string]>(
+        'SELECT password_hash FROM users WHERE username = ?'
+      ).get('prodadmin')
+
+      process.env.ADMIN_PASSWORD = 'newpassword'
+      seedAdmin(db2)
+      const after = db2.query<{ password_hash: string }, [string]>(
+        'SELECT password_hash FROM users WHERE username = ?'
+      ).get('prodadmin')
+
+      expect(after?.password_hash).not.toBe(before?.password_hash)
+      expect(await Bun.password.verify('newpassword', after!.password_hash)).toBe(true)
+      expect(await Bun.password.verify('oldpassword', after!.password_hash)).toBe(false)
+
+      const count = db2.query<{ count: number }, [string]>(
+        'SELECT COUNT(*) as count FROM users WHERE username = ?'
+      ).get('prodadmin')
+      expect(count?.count).toBe(1)
+
+      delete process.env.ADMIN_USERNAME
+      delete process.env.ADMIN_PASSWORD
+      db2.close()
+    })
+
+    test('T169: unchanged ADMIN_PASSWORD does not rehash', () => {
+      const db2 = createDb(':memory:')
+      process.env.ADMIN_USERNAME = 'prodadmin'
+      process.env.ADMIN_PASSWORD = 'samepassword'
+      seedAdmin(db2)
+      const before = db2.query<{ password_hash: string }, [string]>(
+        'SELECT password_hash FROM users WHERE username = ?'
+      ).get('prodadmin')
+
+      seedAdmin(db2)
+      const after = db2.query<{ password_hash: string }, [string]>(
+        'SELECT password_hash FROM users WHERE username = ?'
+      ).get('prodadmin')
+
+      expect(after?.password_hash).toBe(before?.password_hash)
+
+      delete process.env.ADMIN_USERNAME
+      delete process.env.ADMIN_PASSWORD
+      db2.close()
+    })
   })
 
   describe('requireAuth middleware', () => {
