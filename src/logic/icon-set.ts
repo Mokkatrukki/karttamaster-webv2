@@ -31,6 +31,9 @@ export const CURATED_ICONS: IconEntry[] = [
   { id: 'zap',              label: 'Sähkö / energia',  svgContent: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>' },
   { id: 'droplets',         label: 'Vesi / juomapiste',svgContent: '<path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/>' },
   { id: 'parking-circle',   label: 'Parkkipaikka',     svgContent: '<circle cx="12" cy="12" r="10"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/>' },
+  // T159: custom paths — Lucide has no u-turn icon
+  { id: 'u-turn-right',     label: 'U-käännös oikea',  svgContent: '<path d="M8 20V9a4 4 0 0 1 8 0v7"/><path d="m19 13-3 3-3-3"/>' },
+  { id: 'u-turn-left',      label: 'U-käännös vasen',  svgContent: '<path d="M16 20V9a4 4 0 0 0-8 0v7"/><path d="m5 13 3 3 3-3"/>' },
 ]
 
 export function getIconById(id: string): IconEntry | undefined {
