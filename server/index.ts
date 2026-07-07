@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { getCookie } from 'hono/cookie'
 import { createDb, seedAdmin, gracefulClose } from './db'
 import { dbMiddleware } from './middleware/auth'
 import { authRoutes } from './routes/auth'
@@ -29,6 +30,19 @@ process.on('SIGTERM', shutdown)
 
 const app = new Hono()
 app.use('*', dbMiddleware(db))
+
+// B82/T182(c)-diagnostiikka: logaa mutatoivat /api-kirjoitukset statuksineen, jotta
+// `fly logs` paljastaa MIKSI kirjoitus torjutaan tuotannossa: 201/200 = ok, 401 =
+// sessio puuttuu/vanhentunut, 403 = rooli ei riitä. Ei bodyja eikä salaisuuksia.
+app.use('/api/*', async (c, next) => {
+  await next()
+  const m = c.req.method
+  if (m === 'POST' || m === 'PUT' || m === 'DELETE') {
+    const sess = c.get('session') as { role?: string } | undefined
+    const who = sess?.role ?? (getCookie(c, 'session') ? 'sessio-invalid' : 'ei-cookiea')
+    console.log(`[api] ${m} ${c.req.path} -> ${c.res.status} (${who})`)
+  }
+})
 
 app.get('/api/health', (c) => c.json({ ok: true }))
 app.route('/api/auth', authRoutes)
