@@ -43,10 +43,10 @@ Tarkista ettei `.env.local` tai muita secrets-tiedostoja mene mukaan.
 
 ## 4. Deploy
 
-`VITE_MML_API_KEY` ei ole enää `fly.toml`:issa (T167/B70) — lue se `.env`:stä ja anna `--build-arg`:na:
+`VITE_MML_API_KEY` ei ole enää `fly.toml`:issa (T167/B70) — `./deploy.sh` lukee sen `.env`:stä ja antaa `--build-arg`:na (älä käytä paljasta `fly deploy`:a, token ei silloin mene mukaan buildiin):
 
 ```bash
-fly deploy --build-arg VITE_MML_API_KEY="$(grep '^VITE_MML_API_KEY=' .env | cut -d= -f2-)" 2>&1 | tail -20
+./deploy.sh 2>&1 | tail -20
 ```
 
 Näytä vain loppuosa outputista (tail). Kun valmis, tulosta:
