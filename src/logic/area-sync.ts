@@ -1,46 +1,50 @@
 import type { AreaMarker } from './area-types'
+import { outbox } from './outbox-instance'
 
-export async function fetchAreas(): Promise<AreaMarker[]> {
+// T190/V118: erottele "0 aluetta" ja "lataus epäonnistui" (sama peruste kuin fetchMarkers).
+export type AreasResult =
+  | { ok: true; areas: AreaMarker[] }
+  | { ok: false; error: 'http' | 'network' }
+
+export async function fetchAreas(): Promise<AreasResult> {
   try {
     const res = await fetch('/api/areas')
-    if (!res.ok) return []
-    const data = await res.json() as AreaMarker[]
-    return Array.isArray(data) ? data : []
+    if (!res.ok) return { ok: false, error: 'http' }
+    const data = (await res.json()) as AreaMarker[]
+    return { ok: true, areas: Array.isArray(data) ? data : [] }
   } catch {
-    return []
+    return { ok: false, error: 'network' }
   }
 }
 
-export async function createArea(area: AreaMarker): Promise<AreaMarker | null> {
-  try {
-    const res = await fetch('/api/areas', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(area),
-    })
-    if (!res.ok) return null
-    return await res.json() as AreaMarker
-  } catch {
-    return null
-  }
+// T190/V116/B85: alue-kirjoitukset durable-outboxin kautta — ei enää hiljaisia
+// fire-and-forgeteja. Epäonnistunut kirjoitus jää jonoon ja retrytään (durability);
+// palautettu boolean = välittömän yrityksen tulos. Alueen id on client-generoitu.
+export async function createArea(area: AreaMarker): Promise<boolean> {
+  const { delivered } = await outbox.enqueue({
+    resourceKey: 'area:' + area.id,
+    method: 'POST',
+    url: '/api/areas',
+    body: JSON.stringify(area),
+  })
+  return delivered
 }
 
-export async function updateArea(area: AreaMarker): Promise<void> {
-  try {
-    await fetch(`/api/areas/${area.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(area),
-    })
-  } catch {
-    // silent — overlay already updated in-memory
-  }
+export async function updateArea(area: AreaMarker): Promise<boolean> {
+  const { delivered } = await outbox.enqueue({
+    resourceKey: 'area:' + area.id,
+    method: 'PUT',
+    url: `/api/areas/${area.id}`,
+    body: JSON.stringify(area),
+  })
+  return delivered
 }
 
-export async function deleteArea(areaId: string): Promise<void> {
-  try {
-    await fetch(`/api/areas/${areaId}`, { method: 'DELETE' })
-  } catch {
-    // silent
-  }
+export async function deleteArea(areaId: string): Promise<boolean> {
+  const { delivered } = await outbox.enqueue({
+    resourceKey: 'area:' + areaId,
+    method: 'DELETE',
+    url: `/api/areas/${areaId}`,
+  })
+  return delivered
 }

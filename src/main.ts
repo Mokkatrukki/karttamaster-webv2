@@ -63,7 +63,7 @@ async function init(talkoolainenCode?: string) {
   // status-väritykseen (V96) mutta MarkerManager luodaan vasta sen jälkeen.
   const markerManagerRef: { current: MarkerManager | null } = { current: null }
 
-  await wireAreas(map, talkoolainenCode)
+  await wireAreas(map, talkoolainenCode, () => showWarning('⚠ Alueiden lataus epäonnistui — päivitä sivu', 0))
 
   const { segmentStore, segmentOverlay, renderSegmentOverlay, segmentPanel } = await wireSegments(
     map, routes, talkoolainenCode, initialMarkers, markerManagerRef,

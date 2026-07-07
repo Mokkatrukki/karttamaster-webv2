@@ -7,12 +7,15 @@ import { initAreaView } from '../ui/area-view'
 
 // T108/T109/T111/T114-T116: alueet kartalla + järjestäjän editor-paneeli + hash-URL /a/<hash>-katselu.
 // Itsenäinen kokonaisuus — ei riipu merkeistä tai pätkistä, ei vaikuta niihin.
-export async function wireAreas(map: L.Map, talkoolainenCode?: string): Promise<void> {
+export async function wireAreas(map: L.Map, talkoolainenCode?: string, onLoadError: () => void = () => {}): Promise<void> {
   const mapRectEditor = new MapRectEditor(map)
 
   const areaOverlay = new AreaOverlay(map)
   areaOverlay.setMapRectEditor(mapRectEditor)
-  let areas = await fetchAreas()
+  // T190/V118: latausvirhe ≠ "0 aluetta" — älä jätä hiljaa tyhjää järjestäjän kartalle.
+  const result = await fetchAreas()
+  let areas = result.ok ? result.areas : []
+  if (!result.ok) onLoadError()
   areaOverlay.update(areas)
 
   await initAreaView(map)
