@@ -366,7 +366,7 @@ describe('MarkerDetailModal', () => {
     const select = document.querySelector<HTMLSelectElement>('.marker-detail-type-select')!
     select.value = 'left'
     select.dispatchEvent(new Event('change'))
-    expect(manager.updateType).toHaveBeenCalledWith('test-id', 'left', undefined, undefined)
+    expect(manager.updateType).toHaveBeenCalledWith('test-id', 'left', undefined, undefined, undefined)
     expect(onUpdate).toHaveBeenCalled()
   })
 
@@ -380,6 +380,6 @@ describe('MarkerDetailModal', () => {
     const select = document.querySelector<HTMLSelectElement>('.marker-detail-type-select')!
     select.value = 'custom-1'
     select.dispatchEvent(new Event('change'))
-    expect(manager.updateType).toHaveBeenCalledWith('test-id', 'custom-1', '#ff0000', 'Vaara')
+    expect(manager.updateType).toHaveBeenCalledWith('test-id', 'custom-1', '#ff0000', 'Vaara', undefined)
   })
 })

@@ -56,6 +56,7 @@ export class MarkerManager {
         location_note: marker.locationNote ?? null,
         color: marker.color ?? null,
         label: marker.label ?? null,
+        icon_id: marker.iconId ?? null,
       }),
     }).catch(() => {})
   }
@@ -90,7 +91,7 @@ export class MarkerManager {
     return { routeIds, distanceFromStart: point.distanceFromStart }
   }
 
-  add(lat: number, lon: number, type: MarkerType, color?: string, label?: string): SignMarker {
+  add(lat: number, lon: number, type: MarkerType, color?: string, label?: string, iconId?: string): SignMarker {
     const { routeIds, distanceFromStart } = this.nearestRouteAssignment(lat, lon)
 
     const marker: SignMarker = {
@@ -101,6 +102,7 @@ export class MarkerManager {
       status: DEFAULT_STATUS,
       ...(color ? { color } : {}),
       ...(label ? { label } : {}),
+      ...(iconId ? { iconId } : {}),
     }
     this.markers.push(marker)
     this.apiPost(marker)
@@ -201,7 +203,7 @@ export class MarkerManager {
     if (!m) return
     m.status = transitionStatus(m.status, action)
     const lm = this.leafletMarkers.get(id)
-    if (lm) lm.setIcon(createSignIcon(m.type, m.status, m.color, compactOf(m), undefined, signImageSrc(m.type)))
+    if (lm) lm.setIcon(createSignIcon(m.type, m.status, m.color, compactOf(m), m.iconId, signImageSrc(m.type)))
     this.apiPut(id, { status: m.status })
     this.onUpdate()
   }
@@ -212,21 +214,22 @@ export class MarkerManager {
       if (!m) return
       m.status = status
       const lm = this.leafletMarkers.get(id)
-      if (lm) lm.setIcon(createSignIcon(m.type, m.status, m.color, compactOf(m), undefined, signImageSrc(m.type)))
+      if (lm) lm.setIcon(createSignIcon(m.type, m.status, m.color, compactOf(m), m.iconId, signImageSrc(m.type)))
       this.apiPut(id, { status })
     })
     if (ids.length > 0) this.onUpdate()
   }
 
-  updateType(id: string, newType: MarkerType, color?: string, label?: string): void {
+  updateType(id: string, newType: MarkerType, color?: string, label?: string, iconId?: string): void {
     const m = this.markers.find((x) => x.id === id)
     if (!m) return
     m.type = newType
     m.color = color ?? undefined
     m.label = label ?? undefined
+    m.iconId = iconId ?? undefined
     const lm = this.leafletMarkers.get(id)
-    if (lm) lm.setIcon(createSignIcon(newType, m.status, m.color, compactOf(m), undefined, signImageSrc(newType)))
-    this.apiPut(id, { type: newType, color: color ?? null })
+    if (lm) lm.setIcon(createSignIcon(newType, m.status, m.color, compactOf(m), m.iconId, signImageSrc(newType)))
+    this.apiPut(id, { type: newType, color: color ?? null, icon_id: iconId ?? null })
     this.onUpdate()
   }
 
@@ -257,7 +260,7 @@ export class MarkerManager {
   }
 
   private addLeafletMarker(m: SignMarker): void {
-    const icon = createSignIcon(m.type, m.status, m.color, compactOf(m), undefined, signImageSrc(m.type))
+    const icon = createSignIcon(m.type, m.status, m.color, compactOf(m), m.iconId, signImageSrc(m.type))
     const lm = L.marker([m.lat, m.lon], { icon, draggable: true }).addTo(this.map)
     this.leafletMarkers.set(m.id, lm)
 

@@ -19,6 +19,7 @@ export interface SignMarker {
   locationNote?: string   // vapaa teksti: mihin tarkasti kiinnitetään
   color?: string          // custom template color (ei default-4 tyypeille)
   label?: string          // V99/T160: denormalisoitu template-label; kompakti kartta-teksti = compactLabel(label)
+  iconId?: string         // V106: denormalisoitu template.iconId — kartan ikoni-tier (V99) toimii itsenäisesti
   description?: string    // T103: lisäkuvaus, järjestäjä muokkaa
   images?: string[]       // T103: kuva-URL:t (server/routes/markers.ts POST :id/images)
 }

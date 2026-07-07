@@ -42,7 +42,7 @@ export class PlaceMode {
   placeArmedAt(lat: number, lon: number): boolean {
     if (!this.armedTemplate) return false
     const t = this.armedTemplate
-    this.markerManager.add(lat, lon, t.id as MarkerType, t.color, t.label)
+    this.markerManager.add(lat, lon, t.id as MarkerType, t.color, t.label, t.iconId)
     this.disarm()
     return true
   }
@@ -50,7 +50,7 @@ export class PlaceMode {
   openPicker(lat: number, lon: number, clientX: number, clientY: number): void {
     this.pendingDblClick = { lat, lon }
     this.floatingPicker.innerHTML = listFavorites(this.library).map(t => `
-      <button class="sign-type-btn" data-type="${escapeHtml(t.id)}" data-color="${escapeHtml(t.color)}" data-label="${escapeHtml(t.label)}">
+      <button class="sign-type-btn" data-type="${escapeHtml(t.id)}" data-color="${escapeHtml(t.color)}" data-label="${escapeHtml(t.label)}" data-icon="${escapeHtml(t.iconId ?? '')}">
         <span class="sign-swatch" style="background:${escapeHtml(t.color)};position:relative;overflow:hidden">${escapeHtml(compactLabel(t.label))}${signImageTag(t.imageId ?? t.id, 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff')}</span>
         ${escapeHtml(t.label)}
       </button>`).join('')
@@ -73,7 +73,7 @@ export class PlaceMode {
       const btn = (e.target as HTMLElement).closest('.sign-type-btn') as HTMLElement | null
       if (!btn || !this.pendingDblClick) return
       const { lat, lon } = this.pendingDblClick
-      this.markerManager.add(lat, lon, btn.dataset.type as MarkerType, btn.dataset.color, btn.dataset.label)
+      this.markerManager.add(lat, lon, btn.dataset.type as MarkerType, btn.dataset.color, btn.dataset.label, btn.dataset.icon || undefined)
       this.closePicker()
     })
 

@@ -11,6 +11,7 @@ interface ServerMarker {
   location_note: string | null
   color: string | null
   label: string | null
+  icon_id: string | null
   description: string | null
   images: string[]
 }
@@ -27,6 +28,7 @@ function fromServer(row: ServerMarker): SignMarker {
     ...(row.location_note != null ? { locationNote: row.location_note } : {}),
     ...(row.color != null ? { color: row.color } : {}),
     ...(row.label != null ? { label: row.label } : {}),
+    ...(row.icon_id != null ? { iconId: row.icon_id } : {}),
     ...(row.description != null ? { description: row.description } : {}),
     ...(row.images && row.images.length > 0 ? { images: row.images } : {}),
   }
