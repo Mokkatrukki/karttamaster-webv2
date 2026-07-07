@@ -1,10 +1,6 @@
 app = "karttamaster-web"
 primary_region = "arn"
 
-[build]
-  [build.args]
-    VITE_MML_API_KEY = "5f97e61e-6f63-40d5-8d15-53b79055f66d"
-
 [env]
   PORT = "3001"
   DB_PATH = "/data/karttamaster.db"
