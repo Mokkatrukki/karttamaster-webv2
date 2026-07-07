@@ -57,7 +57,7 @@ function updateBulkCheckinBtns(listEl: HTMLElement, modal: HTMLElement | null): 
   }
 }
 
-export function renderMarkerList(manager: MarkerManager, highlightId?: string, segmentMarkerIds?: Set<string>, library?: SignLibrary | null, onOpenDetail?: (id: string) => void): void {
+export function renderMarkerList(manager: MarkerManager, highlightId?: string, segmentMarkerIds?: Set<string>, library?: SignLibrary | null, onOpenDetail?: (id: string) => void, pendingIds?: Set<string>): void {
   const allMarkers = manager.getAll()
   // V33: talkoolainen sees only their segment's markers when segmentMarkerIds provided
   const markers = segmentMarkerIds ? allMarkers.filter(m => segmentMarkerIds.has(m.id)) : allMarkers
@@ -119,6 +119,10 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
         const displayShortLabel = compactLabel(m.label ?? displayLabel)
         const km = (m.distanceFromStart / 1000).toFixed(2)
         const highlighted = m.id === highlightId ? ' marker-item--new' : ''
+        // T185/V117: vahvistamaton kirjoitus näkyy listalla persistentisti "tallentamatta".
+        const isPending = pendingIds?.has(m.id) ?? false
+        const pendingCls = isPending ? ' marker-item--pending' : ''
+        const pendingTag = isPending ? '<span class="marker-pending-tag" title="Odottaa tallennusta palvelimelle">tallentamatta</span>' : ''
         const statusBadge = `<span class="marker-status marker-status--${m.status}">${STATUS_LABELS[m.status]}</span>`
         const checkbox = !isTalkoolainen
           ? `<input type="checkbox" class="marker-item-checkbox" data-id="${m.id}" aria-label="Valitse merkki">`
@@ -130,11 +134,12 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
           ? `<span class="marker-note-dot" aria-label="Kommentti kirjoitettu"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>`
           : ''
         return `
-          <div class="marker-item${highlighted}" data-id="${m.id}">
+          <div class="marker-item${highlighted}${pendingCls}" data-id="${m.id}">
             ${checkbox}
             <span class="marker-icon" style="color:${displayColor}">${displayShortLabel}</span>
             <span class="marker-type-label">${displayLabel}</span>
             ${noteDot}
+            ${pendingTag}
             <span class="marker-km">${km} km</span>
             ${statusBadge}
             ${deleteBtn}

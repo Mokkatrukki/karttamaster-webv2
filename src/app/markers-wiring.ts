@@ -16,6 +16,7 @@ import { MarkerDetailModal } from '../ui/marker-detail-modal'
 import { getSegmentForCode, getMarkersForSegment, updateSegment } from '../logic/segments'
 import type { Segment } from '../logic/segments'
 import { updateSegmentRemote } from '../logic/segment-sync'
+import { outbox, setOutboxChangeHandler } from '../logic/outbox-instance'
 import type { RouteConfig } from '../logic/multi-route'
 import type { SignMarker } from '../logic/types'
 import type { SegmentPanel } from '../ui/segment-panel'
@@ -57,6 +58,10 @@ export function wireMarkers(
   let segmentView: SegmentView | null = null
   let signLibrary: SignLibrary | null = null
 
+  // T185/V117: outbox-resurssiavaimista ('marker:<id>') pending-merkkien id-joukko listalle.
+  const markerPendingIds = (): Set<string> =>
+    new Set([...outbox.pendingResourceKeys()].filter(k => k.startsWith('marker:')).map(k => k.slice('marker:'.length)))
+
   // Forward declaration — modaali luodaan vasta markerManagerin jälkeen
   let markerDetailModal: MarkerDetailModal | null = null
   const onOpenMarkerDetail = (id: string) => {
@@ -65,7 +70,7 @@ export function wireMarkers(
   }
 
   const markerManager = new MarkerManager(map, routes, () => {
-    renderMarkerList(markerManager, undefined, undefined, signLibrary, onOpenMarkerDetail)
+    renderMarkerList(markerManager, undefined, undefined, signLibrary, onOpenMarkerDetail, markerPendingIds())
     progressBar.refreshDots()
     statusPanel?.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
     segmentPanel.refreshCounts()
@@ -82,11 +87,20 @@ export function wireMarkers(
     () => signLibrary,
     getRole,
     () => {
-      renderMarkerList(markerManager, undefined, undefined, signLibrary, onOpenMarkerDetail)
+      renderMarkerList(markerManager, undefined, undefined, signLibrary, onOpenMarkerDetail, markerPendingIds())
       progressBar.refreshDots()
     },
   )
   markerManager.setOnMarkerClick((id) => onOpenMarkerDetail(id))
+
+  // T185/V117: outbox-jonon muutos → päivitä kartan pending-korostus + listan "tallentamatta".
+  // Käsittelijä kattaa myös 2xx-vahvistuksen (avain poistuu → korostus katoaa).
+  setOutboxChangeHandler((keys) => {
+    markerManager.setPendingKeys(keys)
+    renderMarkerList(markerManager, undefined, undefined, signLibrary, onOpenMarkerDetail, markerPendingIds())
+  })
+  // Edellisen session vahvistamattomat kirjoitukset voivat olla vielä jonossa käynnistyessä.
+  markerManager.setPendingKeys(outbox.pendingResourceKeys())
 
   if (talkoolainenCode) {
     const seg = getSegmentForCode(segmentStore, talkoolainenCode)
@@ -163,7 +177,7 @@ export function wireMarkers(
         segmentMarkerIds = new Set(getMarkersForSegment(seg, markerManager.getAll()).map(m => m.id))
       }
     }
-    renderMarkerList(markerManager, highlightId, segmentMarkerIds, signLibrary, onOpenMarkerDetail)
+    renderMarkerList(markerManager, highlightId, segmentMarkerIds, signLibrary, onOpenMarkerDetail, markerPendingIds())
     markerModalBackdrop.classList.add('open')
     markerModal.classList.add('open')
   }

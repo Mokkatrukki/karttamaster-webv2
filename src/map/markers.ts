@@ -30,6 +30,10 @@ function visualPartsOf(m: SignMarker): ReturnType<typeof signVisualParts> | unde
 export class MarkerManager {
   private markers: SignMarker[] = []
   private leafletMarkers = new Map<string, L.Marker>()
+  // T185/V117: merkkien id:t joilla on vahvistamaton kirjoitus outboxissa — piirretään
+  // erottuvasti ("tallentamatta") kunnes 2xx vahvistaa. Säilytetään managerissa, koska
+  // setIcon (status/tyyppimuutos) korvaa Leaflet-elementin → luokka on osattava piirtää uudelleen.
+  private pendingIds = new Set<string>()
   private map: L.Map
   private routes: RouteRef[]
   private visibleRouteIds: string[]
@@ -69,6 +73,19 @@ export class MarkerManager {
 
   private applyZoomScaleToAll(): void {
     this.leafletMarkers.forEach((lm) => this.applyZoomScale(lm))
+  }
+
+  // T185/V117: outbox ilmoittaa vahvistamattomien kirjoitusten resurssiavaimet
+  // ('marker:<id>'). Päivitä pending-joukko ja piirrä erottuva luokka kaikille näkyville.
+  setPendingKeys(keys: Set<string>): void {
+    this.pendingIds = new Set(
+      [...keys].filter((k) => k.startsWith('marker:')).map((k) => k.slice('marker:'.length)),
+    )
+    this.leafletMarkers.forEach((lm, id) => this.applyPendingClass(lm, this.pendingIds.has(id)))
+  }
+
+  private applyPendingClass(lm: L.Marker, on: boolean): void {
+    lm.getElement()?.classList.toggle('leaflet-marker-pending', on)
   }
 
   // T183/V116: kaikki merkkikirjoitukset reititetään durable-outboxin kautta.
@@ -336,6 +353,8 @@ export class MarkerManager {
     const el = lm.getElement()
     if (el) el.style.cursor = 'pointer'
     this.applyZoomScale(lm)
+    // T185/V117: uusi merkki voi olla jo pending (add() enqueuaa ennen piirtoa) → merkitse heti.
+    this.applyPendingClass(lm, this.pendingIds.has(m.id))
 
     // V82: lm.on('click', ...) uses Leaflet's own event system, which suppresses
     // the synthetic click that follows a real drag (Draggable._onUp). A raw DOM

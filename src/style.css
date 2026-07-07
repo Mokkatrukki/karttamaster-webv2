@@ -700,6 +700,30 @@ button {
 }
 .marker-item:hover { background: var(--hover); }
 .marker-item--new { background: var(--warn-highlight); }
+
+/* T185/V117: vahvistamaton kirjoitus näkyy persistentisti — ei transientti banner.
+   Amber vasen reuna + "tallentamatta"-tagi. Kontrasti: amber teksti tummalla taustalla. */
+.marker-item--pending { box-shadow: inset 3px 0 0 var(--accent); }
+.marker-pending-tag {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+/* Kartan pending-merkki: pulssaava amber-rengas. Ei laske opacitya (aurinko/kontrasti). */
+.leaflet-marker-pending { filter: drop-shadow(0 0 0 var(--accent)); animation: marker-pending-pulse 1.4s ease-in-out infinite; }
+@keyframes marker-pending-pulse {
+  0%, 100% { filter: drop-shadow(0 0 2px var(--accent)); }
+  50%      { filter: drop-shadow(0 0 7px var(--accent)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .leaflet-marker-pending { animation: none; filter: drop-shadow(0 0 4px var(--accent)); }
+}
 .marker-item .marker-icon { font-size: 13px; font-weight: 700; flex-shrink: 0; min-width: 28px; text-align: center; }
 .marker-item .marker-km { color: var(--text-meta); font-size: 11px; flex-shrink: 0; }
 .marker-item .marker-status { margin-top: 0; }
