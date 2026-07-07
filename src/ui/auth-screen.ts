@@ -8,24 +8,40 @@ export function extractSegmentCode(pathname: string): string | null {
   return m ? m[1].toUpperCase() : null
 }
 
+// V110: extract invite/reset token from /auth/invite/<token> deep-link
+export function extractInviteToken(pathname: string): string | null {
+  const m = pathname.match(/^\/auth\/invite\/([a-z0-9-]+)$/i)
+  return m ? m[1] : null
+}
+
 export class AuthScreen {
   private readonly overlay: HTMLElement
   private readonly errorEl: HTMLElement
+  private readonly tabsEl: HTMLElement
   private readonly järjestäjäForm: HTMLFormElement
   private readonly talkoolainenForm: HTMLFormElement
+  private readonly inviteForm: HTMLFormElement
+  private inviteToken: string | null = null
 
   constructor(private readonly onAuthenticated: (result: AuthResult) => void) {
     this.overlay = this.buildOverlay()
     document.body.appendChild(this.overlay)
     this.errorEl = this.overlay.querySelector('#auth-error')!
+    this.tabsEl = this.overlay.querySelector('#auth-tabs')!
     this.järjestäjäForm = this.overlay.querySelector('#auth-form-jarjestaja')!
     this.talkoolainenForm = this.overlay.querySelector('#auth-form-talkoolainen')!
+    this.inviteForm = this.overlay.querySelector('#auth-form-invite')!
     this.bindEvents()
   }
 
   async start(): Promise<void> {
     // V40: show overlay before any fetch — map must not be visible during auth check
     this.show()
+    const inviteToken = extractInviteToken(window.location.pathname)
+    if (inviteToken) {
+      await this.startInviteFlow(inviteToken)
+      return
+    }
     const pathCode = extractSegmentCode(window.location.pathname)
     try {
       const resp = await fetch('/api/auth/me')
@@ -78,6 +94,12 @@ export class AuthScreen {
           <input type="text" id="auth-code" placeholder="Talkoolaiskoodi" autocomplete="off" />
           <button type="submit">Kirjaudu</button>
         </form>
+        <form id="auth-form-invite" class="auth-form">
+          <input type="text" id="invite-username" placeholder="Käyttäjätunnus" autocomplete="username" />
+          <input type="password" id="invite-password" placeholder="Salasana" autocomplete="new-password" />
+          <input type="password" id="invite-password-confirm" placeholder="Salasana uudelleen" autocomplete="new-password" />
+          <button type="submit">Aseta salasana</button>
+        </form>
         <p id="auth-error" class="auth-error" aria-live="polite"></p>
       </div>
     `
@@ -110,6 +132,42 @@ export class AuthScreen {
         this.onAuthenticated({ role: data.role, displayName: data.display_name })
       } else {
         this.showError('Väärä käyttäjätunnus tai salasana')
+      }
+    } catch {
+      this.showError('Yhteysvirhe — yritä uudelleen')
+    }
+  }
+
+  private async startInviteFlow(token: string): Promise<void> {
+    this.tabsEl.style.display = 'none'
+    this.järjestäjäForm.classList.remove('active')
+    this.talkoolainenForm.classList.remove('active')
+    try {
+      const resp = await fetch(`/api/auth/invite/${token}`)
+      if (!resp.ok) {
+        this.showError('Kutsulinkki on vanhentunut tai virheellinen')
+        return
+      }
+      this.inviteToken = token
+      this.inviteForm.classList.add('active')
+    } catch {
+      this.showError('Yhteysvirhe — yritä uudelleen')
+    }
+  }
+
+  private async submitInvite(username: string, password: string): Promise<void> {
+    if (!this.inviteToken) return
+    try {
+      const resp = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: this.inviteToken, username, password }),
+      })
+      if (resp.ok) {
+        await this.loginJärjestäjä(username, password)
+      } else {
+        const data = await resp.json() as { error?: string }
+        this.showError(data.error === 'username_taken' ? 'Käyttäjätunnus on jo käytössä' : 'Kutsulinkki on vanhentunut tai virheellinen')
       }
     } catch {
       this.showError('Yhteysvirhe — yritä uudelleen')
@@ -155,6 +213,19 @@ export class AuthScreen {
       const code = (this.overlay.querySelector('#auth-code') as HTMLInputElement).value.trim()
       if (!code) return
       await this.loginTalkoolainen(code)
+    })
+
+    this.inviteForm.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      const username = (this.overlay.querySelector('#invite-username') as HTMLInputElement).value.trim()
+      const password = (this.overlay.querySelector('#invite-password') as HTMLInputElement).value
+      const confirm = (this.overlay.querySelector('#invite-password-confirm') as HTMLInputElement).value
+      if (!username || !password) return
+      if (password !== confirm) {
+        this.showError('Salasanat eivät täsmää')
+        return
+      }
+      await this.submitInvite(username, password)
     })
   }
 }

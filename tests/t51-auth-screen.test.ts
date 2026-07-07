@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { AuthScreen } from '../src/ui/auth-screen'
+import { AuthScreen, extractInviteToken } from '../src/ui/auth-screen'
 
 function mockFetchMe(status: number, body: unknown) {
   return vi.fn().mockResolvedValueOnce({
@@ -26,6 +26,7 @@ describe('T51 — AuthScreen', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals()
+    window.history.pushState({}, '', '/')
   })
 
   describe('start() — /api/auth/me', () => {
@@ -226,6 +227,88 @@ describe('T51 — AuthScreen', () => {
       form.dispatchEvent(new Event('submit', { cancelable: true }))
       await new Promise(r => setTimeout(r, 10))
       expect(fetchMock).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('T177/V110 — extractInviteToken', () => {
+    it('matches /auth/invite/<token>', () => {
+      expect(extractInviteToken('/auth/invite/abc123-def')).toBe('abc123-def')
+    })
+
+    it('no match on other paths', () => {
+      expect(extractInviteToken('/s/ABC123')).toBeNull()
+      expect(extractInviteToken('/')).toBeNull()
+    })
+  })
+
+  describe('T177/V110 — invite/reset flow', () => {
+    beforeEach(() => {
+      window.history.pushState({}, '', '/auth/invite/tok-123')
+    })
+
+    it('valid token → shows invite form, hides tabs, no /api/auth/me call needed for form to appear', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ valid: true }) } as Response))
+      const screen = new AuthScreen(onAuthenticated)
+      await screen.start()
+      expect(document.querySelector('#auth-form-invite.active')).not.toBeNull()
+      expect((document.getElementById('auth-tabs') as HTMLElement).style.display).toBe('none')
+    })
+
+    it('invalid/expired token → error shown, no silent fallback to login form', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce({ ok: false, status: 404, json: async () => ({ error: 'invalid_token' }) } as Response))
+      const screen = new AuthScreen(onAuthenticated)
+      await screen.start()
+      expect(document.getElementById('auth-error')?.textContent).toContain('vanhentunut')
+      expect(document.querySelector('#auth-form-invite.active')).toBeNull()
+      expect(document.querySelector('#auth-form-jarjestaja.active')).toBeNull()
+    })
+
+    it('password mismatch → client error, no register fetch', async () => {
+      const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ valid: true }) } as Response)
+      vi.stubGlobal('fetch', fetchMock)
+      const screen = new AuthScreen(onAuthenticated)
+      await screen.start()
+      ;(document.getElementById('invite-username') as HTMLInputElement).value = 'uusi'
+      ;(document.getElementById('invite-password') as HTMLInputElement).value = 'salasana1'
+      ;(document.getElementById('invite-password-confirm') as HTMLInputElement).value = 'salasana2'
+      const form = document.querySelector('#auth-form-invite') as HTMLFormElement
+      form.dispatchEvent(new Event('submit', { cancelable: true }))
+      await new Promise(r => setTimeout(r, 10))
+      expect(document.getElementById('auth-error')?.textContent).toContain('täsmää')
+      expect(fetchMock).toHaveBeenCalledTimes(1) // only the initial invite-validate call
+    })
+
+    it('successful register → auto-login → onAuthenticated', async () => {
+      const fetchMock = vi.fn()
+        .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ valid: true }) } as Response) // invite validate
+        .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ ok: true }) } as Response) // register
+        .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ role: 'järjestäjä', display_name: 'Uusi' }) } as Response) // login
+      vi.stubGlobal('fetch', fetchMock)
+      const screen = new AuthScreen(onAuthenticated)
+      await screen.start()
+      ;(document.getElementById('invite-username') as HTMLInputElement).value = 'uusi'
+      ;(document.getElementById('invite-password') as HTMLInputElement).value = 'salasana1'
+      ;(document.getElementById('invite-password-confirm') as HTMLInputElement).value = 'salasana1'
+      const form = document.querySelector('#auth-form-invite') as HTMLFormElement
+      form.dispatchEvent(new Event('submit', { cancelable: true }))
+      await new Promise(r => setTimeout(r, 10))
+      expect(onAuthenticated).toHaveBeenCalledWith({ role: 'järjestäjä', displayName: 'Uusi' })
+    })
+
+    it('username taken → error message', async () => {
+      const fetchMock = vi.fn()
+        .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ valid: true }) } as Response)
+        .mockResolvedValueOnce({ ok: false, status: 409, json: async () => ({ error: 'username_taken' }) } as Response)
+      vi.stubGlobal('fetch', fetchMock)
+      const screen = new AuthScreen(onAuthenticated)
+      await screen.start()
+      ;(document.getElementById('invite-username') as HTMLInputElement).value = 'admin'
+      ;(document.getElementById('invite-password') as HTMLInputElement).value = 'salasana1'
+      ;(document.getElementById('invite-password-confirm') as HTMLInputElement).value = 'salasana1'
+      const form = document.querySelector('#auth-form-invite') as HTMLFormElement
+      form.dispatchEvent(new Event('submit', { cancelable: true }))
+      await new Promise(r => setTimeout(r, 10))
+      expect(document.getElementById('auth-error')?.textContent).toContain('käytössä')
     })
   })
 })
