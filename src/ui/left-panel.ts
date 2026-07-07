@@ -1,3 +1,5 @@
+const MOBILE_BREAKPOINT = 480
+
 export class LeftPanel {
   private collapsed = false
   private readonly panel: HTMLElement
@@ -10,6 +12,7 @@ export class LeftPanel {
     this.content = panel.querySelector('#left-panel-content') as HTMLElement
     this.toggleBtn = panel.querySelector('#left-panel-toggle') as HTMLButtonElement
     this.onToggle = onToggle
+    this.collapsed = window.innerWidth <= MOBILE_BREAKPOINT
     this.toggleBtn.addEventListener('click', () => this.toggle())
     this.applyState()
   }

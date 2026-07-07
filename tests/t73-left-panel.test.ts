@@ -142,3 +142,48 @@ describe('T179 — LeftPanel onToggle callback (map.invalidateSize hook)', () =>
     expect(() => lp.toggle()).not.toThrow()
   })
 })
+
+describe('T181 — LeftPanel default-collapsed on mobile (V114)', () => {
+  let panel: HTMLElement
+  let content: HTMLElement
+  let toggleBtn: HTMLButtonElement
+  let originalWidth: number
+
+  beforeEach(() => {
+    originalWidth = window.innerWidth
+    panel = document.createElement('div')
+    panel.id = 'left-panel'
+    content = document.createElement('div')
+    content.id = 'left-panel-content'
+    toggleBtn = document.createElement('button')
+    toggleBtn.id = 'left-panel-toggle'
+    panel.appendChild(content)
+    panel.appendChild(toggleBtn)
+    document.body.appendChild(panel)
+  })
+
+  afterEach(() => {
+    document.body.removeChild(panel)
+    Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: originalWidth })
+  })
+
+  it('mobile width (375px) → starts collapsed', () => {
+    Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 375 })
+    const lp = new LeftPanel(panel)
+    expect(lp.isCollapsed()).toBe(true)
+    expect(content.hidden).toBe(true)
+  })
+
+  it('breakpoint exact (480px) → still collapsed', () => {
+    Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 480 })
+    const lp = new LeftPanel(panel)
+    expect(lp.isCollapsed()).toBe(true)
+  })
+
+  it('desktop width (1280px) → starts open', () => {
+    Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 })
+    const lp = new LeftPanel(panel)
+    expect(lp.isCollapsed()).toBe(false)
+    expect(content.hidden).toBe(false)
+  })
+})

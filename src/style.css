@@ -2280,6 +2280,24 @@ button {
 
 body[data-role="talkoolainen"] #left-panel { display: none; }
 
+/* T181 (V114) — mobiilissa left-panel ei kutista karttaa, se overlayaa sen */
+@media (max-width: 480px) {
+  #app-main {
+    position: relative;
+  }
+  #left-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 500;
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.5);
+  }
+  #left-panel.collapsed {
+    box-shadow: none;
+  }
+}
+
 #left-panel-header {
   display: flex;
   align-items: center;
