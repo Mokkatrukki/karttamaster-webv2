@@ -231,4 +231,36 @@ describe('sign-library', () => {
       expect(listFavorites(lib)).toHaveLength(2)
     })
   })
+
+  // T171/V107: yhdistelmämerkki — parts pysyy pinojärjestyksessä, katto 4 osaa
+  describe('parts (yhdistelmämerkki)', () => {
+    it('createTemplate tallentaa parts-taulukon järjestyksessä', () => {
+      const t = createTemplate(lib, {
+        label: 'Combo', color: '#000', description: '', favorite: false,
+        parts: [{ iconId: 'a' }, { imageId: 'b' }],
+      }, 'combo')
+      expect(t.parts).toEqual([{ iconId: 'a' }, { imageId: 'b' }])
+    })
+
+    it('createTemplate typistää yli 4 osaa neljään, järjestys säilyy', () => {
+      const t = createTemplate(lib, {
+        label: 'Combo', color: '#000', description: '', favorite: false,
+        parts: [{ iconId: 'a' }, { iconId: 'b' }, { iconId: 'c' }, { iconId: 'd' }, { iconId: 'e' }],
+      }, 'combo')
+      expect(t.parts).toEqual([{ iconId: 'a' }, { iconId: 'b' }, { iconId: 'c' }, { iconId: 'd' }])
+    })
+
+    it('updateTemplate päivittää parts ja typistää', () => {
+      createTemplate(lib, { label: 'Combo', color: '#000', description: '', favorite: false }, 'combo')
+      const updated = updateTemplate(lib, 'combo', {
+        parts: [{ iconId: 'a' }, { iconId: 'b' }, { iconId: 'c' }, { iconId: 'd' }, { iconId: 'e' }],
+      })
+      expect(updated?.parts).toEqual([{ iconId: 'a' }, { iconId: 'b' }, { iconId: 'c' }, { iconId: 'd' }])
+    })
+
+    it('ilman parts-kenttää template toimii ennallaan (backward-compat)', () => {
+      const t = createTemplate(lib, { label: 'Tavallinen', color: '#000', description: '', favorite: false }, 'plain')
+      expect(t.parts).toBeUndefined()
+    })
+  })
 })

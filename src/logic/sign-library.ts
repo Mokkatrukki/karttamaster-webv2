@@ -20,6 +20,12 @@ export function validateTemplateId(library: SignLibrary, id: string): IdValidati
   return { valid: true }
 }
 
+// V107: yhdistelmämerkin yksi osa — kuva>ikoni-precedence, EI label-fallbackia (aina tarkoituksella valittu)
+export interface SignPart {
+  iconId?: string
+  imageId?: string
+}
+
 export interface SignTemplate {
   id: string
   label: string       // display name, e.g. "Oikealle" — kompakti kartta-teksti johdetaan tästä (V99/T160 compactLabel)
@@ -28,6 +34,12 @@ export interface SignTemplate {
   favorite: boolean
   iconId?: string     // V50: optional Lucide icon name; if set, shown instead of compactLabel in circle
   imageId?: string    // V99/T158: optional template image key (convention = template.id); resolves src/assets/signs/<id>.webp
+  parts?: SignPart[]  // V107: yhdistelmämerkki — pystypino kepissä, parts[0] ylin, max 4 osaa (ylimenevät typistetään)
+}
+
+const MAX_PARTS = 4
+function capParts(parts?: SignPart[]): SignPart[] | undefined {
+  return parts ? parts.slice(0, MAX_PARTS) : parts
 }
 
 export type SignLibrary = Map<string, SignTemplate>
@@ -45,7 +57,7 @@ export function createTemplate(
 ): SignTemplate {
   const v = validateTemplateId(library, id)
   if (!v.valid) throw new Error(`createTemplate: kelvoton id "${id}" (${v.reason})`)
-  const entry: SignTemplate = { id, ...template }
+  const entry: SignTemplate = { id, ...template, parts: capParts(template.parts) }
   library.set(id, entry)
   return entry
 }
@@ -57,7 +69,7 @@ export function updateTemplate(
 ): SignTemplate | null {
   const existing = library.get(id)
   if (!existing) return null
-  const updated = { ...existing, ...patch }
+  const updated = { ...existing, ...patch, ...(patch.parts !== undefined ? { parts: capParts(patch.parts) } : {}) }
   library.set(id, updated)
   return updated
 }

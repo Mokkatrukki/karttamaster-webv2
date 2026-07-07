@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { signVisual, compactLabel } from '../src/logic/sign-visual'
+import { signVisual, signVisualParts, compactLabel } from '../src/logic/sign-visual'
 import { signImageSrc, signImageTag } from '../src/logic/sign-images'
 
 vi.mock('leaflet', () => ({
@@ -44,6 +44,51 @@ describe('T158/V99: signVisual precedence (kuva > ikoni > compactLabel(label))',
   it('tyhjä imageSrc kohdellaan puuttuvana (fallback ikoniin)', () => {
     const v = signVisual({ iconId: 'flag', label: 'Oikealle' }, '')
     expect(v).toEqual({ kind: 'icon', id: 'flag' })
+  })
+})
+
+describe('T171/V107: signVisualParts — yhdistelmämerkki pystypino', () => {
+  const noImage = () => undefined
+
+  it('ei parts-kenttää → 1-elementin taulukko kuten signVisual (backward-compat)', () => {
+    const parts = signVisualParts({ iconId: 'flag', label: 'Oikealle' }, noImage)
+    expect(parts).toEqual([{ kind: 'icon', id: 'flag' }])
+  })
+
+  it('tyhjä parts-taulukko → sama backward-compat fallback', () => {
+    const parts = signVisualParts({ label: 'Oikealle', parts: [] }, noImage)
+    expect(parts).toEqual([{ kind: 'label', text: 'OIK' }])
+  })
+
+  it('2 osaa → järjestys säilyy, molemmat resolvoituvat', () => {
+    const parts = signVisualParts(
+      { label: 'X', parts: [{ iconId: 'flag' }, { imageId: 'kapea-tie' }] },
+      (id) => (id === 'kapea-tie' ? 'blob:kapea-tie' : undefined),
+    )
+    expect(parts).toEqual([{ kind: 'icon', id: 'flag' }, { kind: 'image', src: 'blob:kapea-tie' }])
+  })
+
+  it('per-osa kuva voittaa ikonin (kuva>ikoni)', () => {
+    const parts = signVisualParts(
+      { label: 'X', parts: [{ iconId: 'flag', imageId: 'flag-img' }] },
+      () => 'blob:flag-img',
+    )
+    expect(parts).toEqual([{ kind: 'image', src: 'blob:flag-img' }])
+  })
+
+  it('yli 4 osaa typistetään 4:ään, järjestys säilyy', () => {
+    const parts = signVisualParts(
+      {
+        label: 'X',
+        parts: [
+          { iconId: 'a' }, { iconId: 'b' }, { iconId: 'c' }, { iconId: 'd' }, { iconId: 'e' },
+        ],
+      },
+      noImage,
+    )
+    expect(parts).toEqual([
+      { kind: 'icon', id: 'a' }, { kind: 'icon', id: 'b' }, { kind: 'icon', id: 'c' }, { kind: 'icon', id: 'd' },
+    ])
   })
 })
 
