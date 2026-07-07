@@ -4,6 +4,7 @@ import { loadGpx } from './logic/gpx'
 import { buildRoutePoints } from './logic/bearing'
 import type { MarkerManager } from './map/markers'
 import { fetchMarkers } from './logic/sync'
+import { startOutboxRetry } from './logic/outbox-instance'
 import type { RouteConfig } from './logic/multi-route'
 import { initMap } from './app/map-init'
 import { wireAreas } from './app/areas-wiring'
@@ -30,6 +31,10 @@ function showWarning(msg: string, ms = 4000): void {
 }
 
 async function init(talkoolainenCode?: string) {
+  // T183/V116: käynnistä durable-outboxin retry — toimittaa edellisen session
+  // vahvistamattomat kirjoitukset (startup + 'online' + periodinen backoff).
+  startOutboxRetry()
+
   const initialMarkers = await fetchMarkers()
 
   const routes: RouteConfig[] = await Promise.all(

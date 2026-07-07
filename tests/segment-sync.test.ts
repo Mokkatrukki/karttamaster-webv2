@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { fetchSegmentByCode, pushSegment, updateSegmentRemote, deleteSegmentRemote } from '../src/logic/segment-sync'
+import { outbox } from '../src/logic/outbox-instance'
 import type { Segment } from '../src/logic/segments'
 
 const SEG: Segment = {
@@ -15,6 +16,10 @@ const SEG: Segment = {
 describe('T62: segment-sync — V36', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+    // T183: pätkäkirjoitukset kulkevat jaetun outbox-singletonin kautta —
+    // tyhjennä jono testien välillä ettei edellisen testin epäonnistunut kirjoitus
+    // blokkaa saman resurssin (segment:seg-1) seuraavaa yritystä (FIFO).
+    outbox.clear()
   })
 
   describe('fetchSegmentByCode', () => {
@@ -43,7 +48,7 @@ describe('T62: segment-sync — V36', () => {
 
   describe('pushSegment', () => {
     it('returns true on 200/201', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 201 }))
       expect(await pushSegment(SEG)).toBe(true)
       expect(fetch).toHaveBeenCalledWith('/api/segments', expect.objectContaining({
         method: 'POST',
@@ -52,7 +57,7 @@ describe('T62: segment-sync — V36', () => {
     })
 
     it('returns false on server error', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }))
       expect(await pushSegment(SEG)).toBe(false)
     })
 
@@ -64,7 +69,7 @@ describe('T62: segment-sync — V36', () => {
 
   describe('updateSegmentRemote', () => {
     it('calls PUT with patch', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200 }))
       await updateSegmentRemote('seg-1', { description: 'ohje' })
       expect(fetch).toHaveBeenCalledWith('/api/segments/seg-1', expect.objectContaining({
         method: 'PUT',
@@ -75,7 +80,7 @@ describe('T62: segment-sync — V36', () => {
 
   describe('deleteSegmentRemote', () => {
     it('calls DELETE', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200 }))
       expect(await deleteSegmentRemote('seg-1')).toBe(true)
       expect(fetch).toHaveBeenCalledWith('/api/segments/seg-1', { method: 'DELETE' })
     })

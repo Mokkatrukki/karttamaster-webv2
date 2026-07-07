@@ -11,6 +11,8 @@ import { DEFAULT_STATUS, transitionStatus } from '../logic/marker-status'
 import type { StatusAction } from '../logic/marker-status'
 import type { MarkerStatus } from '../logic/types'
 import { markerScaleForZoom } from '../logic/marker-scale'
+import { outbox } from '../logic/outbox-instance'
+import { setOutboxSaveErrorHandler } from '../logic/outbox-instance'
 
 interface RouteRef { id: string; routePoints: RoutePoint[] }
 
@@ -33,7 +35,6 @@ export class MarkerManager {
   private visibleRouteIds: string[]
   private onUpdate: () => void
   private onFarFromRoute?: (distM: number) => void
-  private onSaveError?: (msg: string) => void
   private onMarkerClick: ((id: string) => void) | null = null
 
   constructor(map: L.Map, routes: RouteRef[], onUpdate: () => void, initialMarkers: SignMarker[] = [], onFarFromRoute?: (distM: number) => void, onSaveError?: (msg: string) => void) {
@@ -42,7 +43,8 @@ export class MarkerManager {
     this.visibleRouteIds = routes.map((r) => r.id)
     this.onUpdate = onUpdate
     this.onFarFromRoute = onFarFromRoute
-    this.onSaveError = onSaveError
+    // T183: outbox raportoi kirjoitusvirheet keskitetysti (V115).
+    if (onSaveError) setOutboxSaveErrorHandler(onSaveError)
     this.markers = initialMarkers
     initialMarkers.forEach((m) => {
       if (m.routeIds.some((id) => this.visibleRouteIds.includes(id))) {
@@ -69,13 +71,15 @@ export class MarkerManager {
     this.leafletMarkers.forEach((lm) => this.applyZoomScale(lm))
   }
 
-  // V115/B82: response.ok tarkistettava aina — .catch() nappaa vain verkkovirheen,
-  // ei HTTP-virhestatusta (401/403/400/500). Ilman tätä epäonnistunut tallennus
-  // katoaa hiljaa: merkki näkyy paikallisesti mutta ei koskaan päädy kantaan.
+  // T183/V116: kaikki merkkikirjoitukset reititetään durable-outboxin kautta.
+  // enqueue yrittää heti; 2xx poistaa jonosta, muu/verkkovirhe jättää jonoon ja
+  // retrytään (startup/'online'/backoff) → kirjoitus ei katoa sivun päivityksellä.
+  // Virhe surfataan keskitetysti (V115) outboxin onFailure → onSaveError.
   private apiPost(marker: SignMarker): void {
-    fetch('/api/markers', {
+    void outbox.enqueue({
+      resourceKey: 'marker:' + marker.id,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      url: '/api/markers',
       body: JSON.stringify({
         id: marker.id,
         type: marker.type,
@@ -91,29 +95,23 @@ export class MarkerManager {
         parts_json: marker.parts ? JSON.stringify(marker.parts) : null,
       }),
     })
-      .then((res) => { if (!res.ok) this.flagSaveError(res.status) })
-      .catch(() => this.flagSaveError())
   }
 
   private apiPut(id: string, patch: Record<string, unknown>): void {
-    fetch(`/api/markers/${id}`, {
+    void outbox.enqueue({
+      resourceKey: 'marker:' + id,
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      url: `/api/markers/${id}`,
       body: JSON.stringify(patch),
     })
-      .then((res) => { if (!res.ok) this.flagSaveError(res.status) })
-      .catch(() => this.flagSaveError())
   }
 
   private apiDelete(id: string): void {
-    fetch(`/api/markers/${id}`, { method: 'DELETE' })
-      .then((res) => { if (!res.ok) this.flagSaveError(res.status) })
-      .catch(() => this.flagSaveError())
-  }
-
-  private flagSaveError(status?: number): void {
-    const suffix = status ? ` (${status})` : ''
-    this.onSaveError?.(`⚠ Merkin tallennus epäonnistui${suffix} — yritä uudelleen`)
+    void outbox.enqueue({
+      resourceKey: 'marker:' + id,
+      method: 'DELETE',
+      url: `/api/markers/${id}`,
+    })
   }
 
   private nearestRouteAssignment(lat: number, lon: number): {
