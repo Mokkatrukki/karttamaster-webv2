@@ -172,10 +172,38 @@ export class SignLibraryPanel {
   private openModal(template: SignTemplate | null): void {
     this.closeModal()
 
-    let selectedIconId: string | null = template?.iconId ?? null
-    let selectedImageId: string | null = template?.imageId ?? null
+    // T178-jälkeinen korjaus (B-löydös): pää-visuali (yllä) ja "Osat"-lista (alla) olivat kaksi
+    // erillistä tilaa — ensin valittu ikoni/kuva ei koskaan päätynyt osalistaan, käyttäjä joutui
+    // valitsemaan sen uudestaan osana. comboActive-tilassa pää-visuali kirjoittaa aina parts[0]:seen
+    // (ja toisin päin: osalistan poisto/järjestys index 0:ssa synkkaa takaisin päävisualiin).
+    let selectedParts: SignPart[] = template?.parts ? [...template.parts] : []
+    let comboActive = selectedParts.length > 0
+    // Top-valitsimen alkuarvo: parts[0] jos combo jo olemassa, muuten template.iconId/imageId
+    // (vanha yksittäis-templaten polku, ennallaan).
+    let selectedIconId: string | null = selectedParts[0]?.iconId ?? template?.iconId ?? null
+    let selectedImageId: string | null = selectedParts[0]?.imageId ?? template?.imageId ?? null
     let visualTab: 'icon' | 'image' = selectedImageId ? 'image' : 'icon'
     const isDefault = template ? DEFAULT_IDS.has(template.id) : false
+    const currentTopPart = (): SignPart | null =>
+      selectedImageId ? { imageId: selectedImageId } : (selectedIconId ? { iconId: selectedIconId } : null)
+
+    // comboActive: top-valinta kirjoittaa aina parts[0]:seen (kutsutaan renderPartsList myöhemmin
+    // määriteltynä — turvallista, koska nämä funktiot kutsutaan vasta käyttäjän klikatessa).
+    function syncPart0FromTop(): void {
+      if (!comboActive) return
+      const topPart = currentTopPart()
+      selectedParts = topPart ? [topPart, ...selectedParts.slice(1)] : selectedParts.slice(1)
+      renderPartsList()
+    }
+    // Osalistan reorder/poisto index 0:ssa synkkaa takaisin top-valitsimeen.
+    function syncTopFromPart0(): void {
+      const p0 = selectedParts[0]
+      selectedIconId = p0?.iconId ?? null
+      selectedImageId = p0?.imageId ?? null
+      if (selectedParts.length === 0) comboActive = false
+      updateIconGrid()
+      updateImageGrid()
+    }
 
     const backdrop = createBackdrop('sign-lib-modal-backdrop', () => this.closeModal())
     backdrop.style.cssText = 'position:fixed;inset:0;background:var(--overlay);backdrop-filter:blur(2px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px'
@@ -308,6 +336,7 @@ export class SignLibraryPanel {
       if (chosen) selectedImageId = null // V99: kuva>ikoni valinta on vaihtoehtoinen, ei molempia yhtä aikaa
       updateIconGrid()
       updateImageGrid()
+      syncPart0FromTop() // T178-korjaus: comboActive-tilassa top-valinta kirjoittaa parts[0]:seen
     })
 
     modal.appendChild(iconGrid)
@@ -377,6 +406,7 @@ export class SignLibraryPanel {
           selectedIconId = null
           updateIconGrid()
           updateImageGrid()
+          syncPart0FromTop()
         })
         return
       }
@@ -387,6 +417,7 @@ export class SignLibraryPanel {
       if (chosen) selectedIconId = null // V99: kuva>ikoni — vain yksi ulkoasu-lähde kerrallaan
       updateIconGrid()
       updateImageGrid()
+      syncPart0FromTop()
     })
 
     modal.appendChild(imageGrid)
@@ -403,9 +434,8 @@ export class SignLibraryPanel {
     setVisualTab(visualTab)
 
     // T172/V107: yhdistelmämerkki — pystypino kepissä. parts[0] ylin, max MAX_PARTS osaa.
-    // Erillinen valinnainen lisä ylemmän yksi-ikoni-kentän rinnalla (ei korvaa sitä).
-    let selectedParts: SignPart[] = template?.parts ? [...template.parts] : []
-
+    // comboActive=false: valinnainen lisä ylemmän yksi-ikoni-kentän rinnalla (ei korvaa sitä).
+    // comboActive=true (T178-korjaus): parts[0] ON pää-visuali, synkassa top-valitsimen kanssa.
     const partsSectionLabel = document.createElement('div')
     partsSectionLabel.style.cssText = 'font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em'
     partsSectionLabel.textContent = 'Osat (yhdistelmämerkki, valinnainen)'
@@ -510,6 +540,7 @@ export class SignLibraryPanel {
           const i = Number(b.dataset.idx)
           if (i <= 0) return
           ;[selectedParts[i - 1], selectedParts[i]] = [selectedParts[i], selectedParts[i - 1]]
+          syncTopFromPart0() // reorder voi vaihtaa index 0:n sisällön — top-valitsin seuraa perässä
           renderPartsList()
         })
       })
@@ -518,6 +549,7 @@ export class SignLibraryPanel {
           const i = Number(b.dataset.idx)
           if (i >= selectedParts.length - 1) return
           ;[selectedParts[i + 1], selectedParts[i]] = [selectedParts[i], selectedParts[i + 1]]
+          syncTopFromPart0()
           renderPartsList()
         })
       })
@@ -525,13 +557,25 @@ export class SignLibraryPanel {
         b.addEventListener('click', () => {
           const i = Number(b.dataset.idx)
           selectedParts = selectedParts.filter((_, idx) => idx !== i)
+          syncTopFromPart0() // poisto voi tyhjentää tai vaihtaa index 0:n — top-valitsin seuraa perässä
           renderPartsList()
         })
       })
     }
     renderPartsList()
 
+    // T178-korjaus: ensimmäinen "+ Lisää osa" -klikkaus siirtää senhetkisen top-valinnan
+    // (jos on) osalistan ekaksi riviksi ennen pickerin avaamista — käyttäjän ei tarvitse
+    // valita samaa merkkiä kahdesti. Sen jälkeen top pysyy synkassa parts[0]:n kanssa.
     addPartBtn.addEventListener('click', () => {
+      if (!comboActive) {
+        comboActive = true
+        const topPart = currentTopPart()
+        if (topPart && selectedParts.length === 0) {
+          selectedParts = [topPart]
+          renderPartsList()
+        }
+      }
       partPicker.style.display = partPicker.style.display === 'none' ? 'flex' : 'none'
     })
 
@@ -540,6 +584,7 @@ export class SignLibraryPanel {
       if (!btn || selectedParts.length >= MAX_PARTS) return
       selectedParts = [...selectedParts, { iconId: btn.dataset.iconId }]
       partPicker.style.display = 'none'
+      syncTopFromPart0() // jos top oli tyhjä, tästä tuli juuri parts[0] — top-valitsin seuraa perässä
       renderPartsList()
     })
 
@@ -548,6 +593,7 @@ export class SignLibraryPanel {
       if (!btn || selectedParts.length >= MAX_PARTS) return
       selectedParts = [...selectedParts, { imageId: btn.dataset.imageId }]
       partPicker.style.display = 'none'
+      syncTopFromPart0()
       renderPartsList()
     })
 
