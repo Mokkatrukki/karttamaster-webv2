@@ -4,7 +4,7 @@ import { loadGpx } from './logic/gpx'
 import { buildRoutePoints } from './logic/bearing'
 import type { MarkerManager } from './map/markers'
 import { fetchMarkers } from './logic/sync'
-import { startOutboxRetry } from './logic/outbox-instance'
+import { startOutboxRetry, setOutboxReauthHandler, outbox } from './logic/outbox-instance'
 import type { RouteConfig } from './logic/multi-route'
 import { initMap } from './app/map-init'
 import { wireAreas } from './app/areas-wiring'
@@ -118,4 +118,7 @@ if (import.meta.env.DEV) {
 const authScreen = wireAuth(toolbarMenu, () => activeMarkerManager, (code) => {
   init(code).catch(console.error)
 })
+// T186/V119: kirjoituksen 401 → re-auth-modaali; onnistuneen kirjautumisen jälkeen
+// toimita jonossa olevat kirjoitukset (ei katoa, ei duplikaatteja).
+setOutboxReauthHandler(() => authScreen.promptReauth(() => { void outbox.flush() }))
 authScreen.start().catch(console.error)

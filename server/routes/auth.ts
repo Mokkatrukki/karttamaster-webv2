@@ -45,14 +45,16 @@ authRoutes.post('/code-login', async (c) => {
   if (!row) return c.json({ error: 'invalid_code' }, 401)
 
   const sessionId = randomUUID()
-  const expires = new Date(Date.now() + 24 * 3600 * 1000).toISOString()
+  // T186/V119: talkoolaisen kenttätyö kestää tapahtumapäivät (asetus + tarkastus + purku).
+  // 24h TTL vanheni day-2 kesken työn → 401-sarja. Nostettu 7pv:ään (sama kuin järjestäjä).
+  const expires = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString()
   db.run(
     'INSERT INTO sessions (id, user_id, talkoolainen_code, role, display_name, expires_at) VALUES (?, ?, ?, ?, ?, ?)',
     [sessionId, null, row.code, 'talkoolainen', row.display_name, expires],
   )
   db.run('UPDATE talkoolainen_codes SET used_at = ? WHERE code = ?', [new Date().toISOString(), row.code])
 
-  setCookie(c, 'session', sessionId, { httpOnly: true, sameSite: 'Strict', path: '/', maxAge: 24 * 3600 })
+  setCookie(c, 'session', sessionId, { httpOnly: true, sameSite: 'Strict', path: '/', maxAge: 7 * 24 * 3600 })
   return c.json({ role: 'talkoolainen', display_name: row.display_name })
 })
 

@@ -1,4 +1,5 @@
 import type { Role } from '../logic/role'
+import { getRole } from '../logic/role'
 
 export type AuthResult = { role: Role; displayName: string; code?: string }
 
@@ -22,6 +23,10 @@ export class AuthScreen {
   private readonly talkoolainenForm: HTMLFormElement
   private readonly inviteForm: HTMLFormElement
   private inviteToken: string | null = null
+  // T186/V119: kesken session vanhentunut sessio (401) → sama overlay uudelleen, mutta
+  // onnistuminen EI käynnistä koko sovellusta uudelleen — vain jatketaan (outbox retry).
+  private reauthCallback: (() => void) | null = null
+  private reauthActive = false
 
   constructor(private readonly onAuthenticated: (result: AuthResult) => void) {
     this.overlay = this.buildOverlay()
@@ -65,6 +70,44 @@ export class AuthScreen {
     } catch {
       // Network error → keep login form visible (V29: no silent skip)
     }
+  }
+
+  // T186/V119: kutsutaan kirjoituksen 401-vastauksesta (outbox). Näyttää overlayn
+  // uudelleen ja odottaa uudelleenkirjautumista; onSuccess (outbox.flush) ajetaan vasta
+  // kun kirjautuminen onnistuu. Ei kasata modaaleja päällekkäin (reauthActive-vartio).
+  promptReauth(onSuccess: () => void): void {
+    if (this.reauthActive) return
+    this.reauthActive = true
+    this.reauthCallback = onSuccess
+    this.tabsEl.style.display = ''
+    this.inviteForm.classList.remove('active')
+    this.show()
+    // switchTab nollaa virhetekstin → aseta tab ensin, virheteksti vasta sen jälkeen.
+    if (getRole() === 'talkoolainen') {
+      this.switchTab('talkoolainen')
+      const pathCode = extractSegmentCode(window.location.pathname)
+      if (pathCode) {
+        const codeInput = this.overlay.querySelector('#auth-code') as HTMLInputElement
+        codeInput.value = pathCode
+      }
+    } else {
+      this.switchTab('järjestäjä')
+    }
+    this.showError('Istunto vanhentui — kirjaudu uudelleen jatkaaksesi.')
+  }
+
+  // Onnistuneen kirjautumisen yhteinen loppukäsittely: re-auth-tilassa jatka (onSuccess),
+  // muuten käynnistä sovellus normaalisti (onAuthenticated).
+  private finishAuth(result: AuthResult): void {
+    this.hide()
+    if (this.reauthCallback) {
+      const cb = this.reauthCallback
+      this.reauthCallback = null
+      this.reauthActive = false
+      cb()
+      return
+    }
+    this.onAuthenticated(result)
   }
 
   private show(): void {
@@ -128,8 +171,7 @@ export class AuthScreen {
       })
       if (resp.ok) {
         const data = await resp.json() as { role: Role; display_name: string }
-        this.hide()
-        this.onAuthenticated({ role: data.role, displayName: data.display_name })
+        this.finishAuth({ role: data.role, displayName: data.display_name })
       } else {
         this.showError('Väärä käyttäjätunnus tai salasana')
       }
@@ -183,8 +225,7 @@ export class AuthScreen {
       })
       if (resp.ok) {
         const data = await resp.json() as { role: Role; display_name: string }
-        this.hide()
-        this.onAuthenticated({ role: data.role, displayName: data.display_name, code })
+        this.finishAuth({ role: data.role, displayName: data.display_name, code })
       } else {
         this.showError('Väärä koodi — tarkista koodi uudelleen')
       }

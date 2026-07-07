@@ -4,6 +4,7 @@ import { WriteOutbox, type OutboxEntry } from './write-outbox'
 
 let saveErrorHandler: ((msg: string) => void) | null = null
 let changeHandler: ((keys: Set<string>) => void) | null = null
+let reauthHandler: (() => void) | null = null
 
 // UI (main.ts) rekisteröi käsittelijän näkyvälle virheelle (V115) ja pending-tilalle (V117/T185).
 export function setOutboxSaveErrorHandler(h: (msg: string) => void): void {
@@ -11,6 +12,11 @@ export function setOutboxSaveErrorHandler(h: (msg: string) => void): void {
 }
 export function setOutboxChangeHandler(h: (keys: Set<string>) => void): void {
   changeHandler = h
+}
+// T186/V119: kirjoituksen 401 (sessio vanhentui) → re-auth-kehote. Kirjoitus jää jonoon
+// (durability) ja retrytään uudelleenkirjautumisen jälkeen — ei hiljaista katoa.
+export function setOutboxReauthHandler(h: () => void): void {
+  reauthHandler = h
 }
 
 function failureMessage(status: number | null): string {
@@ -20,6 +26,12 @@ function failureMessage(status: number | null): string {
 
 export const outbox = new WriteOutbox({
   onFailure: (_entry: OutboxEntry, status: number | null) => {
+    // T186/V119: 401 → re-auth-kehote (ei "yritä uudelleen"-banneria — retry ei auta
+    // ennen uudelleenkirjautumista). Kirjoitus säilyy jonossa ja retrytään flushilla.
+    if (status === 401) {
+      reauthHandler?.()
+      return
+    }
     saveErrorHandler?.(failureMessage(status))
   },
   onChange: () => {
