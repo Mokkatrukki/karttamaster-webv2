@@ -41,6 +41,28 @@ test.describe('Merkki kartalle', () => {
     expect(listText).not.toContain('Ei merkkejä')
   })
 
+  test('merkin tallennus epäonnistuu palvelimella → näkyvä virheilmoitus (T182/V115/B82)', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await page.route('/api/markers', route => {
+      if (route.request().method() === 'POST') {
+        return route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ error: 'forbidden' }) })
+      }
+      return route.continue()
+    })
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await page.dblclick('#map', { position: { x: 460, y: 260 } })
+    await page.waitForTimeout(500)
+    await page.click('#floating-picker .sign-type-btn[data-type="right"]')
+    await page.waitForTimeout(500)
+
+    const warning = page.locator('#distance-warning')
+    await expect(warning).toBeVisible()
+    await expect(warning).toContainText('tallennus epäonnistui')
+  })
+
   test('dblclick kartalla avaa floating pickerin kirjaston suosikeilla', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })

@@ -75,7 +75,7 @@ export function wireMarkers(
       const seg = talkoolainenCode ? getSegmentForCode(segmentStore, talkoolainenCode) : undefined
       if (seg) segmentView.update(getMarkersForSegment(seg, markerManager.getAll()))
     }
-  }, initialMarkers, distM => showWarning(`⚠ Merkki kaukana reitistä (${Math.round(distM)} m)`))
+  }, initialMarkers, distM => showWarning(`⚠ Merkki kaukana reitistä (${Math.round(distM)} m)`), msg => showWarning(msg, 5000))
 
   markerDetailModal = new MarkerDetailModal(
     markerManager,
