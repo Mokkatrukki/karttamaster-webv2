@@ -159,6 +159,11 @@ function initSchema(db: Database): void {
   try { db.exec('ALTER TABLE markers ADD COLUMN icon_id TEXT') } catch { /* already exists */ }
   // T172/V107: yhdistelmämerkin osat (JSON-taulukko) denormalisoitu markers-tauluun
   try { db.exec('ALTER TABLE markers ADD COLUMN parts_json TEXT') } catch { /* already exists */ }
+  // B84/V121: bearing-feature poistettiin (T129/T132) mutta DROP-migraatiota ei koskaan
+  // kirjoitettu. Ennen poistoa luotu markers-taulu (esim. tuotanto Jun 11) säilyttää
+  // `bearing NOT NULL` -sarakkeen ilman defaultia → koodin INSERT (ei bearingia) kaatuu
+  // SQLITE_CONSTRAINT_NOTNULL → EI YKSIKÄÄN merkki tallennu. Pudota sarake idempotentisti.
+  try { db.exec('ALTER TABLE markers DROP COLUMN bearing') } catch { /* already dropped / never existed */ }
 
   const existing = db.query<{ count: number }, []>(
     "SELECT COUNT(*) as count FROM map_state WHERE key='status'"
