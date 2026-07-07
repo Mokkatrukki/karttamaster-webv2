@@ -11,7 +11,7 @@ export interface MapInit {
 }
 
 export function initMap(): MapInit {
-  const map = L.map('map')
+  const map = L.map('map', { zoomSnap: 0.25, zoomDelta: 0.25 })
   // E2E testability hook — not used in production
   ;(window as unknown as Record<string, unknown>)['__testMap'] = map
 
