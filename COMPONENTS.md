@@ -76,7 +76,7 @@ server/       ← Hono + Bun + SQLite
 | AreasWiring | `src/app/areas-wiring.ts` | ✓ T155 | area-interaction | [ui.md](docs/components/ui.md) |
 | SegmentsWiring | `src/app/segments-wiring.ts` | ✓ T155 | e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | MarkersWiring | `src/app/markers-wiring.ts` | ✓ T155 | critical-paths: "Merkki kartalle", "Drive mode" | [ui.md](docs/components/ui.md) |
-| SignLibraryPanel | `src/ui/sign-library-panel.ts` | ✓ T172 | critical-paths: "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
+| SignLibraryPanel | `src/ui/sign-library-panel.ts` | ✓ T176 | critical-paths: "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
 | RoleSelector | `src/ui/role-selector.ts` | ✓ T12 (V80: toggle dead code) | critical-paths: "Rooli backendistä" | [ui.md](docs/components/ui.md) |
 | SegmentPanel | `src/ui/segment-panel.ts` | ✓ T148 | e2e/segments.spec.ts ".segment-km näyttää status-lukumäärän" | [ui.md](docs/components/ui.md) |
 | SegmentCreationModal | `src/ui/segment-creation-modal.ts` | ✓ T150 | — | [ui.md](docs/components/ui.md) |

@@ -12,7 +12,7 @@ import {
   type SignPart,
 } from '../logic/sign-library'
 import { CURATED_ICONS, getIconById, renderIconSvg } from '../logic/icon-set'
-import { signImageTag } from '../logic/sign-images'
+import { signImageTag, signImageIds, signImageSrc } from '../logic/sign-images'
 import { compactLabel } from '../logic/sign-visual'
 import { signCatalog } from '../logic/sign-catalog'
 import { registerEscClose, createBackdrop, signPreviewHtml } from './modal-helpers'
@@ -173,6 +173,8 @@ export class SignLibraryPanel {
     this.closeModal()
 
     let selectedIconId: string | null = template?.iconId ?? null
+    let selectedImageId: string | null = template?.imageId ?? null
+    let visualTab: 'icon' | 'image' = selectedImageId ? 'image' : 'icon'
     const isDefault = template ? DEFAULT_IDS.has(template.id) : false
 
     const backdrop = createBackdrop('sign-lib-modal-backdrop', () => this.closeModal())
@@ -239,11 +241,28 @@ export class SignLibraryPanel {
       modal.appendChild(idError)
     }
 
-    // Icon section label
-    const iconSectionLabel = document.createElement('div')
-    iconSectionLabel.style.cssText = 'font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em'
-    iconSectionLabel.textContent = 'Ikoni (valinnainen)'
-    modal.appendChild(iconSectionLabel)
+    // Visual-osio label + tabit (T176): Ikoni vs Kuva — vaihtoehtoiset, kumpi tahansa
+    // asetettu viimeksi voittaa (V99 kuva>ikoni>label, DESIGN.md §K ImageGalleryPicker)
+    const visualSectionLabel = document.createElement('div')
+    visualSectionLabel.style.cssText = 'font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em'
+    visualSectionLabel.textContent = 'Ulkoasu (valinnainen)'
+    modal.appendChild(visualSectionLabel)
+
+    const tabRow = document.createElement('div')
+    tabRow.style.cssText = 'display:flex;border-bottom:1px solid var(--border-default)'
+    const iconTabBtn = document.createElement('button')
+    iconTabBtn.type = 'button'
+    iconTabBtn.className = 'sign-visual-tab'
+    iconTabBtn.textContent = 'Ikoni'
+    const imageTabBtn = document.createElement('button')
+    imageTabBtn.type = 'button'
+    imageTabBtn.className = 'sign-visual-tab'
+    imageTabBtn.textContent = 'Kuva'
+    const tabBtnStyle = (active: boolean) =>
+      `flex:1;min-height:44px;background:none;border:none;border-bottom:2px solid ${active ? 'var(--accent)' : 'transparent'};color:${active ? 'var(--text-body)' : 'var(--text-muted)'};font-size:13px;font-weight:${active ? '600' : '400'};cursor:pointer`
+    tabRow.appendChild(iconTabBtn)
+    tabRow.appendChild(imageTabBtn)
+    modal.appendChild(tabRow)
 
     // Icon grid
     const iconGrid = document.createElement('div')
@@ -284,11 +303,102 @@ export class SignLibraryPanel {
     iconGrid.addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.sign-lib-icon-btn')
       if (!btn) return
-      selectedIconId = btn.dataset.iconId || null
+      const chosen = btn.dataset.iconId || null
+      selectedIconId = chosen
+      if (chosen) selectedImageId = null // V99: kuva>ikoni valinta on vaihtoehtoinen, ei molempia yhtä aikaa
       updateIconGrid()
+      updateImageGrid()
     })
 
     modal.appendChild(iconGrid)
+
+    // Kuva-galleria (T176/ImageGalleryPicker) — grid 89:sta T161-konvertoidusta kylttikuvasta.
+    // Thumbnail 64x64, klikkaus valitsee suoraan; zoom-nappi avaa lightboxin ilman valintaa.
+    const imageGrid = document.createElement('div')
+    imageGrid.className = 'sign-image-gallery'
+    imageGrid.style.cssText = 'display:none;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;max-height:min(50vh,420px);overflow-y:auto'
+
+    const makeImageThumb = (imageId: string | null): HTMLButtonElement => {
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'sign-image-thumb'
+      btn.dataset.imageId = imageId ?? ''
+      btn.title = imageId ?? 'Ei kuvaa'
+      btn.style.cssText = 'position:relative;width:64px;height:64px;padding:0;background:#fff;border:2px solid var(--border-default);border-radius:var(--radius-sm);cursor:pointer;overflow:hidden'
+      if (imageId) {
+        const src = signImageSrc(imageId)
+        btn.innerHTML = `<img src="${src}" alt="" style="width:100%;height:100%;object-fit:contain;pointer-events:none">
+          <span class="sign-image-zoom-btn" data-image-id="${imageId}" role="button" aria-label="Suurenna ${imageId}" style="position:absolute;bottom:2px;right:2px;width:18px;height:18px;background:rgba(0,0,0,0.55);border-radius:3px;display:flex;align-items:center;justify-content:center;cursor:zoom-in">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </span>`
+      } else {
+        btn.style.display = 'flex'
+        btn.style.alignItems = 'center'
+        btn.style.justifyContent = 'center'
+        btn.style.color = 'var(--text-muted)'
+        btn.style.fontSize = '11px'
+        btn.textContent = 'Ei kuvaa'
+      }
+      return btn
+    }
+
+    imageGrid.appendChild(makeImageThumb(null))
+    for (const imageId of signImageIds()) {
+      imageGrid.appendChild(makeImageThumb(imageId))
+    }
+
+    const updateImageGrid = () => {
+      imageGrid.querySelectorAll<HTMLButtonElement>('.sign-image-thumb').forEach(b => {
+        const isSel = (b.dataset.imageId ?? '') === (selectedImageId ?? '')
+        b.style.borderColor = isSel ? 'var(--accent)' : 'var(--border-default)'
+        const existing = b.querySelector('.sign-image-selected-badge')
+        if (isSel && b.dataset.imageId && !existing) {
+          const badge = document.createElement('span')
+          badge.className = 'sign-image-selected-badge'
+          badge.style.cssText = 'position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;background:var(--accent);color:var(--accent-text);font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;line-height:1'
+          badge.textContent = '✓'
+          b.appendChild(badge)
+        } else if (!isSel && existing) {
+          existing.remove()
+        }
+      })
+    }
+    updateImageGrid()
+
+    imageGrid.addEventListener('click', (e) => {
+      const zoomBtn = (e.target as HTMLElement).closest<HTMLElement>('.sign-image-zoom-btn')
+      if (zoomBtn) {
+        e.stopPropagation()
+        const imageId = zoomBtn.dataset.imageId
+        if (imageId) this.openImageLightbox(imageId, (chosen) => {
+          selectedImageId = chosen
+          selectedIconId = null
+          updateIconGrid()
+          updateImageGrid()
+        })
+        return
+      }
+      const thumb = (e.target as HTMLElement).closest<HTMLButtonElement>('.sign-image-thumb')
+      if (!thumb) return
+      const chosen = thumb.dataset.imageId || null
+      selectedImageId = chosen
+      if (chosen) selectedIconId = null // V99: kuva>ikoni — vain yksi ulkoasu-lähde kerrallaan
+      updateIconGrid()
+      updateImageGrid()
+    })
+
+    modal.appendChild(imageGrid)
+
+    const setVisualTab = (tab: 'icon' | 'image') => {
+      visualTab = tab
+      iconGrid.style.display = tab === 'icon' ? 'grid' : 'none'
+      imageGrid.style.display = tab === 'image' ? 'grid' : 'none'
+      iconTabBtn.style.cssText = tabBtnStyle(tab === 'icon')
+      imageTabBtn.style.cssText = tabBtnStyle(tab === 'image')
+    }
+    iconTabBtn.addEventListener('click', () => setVisualTab('icon'))
+    imageTabBtn.addEventListener('click', () => setVisualTab('image'))
+    setVisualTab(visualTab)
 
     // T172/V107: yhdistelmämerkki — pystypino kepissä. parts[0] ylin, max MAX_PARTS osaa.
     // Erillinen valinnainen lisä ylemmän yksi-ikoni-kentän rinnalla (ei korvaa sitä).
@@ -453,6 +563,7 @@ export class SignLibraryPanel {
 
       const description = descInput.value.trim()
       const iconId = selectedIconId ?? undefined
+      const imageId = selectedImageId ?? undefined
       const favorite = favCheckbox.checked
       const parts = selectedParts.length > 0 ? selectedParts : undefined
 
@@ -468,9 +579,9 @@ export class SignLibraryPanel {
           return
         }
         const color = colorInput?.value ?? '#f59e0b'
-        createTemplate(this.library, { label, color, description, favorite, iconId, parts }, id)
+        createTemplate(this.library, { label, color, description, favorite, iconId, imageId, parts }, id)
       } else {
-        const patch: Partial<Omit<SignTemplate, 'id'>> = { label, description, iconId, favorite, parts }
+        const patch: Partial<Omit<SignTemplate, 'id'>> = { label, description, iconId, imageId, favorite, parts }
         if (colorInput) patch.color = colorInput.value
         updateTemplate(this.library, template.id, patch)
       }
@@ -504,6 +615,58 @@ export class SignLibraryPanel {
     document.body.appendChild(backdrop)
     this.activeModal = backdrop
     this.unregEsc = registerEscClose(() => this.closeModal())
+  }
+
+  // T176/ImageGalleryPicker (DESIGN.md §K): suurentaa thumbnailin — pienet 64px-kuvat eivät
+  // riitä erottamaan samankaltaisia kylttejä (esim. "ylämäki"-variaatiot). z-index 5000 ylittää
+  // edit-modaalin (1000). Sulkeutuu Esc/backdrop/✕; "Valitse tämä kuva" valitsee suoraan.
+  private openImageLightbox(imageId: string, onChoose: (imageId: string) => void): void {
+    // Stacked modal: lightbox on edit-modaalin päällä. Esc saa sulkea vain päällimmäisen —
+    // varastetaan edit-modaalin Esc-kuuntelu pois ajaksi, palautetaan sulkiessa.
+    this.unregEsc?.()
+    let unregEsc: (() => void) | null = null
+    const close = () => {
+      backdrop.remove()
+      unregEsc?.()
+      this.unregEsc = registerEscClose(() => this.closeModal())
+    }
+    const backdrop = createBackdrop('sign-image-lightbox-backdrop', close)
+    backdrop.style.cssText = 'position:fixed;inset:0;background:var(--overlay);backdrop-filter:blur(2px);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px'
+
+    const box = document.createElement('div')
+    box.className = 'sign-image-lightbox'
+    box.style.cssText = 'position:relative;max-width:min(90vw,640px);max-height:85vh;background:#fff;border-radius:var(--radius-md);overflow:hidden;display:flex;flex-direction:column'
+    box.addEventListener('click', e => e.stopPropagation())
+
+    const img = document.createElement('img')
+    img.src = signImageSrc(imageId) ?? ''
+    img.alt = imageId
+    img.style.cssText = 'width:100%;height:100%;max-height:70vh;object-fit:contain;display:block'
+    box.appendChild(img)
+
+    const closeBtn = document.createElement('button')
+    closeBtn.className = 'sign-image-lightbox-close'
+    closeBtn.setAttribute('aria-label', 'Sulje')
+    closeBtn.textContent = '✕'
+    closeBtn.style.cssText = 'position:absolute;top:8px;right:8px;min-width:44px;min-height:44px;background:rgba(0,0,0,0.55);border:none;border-radius:var(--radius-sm);color:#fff;font-size:16px;cursor:pointer'
+    closeBtn.addEventListener('click', close)
+    box.appendChild(closeBtn)
+
+    const footer = document.createElement('div')
+    footer.style.cssText = 'padding:10px;display:flex;justify-content:center;background:var(--surface-card)'
+    const chooseBtn = document.createElement('button')
+    chooseBtn.textContent = 'Valitse tämä kuva'
+    chooseBtn.style.cssText = 'min-height:44px;padding:0 20px;background:var(--confirm);color:var(--confirm-text);border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer'
+    chooseBtn.addEventListener('click', () => {
+      onChoose(imageId)
+      close()
+    })
+    footer.appendChild(chooseBtn)
+    box.appendChild(footer)
+
+    backdrop.appendChild(box)
+    document.body.appendChild(backdrop)
+    unregEsc = registerEscClose(close)
   }
 
   private closeModal(): void {
