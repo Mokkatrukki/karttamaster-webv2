@@ -35,6 +35,7 @@ server/       ← Hono + Bun + SQLite
 | GpxLoader | `src/logic/gpx.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | MultiRouteAssigner | `src/logic/multi-route.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | SignTypes | `src/logic/sign-picker.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
+| SignIdSlug | `src/logic/sign-id-slug.ts` | ✓ T161 | — | [logic.md](docs/components/logic.md) |
 | TileLayers | `src/logic/tile-layers.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | Types | `src/logic/types.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | PersistenceLayer | `src/logic/persistence.ts` | ✓ T29 | — | [logic.md](docs/components/logic.md) |

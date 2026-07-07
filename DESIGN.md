@@ -457,6 +457,18 @@ CSS-luokat:
   - Tallenna-nappi: `confirm` tausta, `confirm-text`, `min-height:44px`, `flex:1`
   - Peruuta-nappi: `field-tint` tausta, `border-default`, `min-height:44px`
 
+### ImageGalleryPicker (`.sign-image-gallery`, edit-modaalin sisällä T93-ikoni-gridin vieressä)
+- **Sijainti:** SignLibraryPanel edit-modaalin visual-valinnassa kaksi tabia: `[Ikoni] [Kuva]` (`.sign-visual-tab`, `min-height:44px`, aktiivi = `accent`-alaviiva, ei-aktiivi = `text-muted`). Kuva-tabi näyttää `ImageGalleryPicker`-gridin, Ikoni-tabi nykyisen T93-ikoni-gridin. Precedence (V99) ei riipu tabista — kumpi tahansa asetettu viimeksi voittaa tallennuksessa, toinen kenttä nollataan (kuva ja ikoni eivät ole molemmat samaan aikaan aktiivisia samalle templatelle).
+- **Grid:** `display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px`, kontaineri `max-height:min(50vh,420px);overflow-y:auto` (sama scroll-periaate kuin sign-lib-lista rivi 444).
+- **Thumbnail (`.sign-image-thumb`):** `64×64px`, `border-radius:radius-sm`, `background:#fff` (kyltit suunniteltu valkoiselle pohjalle), `<img object-fit:contain;width:100%;height:100%>`. Koko napin pinta-ala klikattava (≥44px täyttyy jo 64px:llä — §R ei erillistä paddingia tarvita).
+- **Valinta:** klikkaus valitsee kuvan templatelle heti (ei erillistä "vahvista"-nappia gridissä) — `2px solid accent` reunus + pieni ✓-badge oikeassa yläkulmassa (`14px`, `accent` tausta, `accent-text` glyfi) valitulle thumbnailille. Sama korostuslogiikka kuin T93 ikoni-gridin valinta (yhtenäinen pattern kahden tabin välillä).
+- **Zoom/lightbox (uusi tarve — pienet thumbnailit eivät riitä erottamaan samankaltaisia kylttejä, esim. useita ylämäki-variaatioita):** jokaisessa thumbnailissa pieni zoom-kulma-ikoni (`.sign-image-zoom-btn`, `18px`, oikea alakulma, `rgba(0,0,0,0.55)` tausta + valkoinen suurennuslasi-SVG) — click **ei** valitse kuvaa, vaan avaa lightboxin (stopPropagation). Koko thumbnail on silti myös suoraan klikattava valintaan (zoom on lisä, ei pakollinen välivaihe).
+  - **Lightbox-rakenne (`.sign-image-lightbox`):** sama pattern kuin SnapshotModal (rivi 161-169) — backdrop `.sign-image-lightbox-backdrop` (`overlay`-token, `backdrop-filter:blur(2px)`, `z-index:5000` — yli edit-modaalin, joka on `z-index:4000`-luokkaa), sisältö keskitetty `max-width:min(90vw,640px);max-height:85vh`, kuva `object-fit:contain;width:100%;height:100%`.
+  - Sulkeutuu: Esc, backdrop-klikkaus, tai `✕`-nappi (`.sign-image-lightbox-close`, oikea yläkulma, `min-width:44px;min-height:44px`, `aria-label="Sulje"` — §A vaatii, ei tekstiä).
+  - Footer-nappi lightboxissa: `[Valitse tämä kuva]` (`.modal-btn-primary`-tyyli, `confirm` tausta) — valitsee kuvan templatelle ja sulkee lightboxin samalla. Mahdollistaa valinnan suoraan suurennetusta näkymästä ilman paluuta gridiin.
+- **Käyttäjä:** järjestäjä (desktop/hiiri, ei touch-kriittinen — mutta 44px-sääntö koskee silti kaikkia nappeja §R:n mukaan, myös hiirikäytössä yhtenäisyyden vuoksi).
+- **Datalähde:** `src/assets/signs/*.webp` (Vite glob-import, T161-konversio), kuva-avain = `template.id` (V97 filename-safe).
+
 ### AdminPage (`admin.html` + `src/admin.ts` + `src/ui/admin-page.ts`, T122)
 - Erillinen entrypoint, ei jaa `#app`-runkoa index.html:n kanssa — vain admin-rooli, oma sivu
 - `#admin-app`: `max-width:960px;margin:0 auto;padding:16px` — kapea keskitetty layout, toimii myös mobiililla
