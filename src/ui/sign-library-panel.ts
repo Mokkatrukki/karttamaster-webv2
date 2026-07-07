@@ -425,9 +425,29 @@ export class SignLibraryPanel {
     addPartRow.appendChild(addPartBtn)
     modal.appendChild(addPartRow)
 
+    // T177: osan lisäys — Ikoni/Kuva-tabit (sama pattern kuin päävisualin T176-galleria).
+    // Yksi osa on aina joko-tai (SignPart{iconId?, imageId?}) — ei molempia per osa (V107).
+    const partPicker = document.createElement('div')
+    partPicker.className = 'sign-lib-part-picker'
+    partPicker.style.cssText = 'display:none;flex-direction:column;gap:4px'
+
+    const partTabRow = document.createElement('div')
+    partTabRow.style.cssText = 'display:flex;border-bottom:1px solid var(--border-default)'
+    const partIconTabBtn = document.createElement('button')
+    partIconTabBtn.type = 'button'
+    partIconTabBtn.className = 'sign-part-visual-tab'
+    partIconTabBtn.textContent = 'Ikoni'
+    const partImageTabBtn = document.createElement('button')
+    partImageTabBtn.type = 'button'
+    partImageTabBtn.className = 'sign-part-visual-tab'
+    partImageTabBtn.textContent = 'Kuva'
+    partTabRow.appendChild(partIconTabBtn)
+    partTabRow.appendChild(partImageTabBtn)
+    partPicker.appendChild(partTabRow)
+
     const partIconGrid = document.createElement('div')
     partIconGrid.className = 'sign-lib-part-icon-grid'
-    partIconGrid.style.cssText = 'display:none;grid-template-columns:repeat(6,1fr);gap:4px'
+    partIconGrid.style.cssText = 'display:grid;grid-template-columns:repeat(6,1fr);gap:4px'
     for (const icon of CURATED_ICONS) {
       const btn = document.createElement('button')
       btn.className = 'sign-lib-part-icon-btn'
@@ -438,15 +458,45 @@ export class SignLibraryPanel {
       btn.innerHTML = renderIconSvg(icon.id, 18) // safe: content from CURATED_ICONS only
       partIconGrid.appendChild(btn)
     }
-    modal.appendChild(partIconGrid)
+    partPicker.appendChild(partIconGrid)
+
+    const partImageGrid = document.createElement('div')
+    partImageGrid.className = 'sign-lib-part-image-grid'
+    partImageGrid.style.cssText = 'display:none;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:4px;max-height:min(40vh,320px);overflow-y:auto'
+    for (const imageId of signImageIds()) {
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'sign-lib-part-image-btn'
+      btn.dataset.imageId = imageId
+      btn.title = imageId
+      btn.style.cssText = 'width:44px;height:44px;padding:0;background:#fff;border:1px solid var(--border-default);border-radius:var(--radius-sm);cursor:pointer;overflow:hidden'
+      btn.innerHTML = `<img src="${signImageSrc(imageId)}" alt="" style="width:100%;height:100%;object-fit:contain;pointer-events:none">`
+      partImageGrid.appendChild(btn)
+    }
+    partPicker.appendChild(partImageGrid)
+    modal.appendChild(partPicker)
+
+    const setPartTab = (tab: 'icon' | 'image') => {
+      partIconGrid.style.display = tab === 'icon' ? 'grid' : 'none'
+      partImageGrid.style.display = tab === 'image' ? 'grid' : 'none'
+      partIconTabBtn.style.cssText = tabBtnStyle(tab === 'icon')
+      partImageTabBtn.style.cssText = tabBtnStyle(tab === 'image')
+    }
+    partIconTabBtn.addEventListener('click', () => setPartTab('icon'))
+    partImageTabBtn.addEventListener('click', () => setPartTab('image'))
+    setPartTab('icon')
 
     const renderPartsList = () => {
       partsList.innerHTML = selectedParts.map((p, i) => {
-        const entry = p.iconId ? getIconById(p.iconId) : null
-        const inner = entry ? renderIconSvg(p.iconId!, 16) : '?' // safe: CURATED_ICONS content only
+        const iconEntry = p.iconId ? getIconById(p.iconId) : null
+        const inner = p.imageId
+          ? `<img src="${signImageSrc(p.imageId)}" alt="" style="width:100%;height:100%;object-fit:contain;background:#fff">`
+          : (iconEntry ? renderIconSvg(p.iconId!, 16) : '?') // safe: CURATED_ICONS content only
+        const swatchBg = p.imageId ? 'transparent' : 'var(--text-muted)'
+        const partLabel = p.imageId ?? iconEntry?.label ?? '?'
         return `<div class="sign-lib-part-row" data-idx="${i}" style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border-card)">
-          <span style="width:28px;height:28px;flex-shrink:0;border-radius:4px;background:var(--text-muted);color:#fff;display:flex;align-items:center;justify-content:center">${inner}</span>
-          <span style="flex:1;font-size:12px;color:var(--text-muted)">${i + 1}. ${escapeHtml(entry?.label ?? '?')}</span>
+          <span style="width:28px;height:28px;flex-shrink:0;border-radius:4px;background:${swatchBg};color:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden">${inner}</span>
+          <span style="flex:1;font-size:12px;color:var(--text-muted)">${i + 1}. ${escapeHtml(partLabel)}</span>
           <button class="sign-lib-part-up" data-idx="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Siirrä ylös" style="min-width:44px;min-height:44px;background:none;border:none;color:var(--text-muted);cursor:pointer">↑</button>
           <button class="sign-lib-part-down" data-idx="${i}" ${i === selectedParts.length - 1 ? 'disabled' : ''} aria-label="Siirrä alas" style="min-width:44px;min-height:44px;background:none;border:none;color:var(--text-muted);cursor:pointer">↓</button>
           <button class="sign-lib-part-remove" data-idx="${i}" aria-label="Poista osa" style="min-width:44px;min-height:44px;background:none;border:none;color:var(--danger-text);cursor:pointer">×</button>
@@ -482,14 +532,22 @@ export class SignLibraryPanel {
     renderPartsList()
 
     addPartBtn.addEventListener('click', () => {
-      partIconGrid.style.display = partIconGrid.style.display === 'none' ? 'grid' : 'none'
+      partPicker.style.display = partPicker.style.display === 'none' ? 'flex' : 'none'
     })
 
     partIconGrid.addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.sign-lib-part-icon-btn')
       if (!btn || selectedParts.length >= MAX_PARTS) return
       selectedParts = [...selectedParts, { iconId: btn.dataset.iconId }]
-      partIconGrid.style.display = 'none'
+      partPicker.style.display = 'none'
+      renderPartsList()
+    })
+
+    partImageGrid.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.sign-lib-part-image-btn')
+      if (!btn || selectedParts.length >= MAX_PARTS) return
+      selectedParts = [...selectedParts, { imageId: btn.dataset.imageId }]
+      partPicker.style.display = 'none'
       renderPartsList()
     })
 

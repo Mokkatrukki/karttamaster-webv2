@@ -245,6 +245,7 @@ metsässä, hanskat kädessä.
 - **Konsepti:** oikea liikennemerkkikeppi — useampi kyltti päällekkäin samassa kepissä. `SignTemplate.parts[0]` on ylin, seuraavat alle järjestyksessä. Max 4 osaa.
 - **Koko:** jokainen osa `40×40px` slotti (sama leveys kuin kuva-kortti), pinottu pystysuunnassa. `1px border-default`-jakoviiva slottien välissä. Koko pinon leveys pysyy `40px` (ei levene), korkeus = `osien määrä × 40px`.
 - **Sisältö per osa (V107):** kuva>ikoni-precedence (`signVisualParts`), EI label-fallbackia — combo-osa on aina tarkoituksella valittu kuva/ikoni. Ikoni-osa: tyyppiväri-tausta + valkoinen Lucide-SVG keskitettynä. Kuva-osa: valkotausta + `object-fit:contain`.
+- **Osan lisäys-UI (T178, `sign-library-panel.ts`):** "+ Lisää osa" avaa picker-paneelin jossa `[Ikoni]/[Kuva]`-tabit (`.sign-part-visual-tab` — eri luokka kuin päävisualin `.sign-visual-tab`, ettei kahta erillistä tab-paria voi sekoittaa DOM-kyselyissä). Kuva-tabissa `44×44px`-thumbnail-grid kaikista `signImageIds()`-kuvista. Yksi osa on aina joko-tai (ei molempia kerralla), samoin kuin päävisualilla. Kaikki kolme yhdistelmää mahdollisia: kuva+kuva, kuva+ikoni, ikoni+kuva.
 - **Yksi ankkuripiste koko pinolle:** kärki-kolmio (`16×8px`) vain pinon alimman osan alla — koko pino on yksi kartta-objekti, ei per-osa tippiä. `iconAnchor = [20, osien_määrä×40+8]`.
 - **Status:** yhteinen koko pinon ulkoreunana (V87-pattern, ei per-osa) — `suunniteltu` katkoviiva neutraali, muuten solid statusväri koko pinon ympärillä.
 - Käyttäjä: järjestäjä (rakentaa kirjastossa), talkoolainen (näkee kartalla).
