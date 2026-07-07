@@ -56,10 +56,10 @@ server/       ← Hono + Bun + SQLite
 | SignVisual | `src/logic/sign-visual.ts` | ✓ T158 | — | [logic.md](docs/components/logic.md) |
 | SignImages | `src/logic/sign-images.ts` | ✓ T158 (Vite glob, kuvia ei vielä) | — | [logic.md](docs/components/logic.md) |
 | SegmentPersistence | `src/logic/segment-persistence.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
-| Sync | `src/logic/sync.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
+| Sync | `src/logic/sync.ts` | ✓ T170 | — | [logic.md](docs/components/logic.md) |
 | SignIcon | `src/map/icons.ts` | ✓ T140 | critical-paths: "toolbar-dropdown" | [map.md](docs/components/map.md) |
 | DriveMode | `src/map/drive.ts` | ✓ | critical-paths: "Drive mode" | [map.md](docs/components/map.md) |
-| MarkerManager | `src/map/markers.ts` | ✓ T135 | critical-paths: "Merkki kartalle", "Drag-to-move" | [map.md](docs/components/map.md) |
+| MarkerManager | `src/map/markers.ts` | ✓ T170 | critical-paths: "Merkki kartalle", "Drag-to-move" | [map.md](docs/components/map.md) |
 | RouteBar | `src/map/route-bar.ts` | ✓ | — | [map.md](docs/components/map.md) |
 | GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30 | critical-paths: "GPS-paikannin" | [map.md](docs/components/map.md) |
 | AreaOverlay | `src/map/area-overlay.ts` | ✓ | area-interaction | [map.md](docs/components/map.md) |
@@ -67,7 +67,7 @@ server/       ← Hono + Bun + SQLite
 | SegmentOverlay | `src/map/segment-overlay.ts` | ✓ T152 | segments: "viivatyyli koodaa statuksen" | [map.md](docs/components/map.md) |
 | MarkerListUI | `src/ui/marker-list.ts` | ✓ T24 | — | [ui.md](docs/components/ui.md) |
 | ProgressBar | `src/ui/progress-bar.ts` | ✓ | critical-paths: "Drive mode" | [ui.md](docs/components/ui.md) |
-| PlaceMode | `src/ui/place-mode.ts` | ✓ T136 | critical-paths: "Merkki kartalle", "dblclick", "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
+| PlaceMode | `src/ui/place-mode.ts` | ✓ T170 | critical-paths: "Merkki kartalle", "dblclick", "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
 | AppController | `src/main.ts` | ✓ T155 | critical-paths: kaikki | [ui.md](docs/components/ui.md) |
 | MapInit | `src/app/map-init.ts` | ✓ T155 | critical-paths: kaikki (kartan pohja) | [ui.md](docs/components/ui.md) |
 | RoleView | `src/app/role-view.ts` | ✓ T155 | critical-paths: "Auth screen", "Rooli backendistä" | [ui.md](docs/components/ui.md) |
@@ -92,14 +92,14 @@ server/       ← Hono + Bun + SQLite
 | AreaView | `src/ui/area-view.ts` | ✓ | — | [ui.md](docs/components/ui.md) |
 | GpkgControls | `src/ui/gpkg-controls.ts` | ✓ T127 | — | [ui.md](docs/components/ui.md) |
 | GpsDrivePanel | `src/ui/gps-drive-panel.ts` | ✓ T30 | — | [ui.md](docs/components/ui.md) |
-| MarkerDetailModal | `src/ui/marker-detail-modal.ts` | ✓ T137 | screenshots: "marker-detail-modal" | [ui.md](docs/components/ui.md) |
+| MarkerDetailModal | `src/ui/marker-detail-modal.ts` | ✓ T170 | screenshots: "marker-detail-modal" | [ui.md](docs/components/ui.md) |
 | FeedbackWidget | `src/devtools/feedback-widget.ts` | ✓ devtools | feedback-widget | — |
 | BackendServer | `server/index.ts` | ✓ T41 | — | [backend.md](docs/components/backend.md) |
 | DatabaseLayer | `server/db.ts` | ✓ | — | [backend.md](docs/components/backend.md) |
 | SegmentsAPI | `server/routes/segments.ts` | ✓ T149 | — | [backend.md](docs/components/backend.md) |
 | AuthRoutes | `server/routes/auth.ts` | ✓ T36 | — | [backend.md](docs/components/backend.md) |
 | AdminRoutes | `server/routes/admin.ts` | ✓ T121 | — | [backend.md](docs/components/backend.md) |
-| MarkersAPI | `server/routes/markers.ts` | ✓ T103 | — | [backend.md](docs/components/backend.md) |
+| MarkersAPI | `server/routes/markers.ts` | ✓ T170 | — | [backend.md](docs/components/backend.md) |
 | AreasAPI | `server/routes/areas.ts` | ✓ | area-interaction | [backend.md](docs/components/backend.md) |
 | DevFeedbackAPI | `server/routes/devfeedback.ts` | ✓ | — | [backend.md](docs/components/backend.md) |
 | CronRoutes | `server/routes/cron.ts` | ✓ T163 | — | [backend.md](docs/components/backend.md) |
