@@ -136,6 +136,18 @@ Puhtaat funktiot. Ei Leafletia, ei DOM:ia. **Testattavuus: Vitest-pure.**
 
 ---
 
+## MarkerScale ✓ (T175)
+**Vastuu:** Puhdas zoom→scale-kaava kartan merkki-ikonien zoom-skaalaukselle (V109)
+**Käyttäjä:** molemmat (järjestäjä tilannekuva, talkoolainen kartta)
+**Moduuli:** `src/logic/marker-scale.ts`
+**Testattavuus:** Vitest-pure
+
+### Ominaisuudet
+- ✓ `markerScaleForZoom(zoom)` → lineaarinen scale [0.3, 1.0] välillä zoom [11, 17], clamp rajojen ulkopuolella
+- Kutsuja: `MarkerManager` (`src/map/markers.ts`) soveltaa scalen CSS-transformina marker-DOM:iin
+
+---
+
 ## SignImages ✓ (T158)
 **Vastuu:** Template-kuvien resolvointi (asset-konventio) + fallback-img-tag
 **Käyttäjä:** molemmat

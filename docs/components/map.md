@@ -62,6 +62,7 @@ Leaflet-glue. Ohut kerros kartan päällä. **Testattavuus: Playwright.**
 - ✓ `panTo` — siirtää karttanäkymän merkin kohdalle
 - ✓ `reload(markers)` — korvaa koko merkkilistan + piirtää näkyvät uudelleen (T124-T128: GPKG-tuonnin jälkeen)
 - ✓ `fixOrphanRouteIds()` — B45: korjaa merkit joilla `routeIds:[]` (esim. GPKG-tuonnin uudet merkit, palvelin ei tunne GPX-geometriaa) lähin-reitti-fallbackilla, sama periaate kuin `add()`/V21. Vitest-jsdom-testattu (`tests/gpkg-orphan-markers.test.ts`) real Leaflet-mapilla jsdomissa — ei vaadi Playwrightia tälle logiikalle.
+- ✓ T175/V109: `map.on('zoomend', ...)` skaalaa kaikki markerit `markerScaleForZoom()`-kaavalla (`src/logic/marker-scale.ts`) — CSS `transform: scale()` marker-ikonin sisäwrapperiin (`transform-origin: center bottom`), EI Leafletin omaan position-elementtiin (välttää translate3d-ylikirjoituksen). Uusi marker saa oikean scalen heti luonnissa.
 
 ### Tulossa
 - [ ] Vaihda merkin tyyppi jälkikäteen (T38, V17)
