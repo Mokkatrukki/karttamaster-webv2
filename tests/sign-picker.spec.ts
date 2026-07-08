@@ -53,11 +53,11 @@ describe('Sign icons — all 4 types', () => {
     expect((icon.options as any).html).toBeTruthy()
   })
 
-  it('icons are no wider than 32px', () => {
+  it('icons are no wider than 40px (V136/T208 kortti)', () => {
     for (const type of ['left', 'right', 'upcoming-left', 'upcoming-right'] as const) {
       const icon = createSignIcon(type, 0)
       const size = (icon.options as any).iconSize
-      expect(size[0]).toBeLessThanOrEqual(32)
+      expect(size[0]).toBeLessThanOrEqual(40)
     }
   })
 })

@@ -14,37 +14,31 @@ function getHtml(type: Parameters<typeof createSignIcon>[0], status: Parameters<
 }
 
 describe('T23: createSignIcon status-visualisointi', () => {
-  describe('V51: suunniteltu-erottelu (dasharray + fill-opacity)', () => {
-    it('suunniteltu → stroke-dasharray "4 2"', () => {
-      expect(getHtml('right', 'suunniteltu')).toContain('stroke-dasharray="4 2"')
-    })
-
-    it('suunniteltu → fill-opacity 0.55', () => {
-      expect(getHtml('right', 'suunniteltu')).toContain('fill-opacity="0.55"')
+  // V136/T208: kortti — suunniteltu erottuu valkoisella KATKOVIIVA-reunalla (CSS dashed),
+  // asetetut statukset solid status-värireunalla. Ei enää SVG stroke-dasharray/fill-opacity.
+  describe('V136/T208: suunniteltu-erottelu (katkoviivareuna kortissa)', () => {
+    it('suunniteltu → dashed-reuna', () => {
+      expect(getHtml('right', 'suunniteltu')).toContain('dashed')
     })
 
     it('suunniteltu → ei opacity:0.45 wrapperissa', () => {
       expect(getHtml('right', 'suunniteltu')).not.toContain('opacity:0.45')
     })
 
-    it('asetettu → ei stroke-dasharray', () => {
-      expect(getHtml('right', 'asetettu')).not.toContain('stroke-dasharray')
+    it('asetettu → solid-reuna (ei dashed)', () => {
+      expect(getHtml('right', 'asetettu')).not.toContain('dashed')
     })
 
-    it('asetettu → ei fill-opacity 0.55', () => {
-      expect(getHtml('right', 'asetettu')).not.toContain('fill-opacity="0.55"')
+    it('tarkistettu → ei dashed', () => {
+      expect(getHtml('left', 'tarkistettu')).not.toContain('dashed')
     })
 
-    it('tarkistettu → ei stroke-dasharray', () => {
-      expect(getHtml('left', 'tarkistettu')).not.toContain('stroke-dasharray')
+    it('kerätty → ei dashed', () => {
+      expect(getHtml('right', 'kerätty')).not.toContain('dashed')
     })
 
-    it('kerätty → ei stroke-dasharray', () => {
-      expect(getHtml('right', 'kerätty')).not.toContain('stroke-dasharray')
-    })
-
-    it('ei_tarpeen → ei stroke-dasharray', () => {
-      expect(getHtml('right', 'ei_tarpeen')).not.toContain('stroke-dasharray')
+    it('ei_tarpeen → ei dashed', () => {
+      expect(getHtml('right', 'ei_tarpeen')).not.toContain('dashed')
     })
   })
 
@@ -76,9 +70,9 @@ describe('T23: createSignIcon status-visualisointi', () => {
   })
 
   describe('default status', () => {
-    it('ilman status-param → suunniteltu (stroke-dasharray)', () => {
+    it('ilman status-param → suunniteltu (dashed-reuna)', () => {
       const icon = createSignIcon('right') as unknown as { html: string }
-      expect(icon.html).toContain('stroke-dasharray="4 2"')
+      expect(icon.html).toContain('dashed')
     })
   })
 
@@ -99,14 +93,14 @@ describe('T23: createSignIcon status-visualisointi', () => {
       expect(icon.html).toContain('X')
     })
 
-    it('custom type asetettu: ei stroke-dasharray (vain suunniteltu saa dasharray)', () => {
+    it('custom type asetettu: solid-reuna (vain suunniteltu/tuleva saa dashed)', () => {
       const html = getHtml('custom-type', 'asetettu')
-      expect(html).not.toContain('stroke-dasharray')
+      expect(html).not.toContain('dashed')
     })
   })
 })
 
-describe('T70: teardrop-ikoni', () => {
+describe('V136/T208: neliökortti-ikoni (ei teardrop)', () => {
   function getIcon(type: Parameters<typeof createSignIcon>[0] = 'right') {
     return createSignIcon(type, 'suunniteltu') as unknown as {
       html: string
@@ -116,39 +110,44 @@ describe('T70: teardrop-ikoni', () => {
     }
   }
 
-  it('iconSize on [32, 52]', () => {
+  it('iconSize on kortti + kärki [40, 48]', () => {
     const icon = getIcon()
-    expect(icon.iconSize).toEqual([32, 52])
+    expect(icon.iconSize).toEqual([40, 48])
   })
 
-  it('iconAnchor on kärjen kärki [16, 52]', () => {
+  it('iconAnchor on kärjen kärki [20, 48]', () => {
     const icon = getIcon()
-    expect(icon.iconAnchor).toEqual([16, 52])
+    expect(icon.iconAnchor).toEqual([20, 48])
   })
 
-  it('popupAnchor avautuu kärjen yläpuolelle [0, -56]', () => {
+  it('popupAnchor avautuu kärjen yläpuolelle [0, -52]', () => {
     const icon = getIcon()
-    expect(icon.popupAnchor).toEqual([0, -56])
+    expect(icon.popupAnchor).toEqual([0, -52])
   })
 
-  it('HTML sisältää kiinteän tip-SVG:n (ei rotoi)', () => {
+  it('kortti on pyöristetty neliö (border-radius:8px), EI pyöreä pisara', () => {
     const html = getIcon().html
-    expect(html).toContain('M8,0 L16,10 L24,0 Z')
-    expect(html).toContain('position:absolute;bottom:0;left:0')
+    expect(html).toContain('border-radius:8px')
+    expect(html).not.toContain('<circle')
   })
 
-  it('tip-SVG väri vastaa tyyppiväriä (right=vihreä)', () => {
+  it('HTML sisältää kiinteän kärki-SVG:n (16×8, ei rotoi)', () => {
+    const html = getIcon().html
+    expect(html).toContain('M0,0 L8,8 L16,0 Z')
+    expect(html).toContain('position:absolute;bottom:0;left:12px')
+  })
+
+  it('kärki-kolmio väri vastaa tyyppiväriä (right=vihreä)', () => {
     const html = getIcon('right').html
-    const tipIdx = html.indexOf('M8,0 L16,10 L24,0 Z')
+    const tipIdx = html.indexOf('M0,0 L8,8 L16,0 Z')
     const tipContext = html.slice(tipIdx, tipIdx + 80)
     expect(tipContext).toContain('#16A34A')
   })
 
-  // T139/B58: statuspiste korvattu koko ympyrän täyttövärillä — tip-kärki säilyttää tyyppivärin
-  // riippumatta statuksesta (ei sekoitu statusväriin), ks. tests/t139-status-fill-color.test.ts
-  it('tip-kärki säilyttää tyyppivärin vaikka status muuttaa pääympyrän väriä', () => {
+  // V87: status = kortin reuna, kärki säilyttää tyyppivärin riippumatta statuksesta.
+  it('kärki säilyttää tyyppivärin vaikka status muuttaa reunaväriä', () => {
     const html = createSignIcon('right', 'asetettu') as unknown as { html: string }
-    const tipIdx = html.html.indexOf('M8,0 L16,10 L24,0 Z')
+    const tipIdx = html.html.indexOf('M0,0 L8,8 L16,0 Z')
     const tipContext = html.html.slice(tipIdx, tipIdx + 80)
     expect(tipContext).toContain('#16A34A')
     expect(html.html).toContain('#2FA35B')
@@ -157,7 +156,7 @@ describe('T70: teardrop-ikoni', () => {
   it('kaikki 4 tyyppiä renderoituvat virheettä', () => {
     for (const type of ['right', 'left', 'upcoming-right', 'upcoming-left'] as const) {
       const icon = createSignIcon(type, 'asetettu') as unknown as { html: string }
-      expect(icon.html).toContain('M8,0 L16,10 L24,0 Z')
+      expect(icon.html).toContain('M0,0 L8,8 L16,0 Z')
     }
   })
 

@@ -13,33 +13,34 @@ function getHtml(...args: Parameters<typeof createSignIcon>): string {
 }
 
 describe('T140 — statusväri ulkoreunassa, täyttö pysyy tyyppikuvana (B59/V87)', () => {
-  // V132/T202: statusvärit Reittimerkki-palettiin, tyyppivärit uuteen palettiin.
+  // V132/T202 + V136/T208: statusväri = kortin reuna (CSS border), täyttö tyyppiväri (background),
+  // kärki tyyppivärillä (fill). Ei enää SVG stroke-ympyrää.
   it('asetettu → reunus vihreä #2FA35B, täyttö silti tyyppiväri', () => {
     const html = getHtml('right', 'asetettu')
-    expect(html).toContain('stroke="#2FA35B"')
-    expect(html).toContain('fill="#16A34A"')
+    expect(html).toContain('solid #2FA35B')
+    expect(html).toContain('background:#16A34A')
   })
 
   it('tarkistettu → reunus sininen #3B82C4, täyttö tyyppiväri', () => {
     const html = getHtml('left', 'tarkistettu')
-    expect(html).toContain('stroke="#3B82C4"')
-    expect(html).toContain('fill="#2563EB"')
+    expect(html).toContain('solid #3B82C4')
+    expect(html).toContain('background:#2563EB')
   })
 
   it('kerätty → reunus violetti #8A5CD1, täyttö tyyppiväri', () => {
     const html = getHtml('right', 'kerätty')
-    expect(html).toContain('stroke="#8A5CD1"')
-    expect(html).toContain('fill="#16A34A"')
+    expect(html).toContain('solid #8A5CD1')
+    expect(html).toContain('background:#16A34A')
   })
 
   it('ei_tarpeen → reunus kulta #C9922E, täyttö tyyppiväri', () => {
     const html = getHtml('right', 'ei_tarpeen')
-    expect(html).toContain('stroke="#C9922E"')
+    expect(html).toContain('solid #C9922E')
   })
 
   it('asetettu/tarkistettu/kerätty ovat eri reunusväriset keskenään', () => {
     const colors = ['asetettu', 'tarkistettu', 'kerätty'].map(s =>
-      getHtml('right', s as any).match(/stroke="(#[0-9a-fA-F]{6})" stroke-width="4"/)?.[1]
+      getHtml('right', s as any).match(/solid (#[0-9a-fA-F]{6})/)?.[1]
     )
     expect(new Set(colors).size).toBe(3)
   })
@@ -58,6 +59,6 @@ describe('T140 — statusväri ulkoreunassa, täyttö pysyy tyyppikuvana (B59/V8
 
   it('suunniteltu säilyttää valkoisen dashed-reunan (ei statusreunusta)', () => {
     const html = getHtml('right', 'suunniteltu')
-    expect(html).toContain('stroke="white" stroke-width="2" stroke-dasharray="4 2"')
+    expect(html).toContain('dashed white')
   })
 })

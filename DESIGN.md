@@ -230,22 +230,19 @@ metsässä, hanskat kädessä.
 - Väriswatch: `22×22px`, `border-radius: 6px`
 - Hover: `rgba(255,255,255,0.08)`
 
-### SignIcon — karttamerkit (SVG, `src/map/icons.ts`)
-- Koko: `32×52px` (W×H)
-- Teardrop: pyörivä ympyrä `r=14` `cy=28` + kiinteä kärki-SVG `position:absolute;bottom:0;height:10px` (ei rotoi bearingin mukaan). Ankkuri kärjen kärjessä `(16, 52)`.
-- Kärki-path: `M8,0 L16,10 L24,0 Z` — osoittaa tarkan sijainnin kartalla. Kärjen väri on **aina tyyppiväri**, riippumatta statuksesta.
-- Ympyrän **täyttö on aina tyyppiväri/-kuva** (V87) — tyyppi-identiteetti (nuoli/ikoni/väri) ei koskaan muutu statuksen mukaan, myös kerätty/ei_tarpeen näyttävät saman kuvan.
-- Upcoming-tyyppi (`upcoming-left`/`upcoming-right`): pääympyrä pysyy aina tyyppivärillä + `stroke-dasharray="4 2"`, ei osallistu statusväritykseen (esikatselu-tyyppi, ei operatiivinen kuittausflow).
+### SignIcon — karttamerkit (`src/map/icons.ts`)
+**V136/T208: kaikki merkit yhtenäisiä neliökortteja ("kyltti kepissä") — EI teardrop/pyöreä pisara.**
+- Koko: `40×48px` (kortti `40×40px` + kärki `8px`). Ankkuri kärjen kärjessä `(20, 48)`.
+- Kortti: pyöristetty neliö (`border-radius:8px`, `box-shadow`), täyttö = **tyyppiväri**, valkoinen glyfi/ikoni keskitettynä (`cardSvg`). Sama koko + rounding kuva- ja combomerkin kanssa.
+- Kärki-kolmio `16×8px` kortin alla, path `M0,0 L8,8 L16,0 Z`, `left:12px` — osoittaa tarkan sijainnin. Kärjen väri **aina tyyppiväri**, riippumatta statuksesta.
+- Kortin **täyttö on aina tyyppiväri/-kuva** (V87) — tyyppi-identiteetti (nuoli/ikoni/väri) ei muutu statuksen mukaan, myös kerätty/ei_tarpeen näyttävät saman sisällön.
+- Suuntamerkki: selkeä nuoli-glyfi (`→ ← ↱ ↰`) valkoisena kortissa — ei bearing-rotaatiota (T129 poisti bearingin).
+- Upcoming-tyyppi (`upcoming-left`/`upcoming-right`): kortti pysyy tyyppivärillä + valkoinen katkoviivareuna, ei osallistu statusväritykseen (esikatselu-tyyppi).
 
-**Status-visualisointi (T23/V51/T140, `createSignIcon(type, status, color?, shortLabel?, iconId?, imageSrc?)`):**
-- `suunniteltu` → pääympyrä `fill=tyyppiväri fill-opacity:0.55` + `stroke:white stroke-dasharray:"4 2"` — "haalistunut/katkoviiva = ei tehty" (V51), ennallaan
-- `asetettu`/`tarkistettu`/`kerätty`/`ei_tarpeen` → täyttö pysyy tyyppivärinä, **statusväri näkyy ulkoreunassa** (`stroke`, leveys `4px`, T140/V87/B59 — kokeiltiin ensin täyttöväriä T139:ssä, mutta käyttäjä halusi tyyppikuvan pysyvän tunnistettavana joka statuksessa):
-  - `asetettu`: reunus `#22c55e` (vihreä)
-  - `tarkistettu`: reunus `#0ea5e9` (taivassininen)
-  - `kerätty`: reunus `#8b5cf6` (violetti)
-  - `ei_tarpeen`: reunus `#78716c` (harmaa)
-  - Neljä väriä valittu eri sävyperheistä tarkoituksella — ei saman perheen pastelleja (alkuperäinen 8px badge-versio #4ade80/#93c5fd/#6ee7b7 oli liian samankaltainen, B58)
-- Sisältö: **kuva > ikoni > shortLabel** -precedence (V99/T158, `signVisual`). Ikoni/label-tyypit = teardrop-ympyrä yllä. **Kuvatyyppi (T-C): suorakaide-kortti ei ympyrätäyttö** — koko kyltti näkyy croppaamatta (kuvasuhteet vaihtelevat 2.2:1…0.7:1). Kortti `40×40px` valkotausta, `border-radius:8px`, `box-shadow`, `object-fit:contain`; kärki-kolmio `16×8px` kortin alla, ankkuri `(20,48)`. Status = **kortin reuna** (V87): `suunniteltu` katkoviiva neutraali `#64748b`, muuten solid statusväri (vihreä/sininen/violetti/harmaa). Fallback-chip (tyyppiväri + compactLabel) img:n alla, `onerror="this.remove()"` paljastaa sen.
+**Status-visualisointi (T23/V51/T140/T208, `createSignIcon(type, status, color?, compact?, iconId?, imageSrc?, visualParts?)`):**
+- `suunniteltu` → kortti tyyppivärillä + **valkoinen katkoviivareuna** (`border:3px dashed white`) — "katkoviiva = ei tehty" (V51).
+- `asetettu`/`tarkistettu`/`kerätty`/`ei_tarpeen` → täyttö pysyy tyyppivärinä, **statusväri näkyy kortin reunassa** (`border:4px solid`, V87/B59 — käyttäjä halusi tyyppikuvan pysyvän tunnistettavana joka statuksessa). Värit §C `--status-*` -taulukosta, synkassa `STATUS_RING` (icons.ts): asetettu `#2FA35B`, tarkistettu `#3B82C4`, kerätty `#8A5CD1`, ei_tarpeen `#C9922E` — eri sävyperheistä (B58).
+- Sisältö: **kuva > ikoni > compactLabel** -precedence (V99/T158, `signVisual`). Kaikki kolme tieriä renderöityvät samana korttina: ikoni/label = tyyppiväri-kortti + valkoinen glyfi; **kuvatyyppi = valkoinen kortti** (`object-fit:contain`, koko kyltti croppaamatta, kuvasuhteet 2.2:1…0.7:1). Kaikilla sama `40×40px` + `border-radius:8px` + kärki. Status = kortin reuna. Kuvatyypin fallback-chip (tyyppiväri + compactLabel) img:n alla, `onerror="this.remove()"` paljastaa sen.
 - Kuva-fallback: `<img onerror="this.remove()">` (T103-pattern) — puuttuva/rikki kuvatiedosto poistaa kuvakerroksen → alla oleva ikoni/label paljastuu, ei rikkoudu. Assetit: `src/assets/signs/<id>.webp` (T161 konversio-pipeline, ~79 kpl).
 - **Ei erillistä nurkkabadgea** (poistettu T138:ssa, oli B57: "kaksi kertaa sama teksti").
 
@@ -488,7 +485,7 @@ CSS-luokat:
 - **Mikä:** pure-DOM-funktio `buildMarkerVisual(marker, {size, zoomable})` — pieni merkkivisuaali (kuva/ikoni/label, V99-precedence) listariveihin. Käyttäjät: SegmentDetailsModalin merkkilista (T199, `size:34/28`) **ja SignLibraryPanelin sivupalkkirivit (T200, `size:22, zoomable:false`)** — sama helper takaa että tuplamerkki näyttää identtiseltä sivupalkissa, modaalissa ja kartalla. Erillinen tiedosto tarkoituksella: `segment-details-modal.ts` on liputettu ⚠️ pilkko (COMPONENTS.md), eikä visuaali-render saa kasvattaa sitä lisää; sama helper uudelleenkäytettävissä myöhemmin talkoolaisen SegmentView:ssä.
 - **Koko:** `opts.size`-parametrilla ohjattu neliö (`width/height: size px`), kutsuja päättää (esim. `34px` tarkka lista, `28px` yhteenveto-chip).
 - **Väri (V87-pattern — täyttö on aina tyyppiväri, ei koskaan kiinteä accent):** `marker.color` (custom template) voittaa; muuten oletustyypin väri `SIGN_TYPES`-taulukosta (`src/logic/sign-picker.ts`: left `#2563eb`, right `#16a34a`, upcoming-left `#7c3aed`, upcoming-right `#b45309`); muuten neutraali `#94a3b8`. Sama precedence kuin kartan `circleSvg`/`comboMarkerSvg`:ssä (`src/map/icons.ts`) — listan värien on täsmättävä kartan väreihin, muuten tunnistettavuus katoaa.
-- **Yksittäinen visuaali (`.marker-visual-row-single`):** kuva → valkotausta `border-radius:8px`, `object-fit:contain`; ikoni/label → resolvoitu tyyppiväri-tausta ympyrä (`border-radius:999px`), valkoinen Lucide-SVG tai `compactLabel`-teksti keskitettynä.
+- **Yksittäinen visuaali (`.marker-visual-row-single`, V136/T208):** kuva → valkotausta `border-radius:8px`, `object-fit:contain`; ikoni/label → resolvoitu tyyppiväri-tausta **neliökortti** (`border-radius:8px`, EI 999px-pyöreä), valkoinen Lucide-SVG tai `compactLabel`-teksti keskitettynä. Neliömuoto täsmää kartan `cardSvg`-korttiin (sivupalkki ↔ modaali ↔ lista ↔ kartta yhtenäisiä).
 - **Tuplamerkki (`.marker-visual-row-combo`, `parts.length>1`, V107):** pystypino, max 4 lohkoa (`.marker-visual-row-combo-slot`), `1px`-jakoviiva lohkojen välissä, `border-radius:8px` koko pinolle, sama resolvoitu väri kaikissa ikoni/label-lohkoissa. **Ei kulmabadgea** (esim. "2") — käyttäjäpäätös: kaksi näkyvää lohkoa jo kertoo tuplauksen, badge koettiin turhaksi.
 - **Zoom (`opts.zoomable=true`, `.marker-visual-row-zoom`):** `44×44px` klikattava hit-area (V129/B89 — alkuperäinen 20px-toteutus rikkoi §A:n, korjattu ennen ✓-merkintää) oikeassa alakulmassa, sisällä `18×18px` näkyvä pyöreä tumma badge valkoisella suurennuslasi-SVG:llä, `aria-label="Suurenna <label>"`. Klikkaus `stopPropagation` + avaa lightboxin — ei valitse mitään, pelkkä esikatselu (ero ImageGalleryPickeriin: siellä zoom voi myös valita).
 - **Lightbox (`.marker-visual-lightbox`, `.marker-visual-lightbox-backdrop`):** sama pattern kuin ImageGalleryPickerin lightbox (rivit 468-471) — `overlay`-token backdrop, `z-index:5000`, keskitetty `max-width:min(90vw,420px)`, `surface-card` tausta (ei valkoinen — tämä ei ole vain kuva-esikatselu vaan koko merkkivisuaali omalla taustallaan), sisällä `buildMarkerVisual(marker, {size:160, zoomable:false})` + caption (label tai compactLabel). Sulkeutuu: Esc, backdrop-klikkaus, `✕`-nappi (`.marker-visual-lightbox-close`, `34×34px`, `aria-label="Sulje"`).

@@ -40,10 +40,19 @@ describe('T198 — MarkerVisualRow / buildMarkerVisual', () => {
     expect(box.style.background).toBe('rgb(255, 0, 255)')
   })
 
-  it('tuntematon tyyppi ilman väriä → neutraali #94a3b8', () => {
+  it('tuntematon tyyppi ilman väriä → neutraali #8A968D (V132)', () => {
     const el = buildMarkerVisual({ type: 'custom-xyz', label: 'X', iconId: 'wrench' }, { size: 34, zoomable: false })
     const box = el.querySelector<HTMLElement>('.marker-visual-row-single')!
-    expect(box.style.background).toBe('rgb(148, 163, 184)') // #94a3b8
+    expect(box.style.background).toBe('rgb(138, 150, 141)') // #8A968D
+  })
+
+  // V136/T208: yksittäinen ikoni/label = neliökortti (radius:8), EI pyöreä (999px) —
+  // täsmää kartan uuteen korttimuotoon (icons.ts cardSvg).
+  it('T208: yksittäinen merkki on neliökortti (border-radius:8px), ei 999px-pyöreä', () => {
+    const el = buildMarkerVisual({ type: 'left', iconId: 'arrow-left', label: 'Vasemmalle' }, { size: 34, zoomable: false })
+    const box = el.querySelector<HTMLElement>('.marker-visual-row-single')!
+    expect(box.style.borderRadius).toBe('8px')
+    expect(box.style.borderRadius).not.toBe('999px')
   })
 
   it('tuplamerkki typistyy max 4 osaan', () => {

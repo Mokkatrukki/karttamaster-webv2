@@ -23,7 +23,7 @@ interface SignMarkerLike {
 // listan värien pitää täsmätä kartan väreihin (V87), muuten tunnistettavuus katoaa.
 function resolveColor(marker: MarkerVisualInput): string {
   if (marker.color) return marker.color
-  return SIGN_TYPES.find(t => t.type === marker.type)?.color ?? '#94a3b8'
+  return SIGN_TYPES.find(t => t.type === marker.type)?.color ?? '#8A968D'
 }
 
 export interface MarkerVisualOptions {
@@ -95,10 +95,12 @@ export function buildMarkerVisual(marker: MarkerVisualInput, opts: MarkerVisualO
     const kind = singleVisualKind(marker)
     const box = document.createElement('div')
     box.className = 'marker-visual-row-single'
+    // V136/T208: yksittäinen ikoni/label = neliökortti (radius:8), EI pyöreä (999px) —
+    // täsmää kartan uuteen korttimuotoon (icons.ts cardSvg). Väri = tyyppiväri (V87).
     if (kind === 'image') {
       box.style.cssText = `width:100%;height:100%;border-radius:8px;background:#fff;border:1px solid var(--border-default);display:flex;align-items:center;justify-content:center;overflow:hidden`
     } else {
-      box.style.cssText = `width:100%;height:100%;border-radius:999px;background:${color};display:flex;align-items:center;justify-content:center;overflow:hidden`
+      box.style.cssText = `width:100%;height:100%;border-radius:8px;background:${color};display:flex;align-items:center;justify-content:center;overflow:hidden`
     }
     box.innerHTML = singleVisualInner(marker, Math.round(opts.size * 0.6))
     wrap.appendChild(box)
