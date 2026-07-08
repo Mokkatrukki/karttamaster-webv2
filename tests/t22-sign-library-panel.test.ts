@@ -168,7 +168,8 @@ describe('T22 SignLibraryPanel — V10', () => {
       const container = setup()
       const lib = createSignLibrary()
       new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
-      const dotsBtn = container.querySelector<HTMLButtonElement>('.sign-lib-dots-btn')!
+      // V126: rivit aakkosjärjestyksessä → kohdista default-malliin ('left') id:llä, ei "ekaan riviin".
+      const dotsBtn = container.querySelector<HTMLButtonElement>('.sign-lib-dots-btn[data-id="left"]')!
       dotsBtn.click()
       expect(bodyQuery('.modal-btn-destructive')).toBeNull()
     })

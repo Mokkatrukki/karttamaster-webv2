@@ -289,7 +289,9 @@ metsässä, hanskat kädessä.
 
 **SignLibraryPanel section:**
 - Section-header: `[▼/▶ Merkkikirjasto]`
-- Item: `[swatch 22×22px] [label flex:1] [···]` — klikkaus asettaa merkin, ··· avaa edit-modaalin
+- Ryhmittely (V126): väliotsikko `Suosikit` (favorite:true) ensin, sitten väliotsikko `Muut` — molemmat ryhmät label-aakkosjärjestyksessä (`localeCompare 'fi'`). Ei accordionia; tyhjää ryhmää ei renderöidä. Väliotsikko: 11px uppercase, `--text-muted`, `.sign-lib-subhead`.
+- Item: `[swatch 22×22px] [label + kuvaus flex:1] [···]` — klikkaus asettaa merkin, ··· avaa edit-modaalin. Koko `description` näkyy labelin alla (11px `--text-muted`, wrap); tyhjä kuvaus → ei riviä.
+- Haku suodattaa rivit; väliotsikko piiloutuu kun ryhmässä ei näkyviä rivejä.
 - Edit-modaali: sisältää suosikki-toggle (`<input type=checkbox>`) + footer-destructive "Poista malli" (vain custom-malleille)
 - Section-footer: `[+ Uusi merkki]`
 
