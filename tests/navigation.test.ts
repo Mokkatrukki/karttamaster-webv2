@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { nearestUnsetMarker, distanceToNext } from '../src/logic/navigation'
+import { nearestUnsetMarker, distanceToNext, firstUnsetMarker } from '../src/logic/navigation'
 import type { SignMarker } from '../src/logic/types'
 
 function makeMarker(overrides: Partial<SignMarker>): SignMarker {
@@ -58,6 +58,31 @@ describe('nearestUnsetMarker', () => {
     const b = makeMarker({ id: 'b', distanceFromStart: 100, routeIds: ['r1'] })
     const result = nearestUnsetMarker([a, b], 100, 'r1')
     expect(['a', 'b']).toContain(result?.id)
+  })
+})
+
+// B-lista2/V3: pätkän ensimmäinen asettamaton merkki — pienin distanceFromStart, EI lähin kursoriin.
+describe('firstUnsetMarker', () => {
+  it('palauttaa pienimmän distanceFromStart -suunniteltu-merkin (ei lähintä kursoriin)', () => {
+    // m1=100, m2=300 — kummatkin suunniteltu; ensimmäinen = m1 riippumatta järjestyksestä
+    expect(firstUnsetMarker([m2, m1])?.id).toBe('m1')
+  })
+
+  it('ohittaa ei-suunniteltu-merkit', () => {
+    // m3 (500, asetettu) ohitetaan; m2 (300, suunniteltu) valitaan
+    expect(firstUnsetMarker([m3, m2])?.id).toBe('m2')
+  })
+
+  it('palauttaa null kun ei suunniteltu-merkkejä', () => {
+    expect(firstUnsetMarker([m3])).toBeNull()
+    expect(firstUnsetMarker([])).toBeNull()
+  })
+
+  it('valitsee aina saman ensimmäisen syötejärjestyksestä riippumatta', () => {
+    const early = makeMarker({ id: 'early', distanceFromStart: 50 })
+    const late = makeMarker({ id: 'late', distanceFromStart: 900 })
+    expect(firstUnsetMarker([late, early])?.id).toBe('early')
+    expect(firstUnsetMarker([early, late])?.id).toBe('early')
   })
 })
 

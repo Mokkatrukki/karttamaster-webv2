@@ -64,6 +64,17 @@ export function wireMarkers(
   const markerPendingIds = (): Set<string> =>
     new Set([...outbox.pendingResourceKeys()].filter(k => k.startsWith('marker:')).map(k => k.slice('marker:'.length)))
 
+  // V33/V142 (B-lista1): talkoolaisen merkkilista näyttää VAIN oman pätkän merkit — myös
+  // re-renderissä (status-muutos, outbox-vahvistus, modaalin refresh). Aiemmin re-render-
+  // callbackit välittivät segmentMarkerIds=undefined → lista palasi näyttämään kaikki reitin
+  // merkit heti ensimmäisen muutoksen jälkeen. Järjestäjälle undefined = kaikki merkit (oikein).
+  const currentSegmentMarkerIds = (): Set<string> | undefined => {
+    if (!talkoolainenCode) return undefined
+    const seg = getSegmentForCode(segmentStore, talkoolainenCode)
+    if (!seg) return undefined
+    return new Set(getMarkersForSegment(seg, markerManager.getAll()).map(m => m.id))
+  }
+
   // Forward declaration — modaali luodaan vasta markerManagerin jälkeen
   let markerDetailModal: MarkerDetailModal | null = null
   const onOpenMarkerDetail = (id: string) => {
@@ -72,7 +83,7 @@ export function wireMarkers(
   }
 
   const markerManager = new MarkerManager(map, routes, () => {
-    renderMarkerList(markerManager, undefined, undefined, signLibrary, onOpenMarkerDetail, markerPendingIds())
+    renderMarkerList(markerManager, undefined, currentSegmentMarkerIds(), signLibrary, onOpenMarkerDetail, markerPendingIds())
     progressBar.refreshDots()
     statusPanel?.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
     segmentPanel.refreshCounts()
@@ -89,7 +100,7 @@ export function wireMarkers(
     () => signLibrary,
     getRole,
     () => {
-      renderMarkerList(markerManager, undefined, undefined, signLibrary, onOpenMarkerDetail, markerPendingIds())
+      renderMarkerList(markerManager, undefined, currentSegmentMarkerIds(), signLibrary, onOpenMarkerDetail, markerPendingIds())
       progressBar.refreshDots()
     },
   )
@@ -99,7 +110,7 @@ export function wireMarkers(
   // Käsittelijä kattaa myös 2xx-vahvistuksen (avain poistuu → korostus katoaa).
   setOutboxChangeHandler((keys) => {
     markerManager.setPendingKeys(keys)
-    renderMarkerList(markerManager, undefined, undefined, signLibrary, onOpenMarkerDetail, markerPendingIds())
+    renderMarkerList(markerManager, undefined, currentSegmentMarkerIds(), signLibrary, onOpenMarkerDetail, markerPendingIds())
   })
   // Edellisen session vahvistamattomat kirjoitukset voivat olla vielä jonossa käynnistyessä.
   markerManager.setPendingKeys(outbox.pendingResourceKeys())
@@ -111,7 +122,10 @@ export function wireMarkers(
         document.getElementById('segment-view-container')!,
         seg,
         (updated) => {
-          for (const m of updated) markerManager.updateStatus(m.id, 'kerää')
+          // V28 (B-lista3): bulkCollect palauttaa merkit jo 'kerätty'-tilassa. Käytä suoraa
+          // bulkSetStatus-asetusta — EI 'kerää'-actionia, joka heittää "Virheellinen siirtymä"
+          // suunniteltu/ei_tarpeen-merkeille (uncaught throw, osittainen päivitys, ei banneria).
+          markerManager.bulkSetStatus(updated.map(m => m.id), 'kerätty')
         },
         (inspected, note) => {
           const updatedSeg = updateSegment(segmentStore, seg.id, { inspected, inspectionNote: note || undefined })
@@ -174,6 +188,11 @@ export function wireMarkers(
       driveMode,
       markerManager,
       () => activeRouteProvider().id,
+      // B-lista2: rajaa navigointi oman pätkän merkkeihin (ei koko reitin)
+      () => {
+        const seg = talkoolainenCode ? getSegmentForCode(segmentStore, talkoolainenCode) : undefined
+        return seg ? getMarkersForSegment(seg, markerManager.getAll()) : markerManager.getAll()
+      },
     )
     gpsDrivePanel.update(0)
   }
@@ -219,14 +238,7 @@ export function wireMarkers(
   const markerModal = document.getElementById('marker-modal')!
 
   const openMarkerModal = (highlightId?: string) => {
-    let segmentMarkerIds: Set<string> | undefined
-    if (talkoolainenCode) {
-      const seg = getSegmentForCode(segmentStore, talkoolainenCode)
-      if (seg) {
-        segmentMarkerIds = new Set(getMarkersForSegment(seg, markerManager.getAll()).map(m => m.id))
-      }
-    }
-    renderMarkerList(markerManager, highlightId, segmentMarkerIds, signLibrary, onOpenMarkerDetail, markerPendingIds())
+    renderMarkerList(markerManager, highlightId, currentSegmentMarkerIds(), signLibrary, onOpenMarkerDetail, markerPendingIds())
     markerModalBackdrop.classList.add('open')
     markerModal.classList.add('open')
   }

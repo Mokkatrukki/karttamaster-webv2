@@ -1,5 +1,18 @@
 import type { SignMarker } from './types'
 
+// V3/V143 (B-lista2): pätkän ENSIMMÄINEN asettamaton merkki — pienin distanceFromStart jolla
+// status==='suunniteltu'. Tämä on "Aseta seuraava" -ohjauksen valinta talkoolaiselle: se etenee
+// pätkän merkit järjestyksessä alusta loppuun, EI lähimpään kursorin/GPS-sijainnin merkkiin.
+// Anna `markers` valmiiksi pätkälle rajattuna (getMarkersForSegment) — funktio ei tunne pätkää.
+export function firstUnsetMarker(markers: SignMarker[]): SignMarker | null {
+  let best: SignMarker | null = null
+  for (const m of markers) {
+    if (m.status !== 'suunniteltu') continue
+    if (best === null || m.distanceFromStart < best.distanceFromStart) best = m
+  }
+  return best
+}
+
 export function nearestUnsetMarker(
   markers: SignMarker[],
   currentDist: number,

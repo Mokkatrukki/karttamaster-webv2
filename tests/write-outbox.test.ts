@@ -37,20 +37,50 @@ describe('T183/V116: WriteOutbox', () => {
     expect(ob.pending()).toBe(0)
   })
 
-  it('non-2xx säilyttää entryn + kutsuu onFailure statuksella', async () => {
-    const fetchFn = vi.fn(async () => new Response(null, { status: 403 }))
+  it('ohimenevä non-2xx (5xx) säilyttää entryn + kutsuu onFailure(permanent=false)', async () => {
+    const fetchFn = vi.fn(async () => new Response(null, { status: 500 }))
     const onFailure = vi.fn()
     const ob = new WriteOutbox({ storage, fetchFn: fetchFn as unknown as typeof fetch, onFailure })
     await ob.enqueue({ resourceKey: 'marker:a', method: 'POST', url: '/api/markers', body: '{}' })
     expect(ob.pending()).toBe(1)
-    expect(onFailure).toHaveBeenCalledWith(expect.objectContaining({ resourceKey: 'marker:a' }), 403)
+    expect(onFailure).toHaveBeenCalledWith(expect.objectContaining({ resourceKey: 'marker:a' }), 500, false)
     // persistoitu jonoon
     const saved = JSON.parse(storage.getItem(KEY)!)
     expect(saved).toHaveLength(1)
     expect(saved[0].attempts).toBe(1)
   })
 
-  it('verkkovirhe (fetch throw) säilyttää entryn, status null', async () => {
+  // B-lista3b: pysyvä 4xx (403/400/404) → dead-letter. Entry POISTETAAN jonosta (retry ei auta,
+  // muuten jono myrkyttyy ja virhebanneri toistuu joka kierroksella). onFailure(permanent=true).
+  it('pysyvä 403 → dead-letter: entry poistuu jonosta, onFailure(permanent=true)', async () => {
+    const fetchFn = vi.fn(async () => new Response(null, { status: 403 }))
+    const onFailure = vi.fn()
+    const ob = new WriteOutbox({ storage, fetchFn: fetchFn as unknown as typeof fetch, onFailure })
+    await ob.enqueue({ resourceKey: 'marker:a', method: 'POST', url: '/api/markers', body: '{}' })
+    expect(ob.pending()).toBe(0)
+    expect(onFailure).toHaveBeenCalledWith(expect.objectContaining({ resourceKey: 'marker:a' }), 403, true)
+    expect(storage.getItem(KEY)).toBe('[]')
+  })
+
+  it.each([400, 404, 409, 422])('pysyvä %i → dead-letter (entry poistuu)', async (status) => {
+    const fetchFn = vi.fn(async () => new Response(null, { status }))
+    const onFailure = vi.fn()
+    const ob = new WriteOutbox({ storage, fetchFn: fetchFn as unknown as typeof fetch, onFailure })
+    await ob.enqueue({ resourceKey: 'marker:a', method: 'PUT', url: '/api/markers/a', body: '{}' })
+    expect(ob.pending()).toBe(0)
+    expect(onFailure).toHaveBeenCalledWith(expect.anything(), status, true)
+  })
+
+  it.each([401, 408, 429])('%i EI ole pysyvä → jää jonoon retryä varten', async (status) => {
+    const fetchFn = vi.fn(async () => new Response(null, { status }))
+    const onFailure = vi.fn()
+    const ob = new WriteOutbox({ storage, fetchFn: fetchFn as unknown as typeof fetch, onFailure })
+    await ob.enqueue({ resourceKey: 'marker:a', method: 'PUT', url: '/api/markers/a', body: '{}' })
+    expect(ob.pending()).toBe(1)
+    expect(onFailure).toHaveBeenCalledWith(expect.anything(), status, false)
+  })
+
+  it('verkkovirhe (fetch throw) säilyttää entryn, status null, permanent=false', async () => {
     const fetchFn = vi.fn(async () => {
       throw new Error('network down')
     })
@@ -58,7 +88,7 @@ describe('T183/V116: WriteOutbox', () => {
     const ob = new WriteOutbox({ storage, fetchFn: fetchFn as unknown as typeof fetch, onFailure })
     await ob.enqueue({ resourceKey: 'seg:a', method: 'DELETE', url: '/api/segments/a' })
     expect(ob.pending()).toBe(1)
-    expect(onFailure).toHaveBeenCalledWith(expect.anything(), null)
+    expect(onFailure).toHaveBeenCalledWith(expect.anything(), null, false)
   })
 
   it('käynnistyslataus + retry tyhjentää jonon kun palvelin taas vastaa', async () => {

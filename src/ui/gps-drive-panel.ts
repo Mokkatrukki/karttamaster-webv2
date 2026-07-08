@@ -2,7 +2,7 @@ import { nearestUnsetMarker } from '../logic/navigation'
 import { SIGN_TYPES } from '../logic/sign-picker'
 import type { MarkerManager } from '../map/markers'
 import type { DriveMode } from '../map/drive'
-import type { MarkerType } from '../logic/types'
+import type { MarkerType, SignMarker } from '../logic/types'
 
 const NEAR_M = 200
 
@@ -20,6 +20,10 @@ export class GpsDrivePanel {
     private readonly driveMode: DriveMode,
     private readonly manager: MarkerManager,
     private readonly getRouteId: () => string,
+    // B-lista2: talkoolaisella navigointi rajataan oman pätkän merkkeihin — muuten "Aseta" voi
+    // asettaa merkin toisen talkoolaisen pätkältä (nearestUnsetMarker skooppasi vain reitin).
+    // Oletus: kaikki merkit (yhteensopivuus / testit).
+    private readonly getMarkers: () => SignMarker[] = () => manager.getAll(),
   ) {
     this.labelEl = el.querySelector<HTMLElement>('#gdp-label')!
     this.distEl = el.querySelector<HTMLElement>('#gdp-dist')!
@@ -27,7 +31,7 @@ export class GpsDrivePanel {
   }
 
   update(currentKm: number): void {
-    const nearest = nearestUnsetMarker(this.manager.getAll(), currentKm * 1000, this.getRouteId())
+    const nearest = nearestUnsetMarker(this.getMarkers(), currentKm * 1000, this.getRouteId())
 
     if (!nearest) {
       this.el.hidden = true
@@ -49,7 +53,7 @@ export class GpsDrivePanel {
   private bind(): void {
     this.el.querySelector('#gdp-jump')!.addEventListener('click', () => {
       const nearest = nearestUnsetMarker(
-        this.manager.getAll(),
+        this.getMarkers(),
         this.driveMode.currentKm() * 1000,
         this.getRouteId(),
       )
