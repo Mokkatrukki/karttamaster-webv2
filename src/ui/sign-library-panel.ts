@@ -14,10 +14,11 @@ import {
 import { CURATED_ICONS, getIconById, renderIconSvg } from '../logic/icon-set'
 import { signImageTag, signImageIds, signImageSrc } from '../logic/sign-images'
 import { compactLabel } from '../logic/sign-visual'
-import { signCatalog } from '../logic/sign-catalog'
 import { registerEscClose, createBackdrop, signPreviewHtml } from './modal-helpers'
 
-const DEFAULT_IDS = new Set(['right', 'left', 'upcoming-right', 'upcoming-left'])
+// T195/V125: kirjasto käynnistyy tyhjänä — ei suojattuja oletusmalleja. Kaikki mallit
+// ovat järjestäjän itse tekemiä ja poistettavissa (edit-modaalin destructive-nappi).
+const DEFAULT_IDS = new Set<string>()
 const MAX_PARTS = 4 // V107: yhdistelmämerkin osien katto
 
 const ID_ERROR_MSG: Record<IdValidationReason, string> = {
@@ -30,25 +31,14 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
-function seedDefaults(library: SignLibrary): void {
-  if (library.size > 0) return
-  createTemplate(library, { label: 'Vasemmalle', color: '#2563eb', description: 'Käänny vasemmalle', favorite: true }, 'left')
-  createTemplate(library, { label: 'Oikealle', color: '#16a34a', description: 'Käänny oikealle', favorite: true }, 'right')
-  createTemplate(library, { label: 'Tuleva vasemmalle', color: '#7c3aed', description: '', favorite: true }, 'upcoming-left')
-  createTemplate(library, { label: 'Tuleva oikealle', color: '#b45309', description: '', favorite: true }, 'upcoming-right')
-  // T161-kuratointi: kaikki webp-taustaiset kyltit templateiksi (sign-catalog). Kuva näkyy
-  // automaattisesti (signVisual, id == webp-nimi). favorite ohjaa quick-pickiin — katalogi ei sotke.
-  for (const e of signCatalog()) {
-    createTemplate(library, { label: e.label, color: '#1d4ed8', description: '', favorite: e.favorite }, e.id)
-  }
-}
-
+// T195/V125: kirjasto seedaa TYHJÄNÄ. Järjestäjä rakentaa jokaisen mallin itse; ne
+// jaetaan backendin kautta kaikille (V123). Vanhat oletusnuolet + webp-katalogi (signCatalog)
+// poistettu seedistä — monet vanhat kuvat rikki/tuplakuvia; uudet tehdään käsin (T196 tuo
+// kuvien latauksen backendiin). createSignLibrary palauttaa cachen tai tyhjän kirjaston.
 export function createSignLibrary(): SignLibrary {
   const loaded = loadLibrary()
   if (loaded && loaded.size > 0) return loaded
-  const lib = createLibrary()
-  seedDefaults(lib)
-  return lib
+  return createLibrary()
 }
 
 export class SignLibraryPanel {

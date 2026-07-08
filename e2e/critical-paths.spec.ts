@@ -6,13 +6,22 @@
  *   3. Rooli (backendistä) muuttaa toolbaria
  */
 import { test, expect } from 'playwright/test'
-import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen } from './helpers/auth'
+import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTemplates } from './helpers/auth'
 
 // Dev-server pyörii ulkopuolella (bun run dev) — playwright.config.ts baseURL
 
 test.describe('Merkki kartalle', () => {
   test('dblclick kartalla → picker → tyyppi valitaan → merkki näkyy listassa (T85)', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
+    // Merkin POST onnistuu (mockattu 201) — muuten reaali-backend 401 avaa re-auth-screenin (T186)
+    // ja peittää toolbarin. Testin fokus on picker→lista-polku, ei backend-persistointi.
+    await page.route('/api/markers', route => {
+      if (route.request().method() === 'POST') {
+        return route.fulfill({ status: 201, contentType: 'application/json', body: route.request().postData() ?? '{}' })
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+    })
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -43,6 +52,7 @@ test.describe('Merkki kartalle', () => {
 
   test('merkin tallennus epäonnistuu palvelimella → näkyvä virheilmoitus (T182/V115/B82)', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
     await page.route('/api/markers', route => {
       if (route.request().method() === 'POST') {
         return route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ error: 'forbidden' }) })
@@ -60,11 +70,12 @@ test.describe('Merkki kartalle', () => {
 
     const warning = page.locator('#distance-warning')
     await expect(warning).toBeVisible()
-    await expect(warning).toContainText('tallennus epäonnistui')
+    await expect(warning).toContainText(/tallennus epäonnistui/i)
   })
 
   test('dblclick kartalla avaa floating pickerin kirjaston suosikeilla', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -90,6 +101,7 @@ test.describe('Merkki kartalle', () => {
 test.describe('Drive mode', () => {
   test('käynnistyy + navigoi eteenpäin', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -125,6 +137,7 @@ test.describe('Drive mode', () => {
 test.describe('Rooli backendistä (V80: #btn-role-toggle on dead code tili-per-rooli-authin jälkeen)', () => {
   test('järjestäjä-tili näyttää järjestäjän toolbarin', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -149,6 +162,7 @@ test.describe('Rooli backendistä (V80: #btn-role-toggle on dead code tili-per-r
 test.describe('Drag-to-move — T37', () => {
   test('merkki voidaan siirtää drag&drop — routeIds päivittyy', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -318,6 +332,7 @@ test.describe('Auth screen — T51', () => {
 test.describe('Touch targets — T45', () => {
   test('kaikki napit ≥44px mobiililla (375px)', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -345,6 +360,7 @@ test.describe('Touch targets — T45', () => {
 test.describe('Left panel — T73', () => {
   test('paneeli auki → kartta-alue pienempi; toggle → kartta täyttää leveyden', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -379,6 +395,7 @@ test.describe('Left panel — T73', () => {
 
   test('merkkikirjasto-grid näkyy paneelissa', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -390,6 +407,7 @@ test.describe('Left panel — T73', () => {
 
   test('sivupalkin merkkikirjastosta voi asettaa merkin kartalle (T136/B55/V83)', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -414,6 +432,7 @@ test.describe('Left panel — T73', () => {
   // T172/V107: yhdistelmämerkki — pystypino kepissä, yksi ankkuripiste
   test('yhdistelmämerkki kartalla näyttää kaikki osat pinossa oikeassa järjestyksessä (T172)', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -480,6 +499,7 @@ async function mockAreasApi(page: import('playwright/test').Page, areas: unknown
 test.describe('T108 — AreaOverlay', () => {
   test('area piirtyy kartalle: .area-polygon elementti löytyy Leaflet SVG:stä', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
     await mockAreasApi(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
@@ -493,6 +513,7 @@ test.describe('T108 — AreaOverlay', () => {
 
   test('area klikkaus triggeroi flyTo: kartan zoom muuttuu 18:ksi', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
     await mockAreasApi(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
@@ -525,6 +546,7 @@ test.describe('T108 — AreaOverlay', () => {
 test.describe('Merkin zoom-skaalaus — T175', () => {
   test('merkki skaalautuu pienemmäksi kaukana zoomattuna, kasvaa lähennettäessä, sijainti ei drifaa', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)

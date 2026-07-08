@@ -34,4 +34,10 @@ describe('T161-kuratointi: signCatalog', () => {
     const ids = cat.map((e) => e.id)
     expect(new Set(ids).size).toBe(ids.length)
   })
+
+  it('säilyttää category-datan (paikka vs merkki)', () => {
+    const byId = Object.fromEntries(cat.map((e) => [e.id, e.category]))
+    expect(byId['iso-syote-430']).toBe('place')
+    expect(byId['wc']).toBe('sign')
+  })
 })

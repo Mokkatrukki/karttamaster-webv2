@@ -26,6 +26,8 @@ describe('T93 — Merkkikirjasto modal + iconId (V10, V50)', () => {
     it('dots-nappi (···) avaa modaalin', () => {
       const container = setup()
       const lib = createSignLibrary()
+      // T195/V125: seed tyhjä → luo malli jotta dots-nappi on olemassa
+      createTemplate(lib, { label: 'Testi', color: '#000000', description: '', favorite: true }, 'testi')
       new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
       container.querySelector<HTMLButtonElement>('.sign-lib-dots-btn')!.click()
       expect(document.body.querySelector('.sign-lib-modal')).toBeTruthy()
