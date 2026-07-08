@@ -373,6 +373,25 @@ metsässä, hanskat kädessä.
     - Molemmat merkkipohjaiset osiot piilossa jos pätkällä ei merkkejä (`segMarkers.length === 0`) — manuaalinen lista näkyy silti aina.
   - `.btn-segment-clone-phase` (T146): "Kloonaa &lt;seuraava&gt;-vaiheeseen", sama tyyli kuin `.btn-segment-edit-pts-modal` (`field-tint` bg, `border-strong`, `min-height:44px`, `width:100%`, `text-align:left`) — ei destructive, ei primary, matala visuaalinen painoarvo koska harvoin käytetty toiminto
 
+### Nappijärjestelmä `.btn` (T206/V135) — yksi totuus
+
+Kaikki napit noudattavat jaettua `.btn`-perustaa + varianttia. **Uudet napit: `.btn .btn--<variantti>`.**
+Vanhat kertakäyttöluokat on aliasoitu variantteihin (`src/style.css`, "Yhtenäinen nappijärjestelmä")
+samoilla token-arvoilla — sama visuaali, keskitetty sopimus.
+
+- **`.btn`** base: `min-height:44px` (§R touch), `border-radius:radius-sm`, `font-family:inherit`, `font-weight:600`, `font-size:13px`, `inline-flex` center, `gap:6px`, `padding:0 14px`. `:disabled` → `opacity:0.5;cursor:not-allowed`.
+- **`.btn--sm`**: `min-height:36px; font-size:12px; padding:0 10px` (tiiviit rivinapit).
+
+| Variantti | Tyyli | Käyttö | Vanhat aliakset |
+|-----------|-------|--------|-----------------|
+| `.btn--primary` | `accent` bg / `accent-text` | pääkorostus (huomionauha) | (uusi) |
+| `.btn--confirm` | `confirm` bg / `confirm-text` | Tallenna/Vahvista/kuittaus | `btn-bulk-apply`, `btn-bulk-checkin-aseta`, `btn-status-primary`, `btn-approve`, `btn-bulk-collect`, `btn-mark-inspected`, `btn-segment-modal-save`, `btn-segment-creation-save`, `modal-btn-primary` |
+| `.btn--secondary` | `field-tint` bg / `text-muted` / `border-default` | Peruuta/Sulje/toissijainen | `btn-status-secondary`, `btn-snapshot-create`, `btn-snapshot-download`, `btn-segment-create`, `btn-segment-edit-pts(-modal)`, `btn-segment-clone-phase`, `btn-segment-details-toggle`, `btn-assign-*`, `btn-copy-url`, `btn-equipment-add`, `btn-segment-creation-cancel`, `modal-btn-secondary` |
+| `.btn--danger` | `danger-soft` bg / `danger-text` / `border:danger` | Poista/Palauta (blokki) | `btn-snapshot-restore(-file)`, `btn-segment-delete`, `btn-equipment-remove` |
+| `.btn--ghost` | läpinäkyvä / `text-muted` | ikoni/tekstilinkki | `modal-btn-destructive` |
+
+**Sääntö:** älä keksi uutta napin väriä/muotoa — valitse variantti. Uusi variantti → lisää tähän + `.btn--*` CSS:ään.
+
 ### Modal footer -pattern (KAIKKI modaalit noudattavat)
 
 Kolme roolia, kolme tasoa:

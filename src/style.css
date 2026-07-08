@@ -2846,6 +2846,107 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   background: var(--danger-soft);
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   T206/V135 — Yhtenäinen nappijärjestelmä. Yksi .btn base (44px touch §R) +
+   variantit .btn--primary/secondary/confirm/ghost/danger (+ koko --sm).
+   Yksi totuus napin väri-/muotokielelle (DESIGN.md §K). Vanhat kertakäyttö-
+   luokat aliasoitu tästä samoilla token-arvoilla → sama visuaali, keskitetty
+   sopimus. Uudet napit: käytä `.btn .btn--<variantti>`.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Jaettu perusta — .btn + kaikki vanhat nappiluokat (vain identtiset,
+   dimensiottomat propit → ei visuaalimuutosta olemassa oleviin). */
+.btn,
+.btn-bulk-apply, .btn-bulk-checkin-aseta, .btn-bulk-checkin-ohita,
+.btn-status-primary, .btn-status-secondary, .btn-approve, .btn-bulk-collect,
+.btn-mark-inspected, .btn-snapshot-create, .btn-snapshot-download,
+.btn-snapshot-restore, .btn-snapshot-restore-file, .btn-segment-create,
+.btn-segment-modal-save, .btn-segment-creation-save, .btn-segment-creation-cancel,
+.btn-segment-delete, .btn-segment-edit-pts, .btn-segment-edit-pts-modal,
+.btn-segment-clone-phase, .btn-segment-details-toggle, .btn-assign-save,
+.btn-assign-edit, .btn-copy-url, .btn-equipment-add, .btn-equipment-remove,
+.modal-btn-primary, .modal-btn-secondary, .modal-btn-destructive {
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, opacity 0.12s ease;
+}
+
+/* .btn kanoninen (uudet napit) — täysi touch-target ja sisäasettelu */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  white-space: nowrap;
+}
+.btn:disabled { cursor: not-allowed; opacity: 0.5; }
+.btn--sm { min-height: 36px; font-size: 12px; padding: 0 10px; }
+
+/* Variantti: primary (accent-huomionauha) */
+.btn--primary { background: var(--accent); color: var(--accent-text); }
+.btn--primary:hover { background: var(--accent-hover); }
+
+/* Variantti: confirm (vihreä kuittaus) — + vanhat vihreät napit */
+.btn--confirm,
+.btn-bulk-apply:not(:disabled), .btn-bulk-checkin-aseta:not(:disabled),
+.btn-status-primary, .btn-approve, .btn-bulk-collect, .btn-mark-inspected,
+.btn-segment-modal-save, .btn-segment-creation-save, .modal-btn-primary {
+  background: var(--confirm);
+  color: var(--confirm-text);
+}
+.btn--confirm:hover,
+.btn-status-primary:hover, .btn-approve:hover, .btn-bulk-collect:hover,
+.btn-mark-inspected:hover, .btn-segment-modal-save:hover, .modal-btn-primary:hover {
+  background: var(--confirm-hover);
+}
+
+/* Variantti: secondary (hillitty field-tint + reuna) — + vanhat harmaat napit */
+.btn--secondary,
+.btn-status-secondary, .btn-snapshot-create, .btn-snapshot-download,
+.btn-segment-create, .btn-segment-edit-pts, .btn-segment-edit-pts-modal,
+.btn-segment-clone-phase, .btn-segment-details-toggle, .btn-assign-save,
+.btn-assign-edit, .btn-copy-url, .btn-equipment-add,
+.btn-segment-creation-cancel, .modal-btn-secondary {
+  background: var(--field-tint);
+  color: var(--text-muted);
+  border: 1px solid var(--border-default);
+}
+.btn--secondary:hover,
+.btn-status-secondary:hover, .btn-segment-details-toggle:hover,
+.btn-segment-edit-pts:hover, .btn-copy-url:hover, .btn-assign-edit:hover,
+.btn-assign-save:hover, .btn-equipment-add:hover, .modal-btn-secondary:hover {
+  background: var(--hover);
+  color: var(--text-body);
+}
+
+/* Variantti: danger (poisto) — + vanhat punaiset napit */
+.btn--danger,
+.btn-snapshot-restore, .btn-snapshot-restore-file, .btn-segment-delete,
+.btn-equipment-remove {
+  background: var(--danger-soft);
+  color: var(--danger-text);
+  border: 1px solid var(--danger);
+}
+.btn--danger:hover,
+.btn-snapshot-restore:hover, .btn-snapshot-restore-file:hover,
+.btn-segment-delete:hover, .btn-equipment-remove:hover {
+  background: var(--danger-soft-hover);
+}
+
+/* Variantti: ghost (läpinäkyvä, ikoni/tekstilinkki) */
+.btn--ghost, .modal-btn-destructive {
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+}
+.btn--ghost:hover { background: var(--hover); color: var(--text-body); }
+
 /* === MarkerDetailModal spesifiset === */
 .marker-detail-actions {
   display: flex;
