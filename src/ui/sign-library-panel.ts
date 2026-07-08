@@ -12,9 +12,17 @@ import {
   type SignPart,
 } from '../logic/sign-library'
 import { CURATED_ICONS, getIconById, renderIconSvg } from '../logic/icon-set'
-import { signImageTag, signImageIds, signImageSrc } from '../logic/sign-images'
-import { compactLabel } from '../logic/sign-visual'
+import { signImageIds, signImageSrc } from '../logic/sign-images'
 import { registerEscClose, createBackdrop, signPreviewHtml } from './modal-helpers'
+import { buildMarkerVisual, type MarkerVisualInput } from './marker-visual-row'
+
+// T200: SignTemplate ei kanna 'type'-kenttää jota buildMarkerVisual käyttää top-level-kuva-avaimena
+// (signImageSrc(marker.type)) — SignTemplaten kuva-avainkonventio on t.imageId ?? t.id, ei type-pohjainen.
+// color on SignTemplatella aina pakollinen, joten resolveColor() käyttää sitä suoraan (type-fallback
+// väriin ei koskaan laukea) — type-kenttä tässä toimii vain kuva-avaimena.
+function templateToMarkerVisual(t: SignTemplate): MarkerVisualInput {
+  return { type: t.imageId ?? t.id, iconId: t.iconId, label: t.label, parts: t.parts, color: t.color }
+}
 
 // T195/V125: kirjasto käynnistyy tyhjänä — ei suojattuja oletusmalleja. Kaikki mallit
 // ovat järjestäjän itse tekemiä ja poistettavissa (edit-modaalin destructive-nappi).
@@ -104,6 +112,13 @@ export class SignLibraryPanel {
     list.className = 'sign-lib-list'
     list.style.cssText = 'max-height:min(60vh,620px);overflow-y:auto'
     list.innerHTML = this.buildGroup('Suosikit', 'suosikit', favorites) + this.buildGroup('Muut', 'muut', others)
+    // T200: buildMarkerVisual palauttaa HTMLElementin (ei stringiä) — täytetään slotit DOM:issa
+    // innerHTML-asetuksen jälkeen, sama tuplamerkki-visuaali kuin SegmentDetailsModal (T199).
+    list.querySelectorAll<HTMLElement>('.sign-lib-swatch-slot').forEach(slot => {
+      const t = all.find(x => x.id === slot.dataset.templateId)
+      if (!t) return
+      slot.appendChild(buildMarkerVisual(templateToMarkerVisual(t), { size: 22, zoomable: false }))
+    })
     this.container.appendChild(list)
 
     // Haku suodattaa rivit DOM:ssa (ei re-renderiä → syöttökenttä ei menetä fokusta).
@@ -142,12 +157,6 @@ export class SignLibraryPanel {
   }
 
   private buildRow(t: SignTemplate): string {
-    const iconEntry = t.iconId ? getIconById(t.iconId) : null
-    // Safe: iconEntry.svgContent is from CURATED_ICONS (not user input)
-    const swatchInner = iconEntry
-      ? renderIconSvg(t.iconId!, 14)
-      : escapeHtml(compactLabel(t.label))
-
     // T194/V126: koko kuvaus näkyviin labelin alle (ei enää vain label). Tyhjä kuvaus → ei riviä.
     const descHtml = t.description.trim()
       ? `<span class="sign-lib-desc" style="font-size:11px;color:var(--text-muted);line-height:1.3;white-space:normal">${escapeHtml(t.description)}</span>`
@@ -159,7 +168,7 @@ export class SignLibraryPanel {
 
     // T136/V83: kaikki mallit (myös custom) ovat suoraan sijoitettavissa kartalle — ei suosikkivaatimusta
     const placeBtn = `<button class="sign-type-btn sign-lib-place-btn" data-id="${escapeHtml(t.id)}" aria-label="Aseta ${escapeHtml(t.label)} kartalle" style="flex:1;min-width:0;min-height:44px;display:flex;align-items:center;gap:8px;padding:6px 8px;background:none;border:none;color:var(--text-body);font-size:13px;cursor:pointer;text-align:left;border-radius:var(--radius-sm)">
-           <span class="sign-swatch" style="flex:none;background:${escapeHtml(t.color)};color:#fff;border-radius:var(--radius-sm);min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;position:relative;overflow:hidden">${swatchInner}${signImageTag(t.imageId ?? t.id, 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;border-radius:inherit')}</span>
+           <span class="sign-swatch sign-lib-swatch-slot" data-template-id="${escapeHtml(t.id)}" style="flex:none;width:22px;height:22px;position:relative"></span>
            ${labelBlock}
          </button>`
 

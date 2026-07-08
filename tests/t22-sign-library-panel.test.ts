@@ -94,6 +94,66 @@ describe('T22 SignLibraryPanel — V10', () => {
     })
   })
 
+  // T200: sivupalkin swatch käyttää T198:n buildMarkerVisual-helperiä (samat visuaalit kuin
+  // SegmentDetailsModal/T199) — yksi lista/tupla, ei kulmabadgea, väri täsmää template.color:iin.
+  describe('T200: buildMarkerVisual-uudelleenkäyttö riveillä', () => {
+    it('jokainen rivi sisältää tasan yhden merkkivisuaalin (.marker-visual-row-sv)', () => {
+      const container = setup()
+      const lib = seededLib()
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
+      const visuals = container.querySelectorAll('.sign-lib-row .marker-visual-row-sv')
+      expect(visuals.length).toBe(seedCount())
+    })
+
+    it('tuplamerkki (parts.length>1) renderöi comboa (.marker-visual-row-combo) sivupalkissa', () => {
+      const container = setup()
+      const lib = seededLib()
+      createTemplate(lib, {
+        label: 'Tupla',
+        color: '#7c3aed',
+        description: '',
+        favorite: true,
+        parts: [
+          { iconId: 'arrow-left' },
+          { iconId: 'arrow-right' },
+        ],
+      }, 'tupla')
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
+      const row = Array.from(container.querySelectorAll<HTMLElement>('.sign-lib-row'))
+        .find(r => r.querySelector('[data-id="tupla"]'))
+      expect(row?.querySelector('.marker-visual-row-combo')).toBeTruthy()
+      expect(row?.querySelectorAll('.marker-visual-row-combo-slot').length).toBe(2)
+    })
+
+    it('yksittäinen merkki (ei parts) EI renderöi comboa', () => {
+      const container = setup()
+      const lib = seededLib()
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
+      const row = Array.from(container.querySelectorAll<HTMLElement>('.sign-lib-row'))
+        .find(r => r.querySelector('[data-id="left"]'))
+      expect(row?.querySelector('.marker-visual-row-combo')).toBeFalsy()
+      expect(row?.querySelector('.marker-visual-row-single')).toBeTruthy()
+    })
+
+    it('sivupalkin rivillä ei ole zoom-nappia (zoomable:false)', () => {
+      const container = setup()
+      const lib = seededLib()
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
+      const zoomBtns = container.querySelectorAll('.sign-lib-row .marker-visual-row-zoom')
+      expect(zoomBtns.length).toBe(0)
+    })
+
+    it('väri täsmää template.color:iin (ei kiinteä accent-oranssi, V87)', () => {
+      const container = setup()
+      const lib = seededLib()
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
+      const row = Array.from(container.querySelectorAll<HTMLElement>('.sign-lib-row'))
+        .find(r => r.querySelector('[data-id="right"]'))
+      const box = row?.querySelector<HTMLElement>('.marker-visual-row-single')
+      expect(box?.style.background).toBe('rgb(22, 163, 74)') // #16a34a
+    })
+  })
+
   describe('muokkaa default-mallia', () => {
     it('dots-nappi avaa modaalin', () => {
       const container = setup()
