@@ -99,8 +99,9 @@ test.describe('Merkki kartalle', () => {
 })
 
 test.describe('Drive mode', () => {
+  // T204/V134: drive-kontrollit (◀▶, km-scrubber) ovat VAIN talkoolaisen näkymässä.
   test('käynnistyy + navigoi eteenpäin', async ({ page }) => {
-    await mockAuthAsJarjestaja(page)
+    await mockAuthAsTalkoolainen(page)
     await mockTemplates(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
