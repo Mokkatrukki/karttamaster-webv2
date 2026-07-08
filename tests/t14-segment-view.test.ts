@@ -197,6 +197,67 @@ describe('T14 — SegmentView', () => {
     })
   })
 
+  // T78/V43: pätkän rajojen muokkaus kentällä
+  describe('pätkän rajojen muokkaus (T78)', () => {
+    it('bounds-osio piilossa jos onEditBounds puuttuu', () => {
+      new SegmentView(container, makeSeg())
+      expect((container.querySelector('.segment-view-bounds') as HTMLElement).hidden).toBe(true)
+    })
+
+    it('näyttää nykyiset rajat toggle-napissa', () => {
+      new SegmentView(container, makeSeg({ startDist: 5000, endDist: 12000 }), undefined, undefined, {
+        onEditBounds: () => {},
+      })
+      expect(container.querySelector('.segment-view-bounds-toggle')?.textContent).toContain('5.0–12.0 km')
+    })
+
+    it('toggle avaa formin esitäytetyillä km-arvoilla', () => {
+      new SegmentView(container, makeSeg({ startDist: 5000, endDist: 12000 }), undefined, undefined, {
+        onEditBounds: () => {},
+      })
+      ;(container.querySelector('.segment-view-bounds-toggle') as HTMLButtonElement).click()
+      expect((container.querySelector('.segment-view-bounds-form') as HTMLElement).hidden).toBe(false)
+      expect((container.querySelector('.segment-view-bounds-start') as HTMLInputElement).value).toBe('5.0')
+      expect((container.querySelector('.segment-view-bounds-end') as HTMLInputElement).value).toBe('12.0')
+    })
+
+    it('Tallenna kutsuu onEditBounds metreinä (km×1000)', () => {
+      let bounds: [number, number] | null = null
+      new SegmentView(container, makeSeg(), undefined, undefined, {
+        onEditBounds: (s, e) => { bounds = [s, e] },
+      })
+      ;(container.querySelector('.segment-view-bounds-toggle') as HTMLButtonElement).click()
+      ;(container.querySelector('.segment-view-bounds-start') as HTMLInputElement).value = '2.5'
+      ;(container.querySelector('.segment-view-bounds-end') as HTMLInputElement).value = '8'
+      ;(container.querySelector('.segment-view-bounds-save') as HTMLButtonElement).click()
+      expect(bounds).toEqual([2500, 8000])
+    })
+
+    it('hylkää loppu <= alku virheellä, ei kutsu callbackia', () => {
+      let called = false
+      new SegmentView(container, makeSeg(), undefined, undefined, {
+        onEditBounds: () => { called = true },
+      })
+      ;(container.querySelector('.segment-view-bounds-toggle') as HTMLButtonElement).click()
+      ;(container.querySelector('.segment-view-bounds-start') as HTMLInputElement).value = '8'
+      ;(container.querySelector('.segment-view-bounds-end') as HTMLInputElement).value = '5'
+      ;(container.querySelector('.segment-view-bounds-save') as HTMLButtonElement).click()
+      expect(called).toBe(false)
+      expect((container.querySelector('.segment-view-bounds-error') as HTMLElement).hidden).toBe(false)
+    })
+
+    it('Peruuta sulkee formin tallentamatta', () => {
+      let called = false
+      new SegmentView(container, makeSeg(), undefined, undefined, {
+        onEditBounds: () => { called = true },
+      })
+      ;(container.querySelector('.segment-view-bounds-toggle') as HTMLButtonElement).click()
+      ;(container.querySelector('.segment-view-bounds-cancel') as HTMLButtonElement).click()
+      expect((container.querySelector('.segment-view-bounds-form') as HTMLElement).hidden).toBe(true)
+      expect(called).toBe(false)
+    })
+  })
+
   // T147: tarkastus-UI — kevyt läpiajo, vapaateksti-huomio, ei per-merkki-kuittausta
   describe('tarkastus-phase', () => {
     it('piilotettu ei-tarkastus-pätkällä', () => {

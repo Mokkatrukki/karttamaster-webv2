@@ -67,7 +67,12 @@ async function init(talkoolainenCode?: string) {
   // status-väritykseen (V96) mutta MarkerManager luodaan vasta sen jälkeen.
   const markerManagerRef: { current: MarkerManager | null } = { current: null }
 
-  await wireAreas(map, talkoolainenCode, () => showWarning('⚠ Alueiden lataus epäonnistui — päivitä sivu', 0))
+  // Talkoolaiselle alueet ovat vain kontekstia (noutopisteet/pudotuspisteet) — niiden
+  // latausvirhe ei saa peittää pätkänäkymän otsikkoa pysyvällä "päivitä sivu" -bannerilla
+  // (puhdas kenttäkokemus). Järjestäjälle alueet ovat työkalu → näytä virhe.
+  await wireAreas(map, talkoolainenCode, () => {
+    if (!talkoolainenCode) showWarning('⚠ Alueiden lataus epäonnistui — päivitä sivu', 0)
+  })
 
   const { segmentStore, segmentOverlay, renderSegmentOverlay, segmentPanel } = await wireSegments(
     map, routes, talkoolainenCode, initialMarkers, markerManagerRef,

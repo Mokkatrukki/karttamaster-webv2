@@ -142,6 +142,19 @@ export function wireMarkers(
           onSetMarker: (id) => markerManager.updateStatus(id, 'aseta'),
           onSkipMarker: (id) => markerManager.updateStatus(id, 'ohita'),
           onFocusMarker: (id) => onOpenMarkerDetail(id),
+          // T78/V43: talkoolainen muokkaa oman pätkän rajoja kentällä. Server sallii (V93:
+          // talkoolainen_code === assigned_code). Päivitä store + backend + kartta + näkymä.
+          onEditBounds: (startDist, endDist) => {
+            const updatedSeg = updateSegment(segmentStore, seg.id, { startDist, endDist })
+            const flagErr = () => showWarning('⚠ Pätkän rajojen tallennus epäonnistui — yritä uudelleen', 5000)
+            updateSegmentRemote(seg.id, { startDist, endDist })
+              .then(ok => { if (!ok) flagErr() })
+              .catch(() => flagErr())
+            if (updatedSeg) {
+              renderSegmentOverlay()
+              segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
+            }
+          },
         },
       )
       segmentView.update(getMarkersForSegment(seg, markerManager.getAll()))
@@ -201,7 +214,10 @@ export function wireMarkers(
         return seg ? getMarkersForSegment(seg, markerManager.getAll()) : markerManager.getAll()
       },
     )
-    gpsDrivePanel.update(0)
+    // EI eager update(0): drive-paneeli näytetään vasta kun talkoolainen todella navigoi
+    // (scrubber/◀▶/GPS → driveMode.onProgress → gpsDrivePanel.update). Muuten se kilpailisi
+    // "Seuraava merkki" -heron kanssa jo latauksessa (kaksi identtistä "Aseta"). VISION:
+    // "jos GPS ei ole päällä, näyttää listan" → hero on oletusohjaus, paneeli ajon aikana.
   }
 
   statusPanel = new StatusPanel(document.getElementById('status-panel')!)

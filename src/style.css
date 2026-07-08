@@ -718,9 +718,16 @@ button {
   color: var(--text-muted);
   cursor: not-allowed;
 }
-.marker-item-checkbox {
-  width: 18px;
-  height: 18px;
+/* B53/V21/§R: kosketuskohde 44×44 — näkyvä ruutu pysyy kompaktina (22px), klikkausalue
+   laajennetaan padding-boxilla. Negatiivinen margin pitää layoutin ennallaan. Kriittinen
+   talkoolaiselle hanskat kädessä (bulk check-in .marker-checkin-cb sama kohtelu). */
+.marker-item-checkbox,
+.marker-checkin-cb {
+  width: 22px;
+  height: 22px;
+  box-sizing: content-box;
+  padding: 11px;
+  margin: -11px;
   accent-color: var(--accent);
   cursor: pointer;
   flex-shrink: 0;
@@ -1610,6 +1617,67 @@ button {
 .btn-bulk-collect {
   width: 100%;
   margin: 8px 0;
+}
+
+/* T78/V43: talkoolaisen pätkän rajojen muokkaus kentällä */
+.segment-view-bounds {
+  margin: 10px 0 4px;
+}
+
+.segment-view-bounds-toggle {
+  width: 100%;
+}
+
+.segment-view-bounds-form {
+  margin-top: 8px;
+  padding: 10px;
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.segment-view-bounds-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.segment-view-bounds-field span {
+  flex: 1;
+}
+
+.segment-view-bounds-field input {
+  width: 92px;
+  min-height: 44px;
+  text-align: right;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  font-size: 15px;
+  padding: 0 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.segment-view-bounds-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--danger-text);
+}
+
+.segment-view-bounds-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.segment-view-bounds-save,
+.segment-view-bounds-cancel {
+  flex: 1;
 }
 
 /* T147: tarkastus-phase — kevyt läpiajo talkoolaiselle/tarkastajalle */

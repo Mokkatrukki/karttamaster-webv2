@@ -37,6 +37,8 @@ export interface SegmentViewActions {
   onSkipMarker?: (id: string) => void
   // Rivin/napin klikkaus — kohdista merkki kartalla + avaa detaljit (ohjeet, siirto).
   onFocusMarker?: (id: string) => void
+  // T78/V43: talkoolainen muokkaa oman pätkän rajoja kentällä (laajenna/lyhennä). Metrit.
+  onEditBounds?: (startDistM: number, endDistM: number) => void
 }
 
 export class SegmentView {
@@ -49,6 +51,7 @@ export class SegmentView {
   private readonly inspectBtn: HTMLButtonElement
   private readonly inspectNoteInput: HTMLTextAreaElement
   private readonly inspectStatus: HTMLElement
+  private readonly boundsSection: HTMLElement
   private currentMarkers: SignMarker[] = []
 
   constructor(
@@ -68,10 +71,12 @@ export class SegmentView {
     this.inspectBtn = b.inspectBtn
     this.inspectNoteInput = b.inspectNoteInput
     this.inspectStatus = b.inspectStatus
+    this.boundsSection = b.boundsSection
     container.appendChild(b.panel)
     this.renderInspectSection()
     this.renderProgress()
     this.renderNext()
+    this.renderBoundsSection()
   }
 
   update(markers: SignMarker[], segment?: Segment): void {
@@ -83,6 +88,25 @@ export class SegmentView {
     this.updateBulkBtn(markers)
     this.renderEquipment(markers)
     this.renderInspectSection()
+    this.renderBoundsSection()
+  }
+
+  // T78/V43: pätkän rajojen muokkaus kentällä. Näkyy vain jos onEditBounds annettu (talkoolainen).
+  // Kokoontaitettava — ei vie tilaa oletuksena, ei kilpaile hero-ohjauksen kanssa.
+  private renderBoundsSection(): void {
+    if (!this.actions.onEditBounds) {
+      this.boundsSection.hidden = true
+      return
+    }
+    this.boundsSection.hidden = false
+    // Päivitä toggle-napin km-teksti nykyisillä rajoilla (jos form ei ole auki).
+    const toggle = this.boundsSection.querySelector('.segment-view-bounds-toggle') as HTMLButtonElement | null
+    const form = this.boundsSection.querySelector('.segment-view-bounds-form') as HTMLElement | null
+    if (toggle && form && form.hidden) {
+      const s = (this.segment.startDist / 1000).toFixed(1)
+      const e = (this.segment.endDist / 1000).toFixed(1)
+      toggle.textContent = `✎ Muokkaa pätkän rajoja (${s}–${e} km)`
+    }
   }
 
   private updateBulkBtn(markers: SignMarker[]): void {
@@ -207,6 +231,7 @@ export class SegmentView {
     inspectBtn: HTMLButtonElement
     inspectNoteInput: HTMLTextAreaElement
     inspectStatus: HTMLElement
+    boundsSection: HTMLElement
   } {
     const panel = document.createElement('div')
     panel.id = 'segment-view'
@@ -286,7 +311,95 @@ export class SegmentView {
     markerListEl.className = 'segment-view-list'
     panel.appendChild(markerListEl)
 
-    return { panel, progressEl, nextEl, markerListEl, bulkBtn, equipmentSection, inspectSection, inspectBtn, inspectNoteInput, inspectStatus }
+    // T78/V43: pätkän rajojen muokkaus — subtle, kokoontaitettu, listan jälkeen.
+    const boundsSection = document.createElement('div')
+    boundsSection.className = 'segment-view-bounds'
+    boundsSection.hidden = true
+
+    const boundsToggle = document.createElement('button')
+    boundsToggle.type = 'button'
+    boundsToggle.className = 'btn btn--secondary btn--sm segment-view-bounds-toggle'
+    boundsToggle.textContent = '✎ Muokkaa pätkän rajoja'
+    boundsSection.appendChild(boundsToggle)
+
+    const boundsForm = document.createElement('div')
+    boundsForm.className = 'segment-view-bounds-form'
+    boundsForm.hidden = true
+
+    const mkField = (labelText: string, cls: string, value: string): HTMLInputElement => {
+      const wrap = document.createElement('label')
+      wrap.className = 'segment-view-bounds-field'
+      const lab = document.createElement('span')
+      lab.textContent = labelText
+      const input = document.createElement('input')
+      input.type = 'number'
+      input.className = cls
+      input.step = '0.1'
+      input.min = '0'
+      input.value = value
+      input.inputMode = 'decimal'
+      wrap.appendChild(lab)
+      wrap.appendChild(input)
+      boundsForm.appendChild(wrap)
+      return input
+    }
+    const startInput = mkField('Alku (km)', 'segment-view-bounds-start', (this.segment.startDist / 1000).toFixed(1))
+    const endInput = mkField('Loppu (km)', 'segment-view-bounds-end', (this.segment.endDist / 1000).toFixed(1))
+
+    const boundsError = document.createElement('p')
+    boundsError.className = 'segment-view-bounds-error'
+    boundsError.hidden = true
+    boundsForm.appendChild(boundsError)
+
+    const boundsActions = document.createElement('div')
+    boundsActions.className = 'segment-view-bounds-actions'
+    const saveBounds = document.createElement('button')
+    saveBounds.type = 'button'
+    saveBounds.className = 'btn btn--confirm segment-view-bounds-save'
+    saveBounds.textContent = 'Tallenna rajat'
+    const cancelBounds = document.createElement('button')
+    cancelBounds.type = 'button'
+    cancelBounds.className = 'btn btn--secondary segment-view-bounds-cancel'
+    cancelBounds.textContent = 'Peruuta'
+    boundsActions.appendChild(saveBounds)
+    boundsActions.appendChild(cancelBounds)
+    boundsForm.appendChild(boundsActions)
+    boundsSection.appendChild(boundsForm)
+
+    const openForm = () => {
+      startInput.value = (this.segment.startDist / 1000).toFixed(1)
+      endInput.value = (this.segment.endDist / 1000).toFixed(1)
+      boundsError.hidden = true
+      boundsForm.hidden = false
+      boundsToggle.hidden = true
+    }
+    const closeForm = () => {
+      boundsForm.hidden = true
+      boundsToggle.hidden = false
+      this.renderBoundsSection()
+    }
+    boundsToggle.addEventListener('click', openForm)
+    cancelBounds.addEventListener('click', closeForm)
+    saveBounds.addEventListener('click', () => {
+      const startKm = parseFloat(startInput.value)
+      const endKm = parseFloat(endInput.value)
+      if (!Number.isFinite(startKm) || !Number.isFinite(endKm) || startKm < 0) {
+        boundsError.textContent = 'Anna kelvolliset km-arvot.'
+        boundsError.hidden = false
+        return
+      }
+      if (endKm <= startKm) {
+        boundsError.textContent = 'Loppu-km oltava suurempi kuin alku.'
+        boundsError.hidden = false
+        return
+      }
+      this.actions.onEditBounds?.(Math.round(startKm * 1000), Math.round(endKm * 1000))
+      closeForm()
+    })
+
+    panel.appendChild(boundsSection)
+
+    return { panel, progressEl, nextEl, markerListEl, bulkBtn, equipmentSection, inspectSection, inspectBtn, inspectNoteInput, inspectStatus, boundsSection }
   }
 
   private renderEquipment(markers: SignMarker[]): void {

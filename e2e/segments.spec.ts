@@ -362,4 +362,34 @@ test.describe('T25 — SegmentPanel', () => {
     expect(putCalls[0].url).toContain('/api/markers/early')
     expect(putCalls[0].body).toMatchObject({ status: 'asetettu' })
   })
+
+  // T78/V43: talkoolainen muokkaa oman pätkän rajoja kentällä → PUT /api/segments/:id
+  test('talkoolainen muokkaa pätkän rajoja → PUT /api/segments/:id', async ({ page }) => {
+    const MOCK_SEGMENT = {
+      id: 'seg-bounds-1', routeIds: ['35km'], startDist: 0, endDist: 10000,
+      displayName: 'Rajapätkä', equipment: [], phase: 'asettaminen', assignedCode: 'BND01',
+    }
+    const segPuts: unknown[] = []
+    await page.route('/api/segments/by-code/BND01', r =>
+      r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_SEGMENT) }))
+    await page.route('/api/segments/*', r => {
+      if (r.request().method() === 'PUT') { segPuts.push(r.request().postDataJSON()); return r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }) }
+      return r.continue()
+    })
+    await page.route('/api/markers', r => r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
+
+    await mockAuthAsTalkoolainen(page, 'BND01')
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.goto('/s/BND01')
+    await page.waitForTimeout(1500)
+
+    await page.locator('.segment-view-bounds-toggle').scrollIntoViewIfNeeded()
+    await page.locator('.segment-view-bounds-toggle').click()
+    await page.locator('.segment-view-bounds-end').fill('15')
+    await page.locator('.segment-view-bounds-save').click()
+    await page.waitForTimeout(500)
+
+    expect(segPuts.length).toBeGreaterThan(0)
+    expect(segPuts[0]).toMatchObject({ startDist: 0, endDist: 15000 })
+  })
 })
