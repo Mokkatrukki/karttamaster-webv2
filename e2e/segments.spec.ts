@@ -70,7 +70,7 @@ test.describe('T25 — SegmentPanel', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    await expect(page.locator('#btn-role')).toHaveText('Järjestäjä')
+    expect(await page.evaluate(() => document.body.dataset.role)).toBe('järjestäjä')
 
     // Avaa panel (T73: collapsed by default), sitten luontimodaali
     await page.locator('.segment-panel-header').click()

@@ -1,0 +1,27 @@
+<!-- @dsCard group="Spacing" viewport="700x210" name="Touch targets" subtitle="44px floor on every interactive element — the load-bearing rule" -->
+<!DOCTYPE html>
+<html lang="fi" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-app); color: var(--text-body); font-family: var(--font-ui); padding: 22px; }
+  .row { display: flex; align-items: flex-end; gap: 18px; }
+  .item { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .target { background: var(--field-tint); border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 11px; }
+  .ok { width: 44px; height: 44px; }
+  .lg { width: 72px; height: 72px; background: var(--confirm); color: #fff; border: none; font-weight: 700; }
+  .sec { width: 36px; height: 36px; }
+  .name { font-size: 11px; color: var(--text-muted); }
+  .note { margin-top: 18px; font-size: 11px; color: var(--text-meta); max-width: 560px; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="item"><div class="target lg">72</div><span class="name">Check-in</span></div>
+    <div class="item"><div class="target ok">44</div><span class="name">--touch-min</span></div>
+    <div class="item"><div class="target sec">36</div><span class="name">--touch-secondary</span></div>
+  </div>
+  <div class="note">44px is non-negotiable for any tappable element. 36px only for dense controls already nested inside a large row (e.g. an inline delete). The decision rule: "works one-handed, in the forest, with gloves, in 10 seconds?"</div>
+</body>
+</html>

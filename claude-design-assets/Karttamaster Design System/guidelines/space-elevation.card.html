@@ -1,0 +1,23 @@
+<!-- @dsCard group="Spacing" viewport="700x210" name="Elevation" subtitle="Restrained dark-bias shadows — dropdown, panel, modal" -->
+<!DOCTYPE html>
+<html lang="fi" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-app); color: var(--text-body); font-family: var(--font-ui); padding: 30px 22px; }
+  .row { display: flex; gap: 28px; }
+  .item { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+  .box { width: 110px; height: 64px; background: var(--surface-card); border: 1px solid var(--border-default); border-radius: var(--radius-md); }
+  .name { font-size: 11px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="item"><div class="box" style="box-shadow:var(--shadow-dropdown)"></div><span class="name">--shadow-dropdown</span></div>
+    <div class="item"><div class="box" style="box-shadow:var(--shadow-panel)"></div><span class="name">--shadow-panel</span></div>
+    <div class="item"><div class="box" style="box-shadow:var(--shadow-modal)"></div><span class="name">--shadow-modal</span></div>
+    <div class="item"><div class="box" style="box-shadow:var(--shadow-marker);width:64px"></div><span class="name">--shadow-marker</span></div>
+  </div>
+</body>
+</html>

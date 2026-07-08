@@ -1,0 +1,39 @@
+/* Karttamaster — spacing, radii, touch targets, z-index
+   Strict 4px grid. 5/7/9px are bugs (DESIGN.md §S). */
+
+:root {
+  /* 4px grid */
+  --space-1: 4px;   /* tight gap */
+  --space-1-5: 6px; /* normal gap */
+  --space-2: 8px;   /* component gap */
+  --space-2-5: 10px;/* large gap */
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
+  /* Common paddings */
+  --pad-btn-sm:  6px 12px;
+  --pad-btn:     8px 14px;
+  --pad-toolbar: 6px 8px;
+  --pad-row:     10px 14px;
+
+  /* Radii — kept to three steps (DESIGN.md flags mixed 6/7/10/14 as debt) */
+  --radius-sm: 6px;   /* buttons, swatches, pills */
+  --radius-md: 10px;  /* dropdowns, menus */
+  --radius-lg: 14px;  /* modals */
+  --radius-pill: 999px;
+
+  /* Touch — the load-bearing constant. Forest, gloves, one hand. */
+  --touch-min: 44px;  /* EVERY interactive element. Non-negotiable. */
+  --touch-secondary: 36px; /* dense inline controls inside an already-large row only */
+
+  /* z-index ladder */
+  --z-map:        1;    /* @kind other */
+  --z-toolbar:    200;  /* @kind other */
+  --z-panel:      1100; /* @kind other */
+  --z-route-bar:  2000; /* @kind other */
+  --z-menu:       2001; /* @kind other */
+  --z-modal:      3000; /* @kind other */
+  --z-auth:       9999; /* @kind other */
+}

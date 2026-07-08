@@ -1,0 +1,32 @@
+<!-- @dsCard group="Volunteer" viewport="390x800" name="Volunteer — field view (mobile)" subtitle="Assigned segment, map, one-tap check-in. Tap a sign." -->
+<!-- @startingPoint section="Volunteer" subtitle="Mobile field view — segment, map, one-tap check-in" viewport="390x800" -->
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Karttamaster — Talkoolainen</title>
+<link rel="stylesheet" href="../../styles.css" />
+<style>
+  html, body { margin: 0; height: 100%; background: #0a0f1c; }
+  #frame { width: 390px; height: 100%; max-height: 844px; margin: 0 auto; overflow: hidden; }
+  @media (min-width: 420px) {
+    body { display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; }
+    #frame { height: 800px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08); }
+  }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+</head>
+<body>
+<div id="frame"></div>
+<script type="text/babel" src="MapBackdrop.jsx"></script>
+<script type="text/babel" src="VolunteerApp.jsx"></script>
+<script type="text/babel">
+  const VolunteerApp = window.VolunteerApp;
+  ReactDOM.createRoot(document.getElementById('frame')).render(<VolunteerApp />);
+</script>
+</body>
+</html>

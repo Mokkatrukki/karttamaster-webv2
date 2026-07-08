@@ -143,7 +143,6 @@ test.describe('Rooli backendistä (V80: #btn-role-toggle on dead code tili-per-r
     await page.waitForTimeout(1500)
 
     expect(await page.evaluate(() => document.body.dataset.role)).toBe('järjestäjä')
-    await expect(page.locator('#btn-role')).toHaveText('Järjestäjä')
     await expect(page.locator('#segment-panel')).toBeVisible()
   })
 
@@ -154,8 +153,36 @@ test.describe('Rooli backendistä (V80: #btn-role-toggle on dead code tili-per-r
     await page.waitForTimeout(1500)
 
     expect(await page.evaluate(() => document.body.dataset.role)).toBe('talkoolainen')
-    await expect(page.locator('#btn-role')).toHaveText('Talkoolainen')
     await expect(page.locator('#segment-panel')).not.toBeVisible()
+  })
+})
+
+test.describe('Tilivalikko + Kirjaudu ulos (T203/V133)', () => {
+  test('logout tyhjentää session ja avaa AuthScreenin', async ({ page }) => {
+    // Stateful mock: /api/auth/me palauttaa 200 kunnes logout, sitten 401 → login-lomake.
+    let loggedOut = false
+    await page.route('/api/auth/me', route =>
+      loggedOut
+        ? route.fulfill({ status: 401, contentType: 'application/json', body: '{}' })
+        : route.fulfill({ status: 200, contentType: 'application/json',
+            body: JSON.stringify({ role: 'järjestäjä', display_name: 'Testi' }) })
+    )
+    await page.route('/api/auth/logout', route => {
+      loggedOut = true
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
+    })
+    await mockTemplates(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1000)
+
+    // Tilivalikko näyttää display_name
+    await page.click('#btn-menu')
+    await expect(page.locator('.account-menu-name')).toHaveText('Testi')
+
+    // Kirjaudu ulos → AuthScreen avautuu
+    await page.click('#btn-logout')
+    await expect(page.locator('#auth-screen.open')).toBeVisible()
   })
 })
 

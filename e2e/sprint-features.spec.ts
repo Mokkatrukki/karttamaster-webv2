@@ -14,7 +14,7 @@ test.describe('T28 — Status panel (tilannekuva)', () => {
     await page.waitForTimeout(1500)
 
     // Varmista järjestäjä-rooli (default)
-    await expect(page.locator('#btn-role')).toHaveText('Järjestäjä')
+    expect(await page.evaluate(() => document.body.dataset.role)).toBe('järjestäjä')
 
     // Status panel näkyy
     const panel = page.locator('#status-panel')
@@ -36,7 +36,7 @@ test.describe('T28 — Status panel (tilannekuva)', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    await expect(page.locator('#btn-role')).toHaveText('Talkoolainen')
+    expect(await page.evaluate(() => document.body.dataset.role)).toBe('talkoolainen')
 
     // Status panel piilotettu
     const panel = page.locator('#status-panel')
@@ -103,7 +103,7 @@ test.describe('T38 — Merkin tyyppi vaihdettavissa', () => {
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/')
     await page.waitForTimeout(1500)
-    await expect(page.locator('#btn-role')).toHaveText('Talkoolainen')
+    expect(await page.evaluate(() => document.body.dataset.role)).toBe('talkoolainen')
 
     await page.dblclick('#map', { position: { x: 200, y: 260 } })
     await page.waitForTimeout(500)

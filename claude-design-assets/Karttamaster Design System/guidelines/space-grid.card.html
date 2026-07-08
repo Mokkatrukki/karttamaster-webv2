@@ -1,0 +1,23 @@
+<!-- @dsCard group="Spacing" viewport="700x180" name="4px grid" subtitle="Strict multiples of 4 — 5/7/9px are bugs" -->
+<!DOCTYPE html>
+<html lang="fi" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-app); color: var(--text-body); font-family: var(--font-ui); padding: 22px; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 5px 0; }
+  .bar { background: var(--accent); height: 14px; border-radius: 3px; }
+  .tok { width: 100px; font-size: 11px; color: var(--text-muted); }
+  .px { width: 36px; font-size: 11px; color: var(--text-meta); text-align: right; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <div class="row"><span class="tok">--space-1</span><span class="px">4</span><div class="bar" style="width:4px"></div></div>
+  <div class="row"><span class="tok">--space-1-5</span><span class="px">6</span><div class="bar" style="width:6px"></div></div>
+  <div class="row"><span class="tok">--space-2</span><span class="px">8</span><div class="bar" style="width:8px"></div></div>
+  <div class="row"><span class="tok">--space-3</span><span class="px">12</span><div class="bar" style="width:12px"></div></div>
+  <div class="row"><span class="tok">--space-4</span><span class="px">16</span><div class="bar" style="width:16px"></div></div>
+  <div class="row"><span class="tok">--space-6</span><span class="px">24</span><div class="bar" style="width:24px"></div></div>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!-- @dsCard group="Components" viewport="700x540" name="Core — buttons, inputs, badges, progress" subtitle="Forms & feedback primitives, all ≥44px touch" -->
+<!DOCTYPE html>
+<html lang="fi" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="../../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-app); color: var(--text-body); font-family: var(--font-ui); }
+  .wrap { padding: 20px; display: flex; flex-direction: column; gap: 18px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .col { display: flex; flex-direction: column; gap: 8px; max-width: 240px; }
+  h4 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 700; }
+  .panel { display: flex; flex-direction: column; gap: 8px; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+</head>
+<body>
+<div id="root" class="wrap"></div>
+<script type="text/babel">
+const { Button, IconButton, Input, Select, StatusBadge, ProgressBar } = window.KarttamasterDesignSystem_3ae2ca;
+function Demo() {
+  return (
+    <>
+      <div className="panel">
+        <h4>Buttons</h4>
+        <div className="row">
+          <Button variant="primary" iconLeft="＋">Merkki</Button>
+          <Button variant="confirm">Asetettu ✓</Button>
+          <Button variant="secondary">Lista</Button>
+          <Button variant="ghost">GPS</Button>
+          <Button variant="danger" size="sm">Poista</Button>
+          <Button variant="secondary" disabled>Disabled</Button>
+        </div>
+      </div>
+      <div className="panel">
+        <h4>Icon buttons</h4>
+        <div className="row">
+          <IconButton label="Valikko">⋯</IconButton>
+          <IconButton label="Edellinen" variant="solid">◀</IconButton>
+          <IconButton label="Seuraava" variant="solid">▶</IconButton>
+          <IconButton label="GPS" active>📍</IconButton>
+          <IconButton label="Sulje" variant="danger">✕</IconButton>
+        </div>
+      </div>
+      <div className="row" style={{ alignItems: 'flex-start', gap: '24px' }}>
+        <div className="col">
+          <h4>Inputs</h4>
+          <Input label="Pätkän nimi" defaultValue="Pohjoislenkki" />
+          <Select label="Merkkityyppi" defaultValue="right">
+            <option value="right">Nuoli oikealle</option>
+            <option value="left">Nuoli vasemmalle</option>
+          </Select>
+        </div>
+        <div className="col" style={{ flex: 1, minWidth: '280px' }}>
+          <h4>Status badges</h4>
+          <div className="row">
+            <StatusBadge status="suunniteltu" />
+            <StatusBadge status="asetettu" />
+            <StatusBadge status="tarkistettu" />
+            <StatusBadge status="keratty" />
+            <StatusBadge status="ei_tarpeen" />
+          </div>
+          <h4 style={{ marginTop: '8px' }}>Progress</h4>
+          <ProgressBar label="35km" value={100} detail="0/0" />
+          <ProgressBar label="55km" value={62} detail="24/39" />
+        </div>
+      </div>
+    </>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script>
+</body>
+</html>

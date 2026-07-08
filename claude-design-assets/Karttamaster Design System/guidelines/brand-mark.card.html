@@ -1,0 +1,37 @@
+<!-- @dsCard group="Brand" viewport="700x240" name="Wordmark & motif" subtitle="Karttamaster — the teardrop sign is the mark" -->
+<!DOCTYPE html>
+<html lang="fi" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-app); color: var(--text-body); font-family: var(--font-ui); padding: 26px; display: flex; gap: 32px; align-items: center; }
+  .mark { display: flex; align-items: center; gap: 14px; }
+  .word { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+  .word .b { color: var(--accent); }
+  .sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .voice { border-left: 2px solid var(--accent); padding-left: 14px; max-width: 280px; }
+  .voice p { margin: 0; font-size: 13px; color: var(--text-body); line-height: 1.5; }
+  .voice span { display: block; margin-top: 6px; font-size: 11px; color: var(--text-meta); }
+</style>
+</head>
+<body>
+  <div>
+    <div class="mark">
+      <svg width="40" height="64" viewBox="0 0 32 52" aria-hidden="true">
+        <circle cx="16" cy="16" r="14" fill="var(--accent)" stroke="#fff" stroke-width="2" />
+        <text x="16" y="21" text-anchor="middle" font-size="15" font-weight="700" fill="#111">→</text>
+        <path d="M8,30 L16,40 L24,30 Z" fill="var(--accent)" stroke="#fff" stroke-width="2" />
+      </svg>
+      <div>
+        <div class="word">Kartta<span class="b">master</span></div>
+        <div class="sub">SyöteMTB 2026</div>
+      </div>
+    </div>
+  </div>
+  <div class="voice">
+    <p>Luottavainen ja rento — ei firmafiilistä.</p>
+    <span>Trusting and relaxed, not corporate. Friends doing talkoot.</span>
+  </div>
+</body>
+</html>

@@ -132,27 +132,24 @@ metsässä, hanskat kädessä.
 
 ## §K Komponentit
 
-### Toolbar (`#toolbar`)
-- Kiinteä yläreuna, `z-index: 200`, korkeus ~56px
-- Tausta: `bg-primary`, alaraja: `border-bottom: 1px solid border-subtle`
-- Padding: `6px 8px` (4px-grid)
-- Näkyvät napit: `+ Merkki` (admin), `📍 GPS`, role-toggle, `⋯`-valikko
-- `⋯ #btn-menu`: 44×44px, `border: 1px solid border-strong`, `margin-left: auto`
-- Ei h1-otsikkoa toolbarissa — poistettu tilan säästämiseksi
+### Toolbar (`#toolbar`) — yhdistetty yläpalkki (T203/V133)
+- Kiinteä yläreuna, `z-index: 200`, korkeus ~56px, `surface-app`, alaraja `border-subtle`
+- **Vasemmalla:** `#app-brand` tuotenimi ("Karttamaster", `font-weight:700`, `15px`)
+- **Oikealla:** `#toolbar-actions` (`margin-left:auto`, `gap:6px`): `📍 GPS` (talkoolainen), `Karttatyyli #btn-layer`, `Kaikki merkit #btn-list`, `⋯ #btn-menu` (tilivalikko-trigger)
+- `⋯ #btn-menu`: 44×44px, `border: 1px solid border-strong`
+- Ei h1-otsikkoa erikseen — tuotenimi toimii otsikkona
 
-### Toolbar-menu (`#toolbar-menu`)
+### Toolbar-menu = tilivalikko (`#toolbar-menu`)
 - `position: fixed; top: 56px; right: 8px` — avautuu toolbarin alta oikeasta reunasta
-- `bg-card`, `border-default`, `border-radius-md`, `box-shadow: 0 8px 24px rgba(0,0,0,0.4)`
-- `z-index: 2001` (yli route-barin 2000)
-- Toggle: `.open`-class — avaa `display: flex`, sulkee document-click
-- Sisältö: `☰ Lista` (avaa marker-modal) + karttakerros-toggle (label päivittyy)
+- `surface-card`, `border-default`, `border-radius-md`, `box-shadow`, `z-index: 2001`
+- Toggle: `.open`-class (`#btn-menu`-klikki), sulkee document-click
+- Sisältö ylhäältä: **tilivalikko** (`#account-menu-section`, AccountMenu) → phase-switcher (järjestäjä) → Varmuuskopiot → Vie/Tuo kartta-aineisto (gpkg)
 
-### Role-toggle (`#btn-role`)
-- Toolbarissa, toolbar-nappi tyyli
-- `min-height: 44px` (§R pakollinen)
-- Inactive: `color: text-muted`, `background: transparent`
-- Active: `background: accent`, `color: accent-text`
-- Teksti: `"Järjestäjä"` tai `"Talkoolainen"` — ei ikoneja (aria)
+### AccountMenu (`src/ui/account-menu.ts`, T203/V133)
+- Renderöi `#account-menu-section`iin: `display_name` (`/api/auth/me`, `.account-menu-name` bold) + teemavalitsin + Kirjaudu ulos
+- **Teemavalitsin** (`.account-menu-theme`): kaksi vaihtoehtoa "Reittimerkki-vaalea" / "Kaamos-tumma" (`.account-menu-theme-opt`, `min-height:40px`). Aktiivinen = `--accent`-reuna + `color-mix`-tausta, heijastaa `getTheme()`. Klikki → `setTheme()` (theme.ts, persistoi + `data-theme`). Koskee kaikkia rooleja (V132).
+- **Kirjaudu ulos** (`#btn-logout`, `.account-menu-logout`, danger-tyyli): `POST /api/auth/logout` → `onLoggedOut` → `AuthScreen.start()` (login-lomake). Verkkovirhekin → kirjautumisruutu (ei jää haamutilaan).
+- **Poistettu:** `#btn-role` + `RoleSelector` (B48/V80 dead code — rooli tulee tili-per-rooli-authista, ei toggle).
 
 ### Route-bar (`#route-bar`)
 - Kiinteä alareuna, `z-index: 2000` (yli Leaflet-kontrollit 1000)

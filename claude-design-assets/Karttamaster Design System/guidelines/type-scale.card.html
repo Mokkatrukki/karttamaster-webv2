@@ -1,0 +1,21 @@
+<!-- @dsCard group="Type" viewport="700x300" name="Type scale" subtitle="The whole product lives in 11–14px — tight by design" -->
+<!DOCTYPE html>
+<html lang="fi" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-app); color: var(--text-body); font-family: var(--font-ui); padding: 22px; }
+  .row { display: flex; align-items: baseline; gap: 16px; padding: 9px 0; border-bottom: 1px solid var(--border-card); }
+  .tok { width: 120px; flex-shrink: 0; color: var(--text-meta); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .px { width: 44px; color: var(--text-muted); font-size: 11px; text-align: right; flex-shrink: 0; }
+  .sample { color: var(--text-body); }
+</style>
+</head>
+<body>
+  <div class="row"><span class="tok">--text-meta</span><span class="px">11px</span><span class="sample" style="font-size:11px">Metatieto, tooltip, status-pilleri</span></div>
+  <div class="row"><span class="tok">--text-sm</span><span class="px">12px</span><span class="sample" style="font-size:12px">Nappi · sekundaariteksti · 12,4 km</span></div>
+  <div class="row"><span class="tok">--text-base</span><span class="px">13px</span><span class="sample" style="font-size:13px">Body-teksti, listakohta, merkkityyppi</span></div>
+  <div class="row" style="border:none"><span class="tok">--text-lg</span><span class="px">14px</span><span class="sample" style="font-size:14px;font-weight:700">Modaaliotsikko (ylin normaali taso)</span></div>
+</body>
+</html>

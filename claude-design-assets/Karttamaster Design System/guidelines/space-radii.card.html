@@ -1,0 +1,24 @@
+<!-- @dsCard group="Spacing" viewport="700x170" name="Radii" subtitle="Three steps: pill, button, dropdown, modal" -->
+<!DOCTYPE html>
+<html lang="fi" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-app); color: var(--text-body); font-family: var(--font-ui); padding: 22px; }
+  .row { display: flex; gap: 24px; }
+  .item { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .box { width: 72px; height: 56px; background: var(--surface-card); border: 1px solid var(--border-default); }
+  .name { font-size: 11px; color: var(--text-muted); }
+  .px { font-size: 11px; color: var(--text-meta); }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="item"><div class="box" style="border-radius:var(--radius-sm)"></div><span class="name">--radius-sm</span><span class="px">6px · buttons</span></div>
+    <div class="item"><div class="box" style="border-radius:var(--radius-md)"></div><span class="name">--radius-md</span><span class="px">10px · dropdowns</span></div>
+    <div class="item"><div class="box" style="border-radius:var(--radius-lg)"></div><span class="name">--radius-lg</span><span class="px">14px · modals</span></div>
+    <div class="item"><div class="box" style="border-radius:var(--radius-pill);width:96px"></div><span class="name">--radius-pill</span><span class="px">999px · progress</span></div>
+  </div>
+</body>
+</html>

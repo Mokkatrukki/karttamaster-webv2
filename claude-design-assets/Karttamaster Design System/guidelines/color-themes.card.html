@@ -1,0 +1,42 @@
+<!-- @dsCard group="Colors" viewport="700x300" name="Role-based theming" subtitle="Organizer = dark (indoor) · Volunteer = daylight (sunlight-readable)" -->
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; font-family: var(--font-ui); display: grid; grid-template-columns: 1fr 1fr; }
+  .pane { padding: 18px 20px; min-height: 300px; box-sizing: border-box; }
+  .pane[data-theme] { background: var(--surface-app); color: var(--text-body); }
+  .tag { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 700; }
+  h3 { margin: 4px 0 14px; font-size: 15px; }
+  .card { background: var(--surface-card); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .line { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .btn { display: inline-flex; align-items: center; padding: 8px 12px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; white-space: nowrap; }
+  .accent { background: var(--accent); color: var(--accent-text); }
+  .confirm { background: var(--confirm); color: var(--confirm-text); }
+  .muted { color: var(--text-muted); }
+  .meta { color: var(--text-meta); font-size: 11px; }
+</style>
+</head>
+<body>
+  <div class="pane" data-theme="dark">
+    <span class="tag">Järjestäjä · indoors</span>
+    <h3>Dark</h3>
+    <div class="card">
+      <div class="line"><span class="btn accent">+ Merkki</span><span class="muted">power tools</span></div>
+      <div class="line"><span style="color:var(--text-body)">Pääteksti</span><span class="muted">muted</span><span class="meta">meta</span></div>
+      <div class="line meta">surface-app #0f172a · card #1e293b</div>
+    </div>
+  </div>
+  <div class="pane" data-theme="daylight">
+    <span class="tag">Talkoolainen · outdoors</span>
+    <h3>Daylight</h3>
+    <div class="card">
+      <div class="line"><span class="btn confirm">Asetettu ✓</span><span class="muted">one tap</span></div>
+      <div class="line"><span style="color:var(--text-body)">Pääteksti</span><span class="muted">muted</span><span class="meta">meta</span></div>
+      <div class="line meta">surface-app #ffffff · card #f1f5f9</div>
+    </div>
+  </div>
+</body>
+</html>

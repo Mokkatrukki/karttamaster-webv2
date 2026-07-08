@@ -1,0 +1,56 @@
+/* Karttamaster — raw palette
+   These are the base, theme-agnostic values. Never reference these directly
+   in components — use the semantic aliases in colors.css. They exist so both
+   themes (organizer dark / volunteer daylight) draw from one source of truth. */
+
+:root {
+  /* Slate — the structural neutral. Dark chrome + light field surfaces. */
+  --slate-950: #0f172a;  /* app bg (dark) */
+  --slate-900: #1e293b;  /* card bg (dark) */
+  --slate-800: #334155;
+  --slate-700: #475569;
+  --slate-500: #64748b;  /* meta text */
+  --slate-400: #94a3b8;  /* muted text */
+  --slate-300: #cbd5e1;
+  --slate-200: #e2e8f0;  /* body text (dark) */
+  --slate-100: #f1f5f9;  /* card bg (daylight) */
+  --slate-50:  #f8fafc;
+  --white:     #ffffff;
+
+  /* Amber — the single brand accent. The "do the main thing" colour. */
+  --amber-700: #b45309;
+  --amber-600: #d97706;
+  --amber-500: #f59e0b;  /* accent */
+  --amber-400: #fbbf24;
+  --amber-300: #fcd34d;
+
+  /* Red — destructive + place-mode active. */
+  --red-700: #b91c1c;
+  --red-600: #dc2626;
+  --red-500: #ef4444;
+  --red-400: #f87171;
+  --red-300: #fca5a5;
+
+  /* Greens & blues — confirm / drive / status. */
+  --green-800: #166534;
+  --green-700: #15803d;  /* check-in button */
+  --green-600: #16a34a;  /* marker: right */
+  --green-500: #22c55e;
+  --green-400: #4ade80;  /* status: set (dark) */
+  --emerald-300: #6ee7b7;/* status: collected (dark) */
+  --blue-700: #1d4ed8;   /* gps active */
+  --blue-600: #2563eb;   /* marker: left */
+  --blue-300: #93c5fd;   /* status: checked (dark) */
+
+  /* Marker-type hues (map sign icons). */
+  --hue-right:  #16a34a; /* arrow right  — green  */
+  --hue-left:   #2563eb; /* arrow left   — blue   */
+  --hue-up-r:   #b45309; /* upcoming R   — orange */
+  --hue-up-l:   #7c3aed; /* upcoming L   — violet */
+
+  /* Route line hues (GPX overlay rotation). */
+  --route-1: #7c3aed;
+  --route-2: #f59e0b;
+  --route-3: #10b981;
+  --route-4: #ec4899;
+}

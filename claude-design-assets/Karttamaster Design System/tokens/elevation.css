@@ -1,0 +1,38 @@
+/* Karttamaster — elevation (shadows) + motion
+   Shadows are dark-bias (the product is built on a dark map UI). On daylight
+   they read as soft ambient shadow; values are intentionally restrained —
+   this is a utility, not a glossy app. */
+
+:root {
+  /* Outer shadows by elevation */
+  --shadow-dropdown: 0 8px 24px rgba(0, 0, 0, 0.4);   /* menus, type pickers */
+  --shadow-modal:    0 16px 48px rgba(0, 0, 0, 0.5);  /* dialogs */
+  --shadow-bar-up:   0 -1px 0 var(--border-subtle), 0 -8px 24px rgba(0, 0, 0, 0.3); /* route-bar lifts off map */
+  --shadow-panel:    0 8px 24px rgba(0, 0, 0, 0.5);   /* floating overlay panels */
+  --shadow-marker:   0 2px 6px rgba(0, 0, 0, 0.5);    /* map pins / handles */
+
+  /* Backdrop blur behind modals/panels */
+  --blur-overlay: blur(2px); /* @kind other */
+
+  /* Motion — fast, functional, no bounce. Field tool, not a toy. */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1); /* @kind other */
+  --dur-instant: 0.1s;  /* @kind other */
+  --dur-fast:    0.15s; /* @kind other */
+  --dur-base:    0.3s;  /* @kind other */
+}
+
+[data-theme="daylight"] {
+  --shadow-dropdown: 0 6px 20px rgba(15, 23, 42, 0.14);
+  --shadow-modal:    0 16px 48px rgba(15, 23, 42, 0.22);
+  --shadow-bar-up:   0 -1px 0 var(--border-subtle), 0 -6px 20px rgba(15, 23, 42, 0.12);
+  --shadow-panel:    0 8px 24px rgba(15, 23, 42, 0.18);
+  --shadow-marker:   0 2px 6px rgba(15, 23, 42, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 0s; /* @kind other */
+    --dur-fast: 0s; /* @kind other */
+    --dur-base: 0s; /* @kind other */
+  }
+}

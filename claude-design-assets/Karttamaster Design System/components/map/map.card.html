@@ -1,0 +1,77 @@
+<!-- @dsCard group="Components" viewport="700x620" name="Map & field — signs, routes, drive, check-in" subtitle="Product-specific primitives for map & forest use" -->
+<!DOCTYPE html>
+<html lang="fi" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="../../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-app); color: var(--text-body); font-family: var(--font-ui); }
+  .wrap { padding: 20px; display: flex; flex-direction: column; gap: 18px; }
+  h4 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 700; }
+  .row { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  .listbox { border: 1px solid var(--border-default); border-radius: var(--radius-md); overflow: hidden; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+</head>
+<body>
+<div id="root" class="wrap"></div>
+<script type="text/babel">
+const NS = window.KarttamasterDesignSystem_3ae2ca;
+const { SignMarker, RouteTab, DriveBanner, CheckInButton, MarkerListItem, IconButton } = NS;
+function Demo() {
+  return (
+    <>
+      <div>
+        <h4>Sign markers — type hue · status opacity · bearing</h4>
+        <div className="row">
+          <SignMarker type="right" glyph="→" status="asetettu" bearing={30} />
+          <SignMarker type="left" glyph="←" status="tarkistettu" />
+          <SignMarker type="up_r" glyph="↱" status="suunniteltu" />
+          <SignMarker type="up_l" glyph="↰" status="keratty" />
+          <SignMarker type="right" glyph="!" status="ei_tarpeen" />
+        </div>
+      </div>
+      <div>
+        <h4>Route tabs</h4>
+        <div className="row" style={{ alignItems: 'center' }}>
+          <RouteTab label="35 km" color="var(--route-2)" active />
+          <RouteTab label="55 km" color="var(--route-1)" />
+          <RouteTab label="60 km" color="var(--route-3)" hidden />
+        </div>
+      </div>
+      <div className="two">
+        <div>
+          <h4>Drive banner</h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <DriveBanner distance="300 m" label="Seuraava merkki" direction="→" />
+            <DriveBanner distance="20 m" label="Olet perillä" direction="↓" near
+              action={<IconButton label="Hyppää" variant="solid">⤼</IconButton>} />
+          </div>
+        </div>
+        <div>
+          <h4>Check-in (volunteer)</h4>
+          <CheckInButton label="Merkitse asetetuksi" sub="Nuoli oikealle · 12,4 km"
+            secondary={[{ label: 'Ei tarpeen', variant: 'ghost' }, { label: 'Lisäsin toisen', variant: 'secondary' }]} />
+        </div>
+      </div>
+      <div>
+        <h4>Marker list</h4>
+        <div className="listbox">
+          <MarkerListItem glyph="→" hue="var(--marker-right)" name="Nuoli oikealle" km="12,4 km · 55-reitti" status="asetettu" />
+          <MarkerListItem glyph="!" hue="var(--marker-up-r)" name="Varo hyppy" km="18,1 km" status="suunniteltu" highlight
+            trailing={<IconButton label="Poista" variant="danger" size={36}>✕</IconButton>} />
+          <MarkerListItem glyph="←" hue="var(--marker-left)" name="Nuoli vasemmalle" km="22,0 km" status="kerätty" />
+        </div>
+      </div>
+    </>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script>
+</body>
+</html>

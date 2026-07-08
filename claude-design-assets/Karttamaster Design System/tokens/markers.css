@@ -1,0 +1,51 @@
+/* Karttamaster — marker-type + status lifecycle colours
+   Two systems:
+   1. Sign-type hue — identifies WHAT a marker is (arrow right/left, upcoming).
+      Constant across status; never changes. (src/map/icons.ts)
+   2. Status — WHERE a marker is in its lifecycle:
+      suunniteltu → asetettu → tarkistettu → kerätty  (+ ei_tarpeen)
+      Status text + soft bg tuned for WCAG AA on each theme's card surface. */
+
+:root,
+[data-theme="dark"] {
+  /* Sign-type swatches */
+  --marker-right: var(--hue-right);
+  --marker-left:  var(--hue-left);
+  --marker-up-r:  var(--hue-up-r);
+  --marker-up-l:  var(--hue-up-l);
+
+  /* Status text (on dark card) */
+  --status-suunniteltu-text: var(--slate-400);
+  --status-asetettu-text:    #4ade80;
+  --status-tarkistettu-text: #93c5fd;
+  --status-keratty-text:     #6ee7b7;
+  --status-ei-tarpeen-text:  #fbbf24;
+
+  /* Status soft backgrounds (on dark card) */
+  --status-suunniteltu-bg:   rgba(255, 255, 255, 0.06);
+  --status-asetettu-bg:      rgba(74, 222, 128, 0.10);
+  --status-tarkistettu-bg:   rgba(147, 197, 253, 0.10);
+  --status-keratty-bg:       rgba(110, 231, 183, 0.10);
+  --status-ei-tarpeen-bg:    rgba(251, 191, 36, 0.10);
+}
+
+[data-theme="daylight"] {
+  /* Sign-type hues unchanged — they live on the map, not on theme surfaces */
+  --marker-right: var(--hue-right);
+  --marker-left:  var(--hue-left);
+  --marker-up-r:  var(--hue-up-r);
+  --marker-up-l:  var(--hue-up-l);
+
+  /* Status text darkened for AA on light card */
+  --status-suunniteltu-text: var(--slate-700);
+  --status-asetettu-text:    #15803d;
+  --status-tarkistettu-text: #1d4ed8;
+  --status-keratty-text:     #047857;
+  --status-ei-tarpeen-text:  #b45309;
+
+  --status-suunniteltu-bg:   rgba(15, 23, 42, 0.06);
+  --status-asetettu-bg:      rgba(21, 128, 61, 0.10);
+  --status-tarkistettu-bg:   rgba(29, 78, 216, 0.10);
+  --status-keratty-bg:       rgba(4, 120, 87, 0.10);
+  --status-ei-tarpeen-bg:    rgba(180, 83, 9, 0.10);
+}

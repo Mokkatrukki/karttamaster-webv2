@@ -1,0 +1,24 @@
+<!-- @dsCard group="Colors" viewport="700x170" name="Sign-type hues" subtitle="Constant marker identity — never changes with status" -->
+<!DOCTYPE html>
+<html lang="fi" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-app); color: var(--text-body); font-family: var(--font-ui); padding: 22px; }
+  .swatches { display: flex; gap: 16px; }
+  .sw { display: flex; align-items: center; gap: 10px; }
+  .chip { width: 36px; height: 36px; border-radius: var(--radius-sm); border: 2px solid #fff; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 15px; }
+  .name { font-size: 12px; }
+  .hex { font-size: 11px; color: var(--text-meta); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <div class="swatches">
+    <div class="sw"><span class="chip" style="background:var(--marker-right)">→</span><div><div class="name">Oikealle</div><div class="hex">#16a34a</div></div></div>
+    <div class="sw"><span class="chip" style="background:var(--marker-left)">←</span><div><div class="name">Vasemmalle</div><div class="hex">#2563eb</div></div></div>
+    <div class="sw"><span class="chip" style="background:var(--marker-up-r);border-style:dashed">↱</span><div><div class="name">Tuleva oik.</div><div class="hex">#b45309</div></div></div>
+    <div class="sw"><span class="chip" style="background:var(--marker-up-l);border-style:dashed">↰</span><div><div class="name">Tuleva vas.</div><div class="hex">#7c3aed</div></div></div>
+  </div>
+</body>
+</html>

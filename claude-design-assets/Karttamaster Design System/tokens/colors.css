@@ -1,0 +1,87 @@
+/* Karttamaster — semantic colour aliases (THE tokens components use)
+   Two themes share these names; only the values swap:
+     :root / [data-theme="dark"]      → Organizer, indoors, calm  (current product)
+     [data-theme="daylight"]          → Volunteer, outdoors, bright sun  (recommended)
+   Components must reference --surface-*, --text-*, --accent, --border-* etc,
+   never the raw palette, so a theme switch is one attribute on <body>. */
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --surface-app:    var(--slate-950);   /* toolbar, route-bar, panels */
+  --surface-card:   var(--slate-900);   /* modals, dropdowns, cards */
+  --surface-raised: #243044;            /* hovered card / nested */
+
+  --text-body:   var(--slate-200);
+  --text-muted:  var(--slate-400);
+  --text-meta:   var(--slate-500);
+
+  --accent:        var(--amber-500);
+  --accent-text:   #111111;
+  --accent-hover:  var(--amber-400);
+
+  --danger:        var(--red-500);
+  --danger-text:   var(--red-400);
+  --danger-soft:   rgba(239, 68, 68, 0.10);
+  --danger-soft-hover: rgba(239, 68, 68, 0.20);
+
+  --confirm:       var(--green-700);   /* the big check-in button */
+  --confirm-hover: var(--green-800);
+  --confirm-text:  var(--white);
+
+  --gps-active:    var(--blue-700);
+
+  --border-subtle:  rgba(255, 255, 255, 0.06);
+  --border-card:    rgba(255, 255, 255, 0.08);
+  --border-default: rgba(255, 255, 255, 0.10);
+  --border-strong:  rgba(255, 255, 255, 0.12);
+
+  --overlay:        rgba(0, 0, 0, 0.5);
+  --hover:          rgba(255, 255, 255, 0.08);
+  --hover-strong:   rgba(255, 255, 255, 0.14);
+  --warn-highlight: rgba(245, 158, 11, 0.12);
+  --field-tint:     rgba(255, 255, 255, 0.07); /* neutral chip bg */
+}
+
+/* ── Daylight theme — volunteer, outdoors, sunlight-readable ──
+   High-contrast: near-white surfaces, near-black text, darkened
+   accents/status for AA on light. Map tiles stay light either way,
+   so this also makes the chrome match the map instead of fighting it. */
+[data-theme="daylight"] {
+  color-scheme: light;
+
+  --surface-app:    var(--white);
+  --surface-card:   var(--slate-100);
+  --surface-raised: var(--slate-50);
+
+  --text-body:   var(--slate-950);
+  --text-muted:  var(--slate-700);
+  --text-meta:   var(--slate-500);
+
+  --accent:        var(--amber-500);   /* amber is bright; dark text reads AA */
+  --accent-text:   #1a1205;
+  --accent-hover:  var(--amber-600);
+
+  --danger:        var(--red-600);
+  --danger-text:   var(--red-700);
+  --danger-soft:   rgba(220, 38, 38, 0.08);
+  --danger-soft-hover: rgba(220, 38, 38, 0.16);
+
+  --confirm:       var(--green-700);
+  --confirm-hover: var(--green-800);
+  --confirm-text:  var(--white);
+
+  --gps-active:    var(--blue-700);
+
+  --border-subtle:  rgba(15, 23, 42, 0.06);
+  --border-card:    rgba(15, 23, 42, 0.10);
+  --border-default: rgba(15, 23, 42, 0.14);
+  --border-strong:  rgba(15, 23, 42, 0.20);
+
+  --overlay:        rgba(15, 23, 42, 0.40);
+  --hover:          rgba(15, 23, 42, 0.05);
+  --hover-strong:   rgba(15, 23, 42, 0.10);
+  --warn-highlight: rgba(245, 158, 11, 0.16);
+  --field-tint:     rgba(15, 23, 42, 0.05);
+}

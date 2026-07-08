@@ -160,6 +160,23 @@ html, body {
   border-bottom: 1px solid var(--border-subtle);
 }
 
+/* T203/V133: yhdistetty yläpalkki — tuotenimi vasemmalle, toiminnot oikealle */
+#app-brand {
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.01em;
+  color: var(--text-body);
+  padding-left: 4px;
+  white-space: nowrap;
+}
+
+#toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
 #toolbar-menu {
   position: fixed;
   top: 56px;
@@ -252,9 +269,57 @@ body[data-role="talkoolainen"] #gpkg-import-status {
   min-height: 44px;
   font-size: 18px;
   letter-spacing: 0;
-  margin-left: auto;
 }
 #btn-menu:hover { color: var(--text-body); }
+
+/* T203/V133: tilivalikko toolbar-menun yläosassa */
+.account-menu { display: flex; flex-direction: column; gap: 6px; }
+.account-menu-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-body);
+  padding: 4px 12px 2px;
+}
+.account-menu-theme {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 2px 8px 4px;
+}
+.account-menu-theme-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  padding: 0 4px;
+}
+.account-menu-theme-opt {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 40px;
+  padding: 0 12px;
+  background: var(--field-tint);
+  color: var(--text-body);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+}
+.account-menu-theme-opt.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text-body);
+}
+.account-menu-logout {
+  min-height: 44px;
+  background: var(--danger-soft) !important;
+  color: var(--danger-text) !important;
+  border: 1px solid var(--danger) !important;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.account-menu-logout:hover { background: var(--danger-soft-hover) !important; }
 
 button {
   padding: 6px 12px;
@@ -743,22 +808,6 @@ button {
 .marker-item .marker-km { color: var(--text-meta); font-size: 11px; flex-shrink: 0; }
 .marker-item .marker-status { margin-top: 0; }
 .marker-item .marker-type-label { flex: 1; font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-/* ── Role toggle ── */
-
-#btn-role {
-  min-height: 44px;
-  background: transparent;
-  color: var(--text-muted);
-  border: 1px solid var(--border-default);
-  font-size: 12px;
-}
-#btn-role.role-active {
-  background: var(--accent);
-  color: var(--accent-text);
-  border-color: transparent;
-}
-#btn-role:hover:not(.role-active) { background: var(--hover); }
 
 #toolbar #btn-layer {
   background: var(--hover) !important;

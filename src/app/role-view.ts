@@ -1,5 +1,5 @@
-import { RoleSelector } from '../ui/role-selector'
 import { AuthScreen } from '../ui/auth-screen'
+import { AccountMenu } from '../ui/account-menu'
 import { SnapshotPanel } from '../ui/snapshot-panel'
 import { GpkgControls } from '../ui/gpkg-controls'
 import { setRole } from '../logic/role'
@@ -16,21 +16,26 @@ export function applyRoleHide(role: string): void {
   })
 }
 
-// Kirjautumisen jälkeinen roolin-mukainen UI-wiring (RoleSelector/SnapshotPanel/GpkgControls)
+// Kirjautumisen jälkeinen roolin-mukainen UI-wiring (AccountMenu/SnapshotPanel/GpkgControls)
 // + itse AuthScreen. onAuthenticated käynnistää sovelluksen init()-vaiheen (main.ts).
+// B48/V80: RoleSelector/#btn-role poistettu — rooli tulee tili-per-rooli-authista, ei toggle.
 export function wireAuth(
   toolbarMenu: HTMLElement,
   getActiveMarkerManager: () => MarkerManager | null,
   onAuthenticated: (code?: string) => void,
 ): AuthScreen {
-  return new AuthScreen(({ role, code }) => {
+  const authScreen: AuthScreen = new AuthScreen(({ role, code, displayName }) => {
     setRole(role)
+    applyRoleView(role)
     applyRoleHide(role)
-    new RoleSelector(
-      document.getElementById('btn-role') as HTMLButtonElement,
-      applyRoleView,
-      role,
-    )
+    // T203/V133: tilivalikko (nimi + teema + Kirjaudu ulos) toolbar-menun yläosaan.
+    const accountSection = document.getElementById('account-menu-section')
+    if (accountSection) {
+      new AccountMenu(accountSection, {
+        displayName,
+        onLoggedOut: () => { void authScreen.start() },
+      })
+    }
     const snapshotPanel = new SnapshotPanel(role)
     document.getElementById('btn-snapshot-panel')?.addEventListener('click', (e) => {
       e.stopPropagation()
@@ -58,4 +63,5 @@ export function wireAuth(
     )
     onAuthenticated(code)
   })
+  return authScreen
 }

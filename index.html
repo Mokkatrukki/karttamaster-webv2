@@ -9,21 +9,23 @@
   <body>
     <div id="app">
       <div id="toolbar">
-        <button id="btn-gps" data-role-hide="järjestäjä">📍 GPS</button>
-        <button id="btn-role">Järjestäjä</button>
-        <button id="btn-menu" aria-label="Lisää toimintoja">⋯</button>
+        <span id="app-brand">Karttamaster</span>
+        <div id="toolbar-actions">
+          <button id="btn-gps" data-role-hide="järjestäjä">📍 GPS</button>
+          <button id="btn-layer">Karttatyyli</button>
+          <button id="btn-list">Kaikki merkit</button>
+          <button id="btn-menu" aria-label="Tilivalikko">⋯</button>
+        </div>
       </div>
       <div id="toolbar-menu">
-        <button id="btn-list">Lista</button>
+        <div id="account-menu-section"></div>
         <div class="menu-sep"></div>
         <div id="phase-switcher-container" data-role-hide="talkoolainen"></div>
         <div class="menu-sep"></div>
         <button id="btn-snapshot-panel">Varmuuskopiot</button>
-        <div class="menu-sep"></div>
-        <button id="btn-layer">Karttakerros</button>
         <div id="gpkg-menu-sep" class="menu-sep"></div>
-        <a id="btn-gpkg-export" href="/api/gpkg/export" download>Vie GPKG</a>
-        <button id="btn-gpkg-import">Tuo GPKG</button>
+        <a id="btn-gpkg-export" href="/api/gpkg/export" download>Vie kartta-aineisto</a>
+        <button id="btn-gpkg-import">Tuo kartta-aineisto</button>
         <input id="gpkg-file-input" type="file" accept=".gpkg" hidden />
         <span id="gpkg-import-status" class="gpkg-import-status"></span>
       </div>

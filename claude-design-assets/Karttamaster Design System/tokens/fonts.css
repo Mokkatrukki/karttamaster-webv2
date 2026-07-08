@@ -1,0 +1,7 @@
+/* Karttamaster — webfonts
+   Inter is the named brand font (system stack is the offline fallback, which
+   matters: the volunteer may be on a cold Android in the woods with no signal).
+   Loaded from Google Fonts CDN here rather than self-hosted binaries — see
+   readme.md "Fonts" for the substitution note. Weights used: 400 / 600 / 700. */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');

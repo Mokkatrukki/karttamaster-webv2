@@ -1,0 +1,34 @@
+<!-- @dsCard group="Colors" viewport="700x180" name="Status lifecycle" subtitle="suunniteltu → asetettu → tarkistettu → kerätty (+ ei tarpeen)" -->
+<!DOCTYPE html>
+<html lang="fi" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-card); color: var(--text-body); font-family: var(--font-ui); padding: 24px; }
+  .flow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pill { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 5px 9px; border-radius: var(--radius-sm); }
+  .arr { color: var(--text-meta); font-size: 13px; }
+  .s1 { color: var(--status-suunniteltu-text); background: var(--status-suunniteltu-bg); }
+  .s2 { color: var(--status-asetettu-text); background: var(--status-asetettu-bg); }
+  .s3 { color: var(--status-tarkistettu-text); background: var(--status-tarkistettu-bg); }
+  .s4 { color: var(--status-keratty-text); background: var(--status-keratty-bg); }
+  .s5 { color: var(--status-ei-tarpeen-text); background: var(--status-ei-tarpeen-bg); }
+  .note { margin-top: 16px; font-size: 11px; color: var(--text-meta); }
+</style>
+</head>
+<body>
+  <div class="flow">
+    <span class="pill s1">Suunniteltu</span>
+    <span class="arr">→</span>
+    <span class="pill s2">Asetettu</span>
+    <span class="arr">→</span>
+    <span class="pill s3">Tarkistettu</span>
+    <span class="arr">→</span>
+    <span class="pill s4">Kerätty</span>
+    <span style="width:24px"></span>
+    <span class="pill s5">Ei tarpeen</span>
+  </div>
+  <div class="note">Text + soft bg tuned for WCAG AA on the card surface. Daylight theme darkens each for AA on light.</div>
+</body>
+</html>

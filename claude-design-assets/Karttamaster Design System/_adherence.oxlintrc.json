@@ -1,0 +1,424 @@
+{
+  "plugins": [
+    "react",
+    "import"
+  ],
+  "rules": {
+    "react/forbid-elements": [
+      "warn",
+      {
+        "forbid": []
+      }
+    ],
+    "no-restricted-imports": [
+      "warn",
+      {
+        "patterns": [
+          {
+            "group": [
+              "components/core/**",
+              "components/map/**",
+              "ui_kits/organizer/**",
+              "ui_kits/volunteer/**"
+            ],
+            "message": "Import design-system components from 'index.js', not component internals."
+          }
+        ]
+      }
+    ],
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "Literal[value=/#[0-9a-fA-F]{3,8}\\b/]",
+        "message": "Raw hex color — use a design-system color token via var()."
+      },
+      {
+        "selector": "Literal[value=/\\b\\d+px\\b/]",
+        "message": "Raw px value — use a design-system spacing token via var()."
+      },
+      {
+        "selector": "Literal[value=/font-family\\s*:\\s*(?!['\\\"]?(?:Inter))/i]",
+        "message": "Font not provided by the design system. Available: Inter."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute > JSXIdentifier[name!=/^(?:variant|size|fullWidth|iconLeft|iconRight|key|ref|className|style|children)$/]",
+        "message": "<Button> doesn't accept that prop. Declared props: variant, size, fullWidth, iconLeft, iconRight."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Card'] > JSXAttribute > JSXIdentifier[name!=/^(?:elevation|padding|key|ref|className|style|children)$/]",
+        "message": "<Card> doesn't accept that prop. Declared props: elevation, padding."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Card'] > JSXAttribute[name.name='elevation'] > Literal[value!=/^(?:flat|dropdown|modal)$/]",
+        "message": "<Card> elevation must be one of 'flat' | 'dropdown' | 'modal'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Card'] > JSXAttribute[name.name='padding'] > Literal[value!=/^(?:none|sm|md|lg)$/]",
+        "message": "<Card> padding must be one of 'none' | 'sm' | 'md' | 'lg'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='CheckInSecondaryAction'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|variant|onClick|key|ref|className|style|children)$/]",
+        "message": "<CheckInSecondaryAction> doesn't accept that prop. Declared props: label, variant, onClick."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='CheckInSecondaryAction'] > JSXAttribute[name.name='variant'] > Literal[value!=/^(?:secondary|ghost|danger)$/]",
+        "message": "<CheckInSecondaryAction> variant must be one of 'secondary' | 'ghost' | 'danger'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='DriveBanner'] > JSXAttribute > JSXIdentifier[name!=/^(?:distance|label|direction|near|action|style|key|ref|className|style|children)$/]",
+        "message": "<DriveBanner> doesn't accept that prop. Declared props: distance, label, direction, near, action, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='IconButton'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|variant|active|size|key|ref|className|style|children)$/]",
+        "message": "<IconButton> doesn't accept that prop. Declared props: label, variant, active, size."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='IconButton'] > JSXAttribute[name.name='variant'] > Literal[value!=/^(?:ghost|solid|danger)$/]",
+        "message": "<IconButton> variant must be one of 'ghost' | 'solid' | 'danger'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Input'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|hint|invalid|key|ref|className|style|children)$/]",
+        "message": "<Input> doesn't accept that prop. Declared props: label, hint, invalid."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='MarkerListItem'] > JSXAttribute > JSXIdentifier[name!=/^(?:glyph|hue|name|km|status|highlight|trailing|onClick|style|key|ref|className|style|children)$/]",
+        "message": "<MarkerListItem> doesn't accept that prop. Declared props: glyph, hue, name, km, status, highlight, trailing, onClick, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ProgressBar'] > JSXAttribute > JSXIdentifier[name!=/^(?:value|label|pct|detail|height|fill|key|ref|className|style|children)$/]",
+        "message": "<ProgressBar> doesn't accept that prop. Declared props: value, label, pct, detail, height, fill."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='RouteTab'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|color|active|hidden|onSelect|onToggleVisibility|style|key|ref|className|style|children)$/]",
+        "message": "<RouteTab> doesn't accept that prop. Declared props: label, color, active, hidden, onSelect, onToggleVisibility, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Select'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|key|ref|className|style|children)$/]",
+        "message": "<Select> doesn't accept that prop. Declared props: label."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='SignMarker'] > JSXAttribute > JSXIdentifier[name!=/^(?:type|bearing|status|glyph|size|key|ref|className|style|children)$/]",
+        "message": "<SignMarker> doesn't accept that prop. Declared props: type, bearing, status, glyph, size."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='SignMarker'] > JSXAttribute[name.name='status'] > Literal[value!=/^(?:suunniteltu|asetettu|tarkistettu|keratty|ei_tarpeen)$/]",
+        "message": "<SignMarker> status must be one of 'suunniteltu' | 'asetettu' | 'tarkistettu' | 'keratty' | 'ei_tarpeen'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='StatusBadge'] > JSXAttribute > JSXIdentifier[name!=/^(?:status|children|style|key|ref|className|style|children)$/]",
+        "message": "<StatusBadge> doesn't accept that prop. Declared props: status, children, style."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/index.js"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ],
+  "x-omelette": {
+    "components": {
+      "Button": {
+        "replaces": []
+      },
+      "Card": {
+        "replaces": []
+      },
+      "CheckInSecondaryAction": {
+        "replaces": []
+      },
+      "DriveBanner": {
+        "replaces": []
+      },
+      "IconButton": {
+        "replaces": []
+      },
+      "Input": {
+        "replaces": []
+      },
+      "MarkerListItem": {
+        "replaces": []
+      },
+      "ProgressBar": {
+        "replaces": []
+      },
+      "RouteTab": {
+        "replaces": []
+      },
+      "Select": {
+        "replaces": []
+      },
+      "SignMarker": {
+        "replaces": []
+      },
+      "StatusBadge": {
+        "replaces": []
+      }
+    },
+    "tokens": [
+      "--accent",
+      "--accent-hover",
+      "--accent-text",
+      "--amber-300",
+      "--amber-400",
+      "--amber-500",
+      "--amber-600",
+      "--amber-700",
+      "--blue-300",
+      "--blue-600",
+      "--blue-700",
+      "--blur-overlay",
+      "--border-card",
+      "--border-default",
+      "--border-strong",
+      "--border-subtle",
+      "--confirm",
+      "--confirm-hover",
+      "--confirm-text",
+      "--danger",
+      "--danger-soft",
+      "--danger-soft-hover",
+      "--danger-text",
+      "--dur-base",
+      "--dur-fast",
+      "--dur-instant",
+      "--ease",
+      "--emerald-300",
+      "--field-tint",
+      "--font-mono",
+      "--font-ui",
+      "--gps-active",
+      "--green-400",
+      "--green-500",
+      "--green-600",
+      "--green-700",
+      "--green-800",
+      "--hover",
+      "--hover-strong",
+      "--hue-left",
+      "--hue-right",
+      "--hue-up-l",
+      "--hue-up-r",
+      "--leading-body",
+      "--leading-tight",
+      "--marker-left",
+      "--marker-right",
+      "--marker-up-l",
+      "--marker-up-r",
+      "--overlay",
+      "--pad-btn",
+      "--pad-btn-sm",
+      "--pad-row",
+      "--pad-toolbar",
+      "--radius-lg",
+      "--radius-md",
+      "--radius-pill",
+      "--radius-sm",
+      "--red-300",
+      "--red-400",
+      "--red-500",
+      "--red-600",
+      "--red-700",
+      "--route-1",
+      "--route-2",
+      "--route-3",
+      "--route-4",
+      "--shadow-bar-up",
+      "--shadow-dropdown",
+      "--shadow-marker",
+      "--shadow-modal",
+      "--shadow-panel",
+      "--slate-100",
+      "--slate-200",
+      "--slate-300",
+      "--slate-400",
+      "--slate-50",
+      "--slate-500",
+      "--slate-700",
+      "--slate-800",
+      "--slate-900",
+      "--slate-950",
+      "--space-1",
+      "--space-1-5",
+      "--space-2",
+      "--space-2-5",
+      "--space-3",
+      "--space-4",
+      "--space-5",
+      "--space-6",
+      "--status-asetettu-bg",
+      "--status-asetettu-text",
+      "--status-ei-tarpeen-bg",
+      "--status-ei-tarpeen-text",
+      "--status-keratty-bg",
+      "--status-keratty-text",
+      "--status-suunniteltu-bg",
+      "--status-suunniteltu-text",
+      "--status-tarkistettu-bg",
+      "--status-tarkistettu-text",
+      "--surface-app",
+      "--surface-card",
+      "--surface-raised",
+      "--text-base",
+      "--text-body",
+      "--text-drive",
+      "--text-drive-lg",
+      "--text-lg",
+      "--text-meta",
+      "--text-muted",
+      "--text-sm",
+      "--touch-min",
+      "--touch-secondary",
+      "--tracking-btn",
+      "--tracking-caps",
+      "--warn-highlight",
+      "--weight-bold",
+      "--weight-medium",
+      "--weight-regular",
+      "--white",
+      "--z-auth",
+      "--z-map",
+      "--z-menu",
+      "--z-modal",
+      "--z-panel",
+      "--z-route-bar",
+      "--z-toolbar"
+    ],
+    "tokenKinds": {
+      "--slate-950": "color",
+      "--slate-900": "color",
+      "--slate-800": "color",
+      "--slate-700": "color",
+      "--slate-500": "color",
+      "--slate-400": "color",
+      "--slate-300": "color",
+      "--slate-200": "color",
+      "--slate-100": "color",
+      "--slate-50": "color",
+      "--white": "color",
+      "--amber-700": "color",
+      "--amber-600": "color",
+      "--amber-500": "color",
+      "--amber-400": "color",
+      "--amber-300": "color",
+      "--red-700": "color",
+      "--red-600": "color",
+      "--red-500": "color",
+      "--red-400": "color",
+      "--red-300": "color",
+      "--green-800": "color",
+      "--green-700": "color",
+      "--green-600": "color",
+      "--green-500": "color",
+      "--green-400": "color",
+      "--emerald-300": "color",
+      "--blue-700": "color",
+      "--blue-600": "color",
+      "--blue-300": "color",
+      "--hue-right": "color",
+      "--hue-left": "color",
+      "--hue-up-r": "color",
+      "--hue-up-l": "color",
+      "--route-1": "color",
+      "--route-2": "color",
+      "--route-3": "color",
+      "--route-4": "color",
+      "--surface-app": "color",
+      "--surface-card": "color",
+      "--surface-raised": "color",
+      "--text-body": "font",
+      "--text-muted": "font",
+      "--text-meta": "font",
+      "--accent": "color",
+      "--accent-text": "font",
+      "--accent-hover": "color",
+      "--danger": "color",
+      "--danger-text": "font",
+      "--danger-soft": "color",
+      "--danger-soft-hover": "color",
+      "--confirm": "color",
+      "--confirm-hover": "color",
+      "--confirm-text": "font",
+      "--gps-active": "color",
+      "--border-subtle": "color",
+      "--border-card": "color",
+      "--border-default": "color",
+      "--border-strong": "color",
+      "--overlay": "color",
+      "--hover": "color",
+      "--hover-strong": "color",
+      "--warn-highlight": "color",
+      "--field-tint": "color",
+      "--marker-right": "color",
+      "--marker-left": "color",
+      "--marker-up-r": "color",
+      "--marker-up-l": "color",
+      "--status-suunniteltu-text": "font",
+      "--status-asetettu-text": "font",
+      "--status-tarkistettu-text": "font",
+      "--status-keratty-text": "font",
+      "--status-ei-tarpeen-text": "font",
+      "--status-suunniteltu-bg": "color",
+      "--status-asetettu-bg": "color",
+      "--status-tarkistettu-bg": "color",
+      "--status-keratty-bg": "color",
+      "--status-ei-tarpeen-bg": "color",
+      "--font-ui": "font",
+      "--font-mono": "font",
+      "--text-sm": "font",
+      "--text-base": "font",
+      "--text-lg": "font",
+      "--text-drive": "font",
+      "--text-drive-lg": "font",
+      "--weight-regular": "font",
+      "--weight-medium": "font",
+      "--weight-bold": "font",
+      "--tracking-caps": "font",
+      "--tracking-btn": "font",
+      "--leading-tight": "font",
+      "--leading-body": "font",
+      "--space-1": "spacing",
+      "--space-1-5": "spacing",
+      "--space-2": "spacing",
+      "--space-2-5": "spacing",
+      "--space-3": "spacing",
+      "--space-4": "spacing",
+      "--space-5": "spacing",
+      "--space-6": "spacing",
+      "--pad-btn-sm": "spacing",
+      "--pad-btn": "spacing",
+      "--pad-toolbar": "spacing",
+      "--pad-row": "spacing",
+      "--radius-sm": "radius",
+      "--radius-md": "radius",
+      "--radius-lg": "radius",
+      "--radius-pill": "radius",
+      "--touch-min": "spacing",
+      "--touch-secondary": "spacing",
+      "--z-map": "other",
+      "--z-toolbar": "other",
+      "--z-panel": "other",
+      "--z-route-bar": "other",
+      "--z-menu": "other",
+      "--z-modal": "other",
+      "--z-auth": "other",
+      "--shadow-dropdown": "shadow",
+      "--shadow-modal": "shadow",
+      "--shadow-bar-up": "shadow",
+      "--shadow-panel": "shadow",
+      "--shadow-marker": "shadow",
+      "--blur-overlay": "other",
+      "--ease": "other",
+      "--dur-instant": "other",
+      "--dur-fast": "other",
+      "--dur-base": "other"
+    },
+    "fontFamilies": [
+      "Inter"
+    ]
+  }
+}
