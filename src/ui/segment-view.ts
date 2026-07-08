@@ -37,11 +37,14 @@ export interface SegmentViewActions {
   onSkipMarker?: (id: string) => void
   // Rivin/napin klikkaus — kohdista merkki kartalla + avaa detaljit (ohjeet, siirto).
   onFocusMarker?: (id: string) => void
+  // "Näytä kartalla" — panoroi kartta merkkiin AVAAMATTA modaalia (näkymä pienenee, kartta esiin).
+  onShowOnMap?: (id: string) => void
   // T78/V43: talkoolainen muokkaa oman pätkän rajoja kentällä (laajenna/lyhennä). Metrit.
   onEditBounds?: (startDistM: number, endDistM: number) => void
 }
 
 export class SegmentView {
+  private panel!: HTMLElement
   private readonly progressEl: HTMLElement
   private readonly nextEl: HTMLElement
   private readonly markerListEl: HTMLUListElement
@@ -72,6 +75,7 @@ export class SegmentView {
     this.inspectNoteInput = b.inspectNoteInput
     this.inspectStatus = b.inspectStatus
     this.boundsSection = b.boundsSection
+    this.panel = b.panel
     container.appendChild(b.panel)
     this.renderInspectSection()
     this.renderProgress()
@@ -107,6 +111,13 @@ export class SegmentView {
       const e = (this.segment.endDist / 1000).toFixed(1)
       toggle.textContent = `✎ Muokkaa pätkän rajoja (${s}–${e} km)`
     }
+  }
+
+  // Kutistaa/laajentaa näkymän (kartta esiin mobiilissa). Kutsuttavissa ulkoa + "Näytä kartalla".
+  setCollapsed(collapsed: boolean): void {
+    this.panel.classList.toggle('segment-view--collapsed', collapsed)
+    const btn = this.panel.querySelector('.segment-view-collapse')
+    if (btn) btn.setAttribute('aria-label', collapsed ? 'Laajenna pätkänäkymä' : 'Pienennä pätkänäkymä')
   }
 
   private updateBulkBtn(markers: SignMarker[]): void {
@@ -196,7 +207,12 @@ export class SegmentView {
     const showBtn = document.createElement('button')
     showBtn.className = 'btn btn--secondary segment-view-next-show'
     showBtn.textContent = 'Näytä kartalla'
-    showBtn.addEventListener('click', () => this.actions.onFocusMarker?.(next.id))
+    showBtn.addEventListener('click', () => {
+      // Panoroi + kutista näkymä → kartta esiin (ei avaa modaalia). Fallback onFocusMarker jos
+      // onShowOnMap ei annettu.
+      if (this.actions.onShowOnMap) { this.actions.onShowOnMap(next.id); this.setCollapsed(true) }
+      else this.actions.onFocusMarker?.(next.id)
+    })
     actionsRow.appendChild(showBtn)
 
     this.nextEl.appendChild(actionsRow)
@@ -250,6 +266,16 @@ export class SegmentView {
     const endKm = (this.segment.endDist / 1000).toFixed(1)
     range.textContent = `${startKm}–${endKm} km`
     header.appendChild(range)
+
+    // Kokoontaitto: mobiilissa näkymä vie ~48vh → kartta jää pieneksi. Chevron kutistaa
+    // näkymän otsikko+edistymispalkkiin ja antaa kartalle tilaa navigointiin.
+    const collapseBtn = document.createElement('button')
+    collapseBtn.type = 'button'
+    collapseBtn.className = 'segment-view-collapse'
+    collapseBtn.setAttribute('aria-label', 'Pienennä pätkänäkymä')
+    collapseBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg>'
+    collapseBtn.addEventListener('click', () => this.setCollapsed(!this.panel.classList.contains('segment-view--collapsed')))
+    header.appendChild(collapseBtn)
 
     panel.appendChild(header)
 

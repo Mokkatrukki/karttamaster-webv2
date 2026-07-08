@@ -197,6 +197,34 @@ describe('T14 — SegmentView', () => {
     })
   })
 
+  // Kokoontaitto — kartta esiin mobiilissa
+  describe('kokoontaitto', () => {
+    it('chevron kutistaa ja laajentaa näkymän', () => {
+      new SegmentView(container, makeSeg())
+      const panel = container.querySelector('#segment-view') as HTMLElement
+      const btn = container.querySelector('.segment-view-collapse') as HTMLButtonElement
+      expect(panel.classList.contains('segment-view--collapsed')).toBe(false)
+      btn.click()
+      expect(panel.classList.contains('segment-view--collapsed')).toBe(true)
+      btn.click()
+      expect(panel.classList.contains('segment-view--collapsed')).toBe(false)
+    })
+
+    it('"Näytä kartalla" kutsuu onShowOnMap + kutistaa (ei avaa detaljia)', () => {
+      let shown: string | null = null
+      let focused: string | null = null
+      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, undefined, {
+        onShowOnMap: (id) => { shown = id },
+        onFocusMarker: (id) => { focused = id },
+      })
+      view.update([makeMarker({ id: 'm1', distanceFromStart: 6000, status: 'suunniteltu' })])
+      ;(container.querySelector('.segment-view-next-show') as HTMLButtonElement).click()
+      expect(shown).toBe('m1')
+      expect(focused).toBeNull()
+      expect((container.querySelector('#segment-view') as HTMLElement).classList.contains('segment-view--collapsed')).toBe(true)
+    })
+  })
+
   // T78/V43: pätkän rajojen muokkaus kentällä
   describe('pätkän rajojen muokkaus (T78)', () => {
     it('bounds-osio piilossa jos onEditBounds puuttuu', () => {

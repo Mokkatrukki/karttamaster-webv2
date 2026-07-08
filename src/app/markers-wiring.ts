@@ -142,6 +142,8 @@ export function wireMarkers(
           onSetMarker: (id) => markerManager.updateStatus(id, 'aseta'),
           onSkipMarker: (id) => markerManager.updateStatus(id, 'ohita'),
           onFocusMarker: (id) => onOpenMarkerDetail(id),
+          // "Näytä kartalla": panoroi ilman modaalia (näkymä kutistuu → kartta esiin)
+          onShowOnMap: (id) => markerManager.panTo(id),
           // T78/V43: talkoolainen muokkaa oman pätkän rajoja kentällä. Server sallii (V93:
           // talkoolainen_code === assigned_code). Päivitä store + backend + kartta + näkymä.
           onEditBounds: (startDist, endDist) => {

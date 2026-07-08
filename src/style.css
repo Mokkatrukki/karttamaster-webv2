@@ -1447,6 +1447,48 @@ button {
   flex-shrink: 0;
 }
 
+/* Kokoontaitto-chevron (mobiili: kartta esiin) */
+.segment-view-collapse {
+  min-width: 44px;
+  min-height: 44px;
+  margin: -10px -6px -10px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.segment-view-collapse:hover {
+  color: var(--text-body);
+}
+
+.segment-view-collapse svg {
+  transition: transform 0.2s ease;
+}
+
+/* Kutistettu: vain otsikko + edistymispalkki näkyvät, muu piiloon → kartalle tilaa */
+.segment-view--collapsed {
+  max-height: none;
+}
+
+.segment-view--collapsed .segment-view-desc,
+.segment-view--collapsed .segment-view-next,
+.segment-view--collapsed .segment-view-equipment,
+.segment-view--collapsed .segment-view-list,
+.segment-view--collapsed .segment-view-bounds,
+.segment-view--collapsed .segment-view-inspect,
+.segment-view--collapsed .btn-bulk-collect {
+  display: none;
+}
+
+.segment-view--collapsed .segment-view-collapse svg {
+  transform: rotate(180deg);
+}
+
 /* Phase-tietoinen edistymispalkki (sama getPhaseProgress kuin järjestäjällä) */
 .segment-view-progress {
   display: flex;
