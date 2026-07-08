@@ -11,7 +11,9 @@ export interface MapInit {
 }
 
 export function initMap(): MapInit {
-  const map = L.map('map', { zoomSnap: 0.25, zoomDelta: 0.25 })
+  const map = L.map('map', { zoomSnap: 0.25, zoomDelta: 0.25, zoomControl: false })
+  // B86/V122 — zoom-kontrolli oikeaan yläkulmaan, ei peitä vasemman sivupalkin ▶-togglea mobiililla
+  L.control.zoom({ position: 'topright' }).addTo(map)
   // E2E testability hook — not used in production
   ;(window as unknown as Record<string, unknown>)['__testMap'] = map
 
