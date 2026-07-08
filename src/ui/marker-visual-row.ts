@@ -1,19 +1,29 @@
 import { signVisual, signVisualParts, compactLabel } from '../logic/sign-visual'
 import { signImageSrc } from '../logic/sign-images'
 import { getIconById } from '../logic/icon-set'
+import { SIGN_TYPES } from '../logic/sign-picker'
 import type { SignPart } from '../logic/sign-library'
 import { registerEscClose, createBackdrop } from './modal-helpers'
 
 // T198: jaettu render-helper merkin visuaalille — kuva>ikoni>label-precedence (V99),
 // yhdistelmämerkki pystypino max 4 osaa (V107). Erillinen segment-details-modal.ts:stä
 // (jo ⚠️ pilkko COMPONENTS.md:ssä) ja uudelleenkäytettävä myöhemmin talkoolaisen SegmentView:ssä.
-export type MarkerVisualInput = Pick<SignMarkerLike, 'type' | 'iconId' | 'label' | 'parts'>
+export type MarkerVisualInput = Pick<SignMarkerLike, 'type' | 'iconId' | 'label' | 'parts' | 'color'>
 
 interface SignMarkerLike {
   type: string
   iconId?: string
   label?: string
   parts?: SignPart[]
+  color?: string
+}
+
+// Sama väri-precedence kuin src/map/icons.ts circleSvg/comboMarkerSvg: custom template-väri
+// voittaa, muuten oletustyypin väri (SIGN_TYPES), muuten neutraali. Ei kiinteää accent-väriä —
+// listan värien pitää täsmätä kartan väreihin (V87), muuten tunnistettavuus katoaa.
+function resolveColor(marker: MarkerVisualInput): string {
+  if (marker.color) return marker.color
+  return SIGN_TYPES.find(t => t.type === marker.type)?.color ?? '#94a3b8'
 }
 
 export interface MarkerVisualOptions {
@@ -57,6 +67,7 @@ export function buildMarkerVisual(marker: MarkerVisualInput, opts: MarkerVisualO
   const resolved = marker.parts && marker.parts.length > 0
     ? signVisualParts({ iconId: marker.iconId, label: marker.label ?? '', parts: marker.parts }, signImageSrc)
     : null
+  const color = resolveColor(marker)
 
   if (resolved) {
     const stack = document.createElement('div')
@@ -71,10 +82,10 @@ export function buildMarkerVisual(marker: MarkerVisualInput, opts: MarkerVisualO
         slot.style.cssText = `height:${slotH}px;${border};display:flex;align-items:center;justify-content:center;background:#fff`
         slot.innerHTML = `<img src="${p.src}" alt="" onerror="this.remove()" style="width:100%;height:100%;object-fit:contain;pointer-events:none">`
       } else if (p.kind === 'icon') {
-        slot.style.cssText = `height:${slotH}px;${border};display:flex;align-items:center;justify-content:center;background:var(--accent)`
+        slot.style.cssText = `height:${slotH}px;${border};display:flex;align-items:center;justify-content:center;background:${color}`
         slot.innerHTML = iconSvg(p.id, Math.round(slotH * 0.55), '#fff')
       } else {
-        slot.style.cssText = `height:${slotH}px;${border};display:flex;align-items:center;justify-content:center;background:var(--accent)`
+        slot.style.cssText = `height:${slotH}px;${border};display:flex;align-items:center;justify-content:center;background:${color}`
         slot.innerHTML = `<span style="font:900 ${Math.round(slotH * 0.5)}px sans-serif;color:#fff">${p.text}</span>`
       }
       stack.appendChild(slot)
@@ -87,7 +98,7 @@ export function buildMarkerVisual(marker: MarkerVisualInput, opts: MarkerVisualO
     if (kind === 'image') {
       box.style.cssText = `width:100%;height:100%;border-radius:8px;background:#fff;border:1px solid var(--border-default);display:flex;align-items:center;justify-content:center;overflow:hidden`
     } else {
-      box.style.cssText = `width:100%;height:100%;border-radius:999px;background:var(--accent);display:flex;align-items:center;justify-content:center;overflow:hidden`
+      box.style.cssText = `width:100%;height:100%;border-radius:999px;background:${color};display:flex;align-items:center;justify-content:center;overflow:hidden`
     }
     box.innerHTML = singleVisualInner(marker, Math.round(opts.size * 0.6))
     wrap.appendChild(box)

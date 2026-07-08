@@ -28,6 +28,24 @@ describe('T198 — MarkerVisualRow / buildMarkerVisual', () => {
     expect(el.textContent).not.toContain('2')
   })
 
+  it('UX-korjaus: oletustyypin väri tulee SIGN_TYPES:sta (left=sininen), ei kiinteä accent', () => {
+    const el = buildMarkerVisual({ type: 'left', iconId: 'arrow-left', label: 'Vasemmalle' }, { size: 34, zoomable: false })
+    const box = el.querySelector<HTMLElement>('.marker-visual-row-single')!
+    expect(box.style.background).toBe('rgb(37, 99, 235)') // #2563eb
+  })
+
+  it('UX-korjaus: custom template-väri (marker.color) voittaa oletustyypin värin', () => {
+    const el = buildMarkerVisual({ type: 'left', iconId: 'arrow-left', label: 'Custom', color: '#ff00ff' }, { size: 34, zoomable: false })
+    const box = el.querySelector<HTMLElement>('.marker-visual-row-single')!
+    expect(box.style.background).toBe('rgb(255, 0, 255)')
+  })
+
+  it('tuntematon tyyppi ilman väriä → neutraali #94a3b8', () => {
+    const el = buildMarkerVisual({ type: 'custom-xyz', label: 'X', iconId: 'wrench' }, { size: 34, zoomable: false })
+    const box = el.querySelector<HTMLElement>('.marker-visual-row-single')!
+    expect(box.style.background).toBe('rgb(148, 163, 184)') // #94a3b8
+  })
+
   it('tuplamerkki typistyy max 4 osaan', () => {
     const el = buildMarkerVisual(
       {
