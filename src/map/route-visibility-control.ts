@@ -68,6 +68,9 @@ export class RouteVisibilityControl {
   }
 
   private buildPills(): void {
+    // V137/B92: idempotentti render — tyhjennä ennen lisäystä, ettei re-init (logout→login)
+    // tai muu tuplakutsu jätä tuplapillereitä ("35km 55km 35km 55km") containeriin.
+    this.container.replaceChildren()
     this.routes.forEach(r => {
       const pill = document.createElement('button')
       pill.className = 'route-vis-pill'

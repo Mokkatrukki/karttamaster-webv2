@@ -119,7 +119,14 @@ if (import.meta.env.DEV) {
   import('./devtools/feedback-widget').then(({ FeedbackWidget }) => new FeedbackWidget())
 }
 
+// B92/T209: init() lisää dokumentti-/karttatason kuuntelijoita ja rakentaa DOM:ia — ei
+// idempotentti. Logout→login ilman reloadia (onLoggedOut → authScreen.start() → tämä
+// callback uudelleen) ajaisi init():n toistamiseen → tuplapillerit + tuplakuuntelijat.
+// Ensimmäinen auth käynnistää sovelluksen; uudelleenkirjautuminen tekee puhtaan reloadin.
+let appInitialized = false
 const authScreen = wireAuth(toolbarMenu, () => activeMarkerManager, (code) => {
+  if (appInitialized) { window.location.reload(); return }
+  appInitialized = true
   init(code).catch(console.error)
 })
 // T186/V119: kirjoituksen 401 → re-auth-modaali; onnistuneen kirjautumisen jälkeen

@@ -637,13 +637,13 @@ test.describe('Merkin zoom-skaalaus — T175', () => {
     const far = await readAnchors()
     await page.evaluate(() => {
       const m = (window as unknown as Record<string, unknown>)['__testMap'] as { setZoom(z: number): void } | undefined
-      m?.setZoom(17)
+      m?.setZoom(19) // T210/V138: kartan todellinen maxZoom — merkki suurimmillaan täällä, ei 17:ssä
     })
     await page.waitForTimeout(300)
     const near = await readAnchors()
 
     expect(far.transform).toContain('scale(0.3')
-    expect(near.transform).toContain('scale(1')
+    expect(near.transform).toContain('scale(1.2')
     expect(near.innerWidth).toBeGreaterThan(far.innerWidth)
     // Skaalauksen transform-origin (center bottom) pitää ankkuripisteen paikallaan riippumatta scalesta
     expect(Math.abs(far.outerAnchorX - far.innerAnchorX)).toBeLessThan(2)

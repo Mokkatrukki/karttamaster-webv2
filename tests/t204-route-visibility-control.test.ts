@@ -42,6 +42,16 @@ describe('T204 — RouteVisibilityControl (järjestäjän kevyt reittivalitsin)'
     expect(container.querySelectorAll('.route-vis-pill')).toHaveLength(2)
   })
 
+  // B92/V137: re-init (esim. logout→login ilman reloadia) EI saa jättää tuplapillereitä
+  // samaan containeriin — buildPills renderöi idempotentisti (tyhjentää ensin).
+  it('idempotentti: kaksi rakennusta samaan containeriin → N pilleriä, ei 2N', () => {
+    build()
+    build()
+    expect(container.querySelectorAll('.route-vis-pill')).toHaveLength(2)
+    const labels = [...container.querySelectorAll('.route-vis-label')].map(e => e.textContent)
+    expect(labels).toEqual(['35km', '55km'])
+  })
+
   it('EI drive-kontrolleja: ei ◀▶-nuolia, ei route-tab-drive/scrubber-elementtejä', () => {
     build()
     expect(container.querySelector('.route-tab-drive')).toBeNull()
