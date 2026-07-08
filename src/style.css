@@ -437,6 +437,40 @@ button {
   gap: 8px;
 }
 
+/* T204/V134: järjestäjän kevyt reittivalitsin — pyöreä pill-kontrolli kartan alakulmassa.
+   Ei täysleveää palkkia, ei drive-chromea (scrubber/nuolet/km piilotettu JS:llä). */
+#route-bar[data-mode="visibility"] {
+  left: auto;
+  right: 12px;
+  bottom: 12px;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+#route-bar[data-mode="visibility"] #route-bar-main { justify-content: flex-end; }
+
+.route-vis-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-card);
+  color: var(--text-body);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+.route-vis-pill:hover { background: var(--surface-raised); }
+.route-vis-pill.route-hidden { opacity: 0.45; }
+.route-vis-pill:disabled { cursor: default; }
+.route-vis-dot { width: 12px; height: 12px; border-radius: 999px; flex-shrink: 0; }
+.route-vis-eye { display: inline-flex; color: var(--text-muted); }
+
 /* ── Route tabs ── */
 
 #route-selector {

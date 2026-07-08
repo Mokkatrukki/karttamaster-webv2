@@ -157,6 +157,32 @@ test.describe('Rooli backendistä (V80: #btn-role-toggle on dead code tili-per-r
   })
 })
 
+test.describe('RouteBar-jako (T204/V134)', () => {
+  test('järjestäjä: kevyt reittivalitsin, ei drive-kontrolleja', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await expect(page.locator('.route-vis-pill').first()).toBeVisible()
+    await expect(page.locator('#route-track')).toBeHidden()
+    await expect(page.locator('#route-drive-controls')).toBeHidden()
+    await expect(page.locator('.route-tab-drive')).toHaveCount(0)
+  })
+
+  test('talkoolainen: drive-kontrollit näkyvissä', async ({ page }) => {
+    await mockAuthAsTalkoolainen(page)
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await expect(page.locator('.route-tab-drive').first()).toBeVisible()
+    await expect(page.locator('#route-track')).toBeVisible()
+    await expect(page.locator('.route-vis-pill')).toHaveCount(0)
+  })
+})
+
 test.describe('Tilivalikko + Kirjaudu ulos (T203/V133)', () => {
   test('logout tyhjentää session ja avaa AuthScreenin', async ({ page }) => {
     // Stateful mock: /api/auth/me palauttaa 200 kunnes logout, sitten 401 → login-lomake.

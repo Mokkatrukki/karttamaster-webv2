@@ -2,6 +2,7 @@ import type L from 'leaflet'
 import { MarkerManager } from '../map/markers'
 import { DriveMode } from '../map/drive'
 import { RouteBar } from '../map/route-bar'
+import { RouteVisibilityControl } from '../map/route-visibility-control'
 import { ProgressBar } from '../ui/progress-bar'
 import { PlaceMode } from '../ui/place-mode'
 import { renderMarkerList } from '../ui/marker-list'
@@ -25,7 +26,7 @@ import type { SegmentPanel } from '../ui/segment-panel'
 export interface MarkersWiring {
   markerManager: MarkerManager
   driveMode: DriveMode
-  routeBar: RouteBar
+  routeBar: RouteBar | null
   progressBar: ProgressBar
   placeMode: PlaceMode
   markerModal: HTMLElement
@@ -131,27 +132,48 @@ export function wireMarkers(
     gpsDrivePanel?.update(km)
   })
 
-  const routeBar = new RouteBar(
-    routes, polylines, map, driveMode, markerManager,
-    document.getElementById('route-selector')!,
-    document.getElementById('route-track-fill') as HTMLElement,
-    () => { progressBar.update(0); progressBar.refreshDots() },
-  )
+  // T204/V134: RouteBar-jako. Talkoolainen saa täyden drive-kontrollin (RouteBar: reittivalinta
+  // + ◀▶-nuolet + km-scrubber); järjestäjä saa vain kevyen näytä/piilota-reittivalitsimen
+  // (RouteVisibilityControl). Drive-DOM (scrubber, gps-drive-panel, ◀▶) renderöityy VAIN
+  // talkoolaiselle — piilotetaan järjestäjältä.
+  const isTalkoolainen = getRole() === 'talkoolainen'
+  let routeBar: RouteBar | null = null
+  let routeVis: RouteVisibilityControl | null = null
+  const routeSelectorEl = document.getElementById('route-selector')!
+
+  if (isTalkoolainen) {
+    routeBar = new RouteBar(
+      routes, polylines, map, driveMode, markerManager,
+      routeSelectorEl,
+      document.getElementById('route-track-fill') as HTMLElement,
+      () => { progressBar.update(0); progressBar.refreshDots() },
+    )
+  } else {
+    routeVis = new RouteVisibilityControl(routes, polylines, map, markerManager, routeSelectorEl)
+    // Piilota drive-osat järjestäjältä (V134)
+    document.getElementById('route-track')?.setAttribute('hidden', '')
+    document.getElementById('route-drive-controls')?.setAttribute('hidden', '')
+    document.getElementById('route-km')?.setAttribute('hidden', '')
+    document.getElementById('route-bar')?.setAttribute('data-mode', 'visibility')
+  }
+
+  const activeRouteProvider = () => (routeBar ?? routeVis!).getActiveRoute()
+  const activeTotalProvider = () => (routeBar ?? routeVis!).getActiveTotalM()
 
   progressBar = new ProgressBar(
-    () => routeBar.getActiveRoute(),
-    () => routeBar.getActiveTotalM(),
+    activeRouteProvider,
+    activeTotalProvider,
     driveMode,
     markerManager,
   )
   progressBar.update(0)
 
-  if (talkoolainenCode) {
+  if (isTalkoolainen) {
     gpsDrivePanel = new GpsDrivePanel(
       document.getElementById('gps-drive-panel')!,
       driveMode,
       markerManager,
-      () => routeBar.getActiveRoute().id,
+      () => activeRouteProvider().id,
     )
     gpsDrivePanel.update(0)
   }

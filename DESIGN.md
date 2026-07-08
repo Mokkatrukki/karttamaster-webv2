@@ -151,12 +151,10 @@ metsässä, hanskat kädessä.
 - **Kirjaudu ulos** (`#btn-logout`, `.account-menu-logout`, danger-tyyli): `POST /api/auth/logout` → `onLoggedOut` → `AuthScreen.start()` (login-lomake). Verkkovirhekin → kirjautumisruutu (ei jää haamutilaan).
 - **Poistettu:** `#btn-role` + `RoleSelector` (B48/V80 dead code — rooli tulee tili-per-rooli-authista, ei toggle).
 
-### Route-bar (`#route-bar`)
+### Route-bar (`#route-bar`) — roolijako (T204/V134)
 - Kiinteä alareuna, `z-index: 2000` (yli Leaflet-kontrollit 1000)
-- Tausta: `bg-primary`, shadow ylöspäin
-- Navigointipainikkeet (`btn-route-prev/next`): `min-height: 44px` ✓
-- Route-tab-drive: `min-height: 44px` ✓ (T45)
-- Route-tab-vis (eye-icon): `width: 44px; min-height: 44px` ✓ (T45)
+- **Talkoolainen** = täysi drive-kontrolli (`RouteBar`, `src/map/route-bar.ts`): reittivalinta (▶ = aseta ajettavaksi) + km-scrubber (`#route-track`) + ◀▶-nuolet (`#route-drive-controls`) + `#gps-drive-panel`. Route-tab-drive/`btn-route-prev/next`: `min-height:44px` ✓.
+- **Järjestäjä** = kevyt reittivalitsin (`RouteVisibilityControl`, `src/map/route-visibility-control.ts`): pelkkä näytä/piilota per reitti pyöreinä pilleinä (`.route-vis-pill`, `border-radius:999px`, `min-height:44px`) kartan alakulmassa (`#route-bar[data-mode="visibility"]` → läpinäkyvä, `right:12px;bottom:12px`). EI drive-nuolia, EI km-scrubberia, EI gps-drive-panelia — piilotettu `hidden`-attribuutilla (V134). V6 säilyy: viimeistä näkyvää reittiä ei voi piilottaa (`disabled`).
 
 ### Dropdownit (`#sign-type-dropdown`, `#floating-picker`)
 - Tausta: `bg-card`, border: `border-default`, `border-radius: 10px`
