@@ -366,8 +366,11 @@ metsässä, hanskat kädessä.
 - Kentät:
   - `displayName`: `<input>`, auto-save blur/Enter, `min-height: 44px`
   - kuvaus: `<textarea>`, 3 riviä, auto-save change, `min-height: 44px`
-  - merkit readonly-lista: `text-muted 12px`, status-badge §C-väreillä, `max-height: 160px` scrollable
-  - varusteet: add/remove/edit-rivi, `min-height: 44px` kaikille inputeille ja napeille
+  - **Merkit & varusteet (T199, yhtenäinen lista — korvaa entiset kolme erillistä osiota):**
+    - Per-merkki-rivit (`.segment-details-marker-list`, `max-height:200px` scrollable): `[MarkerVisualRow 34px, zoomable=true][nimi flex:1 truncated][km tabular-nums text-meta][status-pilli]`. Nimi = `m.label ?? tyyppilabel`. Status-pilli väritetty §C-taulukon mukaan (`.status-suunniteltu/asetettu/tarkistettu/kerätty/ei_tarpeen`, pill-muotoinen `border-radius:999px`).
+    - Yhteenveto-chip-rivit (`.segment-equipment-chip-list`, samassa sektiossa heti perässä): merkit groupoitu `m.type`:n mukaan, `[iso tabular-nums luku "N×"][MarkerVisualRow 28px, zoomable=false][nimi]`. Korvaa entisen `"6× left"`-tekstirivin. Ei zoom-nappia (yhteenveto ei ole tarkka esikatselu, per-merkki-rivi hoitaa sen).
+    - Manuaaliset lisävarusteet: add/remove/edit-rivi ennallaan (ei muutettu T199:ssä), `min-height: 44px` kaikille inputeille ja napeille.
+    - Molemmat merkkipohjaiset osiot piilossa jos pätkällä ei merkkejä (`segMarkers.length === 0`) — manuaalinen lista näkyy silti aina.
   - `.btn-segment-clone-phase` (T146): "Kloonaa &lt;seuraava&gt;-vaiheeseen", sama tyyli kuin `.btn-segment-edit-pts-modal` (`field-tint` bg, `border-strong`, `min-height:44px`, `width:100%`, `text-align:left`) — ei destructive, ei primary, matala visuaalinen painoarvo koska harvoin käytetty toiminto
 
 ### Modal footer -pattern (KAIKKI modaalit noudattavat)

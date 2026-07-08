@@ -82,7 +82,7 @@ server/       ← Hono + Bun + SQLite
 | RoleSelector | `src/ui/role-selector.ts` | ✓ T12 (V80: toggle dead code) | critical-paths: "Rooli backendistä" | [ui.md](docs/components/ui.md) |
 | SegmentPanel | `src/ui/segment-panel.ts` | ✓ T148 | e2e/segments.spec.ts ".segment-km näyttää status-lukumäärän" | [ui.md](docs/components/ui.md) |
 | SegmentCreationModal | `src/ui/segment-creation-modal.ts` | ✓ T150 | — | [ui.md](docs/components/ui.md) |
-| SegmentDetailsModal | `src/ui/segment-details-modal.ts` | ✓ T146 ⚠️ pilkko | — | [ui.md](docs/components/ui.md) |
+| SegmentDetailsModal | `src/ui/segment-details-modal.ts` | ✓ T146,T199 ⚠️ pilkko | tests/t69-segment-details-modal.test.ts, tests/t199-segment-markers-list.test.ts | [ui.md](docs/components/ui.md) |
 | EquipmentList | `src/ui/segment-view.ts` | ✓ T147 | e2e/segments.spec.ts "tarkastus-segmentti näyttää..." | [ui.md](docs/components/ui.md) |
 | PhaseSwitcher | `src/ui/phase-switcher.ts` | ✓ T148,T180 (stopPropagation, B80) | e2e/t180-phase-switcher-menu.spec.ts | [ui.md](docs/components/ui.md) |
 | AuthScreen | `src/ui/auth-screen.ts` | ✓ T51 | — | [ui.md](docs/components/ui.md) |

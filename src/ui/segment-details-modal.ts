@@ -3,6 +3,7 @@ import { updateSegmentRemote, deleteSegmentRemote, pushSegment } from '../logic/
 import type { Segment, SegmentStore, EquipmentItem } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
 import { registerEscClose, createBackdrop } from './modal-helpers'
+import { buildMarkerVisual } from './marker-visual-row'
 
 const STATUS_LABELS: Record<string, string> = {
   suunniteltu: 'Suunniteltu',
@@ -110,15 +111,8 @@ export class SegmentDetailsModal {
     const { section: descSection, descInput } = this.buildDescSection(seg)
     body.appendChild(descSection)
 
-    // (3) markers
-    const allMarkers = this.callbacks.getMarkers?.() ?? []
-    const segMarkers = getMarkersForSegment(seg, allMarkers)
-    if (segMarkers.length > 0) {
-      body.appendChild(this.buildMarkersSection(segMarkers))
-    }
-
-    // (4) equipment
-    body.appendChild(this.buildEquipmentSection(seg))
+    // (3+4) T199: merkit + varusteet yhtenäisenä listana (ei enää kolmea erillistä osiota)
+    body.appendChild(this.buildMarkersAndEquipmentSection(seg))
 
     // (5) assign link
     body.appendChild(this.buildAssignSection(seg))
@@ -199,58 +193,79 @@ export class SegmentDetailsModal {
     return { section, descInput }
   }
 
-  private buildMarkersSection(segMarkers: SignMarker[]): HTMLElement {
+  // T199: yhtenäinen "Merkit & varusteet" -lista — korvaa entiset kolme erillistä osiota
+  // (tekstilista + "6× left"-automaattilaskuri + manuaalinen lista) yhdellä loogisella
+  // sektiolla. Precise-rivit + yhteenveto-chipit käyttävät buildMarkerVisual (T198) —
+  // sama visuaali kuin kartalla (V87: täyttö on tyyppiväri, ei tekstiä).
+  private buildMarkersAndEquipmentSection(seg: Segment): HTMLElement {
     const section = document.createElement('div')
     section.className = 'segment-details-modal-section'
 
-    const title = document.createElement('p')
-    title.className = 'segment-equipment-title'
-    title.textContent = `Merkit pätkällä (${segMarkers.length}):`
-    section.appendChild(title)
-
-    const list = document.createElement('ul')
-    list.className = 'segment-details-marker-list'
-    const sorted = [...segMarkers].sort((a, b) => a.distanceFromStart - b.distanceFromStart)
-    for (const m of sorted) {
-      const li = document.createElement('li')
-      li.className = 'segment-details-marker-item'
-      const info = document.createElement('span')
-      info.className = 'segment-details-marker-info'
-      info.textContent = `${(m.distanceFromStart / 1000).toFixed(1)} km — ${TYPE_LABELS[m.type] ?? m.type}`
-      li.appendChild(info)
-      const badge = document.createElement('span')
-      badge.className = `segment-details-marker-status status-${m.status}`
-      badge.textContent = STATUS_LABELS[m.status] ?? m.status
-      li.appendChild(badge)
-      list.appendChild(li)
-    }
-    section.appendChild(list)
-    return section
-  }
-
-  private buildEquipmentSection(seg: Segment): HTMLElement {
-    const container = document.createElement('div')
-    container.className = 'segment-details-modal-section'
-
     const allMarkers = this.callbacks.getMarkers?.() ?? []
     const segMarkers = getMarkersForSegment(seg, allMarkers)
+
     if (segMarkers.length > 0) {
-      const counts = new Map<string, number>()
-      for (const m of segMarkers) counts.set(m.type, (counts.get(m.type) ?? 0) + 1)
-      const autoTitle = document.createElement('p')
-      autoTitle.className = 'segment-equipment-title'
-      autoTitle.textContent = 'Merkit pätkällä (automaattinen):'
-      container.appendChild(autoTitle)
-      const autoList = document.createElement('ul')
-      autoList.className = 'segment-equipment-auto-list'
-      for (const [type, count] of counts) {
+      const title = document.createElement('p')
+      title.className = 'segment-equipment-title'
+      title.textContent = `Merkit pätkällä (${segMarkers.length}):`
+      section.appendChild(title)
+
+      const list = document.createElement('ul')
+      list.className = 'segment-details-marker-list'
+      const sorted = [...segMarkers].sort((a, b) => a.distanceFromStart - b.distanceFromStart)
+      for (const m of sorted) {
         const li = document.createElement('li')
-        li.textContent = `${count}× ${type}`
-        autoList.appendChild(li)
+        li.className = 'segment-details-marker-item'
+        li.appendChild(buildMarkerVisual(m, { size: 34, zoomable: true }))
+        const info = document.createElement('span')
+        info.className = 'segment-details-marker-info'
+        info.textContent = m.label ?? TYPE_LABELS[m.type] ?? m.type
+        li.appendChild(info)
+        const km = document.createElement('span')
+        km.className = 'segment-details-marker-km'
+        km.textContent = `${(m.distanceFromStart / 1000).toFixed(1)} km`
+        li.appendChild(km)
+        const badge = document.createElement('span')
+        badge.className = `segment-details-marker-status status-${m.status}`
+        badge.textContent = STATUS_LABELS[m.status] ?? m.status
+        li.appendChild(badge)
+        list.appendChild(li)
       }
-      container.appendChild(autoList)
+      section.appendChild(list)
+
+      // Yhteenveto — groupoitu m.type:n mukaan (sama laskenta kuin ennen), chip-rivi ison
+      // luvun + oikean merkkivisuaalin kanssa. Korvaa entisen "6× left"-tekstirivin.
+      const groups = new Map<string, SignMarker[]>()
+      for (const m of segMarkers) {
+        const arr = groups.get(m.type) ?? []
+        arr.push(m)
+        groups.set(m.type, arr)
+      }
+      const summaryTitle = document.createElement('p')
+      summaryTitle.className = 'segment-equipment-title'
+      summaryTitle.textContent = 'Yhteenveto:'
+      section.appendChild(summaryTitle)
+      const chipList = document.createElement('ul')
+      chipList.className = 'segment-equipment-chip-list'
+      for (const [, ms] of groups) {
+        const rep = ms[0]
+        const li = document.createElement('li')
+        li.className = 'segment-equipment-chip'
+        const count = document.createElement('span')
+        count.className = 'segment-equipment-chip-count'
+        count.textContent = `${ms.length}×`
+        li.appendChild(count)
+        li.appendChild(buildMarkerVisual(rep, { size: 28, zoomable: false }))
+        const nameEl = document.createElement('span')
+        nameEl.className = 'segment-equipment-chip-name'
+        nameEl.textContent = rep.label ?? TYPE_LABELS[rep.type] ?? rep.type
+        li.appendChild(nameEl)
+        chipList.appendChild(li)
+      }
+      section.appendChild(chipList)
     }
 
+    const container = section
     const manualTitle = document.createElement('p')
     manualTitle.className = 'segment-equipment-title'
     manualTitle.textContent = 'Lisävarusteet:'
