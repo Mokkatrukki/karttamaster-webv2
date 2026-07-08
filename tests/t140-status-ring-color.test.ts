@@ -13,32 +13,33 @@ function getHtml(...args: Parameters<typeof createSignIcon>): string {
 }
 
 describe('T140 — statusväri ulkoreunassa, täyttö pysyy tyyppikuvana (B59/V87)', () => {
-  it('asetettu → reunus vihreä #22c55e, täyttö silti tyyppiväri', () => {
+  // V132/T202: statusvärit Reittimerkki-palettiin, tyyppivärit uuteen palettiin.
+  it('asetettu → reunus vihreä #2FA35B, täyttö silti tyyppiväri', () => {
     const html = getHtml('right', 'asetettu')
-    expect(html).toContain('stroke="#22c55e"')
-    expect(html).toContain('fill="#16a34a"')
+    expect(html).toContain('stroke="#2FA35B"')
+    expect(html).toContain('fill="#16A34A"')
   })
 
-  it('tarkistettu → reunus sininen #0ea5e9, täyttö tyyppiväri', () => {
+  it('tarkistettu → reunus sininen #3B82C4, täyttö tyyppiväri', () => {
     const html = getHtml('left', 'tarkistettu')
-    expect(html).toContain('stroke="#0ea5e9"')
-    expect(html).toContain('fill="#2563eb"')
+    expect(html).toContain('stroke="#3B82C4"')
+    expect(html).toContain('fill="#2563EB"')
   })
 
-  it('kerätty → reunus violetti #8b5cf6, täyttö tyyppiväri', () => {
+  it('kerätty → reunus violetti #8A5CD1, täyttö tyyppiväri', () => {
     const html = getHtml('right', 'kerätty')
-    expect(html).toContain('stroke="#8b5cf6"')
-    expect(html).toContain('fill="#16a34a"')
+    expect(html).toContain('stroke="#8A5CD1"')
+    expect(html).toContain('fill="#16A34A"')
   })
 
-  it('ei_tarpeen → reunus harmaa #78716c, täyttö tyyppiväri', () => {
+  it('ei_tarpeen → reunus kulta #C9922E, täyttö tyyppiväri', () => {
     const html = getHtml('right', 'ei_tarpeen')
-    expect(html).toContain('stroke="#78716c"')
+    expect(html).toContain('stroke="#C9922E"')
   })
 
   it('asetettu/tarkistettu/kerätty ovat eri reunusväriset keskenään', () => {
     const colors = ['asetettu', 'tarkistettu', 'kerätty'].map(s =>
-      getHtml('right', s as any).match(/stroke="(#[0-9a-f]{6})" stroke-width="4"/)?.[1]
+      getHtml('right', s as any).match(/stroke="(#[0-9a-fA-F]{6})" stroke-width="4"/)?.[1]
     )
     expect(new Set(colors).size).toBe(3)
   })

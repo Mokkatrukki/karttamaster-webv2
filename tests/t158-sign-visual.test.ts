@@ -147,8 +147,8 @@ describe('T158/V99: circleSvg kuvan täyttö + onerror-fallback (T103-pattern)',
   })
 
   it('V87 säilyy: statusväri ulkoreunassa myös kuvan kanssa', () => {
-    // asetettu → vihreä stroke #22c55e, kuva istuu reunan sisäpuolella
-    expect(html('data:image/webp;base64,AA')).toContain('#22c55e')
+    // asetettu → vihreä stroke #2FA35B, kuva istuu reunan sisäpuolella
+    expect(html('data:image/webp;base64,AA')).toContain('#2FA35B')
   })
 })
 
@@ -188,7 +188,7 @@ describe('T172/V107: createSignIcon combo-haara (pystypino)', () => {
   it('yhteinen status-reunus koko pinolle (V87) — vain yksi tip-SVG', () => {
     const parts = signVisualParts({ label: 'X', parts: [{ iconId: 'flag' }, { iconId: 'wrench' }] }, () => undefined)
     const h = icon(parts).html
-    expect(h).toContain('#22c55e') // asetettu-status vihreä reunus
+    expect(h).toContain('#2FA35B') // asetettu-status vihreä reunus
     expect(h.match(/viewBox="0 0 16 8"/g)).toHaveLength(1) // yksi tip, ei per-osa
   })
 })

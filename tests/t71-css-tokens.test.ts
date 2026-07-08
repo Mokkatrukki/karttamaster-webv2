@@ -31,64 +31,68 @@ describe('T71 CSS token-migraatio', () => {
     html.removeAttribute('data-theme')
   })
 
-  it('dark theme: --surface-app on #0f172a', () => {
-    html.setAttribute('data-theme', 'dark')
-    const val = getComputedStyle(html).getPropertyValue('--surface-app').trim()
-    expect(val).toBe('#0f172a')
-  })
+  // V132/T202: kaksi käyttäjän valittavaa teemaa — Reittimerkki-vaalea (:root, oletus)
+  // + Kaamos-tumma ([data-theme="dark"]). Roolisidottu daylight/dark poistettu.
 
-  it('dark theme: --surface-card on #1e293b', () => {
-    html.setAttribute('data-theme', 'dark')
-    const val = getComputedStyle(html).getPropertyValue('--surface-card').trim()
-    expect(val).toBe('#1e293b')
-  })
-
-  it('dark theme: --text-body on #e2e8f0', () => {
-    html.setAttribute('data-theme', 'dark')
-    const val = getComputedStyle(html).getPropertyValue('--text-body').trim()
-    expect(val).toBe('#e2e8f0')
-  })
-
-  it('dark theme: --confirm on #15803d', () => {
-    html.setAttribute('data-theme', 'dark')
-    const val = getComputedStyle(html).getPropertyValue('--confirm').trim()
-    expect(val).toBe('#15803d')
-  })
-
-  it('dark theme: --gps-active on #1d4ed8', () => {
-    html.setAttribute('data-theme', 'dark')
-    const val = getComputedStyle(html).getPropertyValue('--gps-active').trim()
-    expect(val).toBe('#1d4ed8')
-  })
-
-  it('daylight theme: --surface-app on #ffffff', () => {
-    html.setAttribute('data-theme', 'daylight')
-    const val = getComputedStyle(html).getPropertyValue('--surface-app').trim()
-    expect(val).toBe('#ffffff')
-  })
-
-  it('daylight theme: --surface-card on #f1f5f9', () => {
-    html.setAttribute('data-theme', 'daylight')
-    const val = getComputedStyle(html).getPropertyValue('--surface-card').trim()
-    expect(val).toBe('#f1f5f9')
-  })
-
-  it('daylight theme: --text-body on #020617', () => {
-    html.setAttribute('data-theme', 'daylight')
-    const val = getComputedStyle(html).getPropertyValue('--text-body').trim()
-    expect(val).toBe('#020617')
-  })
-
-  it('daylight theme: --text-muted tumma (ei vaalea)', () => {
-    html.setAttribute('data-theme', 'daylight')
-    const val = getComputedStyle(html).getPropertyValue('--text-muted').trim()
-    expect(val).toBe('#334155')
-  })
-
-  it('default (no data-theme): dark tokenit käytössä', () => {
+  it('Reittimerkki-vaalea (:root, oletus): --surface-app on #EDF1EC (birkkupaperi)', () => {
     html.removeAttribute('data-theme')
     const val = getComputedStyle(html).getPropertyValue('--surface-app').trim()
-    expect(val).toBe('#0f172a')
+    expect(val).toBe('#EDF1EC')
+  })
+
+  it('Reittimerkki-vaalea: --surface-card on #F6F9F5', () => {
+    html.removeAttribute('data-theme')
+    const val = getComputedStyle(html).getPropertyValue('--surface-card').trim()
+    expect(val).toBe('#F6F9F5')
+  })
+
+  it('Reittimerkki-vaalea: --text-body on #17221D (kuusenmusta)', () => {
+    html.removeAttribute('data-theme')
+    const val = getComputedStyle(html).getPropertyValue('--text-body').trim()
+    expect(val).toBe('#17221D')
+  })
+
+  it('Reittimerkki-vaalea: --accent on #F2542D (huomionauha, EI amber)', () => {
+    html.removeAttribute('data-theme')
+    const val = getComputedStyle(html).getPropertyValue('--accent').trim()
+    expect(val).toBe('#F2542D')
+  })
+
+  it('Reittimerkki-vaalea: data-theme="light" → oletustokenit (ei erillistä override-selektoria)', () => {
+    html.setAttribute('data-theme', 'light')
+    const val = getComputedStyle(html).getPropertyValue('--surface-app').trim()
+    expect(val).toBe('#EDF1EC')
+  })
+
+  it('status-tokenit määritelty :rootissa (§C) — asetettu #2FA35B', () => {
+    html.removeAttribute('data-theme')
+    const val = getComputedStyle(html).getPropertyValue('--status-asetettu').trim()
+    expect(val).toBe('#2FA35B')
+  })
+
+  it('Kaamos-tumma: --surface-app on lämmin hiilenmusta #1A1614', () => {
+    html.setAttribute('data-theme', 'dark')
+    const val = getComputedStyle(html).getPropertyValue('--surface-app').trim()
+    expect(val).toBe('#1A1614')
+  })
+
+  it('Kaamos-tumma: --text-body vaalea #F0EAE4', () => {
+    html.setAttribute('data-theme', 'dark')
+    const val = getComputedStyle(html).getPropertyValue('--text-body').trim()
+    expect(val).toBe('#F0EAE4')
+  })
+
+  it('Kaamos-tumma: --accent sama huomionauha #F2542D', () => {
+    html.setAttribute('data-theme', 'dark')
+    const val = getComputedStyle(html).getPropertyValue('--accent').trim()
+    expect(val).toBe('#F2542D')
+  })
+
+  it('roolisidottu daylight-teema poistettu CSS:stä', () => {
+    const fs = require('fs')
+    const path = require('path')
+    const css = fs.readFileSync(path.resolve(__dirname, '../src/style.css'), 'utf-8')
+    expect(css).not.toMatch(/\[data-theme="daylight"\]/)
   })
 
   it('radius-sm on 6px (U5-fix)', () => {

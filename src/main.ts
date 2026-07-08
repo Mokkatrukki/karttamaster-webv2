@@ -11,10 +11,14 @@ import { wireAreas } from './app/areas-wiring'
 import { wireSegments } from './app/segments-wiring'
 import { wireMarkers } from './app/markers-wiring'
 import { wireAuth } from './app/role-view'
+import { initTheme } from './logic/theme'
+
+// V132/T202: palauta käyttäjän valitsema teema ennen renderiä (estää välkkeen).
+initTheme()
 
 export const ROUTE_DEFS: Omit<RouteConfig, 'routePoints'>[] = [
-  { id: '35km', label: '35 km', color: '#f59e0b', file: '/route-35km.gpx' },
-  { id: '55km', label: '55 km', color: '#8b5cf6', file: '/route-55km.gpx' },
+  { id: '35km', label: '35 km', color: '#2F6FB0', file: '/route-35km.gpx' },
+  { id: '55km', label: '55 km', color: '#B5476B', file: '/route-55km.gpx' },
 ]
 
 const { map, toolbarMenu } = initMap()

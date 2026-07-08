@@ -33,9 +33,11 @@ export interface SignTypeInfo {
 }
 
 // V99/T160: kompakti kartta-teksti johdetaan labelista (compactLabel), ei erillistä shortLabelia.
+// V132/T202: tyyppivärit uuteen Reittimerkki-palettiin — eri sävyperheet (B58),
+// väri = tyyppi-tunniste (V96), luettavia valkoisella korttitaustalla (T208).
 export const SIGN_TYPES: SignTypeInfo[] = [
-  { type: 'left',          label: 'Vasemmalle',         color: '#2563eb' },
-  { type: 'right',         label: 'Oikealle',           color: '#16a34a' },
-  { type: 'upcoming-left', label: 'Tuleva vasemmalle',  color: '#7c3aed' },
-  { type: 'upcoming-right',label: 'Tuleva oikealle',    color: '#b45309' },
+  { type: 'left',          label: 'Vasemmalle',         color: '#2563EB' },
+  { type: 'right',         label: 'Oikealle',           color: '#16A34A' },
+  { type: 'upcoming-left', label: 'Tuleva vasemmalle',  color: '#9333EA' },
+  { type: 'upcoming-right',label: 'Tuleva oikealle',    color: '#C2410C' },
 ]

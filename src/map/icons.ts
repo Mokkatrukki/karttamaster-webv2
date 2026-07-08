@@ -13,11 +13,13 @@ const R  = 14
 // tyyppikohtaisena niin merkin tyyppi tunnistuu edelleen suoraan kuvasta, sama kuva kaikissa
 // statuksissa (myös kerätty). Neljä keskenään selkeästi erottuvaa sävyä (vihreä/sininen/violetti/
 // harmaa), ei saman perheen pastelleja (entinen #4ade80 vs #6ee7b7 -pari oli lähes identtinen).
+// V132/T202: statusvärit Reittimerkki-palettiin (§C). Leaflet-DivIcon-SVG ei peri
+// :root-tokeneja (vrt. T120) → arvot tässä, synkassa style.css --status-* -tokenien kanssa.
 const STATUS_RING: Partial<Record<MarkerStatus, string>> = {
-  asetettu:    '#22c55e', // vihreä — asetettu paikalleen
-  tarkistettu: '#0ea5e9', // taivassininen — tarkistettu (eri sävy kuin 'left'-tyypin indigo #2563eb)
-  kerätty:     '#8b5cf6', // violetti — kerätty/purettu (selvästi eri sävyperhe kuin vihreä/sininen)
-  ei_tarpeen:  '#78716c', // neutraali harmaa — ei tarvita, pois fokuksesta
+  asetettu:    '#2FA35B', // vihreä — asetettu paikalleen
+  tarkistettu: '#3B82C4', // sininen — tarkistettu (eri sävy kuin 'left'-tyypin #2563EB)
+  kerätty:     '#8A5CD1', // violetti — kerätty/purettu (eri sävyperhe kuin vihreä/sininen)
+  ei_tarpeen:  '#C9922E', // kulta — ei tarvita, pois fokuksesta
 }
 
 // T161/T-C: kuva-kyltti suorakaide-korttina — koko kyltti näkyy (object-fit:contain),
@@ -28,7 +30,7 @@ const CARD = 40   // kortin sivu px
 const TIP = 8     // osoitin-kolmion korkeus
 function imageMarkerSvg(imageSrc: string, status: MarkerStatus, compact: string, color: string): string {
   const isPlanned = status === 'suunniteltu'
-  const bColor = STATUS_RING[status] ?? '#64748b' // suunniteltu/ei-status → neutraali
+  const bColor = STATUS_RING[status] ?? '#8A968D' // suunniteltu/ei-status → neutraali
   const bStyle = isPlanned ? 'dashed' : 'solid'
   const tip = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="${TIP}" viewBox="0 0 16 8" style="position:absolute;bottom:0;left:${(CARD - 16) / 2}px;pointer-events:none;display:block"><path d="M0,0 L8,8 L16,0 Z" fill="${bColor}"/></svg>`
   return `
@@ -61,7 +63,7 @@ function comboSlotSvg(part: SignVisual, color: string): string {
 
 function comboMarkerSvg(parts: SignVisual[], status: MarkerStatus, color: string): string {
   const isPlanned = status === 'suunniteltu'
-  const bColor = STATUS_RING[status] ?? '#64748b'
+  const bColor = STATUS_RING[status] ?? '#8A968D'
   const bStyle = isPlanned ? 'dashed' : 'solid'
   const height = parts.length * STACK
   const slots = parts.map((p, i) =>
@@ -81,11 +83,12 @@ function circleSvg(type: string, status: MarkerStatus, colorOverride?: string, c
   let isUpcoming = false
 
   switch (type) {
-    case 'right':          arrow = '→'; color = '#16a34a'; break
-    case 'left':           arrow = '←'; color = '#2563eb'; break
-    case 'upcoming-right': arrow = '↱'; color = '#b45309'; isUpcoming = true; break
-    case 'upcoming-left':  arrow = '↰'; color = '#7c3aed'; isUpcoming = true; break
-    default:               arrow = compactOverride ?? '?'; color = colorOverride ?? '#94a3b8'; break
+    // Tyyppivärit synkassa SIGN_TYPES (sign-picker.ts) kanssa — V132/T202.
+    case 'right':          arrow = '→'; color = '#16A34A'; break
+    case 'left':           arrow = '←'; color = '#2563EB'; break
+    case 'upcoming-right': arrow = '↱'; color = '#C2410C'; isUpcoming = true; break
+    case 'upcoming-left':  arrow = '↰'; color = '#9333EA'; isUpcoming = true; break
+    default:               arrow = compactOverride ?? '?'; color = colorOverride ?? '#8A968D'; break
   }
   const tipHtml = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="10" viewBox="0 0 32 10" style="position:absolute;bottom:0;left:0;pointer-events:none;display:block"><path d="M8,0 L16,10 L24,0 Z" fill="${color}" stroke="white" stroke-width="1.5" stroke-linejoin="round"/></svg>`
 
@@ -125,7 +128,7 @@ export function createSignIcon(type: string, status: MarkerStatus = 'suunniteltu
   if (visualParts && visualParts.length > 1) {
     const height = visualParts.length * STACK + TIP
     return L.divIcon({
-      html: comboMarkerSvg(visualParts, status, color ?? '#94a3b8'),
+      html: comboMarkerSvg(visualParts, status, color ?? '#8A968D'),
       className: '',
       iconSize: [STACK, height],
       iconAnchor: [STACK / 2, height],
@@ -135,7 +138,7 @@ export function createSignIcon(type: string, status: MarkerStatus = 'suunniteltu
   // Kuva → suorakaide-kortti (koko kyltti näkyy). Muut → ympyrä (nuoli/ikoni/label).
   if (imageSrc) {
     return L.divIcon({
-      html: imageMarkerSvg(imageSrc, status, compact ?? '', color ?? '#94a3b8'),
+      html: imageMarkerSvg(imageSrc, status, compact ?? '', color ?? '#8A968D'),
       className: '',
       iconSize: [CARD, CARD + TIP],
       iconAnchor: [CARD / 2, CARD + TIP],

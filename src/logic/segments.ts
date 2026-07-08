@@ -173,8 +173,8 @@ export function formatPhaseProgress(progress: PhaseProgress): string {
 }
 
 // T152/V96: pätkän tunnistehue stabiili per id (⊥ lista-indeksi — poisto ei siirrä muiden värejä).
-// Paletti EI sisällä route-värejä (main.ts ROUTE_DEFS #f59e0b/#8b5cf6, DESIGN.md §K).
-export const SEGMENT_COLORS = ['#10b981', '#ec4899', '#3b82f6', '#ef4444', '#06b6d4', '#64748b']
+// V132/T202: valkoiselle kartalle sopivat reitti-/pätkävärit (Reittimerkki-paletti).
+export const SEGMENT_COLORS = ['#2F6FB0', '#7A4E9C', '#0E9594', '#B5476B']
 
 export function colorForSegment(id: string): string {
   let hash = 0

@@ -52,26 +52,26 @@ describe('T23: createSignIcon status-visualisointi', () => {
     // T140/B59: statuspiste korvattu ulkoreunan statusvärillä (täyttö on aina tyyppiväri) — ks. tests/t140-status-ring-color.test.ts
     it('suunniteltu → ei status-reunusväriä', () => {
       const html = getHtml('right', 'suunniteltu')
-      expect(html).not.toContain('#22c55e')
-      expect(html).not.toContain('#0ea5e9')
-      expect(html).not.toContain('#8b5cf6')
-      expect(html).not.toContain('#78716c')
+      expect(html).not.toContain('#2FA35B')
+      expect(html).not.toContain('#3B82C4')
+      expect(html).not.toContain('#8A5CD1')
+      expect(html).not.toContain('#C9922E')
     })
 
-    it('asetettu → vihreä reunus #22c55e', () => {
-      expect(getHtml('right', 'asetettu')).toContain('#22c55e')
+    it('asetettu → vihreä reunus #2FA35B', () => {
+      expect(getHtml('right', 'asetettu')).toContain('#2FA35B')
     })
 
-    it('tarkistettu → sininen reunus #0ea5e9', () => {
-      expect(getHtml('left', 'tarkistettu')).toContain('#0ea5e9')
+    it('tarkistettu → sininen reunus #3B82C4', () => {
+      expect(getHtml('left', 'tarkistettu')).toContain('#3B82C4')
     })
 
-    it('kerätty → violetti reunus #8b5cf6', () => {
-      expect(getHtml('right', 'kerätty')).toContain('#8b5cf6')
+    it('kerätty → violetti reunus #8A5CD1', () => {
+      expect(getHtml('right', 'kerätty')).toContain('#8A5CD1')
     })
 
-    it('ei_tarpeen → harmaa reunus #78716c', () => {
-      expect(getHtml('right', 'ei_tarpeen')).toContain('#78716c')
+    it('ei_tarpeen → harmaa reunus #C9922E', () => {
+      expect(getHtml('right', 'ei_tarpeen')).toContain('#C9922E')
     })
   })
 
@@ -83,9 +83,9 @@ describe('T23: createSignIcon status-visualisointi', () => {
   })
 
   describe('T84/V99: custom type — fallback color/compactLabel', () => {
-    it('tuntematon type käyttää fallback-väriä #94a3b8', () => {
+    it('tuntematon type käyttää fallback-väriä #8A968D', () => {
       const html = getHtml('custom-uuid-123', 'suunniteltu')
-      expect(html).toContain('#94a3b8')
+      expect(html).toContain('#8A968D')
     })
 
     it('tuntematon type ilman compact-override käyttää fallback "?"', () => {
@@ -141,7 +141,7 @@ describe('T70: teardrop-ikoni', () => {
     const html = getIcon('right').html
     const tipIdx = html.indexOf('M8,0 L16,10 L24,0 Z')
     const tipContext = html.slice(tipIdx, tipIdx + 80)
-    expect(tipContext).toContain('#16a34a')
+    expect(tipContext).toContain('#16A34A')
   })
 
   // T139/B58: statuspiste korvattu koko ympyrän täyttövärillä — tip-kärki säilyttää tyyppivärin
@@ -150,8 +150,8 @@ describe('T70: teardrop-ikoni', () => {
     const html = createSignIcon('right', 'asetettu') as unknown as { html: string }
     const tipIdx = html.html.indexOf('M8,0 L16,10 L24,0 Z')
     const tipContext = html.html.slice(tipIdx, tipIdx + 80)
-    expect(tipContext).toContain('#16a34a')
-    expect(html.html).toContain('#22c55e')
+    expect(tipContext).toContain('#16A34A')
+    expect(html.html).toContain('#2FA35B')
   })
 
   it('kaikki 4 tyyppiä renderoituvat virheettä', () => {
@@ -162,13 +162,13 @@ describe('T70: teardrop-ikoni', () => {
   })
 
   describe('tyyppiväri säilyy', () => {
-    it('right → vihreä #16a34a statuksesta riippumatta', () => {
-      expect(getHtml('right', 'suunniteltu')).toContain('#16a34a')
-      expect(getHtml('right', 'asetettu')).toContain('#16a34a')
+    it('right → vihreä #16A34A statuksesta riippumatta', () => {
+      expect(getHtml('right', 'suunniteltu')).toContain('#16A34A')
+      expect(getHtml('right', 'asetettu')).toContain('#16A34A')
     })
 
-    it('left → sininen #2563eb', () => {
-      expect(getHtml('left', 'tarkistettu')).toContain('#2563eb')
+    it('left → sininen #2563EB', () => {
+      expect(getHtml('left', 'tarkistettu')).toContain('#2563EB')
     })
   })
 })

@@ -9,62 +9,70 @@ Inline SVG-tyylit (dynaamiset, bearing-riippuvaiset): `src/map/icons.ts`.
 
 ## §C Värit
 
-Kaksi teemaa: **dark** (järjestäjä, toimisto) ja **daylight** (talkoolainen, metsä/aurinko).
+Kaksi **käyttäjän vapaasti valittavaa** teemaa (V132/T202, EI roolisidottu):
+**Reittimerkki-vaalea** (`:root`, oletus — birkkupaperi) ja **Kaamos-tumma**
+(`[data-theme="dark"]` — lämmin hiilenmusta). Valinta persistoituu localStorageen
+(`karttamaster-theme`, `src/logic/theme.ts`) ja palautuu latauksessa. Molemmat teemat
+molempien roolien käytettävissä; toggle tilivalikossa (T203).
 
-### Pääteema: dark
+### Chrome-tokenit
 
-| Token           | Arvo (dark)                  | Arvo (daylight)              | Käyttö                              |
+| Token           | Reittimerkki-vaalea (`:root`)| Kaamos-tumma (`[data-theme=dark]`)| Käyttö                              |
 |-----------------|------------------------------|------------------------------|-------------------------------------|
-| surface-app     | `#0f172a`                    | `#ffffff`                    | Toolbar, route-bar, paneelit        |
-| surface-card    | `#1e293b`                    | `#f1f5f9`                    | Modaalit, dropdownit, kortit        |
-| surface-raised  | `#243044`                    | `#f8fafc`                    | Hover-kortit, sisäkkäiset           |
-| text-body       | `#e2e8f0`                    | `#020617`                    | Pääteksti, napit, otsikot           |
-| text-muted      | `#94a3b8`                    | `#334155`                    | Sekundaaritieto, meta-napit         |
-| text-meta       | `#64748b`                    | `#64748b`                    | Metatieto (km-lukema)               |
-| accent          | `#f59e0b`                    | `#f59e0b`                    | Päänappi "Lisää merkki"             |
-| accent-text     | `#111111`                    | `#1a1205`                    | Teksti accent-taustan päällä        |
-| accent-hover    | `#d97706`                    | `#b45309`                    | Accent hover-tila                   |
-| confirm         | `#15803d`                    | `#15803d`                    | Talkoolaisen kuittausnappula        |
-| confirm-hover   | `#166534`                    | `#166534`                    | Confirm hover-tila                  |
+| surface-app     | `#EDF1EC`                    | `#1A1614`                    | Toolbar, route-bar, paneelit        |
+| surface-card    | `#F6F9F5`                    | `#241E1B`                    | Modaalit, dropdownit, kortit        |
+| surface-raised  | `#ffffff`                    | `#2E2723`                    | Hover-kortit, sisäkkäiset           |
+| text-body       | `#17221D`                    | `#F0EAE4`                    | Pääteksti, napit, otsikot           |
+| text-muted      | `#5B6A61`                    | `#A99E95`                    | Sekundaaritieto, meta-napit         |
+| text-meta       | `#7C8A80`                    | `#857B72`                    | Metatieto (km-lukema)               |
+| accent          | `#F2542D`                    | `#F2542D`                    | Päänappi (huomionauha)              |
+| accent-text     | `#ffffff`                    | `#ffffff`                    | Teksti accent-taustan päällä        |
+| accent-hover    | `#D8441F`                    | `#FF6A44`                    | Accent hover-tila                   |
+| confirm         | `#1F8A50`                    | `#2FA35B`                    | Talkoolaisen kuittausnappula        |
+| confirm-hover   | `#196E40`                    | `#3BBE6C`                    | Confirm hover-tila                  |
 | confirm-text    | `#ffffff`                    | `#ffffff`                    | Teksti confirm-taustan päällä       |
-| danger          | `#ef4444`                    | `#dc2626`                    | Poisto, place-mode aktiivi          |
-| danger-text     | `#f87171`                    | `#b91c1c`                    | Danger-teksti (kirkas bg:llä)       |
-| danger-soft     | `rgba(239,68,68,0.10)`       | `rgba(220,38,38,0.08)`       | Poisto-napin tausta                 |
-| danger-soft-hover | `rgba(239,68,68,0.20)`     | `rgba(220,38,38,0.16)`       | Poisto hover                        |
-| gps-active      | `#1d4ed8`                    | `#1d4ed8`                    | GPS aktiivi -tila                   |
-| border-subtle   | `rgba(255,255,255,0.06)`     | `rgba(15,23,42,0.06)`        | Osastojen erottimet                 |
-| border-card     | `rgba(255,255,255,0.08)`     | `rgba(15,23,42,0.10)`        | Listarivien separator               |
-| border-default  | `rgba(255,255,255,0.10)`     | `rgba(15,23,42,0.14)`        | Korttirajat, dropdownit             |
-| border-strong   | `rgba(255,255,255,0.12)`     | `rgba(15,23,42,0.20)`        | Napit                               |
-| hover           | `rgba(255,255,255,0.08)`     | `rgba(15,23,42,0.05)`        | Hover-tila napeilla ja riveillä     |
-| hover-strong    | `rgba(255,255,255,0.14)`     | `rgba(15,23,42,0.10)`        | Vahvempi hover (aktiivi painallus)  |
-| field-tint      | `rgba(255,255,255,0.06)`     | `rgba(15,23,42,0.05)`        | Input/chip taustasävy               |
-| overlay         | `rgba(0,0,0,0.5)`            | `rgba(15,23,42,0.40)`        | Modaalin backdrop                   |
-| warn-highlight  | `rgba(245,158,11,0.12)`      | `rgba(245,158,11,0.16)`      | Uusi/korostettu listakohta          |
+| danger          | `#C4384A`                    | `#E45C6B`                    | Poisto, place-mode aktiivi          |
+| danger-text     | `#C4384A`                    | `#F08292`                    | Danger-teksti                       |
+| gps-active      | `#2F6FB0`                    | `#4C8BD0`                    | GPS aktiivi -tila                   |
+| border-default  | `rgba(23,34,29,0.14)`        | `rgba(255,245,235,0.10)`     | Korttirajat, dropdownit             |
+| hover           | `rgba(23,34,29,0.05)`        | `rgba(255,245,235,0.08)`     | Hover-tila napeilla ja riveillä     |
+| field-tint      | `rgba(23,34,29,0.04)`        | `rgba(255,245,235,0.06)`     | Input/chip taustasävy               |
+| overlay         | `rgba(23,34,29,0.40)`        | `rgba(0,0,0,0.55)`           | Modaalin backdrop                   |
 
-### Merkki-värit (karttaikonit, src/map/icons.ts)
+Border-portaikko (subtle/card/default/strong) ja hover-strong noudattavat samaa opasiteettiskaalaa
+(0.06/0.10/0.14/0.20 vaaleassa, 0.06/0.08/0.10/0.14 tummassa). Katso `src/style.css` `:root` / `[data-theme="dark"]`.
 
-| Token          | Hex       | Merkki                     |
-|----------------|-----------|----------------------------|
-| marker-right   | `#16a34a` | Oikealle (vihreä)          |
-| marker-left    | `#2563eb` | Vasemmalle (sininen)       |
-| marker-up-r    | `#b45309` | Tuleva oikealle (oranssi)  |
-| marker-up-l    | `#7c3aed` | Tuleva vasemmalle (violetti)|
+### Status-värit (§C, merkki-elinkaari — CSS-tokenit `--status-*` + icons.ts STATUS_RING)
 
-### Status-värit (merkki-elinkaari, src/ui/marker-list.ts + style.css)
+Väri = tunniste (V96), eri sävyperheistä (B58). Näkyvät myös kuvamerkin kortin reunuksena (V87).
+CSS-tokeneina teemakohtaisesti; Leaflet-DivIcon-SVG (icons.ts) ei peri `:root`-tokeneja → arvot
+myös `STATUS_RING`-taulussa synkassa vaalean teeman kanssa. Taustaväri: `color-mix(... 12%, transparent)`.
 
-Kovakoodatut molemmissa teemoissa — domain-värit, ei vaihdeta teeman mukaan.
+| Token / status     | Vaalea (`:root`) | Kaamos    | Status           |
+|--------------------|------------------|-----------|------------------|
+| status-suunniteltu | `#8A968D`        | `#9AA69D` | Suunniteltu (harmaa) |
+| status-asetettu    | `#2FA35B`        | `#3EBB6E` | Asetettu (vihreä) |
+| status-tarkistettu | `#3B82C4`        | `#4C97D6` | Tarkistettu (sininen)|
+| status-keratty     | `#8A5CD1`        | `#A277E0` | Kerätty (violetti)|
+| status-ei-tarpeen  | `#C9922E`        | `#DBA83F` | Ei tarpeen (kulta)|
 
-| Token              | Teksti hex | Taustaopasiteetti | Status           |
-|--------------------|------------|-------------------|------------------|
-| status-suunniteltu | `#94a3b8`  | `var(--field-tint)` | Suunniteltu    |
-| status-asetettu    | `#4ade80`  | `rgba(74,222,128,0.10)`  | Asetettu ✓  |
-| status-tarkistettu | `#93c5fd`  | `rgba(147,197,253,0.10)` | Tarkistettu ✓|
-| status-kerätty     | `#6ee7b7`  | `rgba(110,231,183,0.10)` | Kerätty     |
-| status-ei_tarpeen  | `#fbbf24`  | `rgba(251,191,36,0.10)`  | Ei tarpeen  |
+### Merkki-tyyppivärit (SIGN_TYPES `src/logic/sign-picker.ts` + icons.ts, luettavia valkoisella kortilla)
+
+| Tyyppi        | Hex       | Merkki                      |
+|---------------|-----------|-----------------------------|
+| left          | `#2563EB` | Vasemmalle (sininen)        |
+| right         | `#16A34A` | Oikealle (vihreä)           |
+| upcoming-left | `#9333EA` | Tuleva vasemmalle (violetti)|
+| upcoming-right| `#C2410C` | Tuleva oikealle (poltettu oranssi)|
+
+### Reitti-/pätkävärit (SEGMENT_COLORS `src/logic/segments.ts` + ROUTE_DEFS `src/main.ts`)
+
+Valkoiselle kartalle: `#2F6FB0` (sininen) · `#7A4E9C` (violetti) · `#0E9594` (turkoosi) · `#B5476B` (magenta).
+Reitit 35km = `#2F6FB0`, 55km = `#B5476B`.
 
 **Sääntö:** Käytä vain yllä olevia tokeneja. Älä keksi uusia hex-koodeja suoraan CSS:ään.
-Jos tarvitaan uusi väri, lisää se ensin tähän taulukkoon.
+Jos tarvitaan uusi väri, lisää se ensin tähän taulukkoon. Icons.ts/sign-picker.ts JS-arvot
+pidettävä synkassa tämän taulukon kanssa (Leaflet-SVG ei peri CSS-tokeneja).
 
 ---
 

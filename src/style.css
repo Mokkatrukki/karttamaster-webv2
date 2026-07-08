@@ -1,58 +1,66 @@
 /* Karttamaster — global styles
    Muuta värejä DESIGN.md §C-taulukon kautta, ei suoraan tänne.
-   Tokenijärjestelmä: :root/[data-theme="dark"] = tumma teema (järjestäjä, toimisto)
-                       [data-theme="daylight"]   = vaalea teema (talkoolainen, metsä)
-   Teemavaihto: <html data-theme="dark|daylight"> */
+   Tokenijärjestelmä (V132/T202): kaksi käyttäjän valittavaa teemaa, EI roolisidottu.
+     :root                 = Reittimerkki-vaalea (oletus, birkkupaperi)
+     [data-theme="dark"]   = Kaamos-tumma (lämmin hiilenmusta)
+   Teemavaihto: <html data-theme="light|dark"> — src/logic/theme.ts, persistoituu localStorageen. */
 
-/* ── Tokens: dark (default) ── */
+/* ── Tokens: Reittimerkki-vaalea (:root, oletus) ── */
 
-:root,
-[data-theme="dark"] {
-  color-scheme: dark;
+:root {
+  color-scheme: light;
 
-  /* Surfaces */
-  --surface-app:    #0f172a;
-  --surface-card:   #1e293b;
-  --surface-raised: #243044;
+  /* Surfaces — birkkupaperi */
+  --surface-app:    #EDF1EC;
+  --surface-card:   #F6F9F5;
+  --surface-raised: #ffffff;
 
-  /* Text */
-  --text-body:   #e2e8f0;
-  --text-muted:  #94a3b8;
-  --text-meta:   #64748b;
+  /* Text — kuusenmusta */
+  --text-body:   #17221D;
+  --text-muted:  #5B6A61;
+  --text-meta:   #7C8A80;
 
-  /* Accent (amber) — yksi per näkymä */
-  --accent:       #f59e0b;
-  --accent-text:  #111111;
-  --accent-hover: #d97706;
+  /* Accent (huomionauha) — yksi per näkymä */
+  --accent:       #F2542D;
+  --accent-text:  #ffffff;
+  --accent-hover: #D8441F;
 
   /* Confirm (vihreä) — talkoolaisen kuittausnappula */
-  --confirm:       #15803d;
-  --confirm-hover: #166534;
+  --confirm:       #1F8A50;
+  --confirm-hover: #196E40;
   --confirm-text:  #ffffff;
 
   /* Danger (punainen) */
-  --danger:            #ef4444;
-  --danger-text:       #f87171;
-  --danger-soft:       rgba(239, 68, 68, 0.10);
-  --danger-soft-hover: rgba(239, 68, 68, 0.20);
+  --danger:            #C4384A;
+  --danger-text:       #C4384A;
+  --danger-soft:       rgba(196, 56, 74, 0.08);
+  --danger-soft-hover: rgba(196, 56, 74, 0.16);
 
   /* GPS */
-  --gps-active: #1d4ed8;
+  --gps-active: #2F6FB0;
+
+  /* Status-värit (§C, V132) — näkyvät myös kuvamerkin kortin reunuksena (V87).
+     Eri sävyperheistä (B58): harmaa/vihreä/sininen/violetti/kulta. */
+  --status-suunniteltu: #8A968D;
+  --status-asetettu:    #2FA35B;
+  --status-tarkistettu: #3B82C4;
+  --status-keratty:     #8A5CD1;
+  --status-ei-tarpeen:  #C9922E;
 
   /* Borders — 4-portainen hiussäie */
-  --border-subtle:  rgba(255, 255, 255, 0.06);
-  --border-card:    rgba(255, 255, 255, 0.08);
-  --border-default: rgba(255, 255, 255, 0.10);
-  --border-strong:  rgba(255, 255, 255, 0.12);
+  --border-subtle:  rgba(23, 34, 29, 0.06);
+  --border-card:    rgba(23, 34, 29, 0.10);
+  --border-default: rgba(23, 34, 29, 0.14);
+  --border-strong:  rgba(23, 34, 29, 0.20);
 
   /* Interactions */
-  --hover:          rgba(255, 255, 255, 0.08);
-  --hover-strong:   rgba(255, 255, 255, 0.14);
-  --field-tint:     rgba(255, 255, 255, 0.06);
+  --hover:          rgba(23, 34, 29, 0.05);
+  --hover-strong:   rgba(23, 34, 29, 0.10);
+  --field-tint:     rgba(23, 34, 29, 0.04);
 
   /* Overlays */
-  --overlay:        rgba(0, 0, 0, 0.5);
-  --warn-highlight: rgba(245, 158, 11, 0.12);
+  --overlay:        rgba(23, 34, 29, 0.40);
+  --warn-highlight: rgba(242, 84, 45, 0.12);
 
   /* Radii — kolme tasoa (U5-fix: 6/10/14px) */
   --radius-sm:  6px;
@@ -63,45 +71,52 @@
   --font-ui: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
 }
 
-/* ── Tokens: daylight (talkoolainen metsässä, aurinko) ── */
+/* ── Tokens: Kaamos-tumma (lämmin hiilenmusta) ── */
 
-[data-theme="daylight"] {
-  color-scheme: light;
+[data-theme="dark"] {
+  color-scheme: dark;
 
-  --surface-app:    #ffffff;
-  --surface-card:   #f1f5f9;
-  --surface-raised: #f8fafc;
+  --surface-app:    #1A1614;
+  --surface-card:   #241E1B;
+  --surface-raised: #2E2723;
 
-  --text-body:   #020617;
-  --text-muted:  #334155;
-  --text-meta:   #64748b;
+  --text-body:   #F0EAE4;
+  --text-muted:  #A99E95;
+  --text-meta:   #857B72;
 
-  --accent:       #f59e0b;
-  --accent-text:  #1a1205;
-  --accent-hover: #b45309;
+  --accent:       #F2542D;
+  --accent-text:  #ffffff;
+  --accent-hover: #FF6A44;
 
-  --confirm:       #15803d;
-  --confirm-hover: #166534;
+  --confirm:       #2FA35B;
+  --confirm-hover: #3BBE6C;
   --confirm-text:  #ffffff;
 
-  --danger:            #dc2626;
-  --danger-text:       #b91c1c;
-  --danger-soft:       rgba(220, 38, 38, 0.08);
-  --danger-soft-hover: rgba(220, 38, 38, 0.16);
+  --danger:            #E45C6B;
+  --danger-text:       #F08292;
+  --danger-soft:       rgba(228, 92, 107, 0.12);
+  --danger-soft-hover: rgba(228, 92, 107, 0.22);
 
-  --gps-active: #1d4ed8;
+  --gps-active: #4C8BD0;
 
-  --border-subtle:  rgba(15, 23, 42, 0.06);
-  --border-card:    rgba(15, 23, 42, 0.10);
-  --border-default: rgba(15, 23, 42, 0.14);
-  --border-strong:  rgba(15, 23, 42, 0.20);
+  /* Status-värit — sama tunniste-hue kummassakin teemassa (väri = tunniste, V96). */
+  --status-suunniteltu: #9AA69D;
+  --status-asetettu:    #3EBB6E;
+  --status-tarkistettu: #4C97D6;
+  --status-keratty:     #A277E0;
+  --status-ei-tarpeen:  #DBA83F;
 
-  --hover:          rgba(15, 23, 42, 0.05);
-  --hover-strong:   rgba(15, 23, 42, 0.10);
-  --field-tint:     rgba(15, 23, 42, 0.05);
+  --border-subtle:  rgba(255, 245, 235, 0.06);
+  --border-card:    rgba(255, 245, 235, 0.08);
+  --border-default: rgba(255, 245, 235, 0.10);
+  --border-strong:  rgba(255, 245, 235, 0.14);
 
-  --overlay:        rgba(15, 23, 42, 0.40);
-  --warn-highlight: rgba(245, 158, 11, 0.16);
+  --hover:          rgba(255, 245, 235, 0.08);
+  --hover-strong:   rgba(255, 245, 235, 0.14);
+  --field-tint:     rgba(255, 245, 235, 0.06);
+
+  --overlay:        rgba(0, 0, 0, 0.55);
+  --warn-highlight: rgba(242, 84, 45, 0.16);
 }
 
 /* ── Motion ── */
@@ -778,11 +793,11 @@ button {
   border-radius: var(--radius-sm);
   margin-top: 3px;
 }
-.marker-status--suunniteltu  { color: var(--text-muted); background: var(--field-tint); }
-.marker-status--asetettu     { color: #4ade80; background: rgba(74,222,128,0.10); }
-.marker-status--tarkistettu  { color: #93c5fd; background: rgba(147,197,253,0.10); }
-.marker-status--kerätty      { color: #6ee7b7; background: rgba(110,231,183,0.10); }
-.marker-status--ei_tarpeen   { color: #fbbf24; background: rgba(251,191,36,0.10); }
+.marker-status--suunniteltu  { color: var(--status-suunniteltu); background: color-mix(in srgb, var(--status-suunniteltu) 12%, transparent); }
+.marker-status--asetettu     { color: var(--status-asetettu);    background: color-mix(in srgb, var(--status-asetettu) 12%, transparent); }
+.marker-status--tarkistettu  { color: var(--status-tarkistettu); background: color-mix(in srgb, var(--status-tarkistettu) 12%, transparent); }
+.marker-status--kerätty      { color: var(--status-keratty);     background: color-mix(in srgb, var(--status-keratty) 12%, transparent); }
+.marker-status--ei_tarpeen   { color: var(--status-ei-tarpeen);  background: color-mix(in srgb, var(--status-ei-tarpeen) 12%, transparent); }
 
 /* ── Kuittaus action buttons (talkoolainen) ── */
 
@@ -1357,11 +1372,11 @@ button {
   flex-shrink: 0;
 }
 
-.segment-view-status.status-suunniteltu { color: #94a3b8; }
-.segment-view-status.status-asetettu    { color: #4ade80; }
-.segment-view-status.status-tarkistettu { color: #93c5fd; }
-.segment-view-status.status-kerätty     { color: #6ee7b7; }
-.segment-view-status.status-ei_tarpeen  { color: #fbbf24; }
+.segment-view-status.status-suunniteltu { color: var(--status-suunniteltu); }
+.segment-view-status.status-asetettu    { color: var(--status-asetettu); }
+.segment-view-status.status-tarkistettu { color: var(--status-tarkistettu); }
+.segment-view-status.status-kerätty     { color: var(--status-keratty); }
+.segment-view-status.status-ei_tarpeen  { color: var(--status-ei-tarpeen); }
 
 .segment-view-empty {
   padding: 6px 0;
@@ -2011,10 +2026,10 @@ button {
 }
 
 .segment-details-marker-status.status-suunniteltu { color: #94a3b8; background: var(--field-tint); }
-.segment-details-marker-status.status-asetettu    { color: #4ade80; background: rgba(74, 222, 128, 0.10); }
-.segment-details-marker-status.status-tarkistettu { color: #93c5fd; background: rgba(147, 197, 253, 0.10); }
-.segment-details-marker-status.status-kerätty     { color: #6ee7b7; background: rgba(110, 231, 183, 0.10); }
-.segment-details-marker-status.status-ei_tarpeen  { color: #fbbf24; background: rgba(251, 191, 36, 0.10); }
+.segment-details-marker-status.status-asetettu    { color: var(--status-asetettu);    background: color-mix(in srgb, var(--status-asetettu) 12%, transparent); }
+.segment-details-marker-status.status-tarkistettu { color: var(--status-tarkistettu); background: color-mix(in srgb, var(--status-tarkistettu) 12%, transparent); }
+.segment-details-marker-status.status-kerätty     { color: var(--status-keratty);     background: color-mix(in srgb, var(--status-keratty) 12%, transparent); }
+.segment-details-marker-status.status-ei_tarpeen  { color: var(--status-ei-tarpeen);  background: color-mix(in srgb, var(--status-ei-tarpeen) 12%, transparent); }
 
 /* T199: yhteenveto-chip — korvaa entisen "6× left"-tekstirivin, sama merkkivisuaali kuin yllä. */
 .segment-equipment-chip-list {
