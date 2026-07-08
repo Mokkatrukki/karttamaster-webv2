@@ -27,14 +27,17 @@ export function initMap(): MapInit {
 
   const btnLayer = document.getElementById('btn-layer')
   if (btnLayer) {
-    btnLayer.textContent = TILE_LAYERS[activeLayerIdx].label
+    // T207: nappi näyttää kiinteän toiminto­nimen "Karttatyyli" (ei vaihtuvaa karttakerroksen
+    // nimeä) — aktiivinen kerros näkyy title-tooltipissa.
+    btnLayer.textContent = 'Karttatyyli'
+    btnLayer.title = TILE_LAYERS[activeLayerIdx].label
     btnLayer.addEventListener('click', () => {
       activeLayerIdx = (activeLayerIdx + 1) % TILE_LAYERS.length
       const cfg = TILE_LAYERS[activeLayerIdx]
       currentTileLayer.remove()
       currentTileLayer = L.tileLayer(cfg.urlTemplate, { attribution: cfg.attribution, maxZoom: cfg.maxZoom, maxNativeZoom: cfg.maxNativeZoom }).addTo(map)
       localStorage.setItem(LS_KEY, cfg.id)
-      btnLayer.textContent = cfg.label
+      btnLayer.title = cfg.label
     })
   }
 

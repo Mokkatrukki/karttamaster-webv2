@@ -182,7 +182,7 @@ export class SegmentPanel {
 
   private applyCollapsed(): void {
     const count = this.store.size
-    this.titleEl.textContent = `Pätkäjako (${count})`
+    this.titleEl.textContent = `Reittipätkät (${count})`
     this.toggleBtn.textContent = this.collapsed ? '▶' : '▼'
     this.listEl.hidden = this.collapsed
     if (this.collapsed) this.statusEl.hidden = true
@@ -212,7 +212,7 @@ export class SegmentPanel {
 
     const titleEl = document.createElement('span')
     titleEl.className = 'section-header-name'
-    titleEl.textContent = 'Pätkäjako (0)'
+    titleEl.textContent = 'Reittipätkät (0)'
     header.appendChild(titleEl)
 
     panel.appendChild(header)
