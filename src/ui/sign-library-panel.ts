@@ -378,7 +378,11 @@ export class SignLibraryPanel {
     // Thumbnail 64x64, klikkaus valitsee suoraan; zoom-nappi avaa lightboxin ilman valintaa.
     const imageGrid = document.createElement('div')
     imageGrid.className = 'sign-image-gallery'
-    imageGrid.style.cssText = 'display:none;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;max-height:min(50vh,420px);overflow-y:auto'
+    // flex-shrink:0 (B91/V130): galleria on modaalin (flex-column, overflow-y:auto) lapsi ja
+    // sillä on oma overflow-y:auto → CSS antaa flex-itemille min-height:auto=0, jolloin matalalla
+    // mobiiliviewportilla modaalin muu sisältö kutistaa gallerian 0-korkeuteen. flex-shrink:0
+    // estää kutistuksen → galleria pitää korkeutensa, modaalin oma scroll hoitaa ylipursun.
+    imageGrid.style.cssText = 'display:none;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;max-height:min(50vh,420px);overflow-y:auto;flex-shrink:0'
 
     const makeImageThumb = (imageId: string | null): HTMLButtonElement => {
       const btn = document.createElement('button')
