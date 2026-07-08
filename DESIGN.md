@@ -445,18 +445,20 @@ CSS-luokat:
   - Järjestäjä: `[Tallenna] [↻ Käännä]` + footer-destructive rivillä `[Poista merkki]` (pieni, `danger-text`)
 - `[Poista merkki]` = `.modal-btn-destructive`, confirm vaaditaan (V58)
 
-### SegmentView (`#segment-view`, `src/ui/segment-view.ts`)
-- Vain talkoolaiselle jolla on assignedCode matchaava pätkä
-- Sijainti: `#app`:n sisällä ennen karttaa (erillinen `#segment-view-container`)
-- Tausta: `bg-primary`, bottom-border: `border-subtle`
-- Header: pätkän nimi `text-primary 12px bold`, km-väli `text-muted 11px`
-- Description: `text-muted 11px`, max 2 riviä, hidden jos tyhjä
-- Merkkilista: max-height 200px scrollable, `border-card`-separaattorit
-  - Merkkirivi: type-label + bearing + status-badge, `11px`
-  - Status-väri: sama kuin global status-värit (§C)
-- `[data-role="talkoolainen"] #segment-view { display: block }` — muille hidden
-- Ei purku-bulk-nappia vielä (T52 lisää)
-- **Tarkastus-osio (T147, `.segment-view-inspect`):** näkyy vain `phase==='tarkastus'`-pätkällä. `.segment-view-inspect-status` (`text-primary 12px bold`): "Tarkastettu ✓" / "Ei vielä tarkastettu". `.segment-view-inspect-note` (`<textarea>`, 3 riviä, `min-height:44px`, `field-tint` bg) — vapaateksti-huomio, ei per-merkki-kuittausta (VISION §4). `.btn-mark-inspected` (`min-height:44px;width:100%`, `confirm`-tyyli kuten `.btn-bulk-collect`) — tekstinä "Merkitse tarkastetuksi"/"Merkitse tarkastamattomaksi" (toggle).
+### SegmentView (`#segment-view`, `src/ui/segment-view.ts`) — talkoolaisen päänäkymä (T220/T223)
+- Vain talkoolaiselle jolla on assignedCode matchaava pätkä. `[data-role="talkoolainen"] #segment-view { display: block }`.
+- Sijainti: `#segment-view-container`, ennen karttaa. Mobiili-first: `max-height:48vh;overflow-y:auto`, `surface-app`.
+- **Yhtenäistetty järjestäjän token-järjestelmään (T220):** jaettu `buildMarkerVisual` (MarkerVisualRow T198) merkkiriveillä, `.btn`-varianttinapit, `surface/border/status`-tokenit, status-pillit (`color-mix(... 14%)`). Sama korttimuoto+väri kuin kartalla ja järjestäjän listassa (V87/V136).
+- **Header:** pätkän nimi `text-body 14px bold` + km-väli `text-muted 12px` (`margin-left:auto`) + **kokoontaitto-chevron** (`.segment-view-collapse`, `44px`, T223).
+- **Edistymispalkki (`.segment-view-progress`):** phase-tietoinen (`getPhaseProgress`/`formatPhaseProgress`, sama logiikka kuin järjestäjän sivupalkissa). `.segment-view-progress-bar/-fill` (`--confirm`-täyttö) + `.segment-view-progress-text` (esim "3/10 asetettu").
+- **Description (`.segment-view-desc`):** ohjeteksti `field-tint`-kortissa, hidden jos tyhjä.
+- **"Seuraava merkki" -hero (`.segment-view-next`, vain `phase==='asettaminen'`):** accent-vasenreunainen kortti joka ohjaa pätkän ENSIMMÄISEEN asettamattomaan merkkiin (`firstUnsetMarker`, pienin distanceFromStart). Sisältö: `buildMarkerVisual(44px)` + nimi + km + `locationNote` (ohje). Napit: `✓ Aseta` (`.btn--confirm`, `flex:2`) + `Näytä kartalla` (`.btn--secondary`, panoroi + kutistaa näkymän, EI modaalia) + `Ei tarpeen` (`.btn--ghost`, koko leveys). Kaikki asetettu → `.segment-view-next-done` "Kaikki merkit asetettu 🎉".
+- **Merkkilista (`.segment-view-list`):** rivit `.segment-view-item` (`buildMarkerVisual 30px` + `km — tyyppi` + `.marker-note-dot` jos locationNote + status-pilli). Klikattava (`.segment-view-item--clickable`) → `onFocusMarker` avaa `MarkerDetailModal` (ohjeet, kommentti, status). Järjestetty `distanceFromStart` mukaan (V3).
+- **Varusteet (`.segment-view-equipment`):** auto-laskuri tyypeittäin (ihmisluettava tyyppilabel, EI raakaa "left") + manuaaliset lisärivit.
+- **Purku-bulk (`.btn-bulk-collect`, `.btn--confirm`):** vain `phase==='purku'` + ei-terminal-merkkejä → "✓ Merkitse kaikki kerätyksi" (V28).
+- **Rajojen muokkaus (T78/V43, `.segment-view-bounds`):** kokoontaitettava "✎ Muokkaa pätkän rajoja (X–Y km)" (`.btn--secondary .btn--sm`) → numeeriset km-inputit (`.segment-view-bounds-start/-end`, `44px`, `type=number`) + validointi (`loppu>alku`, `.segment-view-bounds-error` `danger-text`) + Tallenna/Peruuta. Näkyy vain jos `onEditBounds` annettu (talkoolainen). Tallennus → `PUT /api/segments/:id` (server sallii omalle pätkälle V93).
+- **Tarkastus-osio (T147, `.segment-view-inspect`, vain `phase==='tarkastus'`):** `.segment-view-inspect-status` "Tarkastettu ✓"/"Ei vielä tarkastettu" + `.segment-view-inspect-note` (`<textarea>`, `field-tint`, vapaateksti-huomio) + `.btn-mark-inspected` (`.btn--confirm`, toggle-teksti).
+- **Kokoontaitto (T223, `.segment-view--collapsed`):** chevron kutistaa näkymän otsikkoon+edistymispalkkiin → kartta saa lähes koko ruudun. "Näytä kartalla" kutsuu myös automaattisesti. Kaikki muut osiot `display:none` kutistettuna.
 
 ### PhaseSwitcher (T148, `#phase-switcher-container`, `src/ui/phase-switcher.ts`)
 - Vain järjestäjälle — `data-role-hide="talkoolainen"` piilottaa containerin talkoolaiselta
