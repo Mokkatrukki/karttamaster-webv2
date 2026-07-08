@@ -26,4 +26,14 @@ describe('markerScaleForZoom (T175/V109)', () => {
       prev = s
     }
   })
+
+  // T210/V138 (B93): merkki ei saa lakata kasvamasta ennen loppuzoomia — loppuzoom (kartan
+  // maxZoom=19) on suurin, EI "miltei loppu" (17/18). Estää kutistumis-illuusion lopussa.
+  it('reaches its max only at the map maxZoom (19), not at 17', () => {
+    expect(MARKER_SCALE_ZOOM_MAX).toBe(19) // = tile-layers.ts maxZoom
+    expect(markerScaleForZoom(19)).toBeGreaterThan(markerScaleForZoom(18))
+    expect(markerScaleForZoom(18)).toBeGreaterThan(markerScaleForZoom(17))
+    expect(markerScaleForZoom(19)).toBe(MARKER_SCALE_MAX)
+    expect(MARKER_SCALE_MAX).toBeGreaterThan(1) // loppuzoomissa hieman yli täyden koon
+  })
 })
