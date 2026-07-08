@@ -91,6 +91,7 @@ server/       ← Hono + Bun + SQLite
 | LeftPanel | `src/ui/left-panel.ts` | ✓ T73,T179 (onToggle callback),T181 (mobiili-drawer, default-collapsed ≤480px) | critical-paths: "Left panel"; e2e/t179-map-invalidate-size.spec.ts; e2e/t181-left-panel-mobile-drawer.spec.ts | [ui.md](docs/components/ui.md) |
 | StatusPanel | `src/ui/status-panel.ts` | ✓ T28 | sprint-features: "T28" | [ui.md](docs/components/ui.md) |
 | ModalHelpers | `src/ui/modal-helpers.ts` | ✓ T172 | — | [ui.md](docs/components/ui.md) |
+| MarkerVisualRow | `src/ui/marker-visual-row.ts` | ✓ T198 | tests/t198-marker-visual-row.test.ts | [ui.md](docs/components/ui.md) |
 | AreaDetailsModal | `src/ui/area-details-modal.ts` | ✓ | — | [ui.md](docs/components/ui.md) |
 | AreaPanel | `src/ui/area-panel.ts` | ✓ | area-interaction | [ui.md](docs/components/ui.md) |
 | AreaView | `src/ui/area-view.ts` | ✓ | — | [ui.md](docs/components/ui.md) |

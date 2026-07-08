@@ -472,6 +472,15 @@ CSS-luokat:
 - **Käyttäjä:** järjestäjä (desktop/hiiri, ei touch-kriittinen — mutta 44px-sääntö koskee silti kaikkia nappeja §R:n mukaan, myös hiirikäytössä yhtenäisyyden vuoksi).
 - **Datalähde:** `src/assets/signs/*.webp` (Vite glob-import, T161-konversio), kuva-avain = `template.id` (V97 filename-safe).
 
+### MarkerVisualRow — jaettu merkkivisuaali listariveihin (T198, `src/ui/marker-visual-row.ts` `buildMarkerVisual`)
+- **Mikä:** pure-DOM-funktio `buildMarkerVisual(marker, {size, zoomable})` — pieni merkkivisuaali (kuva/ikoni/label, V99-precedence) listariveihin, esim. SegmentDetailsModalin merkkilista. Erillinen tiedosto tarkoituksella: `segment-details-modal.ts` on liputettu ⚠️ pilkko (COMPONENTS.md), eikä visuaali-render saa kasvattaa sitä lisää; sama helper uudelleenkäytettävissä myöhemmin talkoolaisen SegmentView:ssä.
+- **Koko:** `opts.size`-parametrilla ohjattu neliö (`width/height: size px`), kutsuja päättää (esim. `34px` tarkka lista, `28px` yhteenveto-chip).
+- **Yksittäinen visuaali (`.marker-visual-row-single`):** kuva → valkotausta `border-radius:8px`, `object-fit:contain`; ikoni/label → `accent`-tausta ympyrä (`border-radius:999px`), valkoinen Lucide-SVG tai `compactLabel`-teksti keskitettynä.
+- **Tuplamerkki (`.marker-visual-row-combo`, `parts.length>1`, V107):** pystypino, max 4 lohkoa (`.marker-visual-row-combo-slot`), `1px`-jakoviiva lohkojen välissä, `border-radius:8px` koko pinolle. **Ei kulmabadgea** (esim. "2") — käyttäjäpäätös: kaksi näkyvää lohkoa jo kertoo tuplauksen, badge koettiin turhaksi.
+- **Zoom (`opts.zoomable=true`, `.marker-visual-row-zoom`):** `20×20px` näkyvä pyöreä tumma badge oikeassa alakulmassa (`position:absolute;right:-6px;bottom:-6px`) valkoisella suurennuslasi-SVG:llä, `aria-label="Suurenna <label>"`. Klikkaus `stopPropagation` + avaa lightboxin — ei valitse mitään, pelkkä esikatselu (ero ImageGalleryPickeriin: siellä zoom voi myös valita).
+- **Lightbox (`.marker-visual-lightbox`, `.marker-visual-lightbox-backdrop`):** sama pattern kuin ImageGalleryPickerin lightbox (rivit 468-471) — `overlay`-token backdrop, `z-index:5000`, keskitetty `max-width:min(90vw,420px)`, `surface-card` tausta (ei valkoinen — tämä ei ole vain kuva-esikatselu vaan koko merkkivisuaali omalla taustallaan), sisällä `buildMarkerVisual(marker, {size:160, zoomable:false})` + caption (label tai compactLabel). Sulkeutuu: Esc, backdrop-klikkaus, `✕`-nappi (`.marker-visual-lightbox-close`, `34×34px`, `aria-label="Sulje"`).
+- **Käyttäjä:** molemmat (järjestäjä nyt SegmentDetailsModalissa, talkoolainen tuleva SegmentView).
+
 ### AdminPage (`admin.html` + `src/admin.ts` + `src/ui/admin-page.ts`, T122)
 - Erillinen entrypoint, ei jaa `#app`-runkoa index.html:n kanssa — vain admin-rooli, oma sivu
 - `#admin-app`: `max-width:960px;margin:0 auto;padding:16px` — kapea keskitetty layout, toimii myös mobiililla
