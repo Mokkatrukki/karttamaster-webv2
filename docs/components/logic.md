@@ -209,6 +209,35 @@ interface Segment {
 ### Tulossa
 - [ ] `Segment` type + jatkuvuus-validointi (T13, V11)
 - [ ] Assign talkoolaiselle (T26)
+- [ ] **Route-optional yleistys (T212, V139):** `routeIds?`/`startDist?`/`endDist?` valinnaisiksi → reititön tehtävä (aluetehtävä). V11/V25 vain reitillisille.
+
+---
+
+## TaskMarkers *(tulossa — T214)*
+**Vastuu:** Tehtävän merkkijoukon kanoninen resolvointi — yksi funktio Segment + AreaMarker
+**Käyttäjä:** molemmat (järjestäjä liittää, talkoolainen näkee resolvoidut)
+**Moduuli:** `src/logic/task-markers.ts` *(ei vielä)*
+**Testattavuus:** Vitest-pure
+
+### Rajapinta (alustava)
+```typescript
+interface TaskMarkerSource {
+  routeIds?: string[]; startDist?: number; endDist?: number  // reitillinen filtteri
+  linkedMarkerIds?: string[]     // eksplisiittinen linkki (skenaario 1 & 3)
+  markerTypeFilter?: string      // dynaaminen tyyppisuodatin, templateId (skenaario 2)
+}
+resolveTaskMarkers(source: TaskMarkerSource, markers: SignMarker[]): SignMarker[]
+// = reittifiltteri (jos reitillinen) ∪ linkedMarkerIds ∪ markerTypeFilter-osumat
+```
+
+### Tulossa
+- [ ] `resolveTaskMarkers` + `TaskMarkerSource` (T214, V140)
+- [ ] `getMarkersForSegment` delegoi tähän — poista duplikoitu route+dist-filtteri
+- [ ] `markerTypeFilter` nojaa `SignMarker.templateId`:hen (T215, V143)
+
+### Käyttäjätarkistus
+> Talkoolainen: tehtävän merkit resolvoituvat oikein niin reitilliselle kuin reitittömälle — navigoi ja kuittaa vain omat.
+> Järjestäjä: voi liittää merkkejä joko poimimalla kartalta tai tyyppisuodattimella; sama funktio kattaa molemmat.
 
 ---
 

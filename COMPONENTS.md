@@ -42,6 +42,7 @@ server/       ← Hono + Bun + SQLite
 | SignLibrary | `src/logic/sign-library.ts` | ✓ T171 | — | [logic.md](docs/components/logic.md) |
 | MarkerStatus | `src/logic/marker-status.ts` | ✓ T10 | — | [logic.md](docs/components/logic.md) |
 | SegmentManager | `src/logic/segments.ts` | ✓ T153 | — | [logic.md](docs/components/logic.md) |
+| TaskMarkers | `src/logic/task-markers.ts` *(ei vielä)* | ○ T214 | — | [logic.md](docs/components/logic.md) |
 | PhaseView | `src/logic/phase-view.ts` | ✓ T148 | — | [logic.md](docs/components/logic.md) |
 | RoleController | `src/logic/role.ts` | ✓ T12 (V80: rooli backendistä, toggle dead code) | critical-paths: "Rooli backendistä" | [logic.md](docs/components/logic.md) |
 | SituationLogic | `src/logic/situation.ts` *(ei vielä)* | ○ T15 | — | [logic.md](docs/components/logic.md) |
@@ -116,7 +117,7 @@ server/       ← Hono + Bun + SQLite
 | SnapshotScheduler | `server/snapshot-scheduler.ts` | ✓ T162 (best-effort, ks. V101) | — | [backend.md](docs/components/backend.md) |
 | SnapshotData | `server/snapshot-data.ts` | ✓ T162 | — | [backend.md](docs/components/backend.md) |
 | ServerTypes | `server/types.ts` | ✓ | — | [backend.md](docs/components/backend.md) |
-| MapStateAPI | `server/routes/admin.ts` | ○ T48 | — | [backend.md](docs/components/backend.md) |
+| MapStateAPI | `server/routes/admin.ts` | ⚠️ dead T48 — approval poistettu (V22/B46/V79), poisto T211 | — | [backend.md](docs/components/backend.md) |
 | OfflineManager | `public/sw.js` *(ei vielä)* | ○ T18 | — | [backend.md](docs/components/backend.md) |
 | AdminPage | `admin.html` + `src/admin.ts` + `src/ui/admin-page.ts` | ✓ T122 | — | [ui.md](docs/components/ui.md) |
 

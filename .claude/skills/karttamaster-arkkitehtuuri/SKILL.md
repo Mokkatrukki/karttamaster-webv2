@@ -165,6 +165,11 @@ Ehdota pilkkomista kun (live `wc -l` -datasta, ei dokumentin luvuista):
 
 Älä pilko vain koon takia — pilko kun vastuut eriytyvät.
 
+**`/ck:deepen` (cavekit v4.1) täydentää pilkkomista:** pilkkominen jakaa liian ison
+moduulin; deepen syventää liian matalan (leveä rajapinta, ohut vastuu). Kun build on
+vihreä ja token-budjettia jää → ehdota `/ck:deepen <moduuli>`: pienempi §I, sama
+käyttäytyminen, testit vihreät ennen JA jälkeen. Ei riko invariantteja.
+
 Ajantasaiset liput: **COMPONENTS.md §Pilkkohälytykset** — se on ainoa lista.
 Lippu ilman toimenpidettä on hukkaa: jos lippu on ⚠️-tasoa, varmista että SPEC:ssä
 on vastaava pilkko-§T-task tai ehdota sitä /ck:spec:lle.
@@ -175,4 +180,6 @@ on vastaava pilkko-§T-task tai ehdota sitä /ck:spec:lle.
 - `/ck:spec` saa arkkitehtuurikontekstin `ck:spec-konteksti`-komennolla
 - `/ck:build` käyttää COMPONENTS.md-taulukkoa tietääkseen mihin tiedostoon uusi koodi menee
 - Sync-flow: ck:spec lisää task → arkkitehtuuri lisää komponentti (○) → ck:build toteuttaa
+- `/ck:research` (v4.1): tekninen valinta (kirjasto, Leaflet-plugin, algoritmi) → kirjaa perusteltu löytö **§R**:ään lähteineen, jotta build ei arvaa. Arkkitehtuuripäätös nojaa faktaan, ei muistiin.
+- `/ck:review` (v4.1): kun feature koskee jaettua moduulia tai rikkoo kerrosrajoja, toimi adversariaalisena katselmoijana ennen buildia — refutoi §I/§V, kovettaa invariantit.
   → arkkitehtuuri merkitsee ✓ (testitarkistuksen kera, ks. sync-spec kohta 3)

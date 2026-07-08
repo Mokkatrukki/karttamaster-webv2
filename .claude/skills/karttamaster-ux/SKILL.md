@@ -73,14 +73,19 @@ CSS elää `src/style.css`:ssä. Inline SVG-tyylit: `src/map/icons.ts`.
 4. Tarkista kontrasti: WCAG AA (4.5:1)?
 5. Tarkista mobiili: rikkoutuuko pienellä näytöllä?
 
+> **Huom §-nimiavaruus:** DESIGN.md:n omat osiot (§C värit, §K komponentit…) ovat ERI
+> nimiavaruus kuin cavekit SPEC.md:n osiot (§G §C §I §R §V §T §B). Kirjaimet menevät
+> osin päällekkäin (§C, §R, §T) — cavekit v4.1 §R = RESEARCH, ei "Responsive". Älä
+> sekoita: tämä audit-raportti käyttää selkokielisiä otsikoita, ei §-sigilejä.
+
 ```
 ## UX-audit YYYY-MM-DD
-§C Värit: [OK / rikkomukset]
-§T Typografia: [OK / rikkomukset]
-§S Spacing: [OK / rikkomukset]
-§R Responsive: [OK / rikkomukset]
-§K Komponentit: [OK / rikkomukset]
-§A Accessibility: [OK / rikkomukset]
+Värit:         [OK / rikkomukset]
+Typografia:    [OK / rikkomukset]
+Spacing:       [OK / rikkomukset]
+Responsive:    [OK / rikkomukset]
+Komponentit:   [OK / rikkomukset]
+Accessibility: [OK / rikkomukset]
 Kriittiset: [lista]
 Korjattu: [lista]
 Delegoitu: [bugi → /ck:spec bug: | arkkitehtuuri → /karttamaster-arkkitehtuuri]

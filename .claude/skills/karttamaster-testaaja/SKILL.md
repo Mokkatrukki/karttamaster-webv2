@@ -75,6 +75,11 @@ Kun `/ck:build` on valmis, tarkista task:
 **Jos testi puuttuu** → kirjoita se itse tai kutsu `/ck:spec` lisäämään §T-taskin.
 **Jos bugi löytyy testissä** → kutsu `/ck:spec bug: <kuvaus>` välittömästi.
 
+**Verification contract (cavekit v4.1):** build lupaa nimetyn testin per kosketettu §V.
+Testaajan työ = varmistaa että se testi oikeasti on olemassa ja kattaa invariantin —
+ei riitä että `bun run test` on vihreä, vaan jokaisella §V:llä on nimetty testi joka
+hajoaisi jos invariantti rikkoutuisi. Puuttuva §V-testi = kattavuuspuute → `/ck:spec`.
+
 ---
 
 ## Testauskolmio

@@ -136,6 +136,13 @@ export function wireMarkers(
             .catch(() => flagInspectError())
           if (updatedSeg) segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
         },
+        {
+          // "Seuraava merkki" -ohjaus: aseta/ohita etenee pätkän merkit järjestyksessä (V9/V3).
+          // markerManager.onUpdate → currentSegmentMarkerIds() + segmentView.update() re-render.
+          onSetMarker: (id) => markerManager.updateStatus(id, 'aseta'),
+          onSkipMarker: (id) => markerManager.updateStatus(id, 'ohita'),
+          onFocusMarker: (id) => onOpenMarkerDetail(id),
+        },
       )
       segmentView.update(getMarkersForSegment(seg, markerManager.getAll()))
     }
