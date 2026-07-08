@@ -103,6 +103,7 @@ server/       ← Hono + Bun + SQLite
 | AuthRoutes | `server/routes/auth.ts` | ✓ T36 | — | [backend.md](docs/components/backend.md) |
 | AdminRoutes | `server/routes/admin.ts` | ✓ T121 | — | [backend.md](docs/components/backend.md) |
 | MarkersAPI | `server/routes/markers.ts` | ✓ T172 | — | [backend.md](docs/components/backend.md) |
+| TemplatesAPI | `server/routes/templates.ts` | ✓ T192 | — | [backend.md](docs/components/backend.md) |
 | AreasAPI | `server/routes/areas.ts` | ✓ | area-interaction | [backend.md](docs/components/backend.md) |
 | DevFeedbackAPI | `server/routes/devfeedback.ts` | ✓ | — | [backend.md](docs/components/backend.md) |
 | CronRoutes | `server/routes/cron.ts` | ✓ T163 | — | [backend.md](docs/components/backend.md) |

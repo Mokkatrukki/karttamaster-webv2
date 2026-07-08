@@ -141,6 +141,19 @@ function initSchema(db: Database): void {
       data BLOB NOT NULL,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS templates (
+      id TEXT PRIMARY KEY,
+      label TEXT NOT NULL,
+      color TEXT NOT NULL,
+      description TEXT,
+      favorite INTEGER NOT NULL DEFAULT 0,
+      icon_id TEXT,
+      image_id TEXT,
+      parts_json TEXT,
+      updated_at TEXT NOT NULL,
+      updated_by TEXT
+    );
   `)
 
   // Migraatiot — idempotent ALTER TABLE (epäonnistuu hiljaa jos kolumni jo on)

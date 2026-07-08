@@ -5,6 +5,7 @@ import { dbMiddleware } from './middleware/auth'
 import { authRoutes } from './routes/auth'
 import { adminRoutes } from './routes/admin'
 import { markersRoutes } from './routes/markers'
+import { templatesRoutes } from './routes/templates'
 import { segmentRoutes } from './routes/segments'
 import { areasRoutes } from './routes/areas'
 import { devfeedbackRoutes } from './routes/devfeedback'
@@ -48,6 +49,7 @@ app.get('/api/health', (c) => c.json({ ok: true }))
 app.route('/api/auth', authRoutes)
 app.route('/api/admin', adminRoutes)
 app.route('/api/markers', markersRoutes)
+app.route('/api/templates', templatesRoutes)
 app.route('/api/segments', segmentRoutes)
 app.route('/api/areas', areasRoutes)
 app.route('/api/devfeedback', devfeedbackRoutes)
