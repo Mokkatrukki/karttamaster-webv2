@@ -70,7 +70,9 @@ test.describe('Merkki kartalle', () => {
 
     const warning = page.locator('#distance-warning')
     await expect(warning).toBeVisible()
-    await expect(warning).toContainText(/tallennus epäonnistui/i)
+    // B97/V147: pysyvä 403 → dead-letter + selkeä "Tallennus estetty — ei oikeutta" -viesti
+    // (ei enää harhaanjohtava "yritetään uudelleen", koska retry ei auta pysyvään virheeseen).
+    await expect(warning).toContainText(/tallennus (epäonnistui|estetty)/i)
   })
 
   test('dblclick kartalla avaa floating pickerin kirjaston suosikeilla', async ({ page }) => {

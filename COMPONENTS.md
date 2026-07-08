@@ -38,7 +38,6 @@ server/       ← Hono + Bun + SQLite
 | SignIdSlug | `src/logic/sign-id-slug.ts` | ✓ T161 | — | [logic.md](docs/components/logic.md) |
 | TileLayers | `src/logic/tile-layers.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | Types | `src/logic/types.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
-| PersistenceLayer | `src/logic/persistence.ts` | ✓ T29 | — | [logic.md](docs/components/logic.md) |
 | SignLibrary | `src/logic/sign-library.ts` | ✓ T171 | — | [logic.md](docs/components/logic.md) |
 | MarkerStatus | `src/logic/marker-status.ts` | ✓ T10 | — | [logic.md](docs/components/logic.md) |
 | SegmentManager | `src/logic/segments.ts` | ✓ T153 | — | [logic.md](docs/components/logic.md) |
@@ -58,7 +57,6 @@ server/       ← Hono + Bun + SQLite
 | SegmentActions | `src/logic/segment-actions.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | SignVisual | `src/logic/sign-visual.ts` | ✓ T171 | — | [logic.md](docs/components/logic.md) |
 | SignImages | `src/logic/sign-images.ts` | ✓ T158 (Vite glob, 89 kuvaa T161:stä) | — | [logic.md](docs/components/logic.md) |
-| SegmentPersistence | `src/logic/segment-persistence.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | Sync | `src/logic/sync.ts` | ✓ T172 | — | [logic.md](docs/components/logic.md) |
 | WriteOutbox | `src/logic/write-outbox.ts` + `outbox-instance.ts` | ✓ T183 (durable kirjoitusjono, V116) | — | [logic.md](docs/components/logic.md) |
 | MarkerScale | `src/logic/marker-scale.ts` | ✓ T175 | — | [logic.md](docs/components/logic.md) |

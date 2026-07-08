@@ -317,4 +317,49 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(page.locator('.segment-view-inspect-status')).toHaveText('Ei vielä tarkastettu')
     await expect(page.locator('.btn-mark-inspected')).toHaveText('Merkitse tarkastetuksi')
   })
+
+  // T208-talkoolainen / B-lista2: "Seuraava merkki" -hero ohjaa pätkän ENSIMMÄISEEN
+  // asettamattomaan merkkiin ja "Aseta" asettaa juuri sen (ei "randomia").
+  test('seuraava-merkki-hero: Aseta asettaa pätkän ensimmäisen suunniteltu-merkin', async ({ page }) => {
+    const MOCK_SEGMENT = {
+      id: 'seg-aset-1', routeIds: ['35km'],
+      startDist: 0, endDist: 20000,
+      displayName: 'Asetuspätkä', equipment: [],
+      phase: 'asettaminen', assignedCode: 'ASET01',
+    }
+    // Kaksi suunniteltu-merkkiä — 'late' ensin listalla mutta 'early' on pienin distanceFromStart.
+    const MARKERS = [
+      { id: 'late', type: 'right', lat: 63.1, lon: 27.1, distance_from_start: 9000, route_ids: ['35km'], status: 'suunniteltu' },
+      { id: 'early', type: 'left', lat: 63.0, lon: 27.0, distance_from_start: 3000, route_ids: ['35km'], status: 'suunniteltu' },
+    ]
+    const putCalls: { url: string; body: unknown }[] = []
+    await page.route('/api/segments/by-code/ASET01', r =>
+      r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_SEGMENT) }))
+    await page.route('/api/markers', r =>
+      r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MARKERS) }))
+    await page.route('/api/markers/*', r => {
+      if (r.request().method() === 'PUT') {
+        putCalls.push({ url: r.request().url(), body: r.request().postDataJSON() })
+        return r.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
+      }
+      return r.continue()
+    })
+
+    await mockAuthAsTalkoolainen(page, 'ASET01')
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.goto('/s/ASET01')
+    await page.waitForTimeout(1500)
+
+    // Hero näkyy ja osoittaa ensimmäiseen merkkiin (early, 3.0 km)
+    await expect(page.locator('.segment-view-next')).toBeVisible()
+    await expect(page.locator('.segment-view-next-meta')).toHaveText('3.0 km')
+    await expect(page.locator('.segment-view-progress-text')).toHaveText('0/2 asetettu')
+
+    // Aseta → PUT juuri 'early'-merkille statuksella asetettu
+    await page.locator('.segment-view-next-set').click()
+    await page.waitForTimeout(500)
+    expect(putCalls.length).toBeGreaterThan(0)
+    expect(putCalls[0].url).toContain('/api/markers/early')
+    expect(putCalls[0].body).toMatchObject({ status: 'asetettu' })
+  })
 })
