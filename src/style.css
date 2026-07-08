@@ -1157,6 +1157,13 @@ button {
   display: flex;
 }
 
+/* T205: mobiilissa leijuva kortti EI saa peittää sivupaneelin ▶-togglea eikä varastaa
+   karttatilaa (VISION: kartta on pääasia mobiilissa). StatusPanel on järjestäjän
+   desktop-tilannekuvatyökalu → piilota kapealla näytöllä. */
+@media (max-width: 700px) {
+  [data-role="järjestäjä"] #status-panel { display: none; }
+}
+
 .status-panel-row {
   display: flex;
   align-items: center;
