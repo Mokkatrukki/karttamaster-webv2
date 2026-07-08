@@ -98,8 +98,9 @@ export function buildMarkerVisual(marker: MarkerVisualInput, opts: MarkerVisualO
     zoomBtn.type = 'button'
     zoomBtn.className = 'marker-visual-row-zoom'
     zoomBtn.setAttribute('aria-label', `Suurenna ${marker.label ?? 'merkki'}`)
-    zoomBtn.style.cssText = 'position:absolute;right:-6px;bottom:-6px;width:20px;height:20px;padding:0;border-radius:999px;background:rgba(15,23,42,0.9);border:1px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;cursor:zoom-in'
-    zoomBtn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`
+    // V129: klikattava hit-area AINA 44x44 (§A), näkyvä badge pysyy pienenä sisällä — sama pattern kuin sign-image-zoom-btn.
+    zoomBtn.style.cssText = 'position:absolute;right:-10px;bottom:-10px;width:44px;height:44px;padding:0;border:none;background:transparent;display:flex;align-items:flex-end;justify-content:flex-end;cursor:zoom-in'
+    zoomBtn.innerHTML = `<span style="width:18px;height:18px;border-radius:999px;background:rgba(15,23,42,0.9);border:1px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;pointer-events:none"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>`
     zoomBtn.addEventListener('click', (e) => {
       e.stopPropagation()
       openMarkerLightbox(marker)

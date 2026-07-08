@@ -47,6 +47,13 @@ describe('T198 — MarkerVisualRow / buildMarkerVisual', () => {
     expect(btn!.getAttribute('aria-label')).toContain('Vasemmalle')
   })
 
+  it('B89/V129: zoom-napin klikattava hit-area on 44x44px riippumatta näkyvästä glyfistä', () => {
+    const el = buildMarkerVisual({ type: 'left', iconId: 'arrow-left', label: 'Vasemmalle' }, { size: 34, zoomable: true })
+    const btn = el.querySelector<HTMLButtonElement>('.marker-visual-row-zoom')!
+    expect(btn.style.width).toBe('44px')
+    expect(btn.style.height).toBe('44px')
+  })
+
   it('zoomable=false ei lisää zoom-nappia', () => {
     const el = buildMarkerVisual({ type: 'left', iconId: 'arrow-left', label: 'Vasemmalle' }, { size: 34, zoomable: false })
     expect(el.querySelector('.marker-visual-row-zoom')).toBeFalsy()
