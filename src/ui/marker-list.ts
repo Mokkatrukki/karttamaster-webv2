@@ -155,6 +155,9 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
       const id = (el as HTMLElement).dataset.id ?? ''
       if (onOpenDetail) {
         onOpenDetail(id)
+        // V127: merkin valinta → sulje overlay-sivupalkki mobiilissa (LeftPanel kuuntelee).
+        // Vain detail-polussa, EI panTo-only-polussa.
+        document.dispatchEvent(new CustomEvent('marker-detail-opened'))
       } else {
         manager.panTo(id)
       }

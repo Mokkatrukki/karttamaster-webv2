@@ -56,8 +56,8 @@ export class MarkerDetailModal {
     document.body.appendChild(this.modal)
 
     this.unregEsc = registerEscClose(() => this.close())
-
-    this.modal.querySelector<HTMLElement>('.marker-detail-note')?.focus()
+    // V128: ei auto-focusia — virtuaalinäppäimistö ei saa avautua ennen kuin
+    // käyttäjä tapittaa kenttää (mobiilissa näppis veisi ~puolet ruudusta).
   }
 
   close(): void {

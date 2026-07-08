@@ -14,7 +14,19 @@ export class LeftPanel {
     this.onToggle = onToggle
     this.collapsed = window.innerWidth <= MOBILE_BREAKPOINT
     this.toggleBtn.addEventListener('click', () => this.toggle())
+    // V127: mobiilissa merkin valinta sivupalkin listasta sulkee paneelin,
+    // koska paneeli overlayaa kartan (V114) — valitun merkin on jäätävä näkyviin.
+    document.addEventListener('marker-detail-opened', () => this.collapse())
     this.applyState()
+  }
+
+  // V127: sulje paneeli vain mobiilissa (overlay); desktopilla tilaa riittää.
+  collapse(): void {
+    if (window.innerWidth > MOBILE_BREAKPOINT) return
+    if (this.collapsed) return
+    this.collapsed = true
+    this.applyState()
+    this.onToggle?.()
   }
 
   toggle(): void {
