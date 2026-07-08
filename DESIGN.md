@@ -156,6 +156,10 @@ metsässä, hanskat kädessä.
 - **Talkoolainen** = täysi drive-kontrolli (`RouteBar`, `src/map/route-bar.ts`): reittivalinta (▶ = aseta ajettavaksi) + km-scrubber (`#route-track`) + ◀▶-nuolet (`#route-drive-controls`) + `#gps-drive-panel`. Route-tab-drive/`btn-route-prev/next`: `min-height:44px` ✓.
 - **Järjestäjä** = kevyt reittivalitsin (`RouteVisibilityControl`, `src/map/route-visibility-control.ts`): pelkkä näytä/piilota per reitti pyöreinä pilleinä (`.route-vis-pill`, `border-radius:999px`, `min-height:44px`) kartan alakulmassa (`#route-bar[data-mode="visibility"]` → läpinäkyvä, `right:12px;bottom:12px`). EI drive-nuolia, EI km-scrubberia, EI gps-drive-panelia — piilotettu `hidden`-attribuutilla (V134). V6 säilyy: viimeistä näkyvää reittiä ei voi piilottaa (`disabled`).
 
+### StatusPanel (`#status-panel`, järjestäjä) — T205/V132
+- Per-reitti-rollup (35/55km valmis-%) SÄILYY (PM-päätös 2026-07-04). Logiikka `src/ui/status-panel.ts` ennallaan.
+- Visuaali: hillitty **leijuva tilannekortti** kartan vasemmassa yläkulmassa (`position:absolute;top:8px;left:8px;z-index:500`, `surface-card` + `border-default` + `radius-md` + kevyt varjo). EI enää "päälle liimattua" täysleveää tummaa palkkia joka työntää karttaa. Näkyy vain `[data-role="järjestäjä"]`. Täyttö/% = `--confirm`-token.
+
 ### Dropdownit (`#sign-type-dropdown`, `#floating-picker`)
 - Tausta: `bg-card`, border: `border-default`, `border-radius: 10px`
 - Shadow: `0 8px 24px rgba(0,0,0,0.4)`
