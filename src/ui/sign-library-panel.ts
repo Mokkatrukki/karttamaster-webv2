@@ -62,7 +62,16 @@ export class SignLibraryPanel {
     private readonly library: SignLibrary,
     private readonly onChange: () => void,
     private readonly onPlace: (template: SignTemplate) => void,
+    // T193/V123: backend-sync — luonti/päivitys/poisto reititetään outboxin kautta (markers-wiring wire).
+    // Valinnainen: ilman näitä paneeli toimii vanhaan tapaan (cache-only).
+    private readonly onSaveTemplate?: (template: SignTemplate, isNew: boolean) => void,
+    private readonly onDeleteTemplate?: (id: string) => void,
   ) {
+    this.render()
+  }
+
+  // T193: julkinen re-render — backend-latauksen jälkeen markers-wiring päivittää näkymän.
+  refresh(): void {
     this.render()
   }
 
@@ -685,11 +694,13 @@ export class SignLibraryPanel {
           return
         }
         const color = colorInput?.value ?? '#f59e0b'
-        createTemplate(this.library, { label, color, description, favorite, iconId, imageId, parts }, id)
+        const created = createTemplate(this.library, { label, color, description, favorite, iconId, imageId, parts }, id)
+        this.onSaveTemplate?.(created, true)
       } else {
         const patch: Partial<Omit<SignTemplate, 'id'>> = { label, description, iconId, imageId, favorite, parts }
         if (colorInput) patch.color = colorInput.value
-        updateTemplate(this.library, template.id, patch)
+        const updated = updateTemplate(this.library, template.id, patch)
+        if (updated) this.onSaveTemplate?.(updated, false)
       }
 
       this.closeModal()
@@ -710,6 +721,7 @@ export class SignLibraryPanel {
       deleteBtn.addEventListener('click', () => {
         if (!confirm(`Poistetaanko malli "${template.label}"? Toimintoa ei voi peruuttaa.`)) return
         deleteTemplate(this.library, template.id)
+        this.onDeleteTemplate?.(template.id)
         this.closeModal()
         this.render()
         this.onChange()

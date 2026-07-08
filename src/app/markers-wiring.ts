@@ -8,7 +8,8 @@ import { renderMarkerList } from '../ui/marker-list'
 import { GpsDrivePanel } from '../ui/gps-drive-panel'
 import { SegmentView } from '../ui/segment-view'
 import { SignLibraryPanel, createSignLibrary } from '../ui/sign-library-panel'
-import { saveLibrary, type SignLibrary } from '../logic/sign-library'
+import { saveLibrary, type SignLibrary, type SignTemplate } from '../logic/sign-library'
+import { fetchTemplates, createTemplateRemote, updateTemplateRemote, deleteTemplateRemote } from '../logic/template-sync'
 import { StatusPanel } from '../ui/status-panel'
 import { calcAllRouteStatus } from '../logic/route-status'
 import { getRole } from '../logic/role'
@@ -161,9 +162,35 @@ export function wireMarkers(
   signLibrary = createSignLibrary()
   const placeMode = new PlaceMode(markerManager, signLibrary)
   const signLibraryContainer = document.getElementById('sign-type-dropdown')
+  let signLibraryPanel: SignLibraryPanel | null = null
   if (signLibraryContainer) {
-    new SignLibraryPanel(signLibraryContainer, signLibrary, () => saveLibrary(signLibrary), (t) => placeMode.armFromSidebar(t))
+    signLibraryPanel = new SignLibraryPanel(
+      signLibraryContainer,
+      signLibrary,
+      () => saveLibrary(signLibrary),
+      (t) => placeMode.armFromSidebar(t),
+      // T193/V123: luonti/päivitys → backend outboxin kautta (jaettu kaikille järjestäjille)
+      (template: SignTemplate, isNew: boolean) => {
+        void (isNew ? createTemplateRemote(template) : updateTemplateRemote(template))
+      },
+      (id: string) => { void deleteTemplateRemote(id) },
+    )
   }
+
+  // T193/V123: backend on kirjaston totuus. Lataa mallit initissä ja korvaa cache-/seed-sisältö
+  // in-place (Map-referenssi jaettu PlaceModelle + paneelille). Lataus-epäonnistuminen (V118) →
+  // säilytä cache + varoita, älä tyhjennä kirjastoa hiljaa.
+  void fetchTemplates().then((result) => {
+    if (!signLibrary) return
+    if (!result.ok) {
+      showWarning('⚠ Merkkikirjaston lataus epäonnistui — näytetään paikallinen kopio', 5000)
+      return
+    }
+    signLibrary.clear()
+    for (const t of result.templates) signLibrary.set(t.id, t)
+    saveLibrary(signLibrary)
+    signLibraryPanel?.refresh()
+  })
 
   // Marker modal
   const markerModalBackdrop = document.getElementById('marker-modal-backdrop')!

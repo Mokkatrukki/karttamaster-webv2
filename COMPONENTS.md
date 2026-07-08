@@ -50,6 +50,7 @@ server/       ← Hono + Bun + SQLite
 | AreaTypes | `src/logic/area-types.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | AreaGeometry | `src/logic/area-geometry.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | AreaSync | `src/logic/area-sync.ts` | ✓ T154 | — | [logic.md](docs/components/logic.md) |
+| TemplateSync | `src/logic/template-sync.ts` | ✓ T193 | — | [logic.md](docs/components/logic.md) |
 | IconSet | `src/logic/icon-set.ts` | ✓ T159 | — | [logic.md](docs/components/logic.md) |
 | MarkerAssign | `src/logic/marker-assign.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | RouteStatus | `src/logic/route-status.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
