@@ -119,4 +119,26 @@ describe('fetchMarkers', () => {
     const res = await fetchMarkers()
     expect(res).toEqual({ ok: true, markers: [] })
   })
+
+  // T196/V131: image_id denormalisoitu markerille (backend-URL tai bundle-avain) → imageId
+  it('T196: maps image_id → imageId (backend-URL)', async () => {
+    const withImage = { ...SERVER_MARKER, image_id: '/api/templates/wc/images/uuid-1' }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [withImage],
+    }))
+    const markers = okMarkers(await fetchMarkers())
+    expect(markers[0].imageId).toBe('/api/templates/wc/images/uuid-1')
+  })
+
+  it('T196: omits imageId when image_id absent', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [SERVER_MARKER],
+    }))
+    const markers = okMarkers(await fetchMarkers())
+    expect(markers[0].imageId).toBeUndefined()
+  })
 })

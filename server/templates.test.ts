@@ -200,4 +200,84 @@ describe('T192: Templates REST API', () => {
       expect(res.status).toBe(404)
     })
   })
+
+  // ── T196/V123: template-kuvan lataus backendiin ──────────────────────────
+  describe('POST /api/templates/:id/images', () => {
+    test('järjestäjä lataa kuvan → 201 + url', async () => {
+      const form = new FormData()
+      form.append('image', makeUploadFile())
+      const res = await makeApp(db).request('/api/templates/oikealle/images', {
+        method: 'POST',
+        headers: authHeaders(db, 'järjestäjä'),
+        body: form,
+      })
+      expect(res.status).toBe(201)
+      const body = (await res.json()) as { url: string }
+      expect(body.url).toMatch(/^\/api\/templates\/oikealle\/images\//)
+    })
+
+    test('ei vaadi että template-rivi on jo tallennettu (luonti-modaali)', async () => {
+      const form = new FormData()
+      form.append('image', makeUploadFile())
+      // 'ei-viela-tallennettu'-id ei ole templates-taulussa → silti 201 (V97 käsin-id)
+      const res = await makeApp(db).request('/api/templates/ei-viela-tallennettu/images', {
+        method: 'POST',
+        headers: authHeaders(db, 'järjestäjä'),
+        body: form,
+      })
+      expect(res.status).toBe(201)
+    })
+
+    test('talkoolainen → 403', async () => {
+      const form = new FormData()
+      form.append('image', makeUploadFile())
+      const res = await makeApp(db).request('/api/templates/oikealle/images', {
+        method: 'POST',
+        headers: authHeaders(db, 'talkoolainen'),
+        body: form,
+      })
+      expect(res.status).toBe(403)
+    })
+
+    test('ei-kuva tiedosto → 400', async () => {
+      const form = new FormData()
+      form.append('image', new File(['not an image'], 'note.txt', { type: 'text/plain' }))
+      const res = await makeApp(db).request('/api/templates/oikealle/images', {
+        method: 'POST',
+        headers: authHeaders(db, 'järjestäjä'),
+        body: form,
+      })
+      expect(res.status).toBe(400)
+    })
+  })
+
+  describe('GET /api/templates/:id/images/:imageId', () => {
+    test('ladattu kuva haettavissa oikealla content-typellä', async () => {
+      const form = new FormData()
+      form.append('image', makeUploadFile())
+      const uploadRes = await makeApp(db).request('/api/templates/oikealle/images', {
+        method: 'POST',
+        headers: authHeaders(db, 'järjestäjä'),
+        body: form,
+      })
+      const { url } = (await uploadRes.json()) as { url: string }
+
+      const res = await makeApp(db).request(url, { headers: authHeaders(db, 'talkoolainen') })
+      expect(res.status).toBe(200)
+      expect(res.headers.get('Content-Type')).toBe('image/jpeg')
+      const bytes = new Uint8Array(await res.arrayBuffer())
+      expect(bytes.length).toBe(4)
+    })
+
+    test('tuntematon imageId → 404', async () => {
+      const res = await makeApp(db).request('/api/templates/oikealle/images/ei-ole', {
+        headers: authHeaders(db, 'järjestäjä'),
+      })
+      expect(res.status).toBe(404)
+    })
+  })
 })
+
+function makeUploadFile(): File {
+  return new File([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], 'kuva.jpg', { type: 'image/jpeg' })
+}

@@ -457,12 +457,73 @@ export class SignLibraryPanel {
       syncPart0FromTop()
     })
 
+    // T196/V123: "Lataa oma kuva" — järjestäjä lataa oman kuvan backendiin (multipart POST),
+    // template.imageId = palautettu URL → jaetaan kaikille (ei bundle-riippuvuutta, ratkaisee
+    // tuplakuvat/huonot nimet). Ladattu kuva prependataan galleriaan valittuna thumbnailina.
+    const uploadRow = document.createElement('div')
+    uploadRow.style.cssText = 'display:none;flex-direction:column;gap:4px'
+    const uploadBtn = document.createElement('button')
+    uploadBtn.type = 'button'
+    uploadBtn.className = 'sign-lib-image-upload-btn'
+    uploadBtn.textContent = '⬆ Lataa oma kuva'
+    uploadBtn.style.cssText = 'min-height:44px;background:var(--field-tint);border:1px dashed var(--border-default);border-radius:var(--radius-sm);color:var(--text-body);font-size:13px;cursor:pointer'
+    const uploadInput = document.createElement('input')
+    uploadInput.type = 'file'
+    uploadInput.accept = 'image/*'
+    uploadInput.className = 'sign-lib-image-upload-input'
+    uploadInput.style.display = 'none'
+    const uploadError = document.createElement('div')
+    uploadError.className = 'sign-lib-image-upload-error'
+    uploadError.style.cssText = 'font-size:12px;color:var(--danger-text);display:none'
+    uploadError.setAttribute('role', 'alert')
+    uploadBtn.addEventListener('click', () => uploadInput.click())
+    uploadInput.addEventListener('change', async () => {
+      const file = uploadInput.files?.[0]
+      if (!file) return
+      const tid = template?.id ?? idInput?.value.trim() ?? ''
+      if (!tid) {
+        uploadError.textContent = 'Anna ensin tunnus (id) ennen kuvan lataamista.'
+        uploadError.style.display = 'block'
+        uploadInput.value = ''
+        return
+      }
+      uploadError.style.display = 'none'
+      uploadBtn.disabled = true
+      uploadBtn.textContent = 'Ladataan…'
+      try {
+        const form = new FormData()
+        form.append('image', file)
+        const res = await fetch(`/api/templates/${encodeURIComponent(tid)}/images`, { method: 'POST', body: form })
+        if (!res.ok) throw new Error(String(res.status))
+        const { url } = (await res.json()) as { url: string }
+        const thumb = makeImageThumb(url) // signImageSrc(url)→url (T196), renderöi <img>
+        imageGrid.insertBefore(thumb, imageGrid.children[1] ?? null) // heti "Ei kuvaa":n jälkeen
+        selectedImageId = url
+        selectedIconId = null
+        updateIconGrid()
+        updateImageGrid()
+        syncPart0FromTop()
+      } catch {
+        uploadError.textContent = 'Kuvan lataus epäonnistui. Yritä uudelleen.'
+        uploadError.style.display = 'block'
+      } finally {
+        uploadBtn.disabled = false
+        uploadBtn.textContent = '⬆ Lataa oma kuva'
+        uploadInput.value = ''
+      }
+    })
+    uploadRow.appendChild(uploadBtn)
+    uploadRow.appendChild(uploadInput)
+    uploadRow.appendChild(uploadError)
+    modal.appendChild(uploadRow)
+
     modal.appendChild(imageGrid)
 
     const setVisualTab = (tab: 'icon' | 'image') => {
       visualTab = tab
       iconGrid.style.display = tab === 'icon' ? 'grid' : 'none'
       imageGrid.style.display = tab === 'image' ? 'grid' : 'none'
+      uploadRow.style.display = tab === 'image' ? 'flex' : 'none'
       iconTabBtn.style.cssText = tabBtnStyle(tab === 'icon')
       imageTabBtn.style.cssText = tabBtnStyle(tab === 'image')
     }

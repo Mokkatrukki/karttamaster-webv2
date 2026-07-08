@@ -58,7 +58,7 @@ describe('T136 — sivupalkin merkkikirjastosta voi asettaa merkin kartalle (B55
     const placed = pm.placeArmedAt(65.0, 27.0)
 
     expect(placed).toBe(true)
-    expect(add).toHaveBeenCalledWith(65.0, 27.0, custom.id, custom.color, custom.label, custom.iconId, custom.parts)
+    expect(add).toHaveBeenCalledWith(65.0, 27.0, custom.id, custom.color, custom.label, custom.iconId, custom.parts, custom.imageId)
     expect(pm.isArmed()).toBe(false)
     expect(document.getElementById('map')!.classList.contains('place-mode')).toBe(false)
   })

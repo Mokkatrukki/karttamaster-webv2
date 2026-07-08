@@ -121,6 +121,21 @@ describe('T47: Markers REST API', () => {
       expect(body.status).toBe('suunniteltu')
     })
 
+    test('T196: image_id säilyy roundtripissä (POST → GET)', async () => {
+      const url = '/api/templates/wc/images/uuid-1'
+      const postRes = await makeApp(db).request('/api/markers', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...MARKER_BODY, image_id: url }),
+      })
+      const created = await postRes.json() as MarkerJson & { image_id: string | null }
+      expect(created.image_id).toBe(url)
+
+      const getRes = await makeApp(db).request('/api/markers', { headers: authHeaders(db, 'talkoolainen') })
+      const list = await getRes.json() as Array<MarkerJson & { image_id: string | null }>
+      expect(list.find(m => m.id === created.id)?.image_id).toBe(url)
+    })
+
     test('updated_by set to display_name', async () => {
       const res = await makeApp(db).request('/api/markers', {
         method: 'POST',

@@ -435,4 +435,77 @@ describe('T22 SignLibraryPanel — V10', () => {
       expect(rows.length).toBe(seedCount())
     })
   })
+
+  describe('T196/V123: oman kuvan lataus backendiin', () => {
+    function openNewModalKuvaTab(container: HTMLElement, lib: SignLibrary, onChange = vi.fn()) {
+      new SignLibraryPanel(container, lib, onChange, vi.fn())
+      container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
+      const kuvaTab = [...document.body.querySelectorAll<HTMLButtonElement>('.sign-visual-tab')]
+        .find(b => b.textContent === 'Kuva')!
+      kuvaTab.click()
+    }
+
+    function fireUpload(): HTMLInputElement {
+      const input = bodyQuery<HTMLInputElement>('.sign-lib-image-upload-input')!
+      const file = new File([new Uint8Array([1, 2, 3])], 'oma.png', { type: 'image/png' })
+      Object.defineProperty(input, 'files', { value: [file], configurable: true })
+      input.dispatchEvent(new Event('change'))
+      return input
+    }
+
+    it('lataa kuvan → POST oikeaan URL:iin, template.imageId = palautettu backend-URL', async () => {
+      const container = setup()
+      const lib = seededLib()
+      openNewModalKuvaTab(container, lib)
+      bodyQuery<HTMLInputElement>('.sign-lib-id-input')!.value = 'oma-kyltti'
+      bodyQuery<HTMLInputElement>('.sign-lib-label-input')!.value = 'Oma kyltti'
+
+      const url = '/api/templates/oma-kyltti/images/uuid-1'
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ url }) })
+      vi.stubGlobal('fetch', fetchMock)
+
+      fireUpload()
+      await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
+      expect(fetchMock.mock.calls[0][0]).toBe('/api/templates/oma-kyltti/images')
+      expect(fetchMock.mock.calls[0][1].method).toBe('POST')
+
+      // Ladattu kuva ilmestyy galleriaan valittavana thumbnailina.
+      await vi.waitFor(() =>
+        expect(bodyQuery(`.sign-image-thumb[data-image-id="${url}"]`)).toBeTruthy())
+
+      bodyQuery<HTMLButtonElement>('.sign-lib-save-btn')!.click()
+      const t = listTemplates(lib).find(x => x.id === 'oma-kyltti')!
+      expect(t.imageId).toBe(url)
+    })
+
+    it('ilman tunnusta → virhe näkyy, ei fetchiä', () => {
+      const container = setup()
+      const lib = seededLib()
+      openNewModalKuvaTab(container, lib)
+      // id jätetään tyhjäksi
+
+      const fetchMock = vi.fn()
+      vi.stubGlobal('fetch', fetchMock)
+      fireUpload()
+
+      expect(fetchMock).not.toHaveBeenCalled()
+      const err = bodyQuery<HTMLElement>('.sign-lib-image-upload-error')!
+      expect(err.style.display).toBe('block')
+    })
+
+    it('upload-nappi näkyy vain Kuva-välilehdellä', () => {
+      const container = setup()
+      const lib = seededLib()
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
+      container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
+      // Oletuksena Ikoni-välilehti → upload-rivi piilossa.
+      const uploadBtn = bodyQuery<HTMLButtonElement>('.sign-lib-image-upload-btn')!
+      expect(uploadBtn.closest<HTMLElement>('div')!.style.display).toBe('none')
+      // Vaihda Kuva → näkyviin.
+      const kuvaTab = [...document.body.querySelectorAll<HTMLButtonElement>('.sign-visual-tab')]
+        .find(b => b.textContent === 'Kuva')!
+      kuvaTab.click()
+      expect(uploadBtn.closest<HTMLElement>('div')!.style.display).toBe('flex')
+    })
+  })
 })

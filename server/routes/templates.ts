@@ -135,3 +135,45 @@ templatesRoutes.delete('/:id', requireAuth(), requireRole('admin', 'järjestäj�
   db.run('DELETE FROM templates WHERE id = ?', [id])
   return c.json({ ok: true })
 })
+
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024
+
+// POST /api/templates/:id/images — järjestäjä+ lataa oman kuvan mallille (multipart, field "image").
+// T196/V123: EI vaadi että template-rivi on jo tallennettu — :id on käsin annettu (V97) ja kuva
+// ladataan usein luonti-modaalissa ennen mallin tallennusta. Palauttaa URL:n joka tallentuu
+// template.imageId:hin → jaetaan kaikille backendin kautta (ratkaisee tuplakuvat/bundle-riippuvuuden).
+templatesRoutes.post('/:id/images', requireAuth(), requireRole('admin', 'järjestäjä'), async (c) => {
+  const db: Database = c.get('db')
+  const id = c.req.param('id')
+
+  const body = await c.req.parseBody()
+  const file = body.image
+  if (!(file instanceof File)) return c.json({ error: 'missing_file' }, 400)
+  if (file.size > MAX_IMAGE_BYTES) return c.json({ error: 'file_too_large' }, 413)
+  if (!file.type.startsWith('image/')) return c.json({ error: 'invalid_type' }, 400)
+
+  const imageId = randomUUID()
+  const data = Buffer.from(await file.arrayBuffer())
+  db.run(
+    'INSERT INTO template_images (id, template_id, content_type, data, created_at) VALUES (?, ?, ?, ?, ?)',
+    [imageId, id, file.type, data, new Date().toISOString()],
+  )
+
+  return c.json({ url: `/api/templates/${id}/images/${imageId}` }, 201)
+})
+
+// GET /api/templates/:id/images/:imageId — kaikki autentikoidut käyttäjät (readonly kuva)
+templatesRoutes.get('/:id/images/:imageId', requireAuth(), (c) => {
+  const db: Database = c.get('db')
+  const id = c.req.param('id')
+  const imageId = c.req.param('imageId')
+
+  const row = db
+    .query<{ content_type: string; data: Uint8Array }, [string, string]>(
+      'SELECT content_type, data FROM template_images WHERE id = ? AND template_id = ?',
+    )
+    .get(imageId, id)
+  if (!row) return c.json({ error: 'not_found' }, 404)
+
+  return new Response(row.data, { headers: { 'Content-Type': row.content_type } })
+})

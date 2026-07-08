@@ -15,9 +15,13 @@ export function signImageIds(): string[] {
   return [...imageMap.keys()]
 }
 
-// imageId-konventio = template.id. Palauttaa undefined jos kuvatiedostoa ei ole.
+// imageId-konventio = template.id (bundled webp) TAI backend-URL (T196: järjestäjän lataama kuva).
+// Backend-ladatun kuvan imageId on absoluuttinen polku (`/api/templates/:id/images/:imageId`) →
+// palautetaan sellaisenaan, ei bundle-lookuppia. Muuten bundled-asset webp-nimellä.
+// Palauttaa undefined jos kuvatiedostoa ei ole.
 export function signImageSrc(imageId: string | undefined): string | undefined {
   if (!imageId) return undefined
+  if (imageId.startsWith('/') || imageId.startsWith('http')) return imageId
   return imageMap.get(imageId)
 }
 

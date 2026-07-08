@@ -107,6 +107,24 @@ describe('T158: signImageSrc — kuvia ei vielä ole (glob tyhjä)', () => {
   })
 })
 
+describe('T196/V123: signImageSrc — backend-URL palautetaan sellaisenaan', () => {
+  it('absoluuttinen /api-polku → palautetaan sellaisenaan (ei bundle-lookuppia)', () => {
+    const url = '/api/templates/wc/images/abc-123'
+    expect(signImageSrc(url)).toBe(url)
+  })
+
+  it('http-URL → palautetaan sellaisenaan', () => {
+    const url = 'https://esimerkki.fi/kuva.webp'
+    expect(signImageSrc(url)).toBe(url)
+  })
+
+  it('signImageTag rakentaa <img>:n backend-URL:sta', () => {
+    const tag = signImageTag('/api/templates/wc/images/abc-123', 'width:100%')
+    expect(tag).toContain('src="/api/templates/wc/images/abc-123"')
+    expect(tag).toContain('onerror="this.remove()"')
+  })
+})
+
 describe('T158/V99: circleSvg kuvan täyttö + onerror-fallback (T103-pattern)', () => {
   function html(imageSrc?: string): string {
     return (createSignIcon('my-type', 'asetettu', '#ff0000', 'X', undefined, imageSrc) as unknown as { html: string }).html

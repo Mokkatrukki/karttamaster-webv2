@@ -43,7 +43,7 @@ export class PlaceMode {
   placeArmedAt(lat: number, lon: number): boolean {
     if (!this.armedTemplate) return false
     const t = this.armedTemplate
-    this.markerManager.add(lat, lon, t.id as MarkerType, t.color, t.label, t.iconId, t.parts)
+    this.markerManager.add(lat, lon, t.id as MarkerType, t.color, t.label, t.iconId, t.parts, t.imageId)
     this.disarm()
     return true
   }
@@ -55,7 +55,7 @@ export class PlaceMode {
       const iconEntry = t.iconId ? getIconById(t.iconId) : null
       const swatchInner = iconEntry ? renderIconSvg(t.iconId!, 14) : escapeHtml(compactLabel(t.label))
       return `
-      <button class="sign-type-btn" data-type="${escapeHtml(t.id)}" data-color="${escapeHtml(t.color)}" data-label="${escapeHtml(t.label)}" data-icon="${escapeHtml(t.iconId ?? '')}" data-parts="${escapeHtml(t.parts ? JSON.stringify(t.parts) : '')}">
+      <button class="sign-type-btn" data-type="${escapeHtml(t.id)}" data-color="${escapeHtml(t.color)}" data-label="${escapeHtml(t.label)}" data-icon="${escapeHtml(t.iconId ?? '')}" data-image="${escapeHtml(t.imageId ?? '')}" data-parts="${escapeHtml(t.parts ? JSON.stringify(t.parts) : '')}">
         <span class="sign-swatch" style="background:${escapeHtml(t.color)};position:relative;overflow:hidden">${swatchInner}${signImageTag(t.imageId ?? t.id, 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff')}</span>
         ${escapeHtml(t.label)}
       </button>`
@@ -80,7 +80,7 @@ export class PlaceMode {
       if (!btn || !this.pendingDblClick) return
       const { lat, lon } = this.pendingDblClick
       const parts = btn.dataset.parts ? JSON.parse(btn.dataset.parts) : undefined
-      this.markerManager.add(lat, lon, btn.dataset.type as MarkerType, btn.dataset.color, btn.dataset.label, btn.dataset.icon || undefined, parts)
+      this.markerManager.add(lat, lon, btn.dataset.type as MarkerType, btn.dataset.color, btn.dataset.label, btn.dataset.icon || undefined, parts, btn.dataset.image || undefined)
       this.closePicker()
     })
 
