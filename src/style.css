@@ -2451,6 +2451,13 @@ button {
   flex-direction: row;
   flex: 1;
   min-height: 0;
+}
+
+/* Vain talkoolaisella on täysleveä RouteBar (position:fixed, drive) → varaa 84px ettei
+   se peitä karttaa. Järjestäjä/admin saavat leijuvan pillerin (data-mode="visibility"),
+   ei varausta → ei haamuraitaa kartan alla. Rooli tulee tili-per-rooli-authista
+   (admin | järjestäjä | talkoolainen), joten scope talkoolaiseen, ei järjestäjään. */
+body[data-role="talkoolainen"] #app-main {
   padding-bottom: 84px;
 }
 
