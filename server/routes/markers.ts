@@ -20,6 +20,7 @@ interface MarkerRow {
   label: string | null
   icon_id: string | null
   image_id: string | null
+  template_id: string | null
   parts_json: string | null
   description: string | null
   updated_at: string
@@ -61,6 +62,7 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
     label?: string | null
     icon_id?: string | null
     image_id?: string | null
+    template_id?: string | null
     parts_json?: string | null
     description?: string | null
   }>()
@@ -78,7 +80,7 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
   const id = body.id ?? randomUUID()
   const now = new Date().toISOString()
   db.run(
-    'INSERT INTO markers (id, type, lat, lon, distance_from_start, route_ids, status, location_note, color, label, icon_id, image_id, parts_json, description, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO markers (id, type, lat, lon, distance_from_start, route_ids, status, location_note, color, label, icon_id, image_id, template_id, parts_json, description, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       id,
       body.type,
@@ -92,6 +94,7 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
       body.label ?? null,
       body.icon_id ?? null,
       body.image_id ?? null,
+      body.template_id ?? null,
       body.parts_json ?? null,
       body.description ?? null,
       now,
@@ -123,10 +126,11 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
     description?: string | null
     icon_id?: string | null
     image_id?: string | null
+    template_id?: string | null
     parts_json?: string | null
   }>()
 
-  const positionFields = ['lat', 'lon', 'type', 'distance_from_start', 'route_ids', 'description', 'icon_id', 'image_id', 'parts_json'] as const
+  const positionFields = ['lat', 'lon', 'type', 'distance_from_start', 'route_ids', 'description', 'icon_id', 'image_id', 'template_id', 'parts_json'] as const
   const hasPositionFields = positionFields.some((f) => f in body)
   if (hasPositionFields && !['admin', 'järjestäjä'].includes(session.role)) {
     return c.json({ error: 'forbidden' }, 403)
@@ -144,6 +148,7 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
   if (body.route_ids !== undefined) { fields.push('route_ids = ?'); values.push(JSON.stringify(body.route_ids)) }
   if (body.icon_id !== undefined) { fields.push('icon_id = ?'); values.push(body.icon_id) }
   if (body.image_id !== undefined) { fields.push('image_id = ?'); values.push(body.image_id) }
+  if (body.template_id !== undefined) { fields.push('template_id = ?'); values.push(body.template_id) }
   if (body.parts_json !== undefined) { fields.push('parts_json = ?'); values.push(body.parts_json) }
   if (body.description !== undefined) { fields.push('description = ?'); values.push(body.description) }
 

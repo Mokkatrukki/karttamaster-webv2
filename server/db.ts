@@ -182,6 +182,8 @@ function initSchema(db: Database): void {
   try { db.exec('ALTER TABLE markers ADD COLUMN parts_json TEXT') } catch { /* already exists */ }
   // T196/V131: template.imageId (bundle-avain tai backend-URL) denormalisoitu markerille
   try { db.exec('ALTER TABLE markers ADD COLUMN image_id TEXT') } catch { /* already exists */ }
+  // T215/V143: templateId denormalisoitu markerille — dynaamisen markerTypeFilter-osuman vakaa viite
+  try { db.exec('ALTER TABLE markers ADD COLUMN template_id TEXT') } catch { /* already exists */ }
   // B84/V121: bearing-feature poistettiin (T129/T132) mutta DROP-migraatiota ei koskaan
   // kirjoitettu. Ennen poistoa luotu markers-taulu (esim. tuotanto Jun 11) säilyttää
   // `bearing NOT NULL` -sarakkeen ilman defaultia → koodin INSERT (ei bearingia) kaatuu

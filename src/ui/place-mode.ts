@@ -43,7 +43,7 @@ export class PlaceMode {
   placeArmedAt(lat: number, lon: number): boolean {
     if (!this.armedTemplate) return false
     const t = this.armedTemplate
-    this.markerManager.add(lat, lon, t.id as MarkerType, t.color, t.label, t.iconId, t.parts, t.imageId)
+    this.markerManager.add(lat, lon, t.id as MarkerType, t.color, t.label, t.iconId, t.parts, t.imageId, t.id)
     this.disarm()
     return true
   }

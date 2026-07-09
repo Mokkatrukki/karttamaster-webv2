@@ -110,6 +110,7 @@ export class MarkerManager {
         label: marker.label ?? null,
         icon_id: marker.iconId ?? null,
         image_id: marker.imageId ?? null,
+        template_id: marker.templateId ?? null,
         parts_json: marker.parts ? JSON.stringify(marker.parts) : null,
       }),
       onDelivered: (text) => this.reconcileFromServer(text),
@@ -170,7 +171,7 @@ export class MarkerManager {
     return { routeIds, distanceFromStart: point.distanceFromStart }
   }
 
-  add(lat: number, lon: number, type: MarkerType, color?: string, label?: string, iconId?: string, parts?: SignPart[], imageId?: string): SignMarker {
+  add(lat: number, lon: number, type: MarkerType, color?: string, label?: string, iconId?: string, parts?: SignPart[], imageId?: string, templateId?: string): SignMarker {
     const { routeIds, distanceFromStart } = this.nearestRouteAssignment(lat, lon)
 
     const marker: SignMarker = {
@@ -183,6 +184,8 @@ export class MarkerManager {
       ...(label ? { label } : {}),
       ...(iconId ? { iconId } : {}),
       ...(imageId ? { imageId } : {}),
+      // T215/V143: denormalisoi template-viite dynaamista markerTypeFilter-osumaa varten
+      ...(templateId ? { templateId } : {}),
       ...(parts && parts.length > 0 ? { parts } : {}),
     }
     this.markers.push(marker)
@@ -301,7 +304,7 @@ export class MarkerManager {
     if (ids.length > 0) this.onUpdate()
   }
 
-  updateType(id: string, newType: MarkerType, color?: string, label?: string, iconId?: string, parts?: SignPart[], imageId?: string): void {
+  updateType(id: string, newType: MarkerType, color?: string, label?: string, iconId?: string, parts?: SignPart[], imageId?: string, templateId?: string): void {
     const m = this.markers.find((x) => x.id === id)
     if (!m) return
     m.type = newType
@@ -309,10 +312,12 @@ export class MarkerManager {
     m.label = label ?? undefined
     m.iconId = iconId ?? undefined
     m.imageId = imageId ?? undefined
+    // T215/V143: uudelleentyypitys päivittää template-viitteen → typeFilter täsmää uuteen templateen
+    m.templateId = templateId ?? undefined
     m.parts = (parts && parts.length > 0) ? parts : undefined
     const lm = this.leafletMarkers.get(id)
     if (lm) lm.setIcon(createSignIcon(newType, m.status, m.color, compactOf(m), m.iconId, signImageSrc(m.imageId ?? newType), visualPartsOf(m)))
-    this.apiPut(id, { type: newType, color: color ?? null, icon_id: iconId ?? null, image_id: imageId ?? null, parts_json: m.parts ? JSON.stringify(m.parts) : null })
+    this.apiPut(id, { type: newType, color: color ?? null, icon_id: iconId ?? null, image_id: imageId ?? null, template_id: templateId ?? null, parts_json: m.parts ? JSON.stringify(m.parts) : null })
     this.onUpdate()
   }
 

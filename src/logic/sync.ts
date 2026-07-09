@@ -14,6 +14,7 @@ interface ServerMarker {
   label: string | null
   icon_id: string | null
   image_id: string | null
+  template_id: string | null
   parts_json: string | null
   description: string | null
   images: string[]
@@ -44,6 +45,7 @@ function fromServer(row: ServerMarker): SignMarker {
     ...(row.label != null ? { label: row.label } : {}),
     ...(row.icon_id != null ? { iconId: row.icon_id } : {}),
     ...(row.image_id != null ? { imageId: row.image_id } : {}),
+    ...(row.template_id != null ? { templateId: row.template_id } : {}),
     ...(parsePartsJson(row.parts_json) ? { parts: parsePartsJson(row.parts_json) } : {}),
     ...(row.description != null ? { description: row.description } : {}),
     ...(row.images && row.images.length > 0 ? { images: row.images } : {}),

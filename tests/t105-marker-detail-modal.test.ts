@@ -366,7 +366,8 @@ describe('MarkerDetailModal', () => {
     const select = document.querySelector<HTMLSelectElement>('.marker-detail-type-select')!
     select.value = 'left'
     select.dispatchEvent(new Event('change'))
-    expect(manager.updateType).toHaveBeenCalledWith('test-id', 'left', undefined, undefined, undefined, undefined, undefined)
+    // T215/V143: viimeinen arg = templateId (template?.id) — 'left' ei ole kirjastossa → undefined
+    expect(manager.updateType).toHaveBeenCalledWith('test-id', 'left', undefined, undefined, undefined, undefined, undefined, undefined)
     expect(onUpdate).toHaveBeenCalled()
   })
 
@@ -380,6 +381,7 @@ describe('MarkerDetailModal', () => {
     const select = document.querySelector<HTMLSelectElement>('.marker-detail-type-select')!
     select.value = 'custom-1'
     select.dispatchEvent(new Event('change'))
-    expect(manager.updateType).toHaveBeenCalledWith('test-id', 'custom-1', '#ff0000', 'Vaara', undefined, undefined, undefined)
+    // T215/V143: viimeinen arg = template.id ('custom-1') — vakaa viite dynaamiseen typeFilteriin
+    expect(manager.updateType).toHaveBeenCalledWith('test-id', 'custom-1', '#ff0000', 'Vaara', undefined, undefined, undefined, 'custom-1')
   })
 })

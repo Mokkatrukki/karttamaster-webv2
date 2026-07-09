@@ -136,6 +136,38 @@ describe('T47: Markers REST API', () => {
       expect(list.find(m => m.id === created.id)?.image_id).toBe(url)
     })
 
+    // T215/V143: template_id denormalisoitu markerille (dynaaminen markerTypeFilter-osuma)
+    test('T215: template_id säilyy roundtripissä (POST → GET)', async () => {
+      const postRes = await makeApp(db).request('/api/markers', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...MARKER_BODY, template_id: 'keräyskasa' }),
+      })
+      const created = await postRes.json() as MarkerJson & { template_id: string | null }
+      expect(created.template_id).toBe('keräyskasa')
+
+      const getRes = await makeApp(db).request('/api/markers', { headers: authHeaders(db, 'talkoolainen') })
+      const list = await getRes.json() as Array<MarkerJson & { template_id: string | null }>
+      expect(list.find(m => m.id === created.id)?.template_id).toBe('keräyskasa')
+    })
+
+    test('T215: PUT päivittää template_id:n (uudelleentyypitys)', async () => {
+      const postRes = await makeApp(db).request('/api/markers', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...MARKER_BODY, template_id: 'wc' }),
+      })
+      const created = await postRes.json() as MarkerJson & { template_id: string | null }
+
+      const putRes = await makeApp(db).request(`/api/markers/${created.id}`, {
+        method: 'PUT',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ template_id: 'keräyskasa' }),
+      })
+      const updated = await putRes.json() as MarkerJson & { template_id: string | null }
+      expect(updated.template_id).toBe('keräyskasa')
+    })
+
     test('updated_by set to display_name', async () => {
       const res = await makeApp(db).request('/api/markers', {
         method: 'POST',
