@@ -33,6 +33,9 @@ export class MarkerDetailModal {
     private getLibrary: () => SignLibrary | null,
     private getRole: () => string,
     private onUpdate: () => void,
+    // T225/V151: talkoolaisen oma pätkäkoodi — kova-poisto sallitaan VAIN oman itse-luoman merkin
+    // (createdBy === koodi) kohdalla. undefined järjestäjälle (ei koodia) → talkoolais-poistopolku ei aktivoidu.
+    private getTalkoolainenCode: () => string | undefined = () => undefined,
   ) {}
 
   open(markerId: string): void {
@@ -373,6 +376,27 @@ export class MarkerDetailModal {
     })
 
     footer.appendChild(actions)
+
+    // T225/V151: talkoolainen kovapoistaa VAIN oman itse-luomansa merkin (createdBy === oma koodi).
+    // Suunnitellulle (järjestäjän) merkille EI poistonappia — soft ei_tarpeen -status hoitaa (status-actionit yllä).
+    const ownCode = this.getTalkoolainenCode()
+    if (ownCode && marker.createdBy === ownCode) {
+      const destructiveRow = document.createElement('div')
+      destructiveRow.className = 'modal-footer-destructive'
+      const delBtn = document.createElement('button')
+      delBtn.className = 'modal-btn-destructive'
+      delBtn.textContent = 'Poista oma merkki'
+      delBtn.addEventListener('click', () => {
+        if (window.confirm('Poistetaanko oma merkki?')) {
+          this.close()
+          this.manager.remove(marker.id)
+          this.onUpdate()
+        }
+      })
+      destructiveRow.appendChild(delBtn)
+      footer.appendChild(destructiveRow)
+    }
+
     return footer
   }
 }

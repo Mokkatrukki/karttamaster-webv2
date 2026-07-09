@@ -44,10 +44,28 @@ describe('T224 — pätkäkeskeinen näkymä', () => {
     expect(container.querySelector('.segment-view-tab')).toBeNull()
   })
 
-  it('merkkilista näkyy suoraan (ei välilehden takana)', () => {
+  // ---- T228: inline-merkkilista poistettu (duplikoi "Kaikki merkit" -modaalin) ----
+  it('EI inline-merkkilistaa — .segment-view-list ei renderöidy', () => {
     const view = new SegmentView(container, makeSeg())
-    view.update([makeMarker()])
-    expect(container.querySelector('.segment-view-list .segment-view-item')).not.toBeNull()
+    view.update([makeMarker(), makeMarker({ id: 'm-2', distanceFromStart: 8000 })])
+    expect(container.querySelector('.segment-view-list')).toBeNull()
+    expect(container.querySelector('.segment-view-item')).toBeNull()
+  })
+
+  it('T228: hero + varustelista-nappi säilyvät ilman listaa', () => {
+    const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }))
+    view.update([makeMarker({ status: 'suunniteltu' })])
+    // Seuraava-merkki-hero (kartta=päänavigointi, VISION)
+    expect(container.querySelector('.segment-view-next-set')).not.toBeNull()
+    expect(container.querySelector('.segment-view-varuste-btn')).not.toBeNull()
+  })
+
+  it('T228: done-tila = matala rivi, .segment-view-next--done -luokka (⊥ accent-kortti)', () => {
+    const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }))
+    view.update([makeMarker({ status: 'asetettu' })])
+    const next = container.querySelector('.segment-view-next') as HTMLElement
+    expect(next.classList.contains('segment-view-next--done')).toBe(true)
+    expect(container.querySelector('.segment-view-next-done-title')?.textContent).toContain('Kaikki asetettu')
   })
 
   // ---- B: hero overflow ----
@@ -97,11 +115,66 @@ describe('T224 — pätkäkeskeinen näkymä', () => {
       expect(movedId).toBe('m7')
     })
 
-    it('"Ota kuva" + "Laita kommentti" disabled (tulossa, T221)', () => {
+    it('"Ota kuva" disabled (tulossa); "Laita kommentti" disabled ilman onComment', () => {
       const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }))
       view.update([makeMarker({ status: 'suunniteltu' })])
       expect((container.querySelector('.segment-view-next-photo') as HTMLButtonElement).disabled).toBe(true)
       expect((container.querySelector('.segment-view-next-comment') as HTMLButtonElement).disabled).toBe(true)
+    })
+
+    it('T228: "Laita kommentti" enabloitu + kutsuu onComment kun annettu', () => {
+      let commentId: string | null = null
+      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, undefined, {
+        onComment: (id) => { commentId = id },
+      })
+      view.update([makeMarker({ id: 'm9', status: 'suunniteltu' })])
+      const btn = container.querySelector('.segment-view-next-comment') as HTMLButtonElement
+      expect(btn.disabled).toBe(false)
+      btn.click()
+      expect(commentId).toBe('m9')
+    })
+  })
+
+  // ---- T230: "Merkitse pätkä valmiiksi" (asettaminen/purku) ----
+  describe('T230 — pätkä valmiiksi', () => {
+    it('nappi näkyy asettaminen-vaiheessa kun onComplete annettu', () => {
+      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, undefined, {
+        onComplete: () => {},
+      })
+      view.update([makeMarker({ status: 'asetettu' })])
+      const sec = container.querySelector('.segment-view-complete') as HTMLElement
+      expect(sec.hidden).toBe(false)
+      expect(container.querySelector('.segment-view-complete-btn')?.textContent).toContain('Merkitse pätkä valmiiksi')
+    })
+
+    it('piilossa ilman onComplete-callbackia', () => {
+      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }))
+      view.update([makeMarker()])
+      expect((container.querySelector('.segment-view-complete') as HTMLElement).hidden).toBe(true)
+    })
+
+    it('piilossa tarkastus-vaiheessa (käyttää inspect-osiota)', () => {
+      const view = new SegmentView(container, makeSeg({ phase: 'tarkastus' }), undefined, undefined, {
+        onComplete: () => {},
+      })
+      view.update([makeMarker()])
+      expect((container.querySelector('.segment-view-complete') as HTMLElement).hidden).toBe(true)
+    })
+
+    it('klikkaus kutsuu onComplete(true), completed=true vaihtaa tekstin + näyttää statuksen', () => {
+      let called: boolean | null = null
+      const view = new SegmentView(container, makeSeg({ phase: 'purku' }), undefined, undefined, {
+        onComplete: (c) => { called = c },
+      })
+      view.update([makeMarker({ status: 'kerätty' })])
+      ;(container.querySelector('.segment-view-complete-btn') as HTMLButtonElement).click()
+      expect(called).toBe(true)
+
+      view.update([makeMarker({ status: 'kerätty' })], makeSeg({ phase: 'purku', completed: true }))
+      expect(container.querySelector('.segment-view-complete-btn')?.textContent).toContain('keskeneräiseksi')
+      const status = container.querySelector('.segment-view-complete-status') as HTMLElement
+      expect(status.hidden).toBe(false)
+      expect(status.textContent).toContain('valmiiksi ✓')
     })
   })
 

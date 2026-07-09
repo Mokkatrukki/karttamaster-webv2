@@ -22,6 +22,9 @@ export interface Segment {
   phase: 'asettaminen' | 'tarkastus' | 'purku'
   inspected?: boolean
   inspectionNote?: string
+  // T230: talkoolaisen eksplisiittinen "pätkä valmiiksi" -signaali asettaminen/purku-vaiheelle.
+  // Eri kuin merkkimatematiikka (getPhaseProgress) — talkoolainen ilmoittaa "oma osuus tehty".
+  completed?: boolean
 }
 
 export type SegmentStore = Map<string, Segment>

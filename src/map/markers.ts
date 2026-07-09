@@ -40,6 +40,9 @@ export class MarkerManager {
   private onUpdate: () => void
   private onFarFromRoute?: (distM: number) => void
   private onMarkerClick: ((id: string) => void) | null = null
+  // T222/V150: mitkä merkit ovat raahattavia. Oletus = kaikki (järjestäjä). Talkoolaiselle
+  // asetetaan predikaatti joka sallii vain oman pätkän merkit → ei raahaa vieraita (backend 403).
+  private draggableFn: (m: SignMarker) => boolean = () => true
 
   constructor(map: L.Map, routes: RouteRef[], onUpdate: () => void, initialMarkers: SignMarker[] = [], onFarFromRoute?: (distM: number) => void, onSaveError?: (msg: string) => void) {
     this.map = map
@@ -282,6 +285,18 @@ export class MarkerManager {
     this.onMarkerClick = cb
   }
 
+  // T222/V150: aseta raahattavuus-predikaatti (talkoolainen = vain oma pätkä) + sovella heti
+  // olemassa oleviin Leaflet-merkkeihin. Uudet merkit lukevat predikaatin piirtohetkellä.
+  setDraggablePredicate(fn: (m: SignMarker) => boolean): void {
+    this.draggableFn = fn
+    this.leafletMarkers.forEach((lm, id) => {
+      const m = this.markers.find((x) => x.id === id)
+      if (!m) return
+      if (fn(m)) lm.dragging?.enable()
+      else lm.dragging?.disable()
+    })
+  }
+
   updateStatus(id: string, action: StatusAction): void {
     const m = this.markers.find((x) => x.id === id)
     if (!m) return
@@ -349,7 +364,7 @@ export class MarkerManager {
 
   private addLeafletMarker(m: SignMarker): void {
     const icon = createSignIcon(m.type, m.status, m.color, compactOf(m), m.iconId, signImageSrc(m.imageId ?? m.type), visualPartsOf(m))
-    const lm = L.marker([m.lat, m.lon], { icon, draggable: true }).addTo(this.map)
+    const lm = L.marker([m.lat, m.lon], { icon, draggable: this.draggableFn(m) }).addTo(this.map)
     this.leafletMarkers.set(m.id, lm)
 
     lm.on('dragend', () => {

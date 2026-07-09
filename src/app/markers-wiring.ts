@@ -141,6 +141,8 @@ export function wireMarkers(
       renderMarkerList(markerManager, undefined, currentSegmentMarkerIds(), signLibrary, onOpenMarkerDetail, markerPendingIds())
       progressBar.refreshDots()
     },
+    // T225/V151: talkoolaisen oma koodi → kova-poisto vain oman itse-luoman merkin kohdalla.
+    () => talkoolainenCode,
   )
   markerManager.setOnMarkerClick((id) => onOpenMarkerDetail(id))
 
@@ -182,6 +184,17 @@ export function wireMarkers(
           onFocusMarker: (id) => onOpenMarkerDetail(id),
           // "Näytä kartalla": panoroi ilman modaalia (näkymä kutistuu → kartta esiin)
           onShowOnMap: (id) => markerManager.panTo(id),
+          // T228: "Laita kommentti" hero-overflowsta → avaa detail-modaalin (Kommentti-kenttä,
+          // updateNote → location_note-PUT, server sallii omalle pätkälle V93). Per-merkki-kommentti
+          // löydettäväksi herosta — geneerinen kommentti (pätkä/vapaa piste) on eri asia (T221).
+          onComment: (id) => onOpenMarkerDetail(id),
+          // T222: "Siirretty" hero-overflowsta → panoroi merkkiin + ohje. Varsinainen siirto =
+          // raahaus kartalla (vain oman pätkän merkit draggable, V150). Backend sallii oman pätkän
+          // sijaintimuutoksen range-sisällä (V150b).
+          onMoveMarker: (id) => {
+            markerManager.panTo(id)
+            showWarning('Raahaa merkkiä kartalla uuteen paikkaan — muutos tallentuu', 4000)
+          },
           // T78/V43: talkoolainen muokkaa oman pätkän rajoja kentällä. Server sallii (V93:
           // talkoolainen_code === assigned_code). Päivitä store + backend + kartta + näkymä.
           onEditBounds: (startDist, endDist) => {
@@ -193,6 +206,8 @@ export function wireMarkers(
             if (updatedSeg) {
               renderSegmentOverlay()
               segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
+              // T222/V150: rajat muuttuivat → oma merkki-setti muuttuu → päivitä raahattavuus.
+              markerManager.setDraggablePredicate(m => currentSegmentMarkerIds()?.has(m.id) ?? false)
             }
           },
           // T224 (C)/V38/V93: talkoolainen muokkaa oman pätkän varustelistaa (valmisteluvaihe).
@@ -205,6 +220,18 @@ export function wireMarkers(
               .catch(() => flagErr())
             if (updatedSeg) segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
           },
+          // T230/V93: talkoolainen merkitsee pätkän valmiiksi (asettaminen/purku). Sama tallennuspolku.
+          onComplete: (completed) => {
+            const updatedSeg = updateSegment(segmentStore, seg.id, { completed })
+            const flagErr = () => showWarning('⚠ Pätkän valmiiksi-merkinnän tallennus epäonnistui — yritä uudelleen', 5000)
+            updateSegmentRemote(seg.id, { completed })
+              .then(ok => { if (!ok) flagErr() })
+              .catch(() => flagErr())
+            if (updatedSeg) {
+              renderSegmentOverlay()
+              segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
+            }
+          },
         },
       )
       const segMarkers0 = getMarkersForSegment(seg, markerManager.getAll())
@@ -214,6 +241,8 @@ export function wireMarkers(
       // T224 (b1): korosta seuraava asettamaton merkki kartalla (kartta = päänavigointi).
       nextHighlight = new NextMarkerHighlight(map)
       updateNextHighlight(seg, segMarkers0)
+      // T222/V150: vain oman pätkän merkit raahattavia — vieraita ei voi siirtää (backend 403).
+      markerManager.setDraggablePredicate(m => currentSegmentMarkerIds()?.has(m.id) ?? false)
     }
   }
 

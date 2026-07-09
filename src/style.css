@@ -2199,6 +2199,61 @@ button {
   background: var(--confirm-hover);
 }
 
+/* T227: supervision — per-pätkä aktiviteettiloki + massaperuutus (järjestäjä). */
+.segment-audit-section {
+  padding: 8px 20px 4px;
+  border-top: 1px solid var(--border-default);
+  margin-top: 8px;
+}
+
+.segment-audit-list {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.segment-audit-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.segment-audit-item {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-subtle, var(--border-default));
+  color: var(--text-body);
+}
+
+.segment-audit-empty {
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 4px 0;
+}
+
+.btn-segment-audit-undo {
+  margin-top: 10px;
+  background: transparent;
+  color: var(--danger-text);
+  border: 1px solid var(--danger-text);
+  border-radius: 8px;
+  font-size: 13px;
+  padding: 8px 12px;
+  min-height: 44px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.btn-segment-audit-undo:hover {
+  background: var(--danger-text);
+  color: #fff;
+}
+
+.btn-segment-audit-undo:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .segment-modal-danger-zone {
   padding: 4px 20px 12px;
   display: flex;

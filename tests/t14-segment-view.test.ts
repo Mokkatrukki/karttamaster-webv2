@@ -59,52 +59,13 @@ describe('T14 — SegmentView', () => {
     expect(container.querySelector('.segment-view-desc')).toBeNull()
   })
 
-  it('näyttää tyhjä-tilan kun ei merkkejä', () => {
+  // T228: inline-merkkilista poistettu (duplikoi "Kaikki merkit" -modaalin) — tyhjä pätkä
+  // näkyy hero-done-tilana, ei erillisenä .segment-view-empty-listana.
+  it('tyhjä pätkä → hero-done "Ei merkkejä", ei inline-listaa', () => {
     const view = new SegmentView(container, makeSeg())
     view.update([])
-    expect(container.querySelector('.segment-view-empty')).not.toBeNull()
-    expect(container.querySelector('.segment-view-empty')?.textContent).toContain('Ei merkkejä')
-  })
-
-  it('näyttää merkkilistan järjestettynä distanceFromStart mukaan (V25)', () => {
-    const view = new SegmentView(container, makeSeg())
-    view.update([
-      makeMarker({ id: 'm-2', distanceFromStart: 9000 }),
-      makeMarker({ id: 'm-1', distanceFromStart: 7000 }),
-    ])
-    const items = container.querySelectorAll('.segment-view-item')
-    expect(items.length).toBe(2)
-    expect(items[0].getAttribute('data-id')).toBe('m-1')
-    expect(items[1].getAttribute('data-id')).toBe('m-2')
-  })
-
-  it('näyttää merkin tyypin suomeksi', () => {
-    const view = new SegmentView(container, makeSeg())
-    view.update([makeMarker({ type: 'left' })])
-    expect(container.querySelector('.segment-view-item-info')?.textContent).toContain('Vasemmalle')
-  })
-
-  it('näyttää merkin km-sijainnin', () => {
-    const view = new SegmentView(container, makeSeg())
-    view.update([makeMarker({ distanceFromStart: 7500 })])
-    expect(container.querySelector('.segment-view-item-info')?.textContent).toContain('7.5 km')
-  })
-
-  it('näyttää statuksen oikealla CSS-luokalla', () => {
-    const view = new SegmentView(container, makeSeg())
-    view.update([makeMarker({ status: 'asetettu' })])
-    const statusEl = container.querySelector('.segment-view-status')
-    expect(statusEl?.classList.contains('status-asetettu')).toBe(true)
-    expect(statusEl?.textContent).toContain('Asetettu')
-  })
-
-  it('update() päivittää listan uusilla merkeillä', () => {
-    const view = new SegmentView(container, makeSeg())
-    view.update([makeMarker({ id: 'm-1' })])
-    expect(container.querySelectorAll('.segment-view-item').length).toBe(1)
-
-    view.update([makeMarker({ id: 'm-1' }), makeMarker({ id: 'm-2', distanceFromStart: 9000 })])
-    expect(container.querySelectorAll('.segment-view-item').length).toBe(2)
+    expect(container.querySelector('.segment-view-list')).toBeNull()
+    expect(container.querySelector('.segment-view-next-done-title')?.textContent).toContain('Ei merkkejä')
   })
 
   // T208-talkoolainen: phase-tietoinen edistymispalkki (yhtenäisyys järjestäjän kanssa)
@@ -167,11 +128,13 @@ describe('T14 — SegmentView', () => {
       expect(focusId).toBe('m1')
     })
 
-    it('kaikki asetettu → valmis-tila, ei aseta-nappia', () => {
+    it('kaikki asetettu → valmis-tila (slim), ei aseta-nappia', () => {
       const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }))
       view.update([makeMarker({ id: 'm1', status: 'asetettu' })])
-      expect(container.querySelector('.segment-view-next-done-title')?.textContent).toContain('Kaikki merkit asetettu')
+      expect(container.querySelector('.segment-view-next-done-title')?.textContent).toContain('Kaikki asetettu')
       expect(container.querySelector('.segment-view-next-set')).toBeNull()
+      // T228: done = matala rivi, ei accent-kortti
+      expect((container.querySelector('.segment-view-next') as HTMLElement).classList.contains('segment-view-next--done')).toBe(true)
     })
 
     it('hero piilotettu purku- ja tarkastus-phasessa', () => {
@@ -180,20 +143,12 @@ describe('T14 — SegmentView', () => {
       expect((container.querySelector('.segment-view-next') as HTMLElement).hidden).toBe(true)
     })
 
-    it('rivin klikkaus kutsuu onFocusMarker', () => {
-      let focusId: string | null = null
-      const view = new SegmentView(container, makeSeg(), undefined, undefined, {
-        onFocusMarker: (id) => { focusId = id },
-      })
-      view.update([makeMarker({ id: 'm-1', distanceFromStart: 7000 })])
-      ;(container.querySelector('.segment-view-item') as HTMLElement).click()
-      expect(focusId).toBe('m-1')
-    })
-
-    it('merkkirivi sisältää jaetun merkkivisuaalin (yhtenäinen ulkoasu)', () => {
-      const view = new SegmentView(container, makeSeg())
-      view.update([makeMarker({ id: 'm-1' })])
-      expect(container.querySelector('.segment-view-item .marker-visual-row-sv')).not.toBeNull()
+    // T228: rivin-klikkaus-detalji siirtyi "Kaikki merkit" -modaaliin + kartan merkin tappiin
+    // (inline-lista poistettu). Hero säilyttää jaetun merkkivisuaalin.
+    it('hero sisältää jaetun merkkivisuaalin (yhtenäinen ulkoasu)', () => {
+      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }))
+      view.update([makeMarker({ id: 'm-1', status: 'suunniteltu' })])
+      expect(container.querySelector('.segment-view-next-row .marker-visual-row-sv')).not.toBeNull()
     })
   })
 
