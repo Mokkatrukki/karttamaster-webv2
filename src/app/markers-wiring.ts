@@ -1,12 +1,11 @@
 import type L from 'leaflet'
 import { MarkerManager } from '../map/markers'
 import { DriveMode } from '../map/drive'
-import { RouteBar } from '../map/route-bar'
+import { RouteBar, type RouteBarSegmentSummary } from '../map/route-bar'
 import { RouteVisibilityControl } from '../map/route-visibility-control'
 import { ProgressBar } from '../ui/progress-bar'
 import { PlaceMode } from '../ui/place-mode'
 import { renderMarkerList } from '../ui/marker-list'
-import { GpsDrivePanel } from '../ui/gps-drive-panel'
 import { SegmentView } from '../ui/segment-view'
 import { SignLibraryPanel, createSignLibrary } from '../ui/sign-library-panel'
 import { saveLibrary, type SignLibrary, type SignTemplate } from '../logic/sign-library'
@@ -81,7 +80,6 @@ export function wireMarkers(
 
   let progressBar!: ProgressBar
   let statusPanel!: StatusPanel
-  let gpsDrivePanel: GpsDrivePanel | null = null
   let segmentView: SegmentView | null = null
   let signLibrary: SignLibrary | null = null
 
@@ -202,24 +200,35 @@ export function wireMarkers(
 
   const driveMode = new DriveMode(map, routes[0].routePoints, km => {
     progressBar.update(km)
-    gpsDrivePanel?.update(km)
   })
 
   // T204/V134: RouteBar-jako. Talkoolainen saa täyden drive-kontrollin (RouteBar: reittivalinta
   // + ◀▶-nuolet + km-scrubber); järjestäjä saa vain kevyen näytä/piilota-reittivalitsimen
-  // (RouteVisibilityControl). Drive-DOM (scrubber, gps-drive-panel, ◀▶) renderöityy VAIN
-  // talkoolaiselle — piilotetaan järjestäjältä.
+  // (RouteVisibilityControl). Drive-DOM (scrubber, ◀▶) renderöityy VAIN talkoolaiselle —
+  // piilotetaan järjestäjältä. (GpsDrivePanel poistettu T224/V148 — hero on ainoa ohjaus.)
   const isTalkoolainen = getRole() === 'talkoolainen'
   let routeBar: RouteBar | null = null
   let routeVis: RouteVisibilityControl | null = null
   const routeSelectorEl = document.getElementById('route-selector')!
 
   if (isTalkoolainen) {
+    // T224 (A): talkoolaisen alapalkki näyttää OMAN pätkän yhteenvedon (pituus + merkkimäärä),
+    // ei reittivalitsinta (V148). Reittiajo lukitaan pätkän reittiin.
+    const seg = talkoolainenCode ? getSegmentForCode(segmentStore, talkoolainenCode) : undefined
+    let segmentSummary: RouteBarSegmentSummary | undefined
+    if (seg && seg.startDist !== undefined && seg.endDist !== undefined && seg.routeIds && seg.routeIds.length > 0) {
+      segmentSummary = {
+        routeId: seg.routeIds.find(rid => routes.some(r => r.id === rid)) ?? seg.routeIds[0],
+        lengthKm: ((seg.endDist - seg.startDist) / 1000).toFixed(1),
+        markerCount: getMarkersForSegment(seg, markerManager.getAll()).length,
+      }
+    }
     routeBar = new RouteBar(
       routes, polylines, map, driveMode, markerManager,
       routeSelectorEl,
       document.getElementById('route-track-fill') as HTMLElement,
       () => { progressBar.update(0); progressBar.refreshDots() },
+      segmentSummary,
     )
   } else {
     routeVis = new RouteVisibilityControl(routes, polylines, map, markerManager, routeSelectorEl)
@@ -241,23 +250,9 @@ export function wireMarkers(
   )
   progressBar.update(0)
 
-  if (isTalkoolainen) {
-    gpsDrivePanel = new GpsDrivePanel(
-      document.getElementById('gps-drive-panel')!,
-      driveMode,
-      markerManager,
-      () => activeRouteProvider().id,
-      // B-lista2: rajaa navigointi oman pätkän merkkeihin (ei koko reitin)
-      () => {
-        const seg = talkoolainenCode ? getSegmentForCode(segmentStore, talkoolainenCode) : undefined
-        return seg ? getMarkersForSegment(seg, markerManager.getAll()) : markerManager.getAll()
-      },
-    )
-    // EI eager update(0): drive-paneeli näytetään vasta kun talkoolainen todella navigoi
-    // (scrubber/◀▶/GPS → driveMode.onProgress → gpsDrivePanel.update). Muuten se kilpailisi
-    // "Seuraava merkki" -heron kanssa jo latauksessa (kaksi identtistä "Aseta"). VISION:
-    // "jos GPS ei ole päällä, näyttää listan" → hero on oletusohjaus, paneeli ajon aikana.
-  }
+  // T224 (F)/V148: talkoolaisen seuraava-merkki-ohjaus asuu YKSIN SegmentView-herossa (ylhäällä).
+  // Vanha alapalkin GpsDrivePanel (⇒ Seuraava / ✓ Aseta / Ei tarpeen) poistettu duplikaationa —
+  // hero on ainoa Aseta/ohjaa-kontrolli. Oikea GPS-geolokaatio elää erikseen (gps-navigator.ts).
 
   statusPanel = new StatusPanel(document.getElementById('status-panel')!)
   statusPanel.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))

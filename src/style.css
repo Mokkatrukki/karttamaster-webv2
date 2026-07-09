@@ -479,6 +479,28 @@ button {
   align-items: center;
 }
 
+/* T224 (A): talkoolaisen pätkä-yhteenveto reittivalitsimen tilalle — pituus + merkkimäärä. */
+.route-segment-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+}
+.route-segment-summary .rss-icon { font-size: 14px; }
+.route-segment-summary .rss-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-body);
+}
+.route-segment-summary .rss-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .route-tab {
   display: flex;
   border-radius: var(--radius-sm);
@@ -928,67 +950,6 @@ button {
   transition: background 0.1s;
 }
 .btn-status-secondary:hover { background: var(--hover); color: var(--text-body); }
-
-/* ── GPS Drive Panel ── */
-
-#gps-drive-panel {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: var(--radius-sm);
-  background: var(--field-tint);
-  border: 1px solid var(--border-default);
-  flex-wrap: wrap;
-}
-
-#gps-drive-panel.gdp-near {
-  background: rgba(74, 222, 128, 0.12);
-  border-color: #4ade80;
-}
-
-#gdp-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 80px;
-}
-
-#gdp-dist {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-body);
-}
-
-#gps-drive-panel.gdp-near #gdp-dist { color: #4ade80; }
-
-#gdp-label {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-#gdp-actions {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-#gdp-jump {
-  min-height: 44px;
-  padding: 6px 10px;
-  background: var(--field-tint);
-  color: var(--text-body);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.1s;
-}
-#gdp-jump:hover { background: var(--hover-strong); }
 
 /* ── Empty state ── */
 
