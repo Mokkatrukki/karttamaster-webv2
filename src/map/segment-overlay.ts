@@ -190,7 +190,9 @@ function sliceRoutePoints(points: RoutePoint[], startDist: number, endDist: numb
     .map(p => [p.lat, p.lon])
 }
 
-function computeGapRanges(segments: Segment[], routeId: string, routePoints: RoutePoint[]): [number, number][] {
+// V139: exportattu Taso-1-testausta varten — reitittömät tehtävät EIVÄT osallistu gap-laskentaan
+// (niillä ei ole reittiä katettavaksi). Testataan että routeless-seg ei kaada eikä vääristä gappeja.
+export function computeGapRanges(segments: Segment[], routeId: string, routePoints: RoutePoint[]): [number, number][] {
   const totalEnd = routePoints[routePoints.length - 1]?.distanceFromStart ?? 0
   const covered = segments
     .filter((s): s is Segment & { startDist: number; endDist: number } =>
