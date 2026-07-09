@@ -1475,13 +1475,10 @@ button {
   max-height: none;
 }
 
-.segment-view--collapsed .segment-view-desc,
-.segment-view--collapsed .segment-view-next,
-.segment-view--collapsed .segment-view-equipment,
-.segment-view--collapsed .segment-view-list,
-.segment-view--collapsed .segment-view-bounds,
-.segment-view--collapsed .segment-view-inspect,
-.segment-view--collapsed .btn-bulk-collect {
+/* Kutistettuna vain otsikko + edistymispalkki näkyvät → kartta saa lähes koko ruudun (T223).
+   Välilehtien tultua (T224) riittää piilottaa tab-palkki + kaikki tab-paneelit. */
+.segment-view--collapsed .segment-view-tabs,
+.segment-view--collapsed .segment-view-tab-panel {
   display: none;
 }
 
@@ -1519,6 +1516,51 @@ button {
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
 }
+
+/* T224 (E): välilehtipalkki — [Pätkä] · [Kaikki merkit] · [Varusteet]. Keskity yhteen asiaan. */
+.segment-view-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle, var(--border-default));
+}
+.segment-view-tab {
+  flex: 1;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 6px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.segment-view-tab.active {
+  color: var(--text-body);
+  border-bottom-color: var(--accent);
+}
+.segment-view-tab-count:empty { display: none; }
+.segment-view-tab-count {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--field-tint);
+  color: var(--text-meta);
+  font-size: 11px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.segment-view-tab.active .segment-view-tab-count {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
+.segment-view-tab-panel[hidden] { display: none; }
 
 .segment-view-desc {
   font-size: 12px;
@@ -1590,7 +1632,19 @@ button {
 
 .segment-view-next-set { flex: 2; }
 .segment-view-next-show { flex: 1; }
-.segment-view-next-skip { width: 100%; }
+.segment-view-next-more { flex: 0 0 auto; min-width: 44px; padding: 0 12px; font-size: 18px; line-height: 1; }
+
+/* T224 (B): ⋯-overflow-valikko — lisätoiminnot (Ei tarpeen, Siirretty, kuva/kommentti tulossa). */
+.segment-view-next-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle, var(--border-default));
+}
+.segment-view-next-menu-item { width: 100%; justify-content: flex-start; }
+.segment-view-next-menu-item:disabled { opacity: 0.5; cursor: default; }
 
 .segment-view-next-done {
   text-align: center;
@@ -2631,6 +2685,52 @@ button {
 
 .equipment-auto-item {
   color: var(--text-muted);
+}
+
+/* T224 (C): talkoolaisen muokattava manuaali-varustelista — count + nimi + poisto per rivi. */
+.segment-view-equipment-manual {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+.segment-view-equipment-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+}
+.segment-view-equipment-count {
+  width: 56px;
+  min-height: 44px;
+  padding: 0 8px;
+  text-align: center;
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.segment-view-equipment-name {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 10px;
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  font-size: 14px;
+}
+.segment-view-equipment-remove {
+  flex: 0 0 auto;
+  min-width: 44px;
+  color: var(--text-muted);
+}
+.segment-view-equipment-add {
+  align-self: flex-start;
+  margin-top: 2px;
 }
 
 /* ── Segment label (Leaflet tooltip) ── */
