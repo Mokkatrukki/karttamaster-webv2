@@ -5,12 +5,40 @@ import { dbMiddleware } from './middleware/auth'
 import { markersRoutes } from './routes/markers'
 import { seedTestUsers, authHeaders } from './test-fixtures'
 import type { Database } from 'bun:sqlite'
+import { randomUUID } from 'crypto'
 
 function makeApp(db: Database) {
   const app = new Hono()
   app.use('*', dbMiddleware(db))
   app.route('/api/markers', markersRoutes)
   return app
+}
+
+// V149/T219: talkoolainen-sessio joka on sidottu pätkäkoodiin (ei user_id)
+function talkoolainenCodeHeaders(db: Database, code: string): { Cookie: string } {
+  const id = randomUUID()
+  const expires = new Date(Date.now() + 3600 * 1000).toISOString()
+  db.run(
+    'INSERT INTO sessions (id, user_id, talkoolainen_code, role, display_name, expires_at) VALUES (?, ?, ?, ?, ?, ?)',
+    [id, null, code, 'talkoolainen', 'Testi Talkoolainen', expires],
+  )
+  return { Cookie: `session=${id}` }
+}
+
+// Luo pätkä suoraan kantaan (markers.test ei reititä /api/segments)
+function seedSegment(db: Database, opts: { code: string; routeIds?: string[]; startDist?: number; endDist?: number }): void {
+  db.run(
+    `INSERT INTO segments (id, route_ids, start_dist, end_dist, assigned_code, equipment, phase, updated_at)
+     VALUES (?, ?, ?, ?, ?, '[]', 'asettaminen', ?)`,
+    [
+      randomUUID(),
+      opts.routeIds ? JSON.stringify(opts.routeIds) : null,
+      opts.startDist ?? null,
+      opts.endDist ?? null,
+      opts.code.toUpperCase(),
+      new Date().toISOString(),
+    ],
+  )
 }
 
 interface MarkerJson {
@@ -178,13 +206,57 @@ describe('T47: Markers REST API', () => {
       expect(body.updated_by).toBe('Testi Järjestäjä')
     })
 
-    test('talkoolainen cannot create marker → 403', async () => {
+    test('talkoolainen ilman pätkää ei voi luoda merkkiä → 403 (V149)', async () => {
       const res = await makeApp(db).request('/api/markers', {
         method: 'POST',
-        headers: { ...authHeaders(db, 'talkoolainen'), 'Content-Type': 'application/json' },
+        headers: { ...talkoolainenCodeHeaders(db, 'PÄTKÄTÖN'), 'Content-Type': 'application/json' },
         body: JSON.stringify(MARKER_BODY),
       })
       expect(res.status).toBe(403)
+    })
+
+    // V149/T219: talkoolainen saa lisätä merkin OMALLE pätkälleen (segment-scoped, ei tyyppirajausta)
+    test('V149: talkoolainen luo merkin omalle reitilliselle pätkälleen (osuu rangeen) → 201', async () => {
+      seedSegment(db, { code: 'OMA1', routeIds: ['35km'], startDist: 0, endDist: 5000 })
+      const res = await makeApp(db).request('/api/markers', {
+        method: 'POST',
+        headers: { ...talkoolainenCodeHeaders(db, 'OMA1'), 'Content-Type': 'application/json' },
+        body: JSON.stringify(MARKER_BODY), // distance_from_start: 1000, route_ids: ['35km']
+      })
+      expect(res.status).toBe(201)
+      const body = await res.json() as MarkerJson
+      expect(body.distance_from_start).toBe(1000)
+      expect(body.updated_by).toBe('Testi Talkoolainen')
+    })
+
+    test('V149: talkoolaisen merkki pätkän rangen ULKOPUOLELLA → 403', async () => {
+      seedSegment(db, { code: 'OMA2', routeIds: ['35km'], startDist: 2000, endDist: 5000 })
+      const res = await makeApp(db).request('/api/markers', {
+        method: 'POST',
+        headers: { ...talkoolainenCodeHeaders(db, 'OMA2'), 'Content-Type': 'application/json' },
+        body: JSON.stringify(MARKER_BODY), // distance 1000 < startDist 2000 → ulkona
+      })
+      expect(res.status).toBe(403)
+    })
+
+    test('V149: talkoolaisen merkki eri reitillä kuin pätkä → 403', async () => {
+      seedSegment(db, { code: 'OMA3', routeIds: ['20km'], startDist: 0, endDist: 5000 })
+      const res = await makeApp(db).request('/api/markers', {
+        method: 'POST',
+        headers: { ...talkoolainenCodeHeaders(db, 'OMA3'), 'Content-Type': 'application/json' },
+        body: JSON.stringify(MARKER_BODY), // route_ids ['35km'] ∩ ['20km'] = ∅
+      })
+      expect(res.status).toBe(403)
+    })
+
+    test('V149: talkoolainen luo merkin reitittömälle pätkälleen → 201 (V139, ei range-tarkistusta)', async () => {
+      seedSegment(db, { code: 'ALUE1' }) // reititön: route/start/end null
+      const res = await makeApp(db).request('/api/markers', {
+        method: 'POST',
+        headers: { ...talkoolainenCodeHeaders(db, 'ALUE1'), 'Content-Type': 'application/json' },
+        body: JSON.stringify(MARKER_BODY),
+      })
+      expect(res.status).toBe(201)
     })
 
     test('missing required fields → 400', async () => {

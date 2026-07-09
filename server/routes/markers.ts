@@ -45,8 +45,27 @@ markersRoutes.get('/', requireAuth(), (c) => {
   return c.json(rows.map((row) => toJson(db, row)))
 })
 
-// POST /api/markers — järjestäjä+
-markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), async (c) => {
+// V149/T219: talkoolaisen omalle pätkälle osuva merkki kelpaa — muut järjestäjä+.
+// Ownership-pattern kuten segments.ts PUT (V93): assigned_code = session.talkoolainen_code.
+interface OwnerSegRow { route_ids: string | null; start_dist: number | null; end_dist: number | null }
+function talkoolainenMayPlace(db: Database, session: SessionData, routeIds: string[], distFromStart: number): boolean {
+  if (session.role !== 'talkoolainen' || !session.talkoolainen_code) return false
+  const segs = db.query<OwnerSegRow, [string]>(
+    'SELECT route_ids, start_dist, end_dist FROM segments WHERE UPPER(assigned_code) = ?',
+  ).all(session.talkoolainen_code.toUpperCase())
+  if (segs.length === 0) return false // pätkätön → 403
+  return segs.some(seg => {
+    // V139: reititön pätkä → ei distance-rangea, salli jos assignattu seg olemassa
+    if (seg.route_ids == null || seg.start_dist == null || seg.end_dist == null) return true
+    const segRoutes = JSON.parse(seg.route_ids) as string[]
+    const routeOverlap = routeIds.some(r => segRoutes.includes(r))
+    const inRange = distFromStart >= seg.start_dist && distFromStart <= seg.end_dist
+    return routeOverlap && inRange
+  })
+}
+
+// POST /api/markers — järjestäjä+ TAI talkoolainen omalle pätkälleen (V149, EI tyyppirajausta)
+markersRoutes.post('/', requireAuth(), async (c) => {
   const db: Database = c.get('db')
   const session: SessionData = c.get('session')
   const body = await c.req.json<{
@@ -75,6 +94,12 @@ markersRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
     !body.route_ids
   ) {
     return c.json({ error: 'missing_fields' }, 400)
+  }
+
+  // V149: role-gate — organizer aina; talkoolainen vain oman pätkän sisään; muu → 403
+  const isOrganizer = session.role === 'admin' || session.role === 'järjestäjä'
+  if (!isOrganizer && !talkoolainenMayPlace(db, session, body.route_ids, body.distance_from_start)) {
+    return c.json({ error: 'forbidden' }, 403)
   }
 
   const id = body.id ?? randomUUID()
