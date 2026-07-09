@@ -16,6 +16,8 @@ interface SegmentRow {
   phase: string
   inspected: number
   inspection_note: string | null
+  linked_marker_ids: string | null
+  marker_type_filter: string | null
   updated_at: string
 }
 
@@ -33,6 +35,9 @@ function rowToSegment(row: SegmentRow) {
     phase: row.phase as 'asettaminen' | 'tarkastus' | 'purku',
     inspected: !!row.inspected,
     inspectionNote: row.inspection_note ?? undefined,
+    // V140: reitittömän tehtävän merkkiliitos — eksplisiittiset id:t + dynaaminen tyyppisuodatin.
+    linkedMarkerIds: row.linked_marker_ids ? (JSON.parse(row.linked_marker_ids) as string[]) : undefined,
+    markerTypeFilter: row.marker_type_filter ?? undefined,
   }
 }
 
@@ -60,14 +65,16 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
     phase?: string
     inspected?: boolean
     inspectionNote?: string
+    linkedMarkerIds?: string[]
+    markerTypeFilter?: string
   }>()
 
   const id = body.id ?? randomUUID()
   const now = new Date().toISOString()
 
   db.run(
-    `INSERT INTO segments (id, route_ids, start_dist, end_dist, assigned_code, display_name, description, equipment, phase, inspected, inspection_note, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO segments (id, route_ids, start_dist, end_dist, assigned_code, display_name, description, equipment, phase, inspected, inspection_note, linked_marker_ids, marker_type_filter, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        route_ids = excluded.route_ids,
        start_dist = excluded.start_dist,
@@ -79,6 +86,8 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
        phase = excluded.phase,
        inspected = excluded.inspected,
        inspection_note = excluded.inspection_note,
+       linked_marker_ids = excluded.linked_marker_ids,
+       marker_type_filter = excluded.marker_type_filter,
        updated_at = excluded.updated_at`,
     [
       id,
@@ -93,6 +102,9 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
       body.phase ?? 'asettaminen',
       body.inspected ? 1 : 0,
       body.inspectionNote ?? null,
+      // V140: merkkiliitos — tyhjä/puuttuva → null (ei tallenna tyhjää taulukkoa)
+      body.linkedMarkerIds != null && body.linkedMarkerIds.length > 0 ? JSON.stringify(body.linkedMarkerIds) : null,
+      body.markerTypeFilter ?? null,
       now,
     ],
   )
@@ -117,6 +129,8 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
     phase: string
     inspected: boolean
     inspectionNote: string
+    linkedMarkerIds: string[]
+    markerTypeFilter: string | null
   }>>()
 
   const existing = db.query<SegmentRow, [string]>('SELECT * FROM segments WHERE id = ?').get(id)
@@ -147,7 +161,7 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
     `UPDATE segments SET
       route_ids = ?, start_dist = ?, end_dist = ?, assigned_code = ?,
       display_name = ?, description = ?, equipment = ?, phase = ?,
-      inspected = ?, inspection_note = ?, updated_at = ?
+      inspected = ?, inspection_note = ?, linked_marker_ids = ?, marker_type_filter = ?, updated_at = ?
      WHERE id = ?`,
     [
       'routeIds' in body && body.routeIds ? JSON.stringify(body.routeIds) : existing.route_ids,
@@ -160,6 +174,11 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
       'phase' in body ? (body.phase ?? existing.phase) : existing.phase,
       body.inspected !== undefined ? (body.inspected ? 1 : 0) : existing.inspected,
       body.inspectionNote !== undefined ? body.inspectionNote : existing.inspection_note,
+      // V140: merkkiliitos vain järjestäjän patchissa (talkoolaisen body ei sisällä näitä avaimia)
+      'linkedMarkerIds' in body
+        ? (body.linkedMarkerIds && body.linkedMarkerIds.length > 0 ? JSON.stringify(body.linkedMarkerIds) : null)
+        : existing.linked_marker_ids,
+      'markerTypeFilter' in body ? (body.markerTypeFilter ?? null) : existing.marker_type_filter,
       now,
       id,
     ],

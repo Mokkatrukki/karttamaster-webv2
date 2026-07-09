@@ -192,6 +192,11 @@ function initSchema(db: Database): void {
 
   // T213/V141: segments route-kentät nullable (reititön tehtävä persistoituu).
   migrateSegmentsNullable(db)
+  // T216/V140: reitittömän tehtävän merkkiliitos — eksplisiittiset id:t + dynaaminen tyyppisuodatin.
+  // HUOM: näiden ALTER-rivien PITÄÄ olla migrateSegmentsNullable JÄLKEEN (rebuild ei kopioi näitä
+  // kolumneja; rebuild ajetaan vain kerran kun route_ids vielä NOT NULL, joten datakato ei uhkaa).
+  try { db.exec('ALTER TABLE segments ADD COLUMN linked_marker_ids TEXT') } catch { /* already exists */ }
+  try { db.exec('ALTER TABLE segments ADD COLUMN marker_type_filter TEXT') } catch { /* already exists */ }
 
   const existing = db.query<{ count: number }, []>(
     "SELECT COUNT(*) as count FROM map_state WHERE key='status'"

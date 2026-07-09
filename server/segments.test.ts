@@ -389,4 +389,59 @@ describe('T61: Segments API', () => {
       expect(body.assignedCode).toBe('ALUE1')
     })
   })
+
+  // T216/V140: reitittömän tehtävän merkkiliitos persistoituu (linkedMarkerIds + markerTypeFilter)
+  describe('T216/V140: merkkiliitos', () => {
+    test('POST tallentaa linkedMarkerIds + markerTypeFilter, roundtrippaa', async () => {
+      const app = makeApp(db)
+      const res = await app.request('/api/segments', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          displayName: 'Keräystehtävä', phase: 'purku', equipment: [],
+          linkedMarkerIds: ['m1', 'm2'], markerTypeFilter: 'keräyskasa',
+        }),
+      })
+      expect(res.status).toBe(201)
+      const body = await res.json() as Record<string, unknown>
+      expect(body.linkedMarkerIds).toEqual(['m1', 'm2'])
+      expect(body.markerTypeFilter).toBe('keräyskasa')
+
+      const list = await (await app.request('/api/segments', { headers: authHeaders(db, 'järjestäjä') })).json() as Record<string, unknown>[]
+      const found = list.find(s => s.id === body.id)!
+      expect(found.linkedMarkerIds).toEqual(['m1', 'm2'])
+      expect(found.markerTypeFilter).toBe('keräyskasa')
+    })
+
+    test('tyhjä linkedMarkerIds → undefined (ei tallenna tyhjää taulukkoa)', async () => {
+      const app = makeApp(db)
+      const res = await app.request('/api/segments', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayName: 'Tyhjä', phase: 'asettaminen', equipment: [], linkedMarkerIds: [] }),
+      })
+      const body = await res.json() as Record<string, unknown>
+      expect(body.linkedMarkerIds).toBeUndefined()
+    })
+
+    test('PUT päivittää merkkiliitoksen (järjestäjä)', async () => {
+      const app = makeApp(db)
+      const post = await app.request('/api/segments', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayName: 'T', phase: 'purku', equipment: [] }),
+      })
+      const { id } = await post.json() as { id: string }
+
+      const put = await app.request(`/api/segments/${id}`, {
+        method: 'PUT',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ linkedMarkerIds: ['x1'], markerTypeFilter: 'wc' }),
+      })
+      expect(put.status).toBe(200)
+      const updated = await put.json() as Record<string, unknown>
+      expect(updated.linkedMarkerIds).toEqual(['x1'])
+      expect(updated.markerTypeFilter).toBe('wc')
+    })
+  })
 })
