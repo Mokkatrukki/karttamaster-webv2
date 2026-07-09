@@ -8,6 +8,9 @@ const LS_KEY = 'karttamaster-layer'
 export interface MapInit {
   map: L.Map
   toolbarMenu: HTMLElement
+  // T232 (B): GPS-toggle siirtyy talkoolaisen SegmentView-heroon → navigaattori altistetaan
+  // wireMarkersille. Yläpalkin #btn-gps-toggle säilyy toistaiseksi (poistuu T233).
+  gpsNavigator: GpsNavigator
 }
 
 export function initMap(): MapInit {
@@ -77,5 +80,5 @@ export function initMap(): MapInit {
     })
   }
 
-  return { map, toolbarMenu }
+  return { map, toolbarMenu, gpsNavigator }
 }

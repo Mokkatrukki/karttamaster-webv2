@@ -21,7 +21,7 @@ export const ROUTE_DEFS: Omit<RouteConfig, 'routePoints'>[] = [
   { id: '55km', label: '55 km', color: '#B5476B', file: '/route-55km.gpx' },
 ]
 
-const { map, toolbarMenu } = initMap()
+const { map, toolbarMenu, gpsNavigator } = initMap()
 
 let activeMarkerManager: MarkerManager | null = null
 
@@ -82,7 +82,7 @@ async function init(talkoolainenCode?: string) {
 
   const { markerManager, driveMode, progressBar, placeMode, markerModal, closeMarkerModal } = wireMarkers(
     map, routes, polylines, initialMarkers, talkoolainenCode,
-    { segmentStore, renderSegmentOverlay, segmentPanel, showWarning },
+    { segmentStore, renderSegmentOverlay, segmentPanel, showWarning, gpsNavigator },
   )
   markerManagerRef.current = markerManager
   activeMarkerManager = markerManager

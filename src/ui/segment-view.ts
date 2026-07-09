@@ -1,6 +1,6 @@
 import { bulkCollect } from '../logic/segment-actions'
 import { isTerminal } from '../logic/marker-status'
-import { firstUnsetMarker } from '../logic/navigation'
+import { firstUnsetMarker, unsetMarkersOrdered, stepUnset } from '../logic/navigation'
 import { getPhaseProgress, formatPhaseProgress } from '../logic/segments'
 import type { Segment, EquipmentItem } from '../logic/segments'
 import { buildMarkerVisual } from './marker-visual-row'
@@ -43,11 +43,21 @@ export interface SegmentViewActions {
   onEquipmentChange?: (equipment: EquipmentItem[]) => void
   // T230: talkoolainen merkitsee pätkän valmiiksi/keskeneräiseksi (asettaminen/purku). Server V93.
   onComplete?: (completed: boolean) => void
+  // T232 (B)/V156: GPS-toggle herosta (siirretty yläpalkista). Palauttaa uuden aktiivitilan.
+  onToggleGps?: () => boolean
+  // T232 (B): GPS-navigaattorin nykyinen tila (napin alkuperäisen ilmeen renderöintiin).
+  isGpsActive?: () => boolean
+  // T232 (F)/V159: hero:n valittu merkki muuttui (◀▶-selailu/reconcile) → synkkaa kartan
+  // NextMarkerHighlight. null = ei valittua merkkiä (done/väärä phase) → tyhjennä korostus.
+  onNavigate?: (markerId: string | null) => void
+  // T232 (E)/T229: "+ Merkki" hero-overflowsta → avaa sign-picker kartan keskelle (POST omalle pätkälle).
+  onAddMarker?: () => void
 }
 
 export class SegmentView {
   private panel!: HTMLElement
   private readonly progressEl: HTMLElement
+  private readonly gpsBtn: HTMLButtonElement
   private readonly nextEl: HTMLElement
   private readonly varusteBtn: HTMLButtonElement
   private readonly bulkBtn: HTMLButtonElement
@@ -55,12 +65,20 @@ export class SegmentView {
   private readonly inspectBtn: HTMLButtonElement
   private readonly inspectNoteInput: HTMLTextAreaElement
   private readonly inspectStatus: HTMLElement
+  // T232 (A)/V158: "Lisää ⋯" panel-tason sekundäärivalikko — pitää complete+bounds pois
+  // aina-näkyvistä (hero-primary tiivis) mutta tavoitettavina KAIKISSA phaseissa (ei hero-overflow,
+  // joka on vain asettaminen+next → complete olisi tavoittamaton purussa/done-tilassa).
+  private readonly moreSection: HTMLElement
   private readonly boundsSection: HTMLElement
   private readonly completeSection: HTMLElement
   private readonly completeBtn: HTMLButtonElement
   private readonly completeStatus: HTMLElement
   private readonly equipmentModal: EquipmentModal
   private currentMarkers: SignMarker[] = []
+  // T232 (C)/V159: hero näyttää yhtä "valittua" asettamatonta merkkiä; ◀▶ selaa. null = oletus
+  // (firstUnsetMarker). Aseta/Näytä/overflow/highlight kohdistuvat tähän. update() reconciloi:
+  // jos valittu id ei enää ole asettamattomien listalla → palaa firstUnsetMarkeriin.
+  private selectedNavId: string | null = null
 
   constructor(
     container: HTMLElement,
@@ -72,6 +90,7 @@ export class SegmentView {
     this.equipmentModal = new EquipmentModal((equipment) => this.actions.onEquipmentChange?.(equipment))
     const b = this.build()
     this.progressEl = b.progressEl
+    this.gpsBtn = b.gpsBtn
     this.nextEl = b.nextEl
     this.varusteBtn = b.varusteBtn
     this.bulkBtn = b.bulkBtn
@@ -79,18 +98,21 @@ export class SegmentView {
     this.inspectBtn = b.inspectBtn
     this.inspectNoteInput = b.inspectNoteInput
     this.inspectStatus = b.inspectStatus
+    this.moreSection = b.moreSection
     this.boundsSection = b.boundsSection
     this.completeSection = b.completeSection
     this.completeBtn = b.completeBtn
     this.completeStatus = b.completeStatus
     this.panel = b.panel
     container.appendChild(b.panel)
+    this.renderGpsBtn()
     this.renderInspectSection()
     this.renderCompleteSection()
     this.renderProgress()
     this.renderNext()
     this.renderVarusteBtn()
     this.renderBoundsSection()
+    this.renderMoreSection()
   }
 
   update(markers: SignMarker[], segment?: Segment): void {
@@ -103,6 +125,18 @@ export class SegmentView {
     this.renderInspectSection()
     this.renderCompleteSection()
     this.renderBoundsSection()
+    this.renderMoreSection()
+  }
+
+  // T232 (B)/V156: GPS-toggle (siirretty yläpalkista heroon). Persistentti panel-kontrolli —
+  // näkyy KAIKISSA phaseissa (asettaminen+purku, VISION phase 3+5), ei asettaminen-only heron
+  // sisällä (muuten GPS olisi tavoittamaton purussa). Näkyy vain jos onToggleGps annettu.
+  private renderGpsBtn(): void {
+    if (!this.actions.onToggleGps) { this.gpsBtn.hidden = true; return }
+    this.gpsBtn.hidden = false
+    const active = this.actions.isGpsActive?.() ?? false
+    this.gpsBtn.classList.toggle('gps-active', active)
+    this.gpsBtn.textContent = active ? '📍 GPS päällä' : '📍 GPS'
   }
 
   // T230: "Merkitse pätkä valmiiksi" — vain asettaminen/purku (tarkastus käyttää inspect-osiota).
@@ -123,6 +157,15 @@ export class SegmentView {
     this.completeBtn.className = done
       ? 'btn btn--secondary segment-view-complete-btn'
       : 'btn btn--confirm segment-view-complete-btn'
+  }
+
+  // T232 (A)/V158: "Lisää ⋯" sekundäärivalikon näkyvyys. Näkyy jos on jotain sisältöä —
+  // valmis-toggle (asettaminen/purku) TAI rajojen muokkaus. Muuten piilossa kokonaan.
+  private renderMoreSection(): void {
+    const phaseOk = this.segment.phase === 'asettaminen' || this.segment.phase === 'purku'
+    const hasComplete = !!this.actions.onComplete && phaseOk
+    const hasBounds = !!this.actions.onEditBounds
+    this.moreSection.hidden = !(hasComplete || hasBounds)
   }
 
   // T224 (C): Varustelista-nappi näyttää määrän ja avaa tilavan modaalin (kuten "Kaikki merkit").
@@ -174,18 +217,26 @@ export class SegmentView {
       <span class="segment-view-progress-text">${text}</span>`
   }
 
-  // "Seuraava merkki" -ohjaus (hero). Vain asettaminen-phasessa. Ohjaa pätkän ENSIMMÄISEEN
-  // asettamattomaan merkkiin (firstUnsetMarker, pienin distanceFromStart).
+  // "Seuraava merkki" -ohjaus (hero). Vain asettaminen-phasessa. Ohjaa pätkän asettamattomiin
+  // merkkeihin; oletus = ensimmäinen (firstUnsetMarker, pienin distanceFromStart), ◀▶ selaa
+  // (stepUnset T231). Aseta/Näytä/overflow/highlight kohdistuvat valittuun merkkiin (V159).
   private renderNext(): void {
     if (this.segment.phase !== 'asettaminen') {
       this.nextEl.hidden = true
+      this.actions.onNavigate?.(null)
       return
     }
     this.nextEl.hidden = false
     this.nextEl.innerHTML = ''
 
-    const next = firstUnsetMarker(this.currentMarkers)
-    if (!next) {
+    const ordered = unsetMarkersOrdered(this.currentMarkers)
+    // V159 reconcile: valittu id kadonnut asettamattomien joukosta (asetettu/poistettu) → nollaa.
+    if (this.selectedNavId && !ordered.some(m => m.id === this.selectedNavId)) this.selectedNavId = null
+    const current = (this.selectedNavId ? ordered.find(m => m.id === this.selectedNavId) : null)
+      ?? firstUnsetMarker(this.currentMarkers)
+    this.selectedNavId = current?.id ?? null
+
+    if (!current) {
       // T228: matala done-rivi (⊥ accent-kortti) → kartta esiin, passiivinen tila = matala paino.
       this.nextEl.classList.add('segment-view-next--done')
       const done = document.createElement('div')
@@ -195,41 +246,71 @@ export class SegmentView {
         ? '<span class="segment-view-next-done-title">Ei merkkejä tällä pätkällä</span>'
         : '<span class="segment-view-next-done-title">✓ Kaikki asetettu 🎉</span>'
       this.nextEl.appendChild(done)
+      this.actions.onNavigate?.(null)
       return
     }
     this.nextEl.classList.remove('segment-view-next--done')
+    // V159: synkkaa kartan korostus valittuun merkkiin (◀▶ ja reconcile mukaan lukien).
+    this.actions.onNavigate?.(current.id)
 
+    // Otsikkorivi: "Seuraava merkki" + sijaintilaskuri (n/N) kun useampi asettamaton.
+    const idx = ordered.findIndex(m => m.id === current.id)
     const label = document.createElement('div')
     label.className = 'segment-view-next-label'
-    label.textContent = 'Seuraava merkki'
+    label.textContent = ordered.length > 1
+      ? `Seuraava merkki · ${idx + 1}/${ordered.length}`
+      : 'Seuraava merkki'
     this.nextEl.appendChild(label)
 
+    // T232 (C): ◀ merkki ▶ -selailurivi. Nuolet vain jos >1 asettamaton; clamp päihin (disabled).
     const row = document.createElement('div')
     row.className = 'segment-view-next-row'
 
+    if (ordered.length > 1) {
+      const prevBtn = document.createElement('button')
+      prevBtn.type = 'button'
+      prevBtn.className = 'btn btn--ghost segment-view-next-nav segment-view-next-prev'
+      prevBtn.setAttribute('aria-label', 'Edellinen asettamaton merkki')
+      prevBtn.textContent = '◀'
+      prevBtn.disabled = idx <= 0
+      prevBtn.addEventListener('click', () => this.navStep(-1))
+      row.appendChild(prevBtn)
+    }
+
     row.appendChild(buildMarkerVisual(
-      { type: next.type, iconId: next.iconId, label: next.label, parts: next.parts, color: next.color },
+      { type: current.type, iconId: current.iconId, label: current.label, parts: current.parts, color: current.color },
       { size: 44, zoomable: false },
     ))
 
     const info = document.createElement('div')
     info.className = 'segment-view-next-info'
-    const km = (next.distanceFromStart / 1000).toFixed(1)
+    const km = (current.distanceFromStart / 1000).toFixed(1)
     const nameEl = document.createElement('span')
     nameEl.className = 'segment-view-next-name'
-    nameEl.textContent = markerLabel(next)
+    nameEl.textContent = markerLabel(current)
     const metaEl = document.createElement('span')
     metaEl.className = 'segment-view-next-meta'
     metaEl.textContent = `${km} km`
     info.appendChild(nameEl)
     info.appendChild(metaEl)
-    if (next.locationNote) {
+    if (current.locationNote) {
       const noteEl = document.createElement('span')
       noteEl.className = 'segment-view-next-note'
-      noteEl.textContent = next.locationNote
+      noteEl.textContent = current.locationNote
       info.appendChild(noteEl)
     }
     row.appendChild(info)
+
+    if (ordered.length > 1) {
+      const nextBtn = document.createElement('button')
+      nextBtn.type = 'button'
+      nextBtn.className = 'btn btn--ghost segment-view-next-nav segment-view-next-fwd'
+      nextBtn.setAttribute('aria-label', 'Seuraava asettamaton merkki')
+      nextBtn.textContent = '▶'
+      nextBtn.disabled = idx >= ordered.length - 1
+      nextBtn.addEventListener('click', () => this.navStep(1))
+      row.appendChild(nextBtn)
+    }
     this.nextEl.appendChild(row)
 
     // T224 (B): primary 2 nappia (VISION max 2) — Aseta + Näytä kartalla. Loput ⋯-valikossa.
@@ -239,15 +320,15 @@ export class SegmentView {
     const setBtn = document.createElement('button')
     setBtn.className = 'btn btn--confirm segment-view-next-set'
     setBtn.textContent = '✓ Aseta'
-    setBtn.addEventListener('click', () => this.actions.onSetMarker?.(next.id))
+    setBtn.addEventListener('click', () => this.actions.onSetMarker?.(current.id))
     actionsRow.appendChild(setBtn)
 
     const showBtn = document.createElement('button')
     showBtn.className = 'btn btn--secondary segment-view-next-show'
     showBtn.textContent = 'Näytä kartalla'
     showBtn.addEventListener('click', () => {
-      if (this.actions.onShowOnMap) { this.actions.onShowOnMap(next.id); this.setCollapsed(true) }
-      else this.actions.onFocusMarker?.(next.id)
+      if (this.actions.onShowOnMap) { this.actions.onShowOnMap(current.id); this.setCollapsed(true) }
+      else this.actions.onFocusMarker?.(current.id)
     })
     actionsRow.appendChild(showBtn)
 
@@ -260,7 +341,7 @@ export class SegmentView {
 
     this.nextEl.appendChild(actionsRow)
 
-    // Overflow-valikko: Ei tarpeen · Siirretty · Ota kuva (tulossa) · Laita kommentti (tulossa)
+    // Overflow-valikko: Ei tarpeen · Siirretty · Laita kommentti · + Merkki · Ota kuva (tulossa)
     const menu = document.createElement('div')
     menu.className = 'segment-view-next-menu'
     menu.hidden = true
@@ -268,14 +349,14 @@ export class SegmentView {
     const skipItem = document.createElement('button')
     skipItem.className = 'btn btn--ghost segment-view-next-menu-item segment-view-next-skip'
     skipItem.textContent = 'Ei tarpeen'
-    skipItem.addEventListener('click', () => { menu.hidden = true; this.actions.onSkipMarker?.(next.id) })
+    skipItem.addEventListener('click', () => { menu.hidden = true; this.actions.onSkipMarker?.(current.id) })
     menu.appendChild(skipItem)
 
     const moveItem = document.createElement('button')
     moveItem.className = 'btn btn--ghost segment-view-next-menu-item segment-view-next-move'
     moveItem.textContent = 'Siirretty'
     if (this.actions.onMoveMarker) {
-      moveItem.addEventListener('click', () => { menu.hidden = true; this.actions.onMoveMarker?.(next.id) })
+      moveItem.addEventListener('click', () => { menu.hidden = true; this.actions.onMoveMarker?.(current.id) })
     } else {
       moveItem.disabled = true
       moveItem.title = 'Tulossa'
@@ -287,12 +368,25 @@ export class SegmentView {
     commentItem.className = 'btn btn--ghost segment-view-next-menu-item segment-view-next-comment'
     commentItem.textContent = 'Laita kommentti'
     if (this.actions.onComment) {
-      commentItem.addEventListener('click', () => { menu.hidden = true; this.actions.onComment?.(next.id) })
+      commentItem.addEventListener('click', () => { menu.hidden = true; this.actions.onComment?.(current.id) })
     } else {
       commentItem.disabled = true
       commentItem.title = 'Tulossa'
     }
     menu.appendChild(commentItem)
+
+    // T232 (E)/T229: "+ Merkki" — talkoolainen lisää suunnittelematon merkki omalle pätkälle.
+    // Siirretty yläpalkista hero-overflowiin (löydettävä, ei kilpaile primary-napeista).
+    const addItem = document.createElement('button')
+    addItem.className = 'btn btn--ghost segment-view-next-menu-item segment-view-next-add'
+    addItem.textContent = '+ Merkki'
+    if (this.actions.onAddMarker) {
+      addItem.addEventListener('click', () => { menu.hidden = true; this.actions.onAddMarker?.() })
+    } else {
+      addItem.disabled = true
+      addItem.title = 'Tulossa'
+    }
+    menu.appendChild(addItem)
 
     // "Ota kuva" — talkoolaisen kuvankaappaus tulossa (T221/T103-alue).
     const photoItem = document.createElement('button')
@@ -304,6 +398,17 @@ export class SegmentView {
 
     moreBtn.addEventListener('click', () => { menu.hidden = !menu.hidden })
     this.nextEl.appendChild(menu)
+  }
+
+  // T232 (C)/V159: ◀▶ vaihtaa hero:n valittua asettamatonta merkkiä (stepUnset T231, clamp päihin).
+  // renderNext re-render synkkaa kartan korostuksen (onNavigate) uuteen valintaan.
+  private navStep(dir: 1 | -1): void {
+    if (!this.selectedNavId) return
+    const target = stepUnset(this.currentMarkers, this.selectedNavId, dir)
+    if (target && target.id !== this.selectedNavId) {
+      this.selectedNavId = target.id
+      this.renderNext()
+    }
   }
 
   // T147: tarkastus-phase — kevyt läpiajo, vapaateksti-huomio, ei per-merkki-kuittausta
@@ -321,6 +426,7 @@ export class SegmentView {
   private build(): {
     panel: HTMLElement
     progressEl: HTMLElement
+    gpsBtn: HTMLButtonElement
     nextEl: HTMLElement
     varusteBtn: HTMLButtonElement
     bulkBtn: HTMLButtonElement
@@ -328,6 +434,7 @@ export class SegmentView {
     inspectBtn: HTMLButtonElement
     inspectNoteInput: HTMLTextAreaElement
     inspectStatus: HTMLElement
+    moreSection: HTMLElement
     boundsSection: HTMLElement
     completeSection: HTMLElement
     completeBtn: HTMLButtonElement
@@ -344,10 +451,20 @@ export class SegmentView {
     name.textContent = this.segment.displayName ?? 'Pätkäsi'
     header.appendChild(name)
 
+    // T232 (D): pätkän pituus päänäyttönä ("· 1.0 km"), km-väli pienempänä metatietona.
+    const startM = this.segment.startDist ?? 0
+    const endM = this.segment.endDist ?? 0
+    if (endM > startM) {
+      const length = document.createElement('span')
+      length.className = 'segment-view-length'
+      length.textContent = `· ${((endM - startM) / 1000).toFixed(1)} km`
+      header.appendChild(length)
+    }
+
     const range = document.createElement('span')
     range.className = 'segment-view-range'
-    const startKm = ((this.segment.startDist ?? 0) / 1000).toFixed(1)
-    const endKm = ((this.segment.endDist ?? 0) / 1000).toFixed(1)
+    const startKm = (startM / 1000).toFixed(1)
+    const endKm = (endM / 1000).toFixed(1)
     range.textContent = `${startKm}–${endKm} km`
     header.appendChild(range)
 
@@ -365,6 +482,19 @@ export class SegmentView {
     progressEl.className = 'segment-view-progress'
     panel.appendChild(progressEl)
 
+    // T232 (B)/V156: GPS-toggle (persistentti panel-kontrolli, näkyy kaikissa phaseissa).
+    const gpsBtn = document.createElement('button')
+    gpsBtn.type = 'button'
+    gpsBtn.className = 'btn btn--secondary segment-view-gps-btn'
+    gpsBtn.textContent = '📍 GPS'
+    gpsBtn.hidden = true
+    gpsBtn.addEventListener('click', () => {
+      const active = this.actions.onToggleGps?.() ?? false
+      gpsBtn.classList.toggle('gps-active', active)
+      gpsBtn.textContent = active ? '📍 GPS päällä' : '📍 GPS'
+    })
+    panel.appendChild(gpsBtn)
+
     if (this.segment.description) {
       const desc = document.createElement('p')
       desc.className = 'segment-view-desc'
@@ -381,6 +511,7 @@ export class SegmentView {
     // (bulk + rivi→MarkerDetailModal). Inline-lista duplikoi sen ja söi kartan tilan → poistettu.
 
     // T224 (C): Varustelista-nappi → tilava EquipmentModal (kuten "Kaikki merkit" -massalista).
+    // (T233 siirtää tämän yläpalkkiin; toistaiseksi panelissa.)
     const varusteBtn = document.createElement('button')
     varusteBtn.type = 'button'
     varusteBtn.className = 'btn btn--secondary segment-view-varuste-btn'
@@ -422,6 +553,30 @@ export class SegmentView {
 
     panel.appendChild(inspectSection)
 
+    // T232 (A)/V158: "Lisää ⋯" panel-tason sekundäärivalikko — complete + bounds sen sisällä,
+    // pois hero-primarysta mutta tavoitettavana kaikissa phaseissa (ei asettaminen-only hero-overflow).
+    const moreSection = document.createElement('div')
+    moreSection.className = 'segment-view-more'
+    moreSection.hidden = true
+
+    const moreToggle = document.createElement('button')
+    moreToggle.type = 'button'
+    moreToggle.className = 'btn btn--ghost segment-view-more-toggle'
+    moreToggle.setAttribute('aria-haspopup', 'true')
+    moreToggle.setAttribute('aria-expanded', 'false')
+    moreToggle.textContent = 'Lisää ⋯'
+    moreSection.appendChild(moreToggle)
+
+    const moreBody = document.createElement('div')
+    moreBody.className = 'segment-view-more-body'
+    moreBody.hidden = true
+    moreSection.appendChild(moreBody)
+
+    moreToggle.addEventListener('click', () => {
+      moreBody.hidden = !moreBody.hidden
+      moreToggle.setAttribute('aria-expanded', String(!moreBody.hidden))
+    })
+
     // T230: "Merkitse pätkä valmiiksi" -osio (asettaminen/purku). Erillään merkki-kuittauksesta.
     const completeSection = document.createElement('div')
     completeSection.className = 'segment-view-complete'
@@ -439,14 +594,17 @@ export class SegmentView {
       this.actions.onComplete?.(!(this.segment.completed ?? false))
     })
     completeSection.appendChild(completeBtn)
-    panel.appendChild(completeSection)
+    moreBody.appendChild(completeSection)
 
     const boundsSection = this.buildBoundsSection()
-    panel.appendChild(boundsSection)
+    moreBody.appendChild(boundsSection)
+
+    panel.appendChild(moreSection)
 
     return {
-      panel, progressEl, nextEl, varusteBtn, bulkBtn,
-      inspectSection, inspectBtn, inspectNoteInput, inspectStatus, boundsSection,
+      panel, progressEl, gpsBtn, nextEl, varusteBtn, bulkBtn,
+      inspectSection, inspectBtn, inspectNoteInput, inspectStatus,
+      moreSection, boundsSection,
       completeSection, completeBtn, completeStatus,
     }
   }

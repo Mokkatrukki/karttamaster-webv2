@@ -19,6 +19,7 @@ import type { Segment } from '../logic/segments'
 import { planSegmentZoom } from '../logic/segment-zoom'
 import { firstUnsetMarker } from '../logic/navigation'
 import { NextMarkerHighlight } from '../map/next-marker-highlight'
+import type { GpsNavigator } from '../map/gps-navigator'
 import { updateSegmentRemote } from '../logic/segment-sync'
 import { outbox, setOutboxChangeHandler } from '../logic/outbox-instance'
 import type { RouteConfig } from '../logic/multi-route'
@@ -40,6 +41,8 @@ interface MarkersWiringDeps {
   renderSegmentOverlay: () => void
   segmentPanel: SegmentPanel
   showWarning: (msg: string, ms?: number) => void
+  // T232 (B): GPS-navigaattori (luotu map-init.ts:ssä) → talkoolaisen SegmentView-heron GPS-toggle.
+  gpsNavigator: GpsNavigator
 }
 
 // T224 (D): latauksessa zoomaa talkoolaisen OMAAN pätkään ("tässä on sun pätkä"), ei koko karttaan.
@@ -78,7 +81,7 @@ export function wireMarkers(
   talkoolainenCode: string | undefined,
   deps: MarkersWiringDeps,
 ): MarkersWiring {
-  const { segmentStore, renderSegmentOverlay, segmentPanel, showWarning } = deps
+  const { segmentStore, renderSegmentOverlay, segmentPanel, showWarning, gpsNavigator } = deps
 
   let progressBar!: ProgressBar
   let statusPanel!: StatusPanel
@@ -127,8 +130,10 @@ export function wireMarkers(
       const seg = talkoolainenCode ? getSegmentForCode(segmentStore, talkoolainenCode) : undefined
       if (seg) {
         const segMarkers = getMarkersForSegment(seg, markerManager.getAll())
+        // T232 (F)/V159: segmentView.update() → renderNext → onNavigate synkkaa kartan korostuksen
+        // hero:n VALITTUUN merkkiin (◀▶-selailu huomioiden). EI erillistä updateNextHighlightia tässä
+        // — se osoittaisi aina firstUnsetMarkeriin ja ohittaisi selatun valinnan (epäjohdonmukainen).
         segmentView.update(segMarkers)
-        updateNextHighlight(seg, segMarkers)
       }
     }
   }, initialMarkers, distM => showWarning(`⚠ Merkki kaukana reitistä (${Math.round(distM)} m)`), msg => showWarning(msg, 5000))
@@ -231,6 +236,29 @@ export function wireMarkers(
               renderSegmentOverlay()
               segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
             }
+          },
+          // T232 (B)/V156: GPS-toggle herosta (siirretty yläpalkista). Ohjaa GpsNavigatoria (T30,
+          // oma sijainti) — ERILLINEN driveModesta. Palauttaa uuden aktiivitilan napin ilmeeseen.
+          onToggleGps: () => {
+            if (gpsNavigator.isActive()) { gpsNavigator.stop(); return false }
+            gpsNavigator.start(); return true
+          },
+          isGpsActive: () => gpsNavigator.isActive(),
+          // T232 (F)/V159: hero:n valittu merkki (◀▶-selailu/reconcile) → synkkaa kartan korostus.
+          // null = ei valittua (done/väärä phase) → tyhjennä. Korostus SEURAA valintaa, ei suoraan
+          // firstUnsetMarkeria (estää "highlight osoittaa eri merkkiin kuin hero" -epäjohdonmukaisuuden).
+          onNavigate: (id) => {
+            if (!nextHighlight) return
+            if (!id) { nextHighlight.clear(); return }
+            const m = markerManager.getAll().find(x => x.id === id)
+            if (m) nextHighlight.set(m.lat, m.lon)
+            else nextHighlight.clear()
+          },
+          // T232 (E)/T229: "+ Merkki" hero-overflowsta → sign-picker kartan keskelle (POST omalle
+          // pätkälle V149). Sama polku kuin yläpalkin #btn-add-marker (poistuu T233).
+          onAddMarker: () => {
+            const c = map.getCenter()
+            placeMode.openPicker(c.lat, c.lng, window.innerWidth / 2, window.innerHeight / 2)
           },
         },
       )

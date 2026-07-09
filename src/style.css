@@ -1381,6 +1381,14 @@ button {
   color: var(--text-body);
 }
 
+/* T232 (D): pätkän pituus päänäyttönä (nimen vieressä), km-väli pienempänä metana. */
+.segment-view-length {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-body);
+  flex-shrink: 0;
+}
+
 .segment-view-range {
   font-size: 12px;
   color: var(--text-muted);
@@ -1419,7 +1427,9 @@ button {
 /* Kutistettuna vain otsikko + edistymispalkki näkyvät → kartta saa lähes koko ruudun (T223). */
 .segment-view--collapsed .segment-view-desc,
 .segment-view--collapsed .segment-view-next,
+.segment-view--collapsed .segment-view-gps-btn,
 .segment-view--collapsed .segment-view-varuste-btn,
+.segment-view--collapsed .segment-view-more,
 .segment-view--collapsed .segment-view-bounds,
 .segment-view--collapsed .segment-view-inspect,
 .segment-view--collapsed .segment-view-complete,
@@ -1460,6 +1470,34 @@ button {
   color: var(--text-muted);
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
+}
+
+/* T232 (B)/V156: GPS-toggle — persistentti panel-kontrolli (näkyy kaikissa phaseissa). */
+.segment-view-gps-btn {
+  width: 100%;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+.segment-view-gps-btn.gps-active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+/* T232 (A)/V158: "Lisää ⋯" panel-tason sekundäärivalikko (complete + bounds sen sisällä). */
+.segment-view-more {
+  margin-top: 4px;
+}
+.segment-view-more-toggle {
+  width: 100%;
+  justify-content: center;
+  color: var(--text-muted);
+}
+.segment-view-more-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
 }
 
 /* T224 (C): Varustelista-nappi (avaa EquipmentModalin). */
@@ -1540,6 +1578,17 @@ button {
 .segment-view-next-set { flex: 2; }
 .segment-view-next-show { flex: 1; }
 .segment-view-next-more { flex: 0 0 auto; min-width: 44px; padding: 0 12px; font-size: 18px; line-height: 1; }
+
+/* T232 (C): ◀▶-selailunuolet asettamattomien merkkien välillä (clamp päihin → disabled). */
+.segment-view-next-nav {
+  flex: 0 0 auto;
+  min-width: 40px;
+  min-height: 44px;
+  padding: 0 8px;
+  font-size: 16px;
+  line-height: 1;
+}
+.segment-view-next-nav:disabled { opacity: 0.3; cursor: default; }
 
 /* T224 (B): ⋯-overflow-valikko — lisätoiminnot (Ei tarpeen, Siirretty, kuva/kommentti tulossa). */
 .segment-view-next-menu {
