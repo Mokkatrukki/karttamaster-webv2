@@ -89,6 +89,20 @@ describe('segments', () => {
       const s = createSegment(store, baseSegment)
       expect(store.get(s.id)).toBe(s)
     })
+
+    // V139: reititön tehtävä — kaikki route-kentät puuttuvat, luonti sallittu
+    it('V139: luo reitittömän tehtävän ilman route-kenttiä', () => {
+      const s = createSegment(store, { equipment: [], phase: 'asettaminen' })
+      expect(s.routeIds).toBeUndefined()
+      expect(s.startDist).toBeUndefined()
+      expect(s.endDist).toBeUndefined()
+      expect(s.id).toBeTruthy()
+      expect(store.get(s.id)).toBe(s)
+    })
+
+    it('V139: reitittömän luonti EI heitä V11/V25', () => {
+      expect(() => createSegment(store, { equipment: [], phase: 'purku' })).not.toThrow()
+    })
   })
 
   describe('updateSegment', () => {
@@ -211,6 +225,13 @@ describe('segments', () => {
     it('palauttaa tyhjän taulukon jos ei osumia', () => {
       const segment = createSegment(store, baseSegment)
       expect(getMarkersForSegment(segment, [])).toEqual([])
+    })
+
+    // V139: reitittömällä tehtävällä ei reittifiltteriä → tyhjä (T214 tuo linkedIds/typeFilter)
+    it('V139: reitittömälle tehtävälle tyhjä (ei kaadu route-kenttiin)', () => {
+      const segment = createSegment(store, { equipment: [], phase: 'asettaminen' })
+      const markers: SignMarker[] = [makeMarker('m1', ['r1'], 2000)]
+      expect(getMarkersForSegment(segment, markers)).toEqual([])
     })
   })
 
@@ -361,6 +382,13 @@ describe('segments', () => {
       expect(validateNoOverlap(store, 'r1', 500, 6000, 'purku')).toBe(true)
       expect(validateNoOverlap(store, 'r1', 500, 6000, 'tarkastus')).toBe(true)
     })
+
+    // V139: reitittömät tehtävät eivät osallistu overlappiin
+    it('V139: reititön tehtävä samassa phasessa ei blokkaa overlappia', () => {
+      createSegment(store, { equipment: [], phase: 'asettaminen' }, 'routeless')
+      expect(validateNoOverlap(store, 'r1', 500, 6000, 'asettaminen')).toBe(false) // 'existing' blokkaa
+      expect(validateNoOverlap(store, 'rX', 0, 999999, 'asettaminen')).toBe(true)  // vain routeless samassa → true
+    })
   })
 
   // T146: UI-aukko korjattu — kloonaa segmentti seuraavaan vaiheeseen
@@ -416,6 +444,18 @@ describe('segments', () => {
       const second = cloneSegmentToNextPhase(store, original)
       expect(second).toBeNull()
       expect(getSegmentsForPhase(store, 'tarkastus')).toHaveLength(1)
+    })
+
+    // V139: reitittömän tehtävän klooni undefined-safe — ei laske overlappia, ei kopioi reittiä
+    it('V139: kloonaa reitittömän tehtävän ilman kaatumista', () => {
+      const original = createSegment(store, { equipment: [], phase: 'asettaminen', displayName: 'Maalialue' })
+      const cloned = cloneSegmentToNextPhase(store, original)
+      expect(cloned).not.toBeNull()
+      expect(cloned!.phase).toBe('tarkastus')
+      expect(cloned!.routeIds).toBeUndefined()
+      expect(cloned!.startDist).toBeUndefined()
+      expect(cloned!.endDist).toBeUndefined()
+      expect(cloned!.displayName).toBe('Maalialue')
     })
   })
 

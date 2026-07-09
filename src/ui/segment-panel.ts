@@ -287,8 +287,11 @@ export class SegmentPanel {
     kmSpan.className = 'segment-km'
     const markers = this.callbacks.getMarkers?.() ?? []
     kmSpan.textContent = formatPhaseProgress(getPhaseProgress(seg, markers))
-    const kmRange = `${(seg.startDist / 1000).toFixed(1)}–${(seg.endDist / 1000).toFixed(1)} km`
-    kmSpan.title = `${kmRange} · ${formatStatusCounts(getSegmentStatusCounts(seg, markers))}`
+    // V139: reitittömällä tehtävällä ei km-aluetta.
+    const kmRange = seg.startDist !== undefined && seg.endDist !== undefined
+      ? `${(seg.startDist / 1000).toFixed(1)}–${(seg.endDist / 1000).toFixed(1)} km · `
+      : ''
+    kmSpan.title = `${kmRange}${formatStatusCounts(getSegmentStatusCounts(seg, markers))}`
 
     const detailsBtn = document.createElement('button')
     detailsBtn.className = 'btn-segment-details-open'

@@ -107,8 +107,8 @@ export class SegmentView {
     const toggle = this.boundsSection.querySelector('.segment-view-bounds-toggle') as HTMLButtonElement | null
     const form = this.boundsSection.querySelector('.segment-view-bounds-form') as HTMLElement | null
     if (toggle && form && form.hidden) {
-      const s = (this.segment.startDist / 1000).toFixed(1)
-      const e = (this.segment.endDist / 1000).toFixed(1)
+      const s = ((this.segment.startDist ?? 0) / 1000).toFixed(1)
+      const e = ((this.segment.endDist ?? 0) / 1000).toFixed(1)
       toggle.textContent = `✎ Muokkaa pätkän rajoja (${s}–${e} km)`
     }
   }
@@ -262,8 +262,9 @@ export class SegmentView {
 
     const range = document.createElement('span')
     range.className = 'segment-view-range'
-    const startKm = (this.segment.startDist / 1000).toFixed(1)
-    const endKm = (this.segment.endDist / 1000).toFixed(1)
+    // V139: reitittömällä tehtävällä ei km-aluetta (T218 tuo oman otsikon).
+    const startKm = ((this.segment.startDist ?? 0) / 1000).toFixed(1)
+    const endKm = ((this.segment.endDist ?? 0) / 1000).toFixed(1)
     range.textContent = `${startKm}–${endKm} km`
     header.appendChild(range)
 
@@ -369,8 +370,8 @@ export class SegmentView {
       boundsForm.appendChild(wrap)
       return input
     }
-    const startInput = mkField('Alku (km)', 'segment-view-bounds-start', (this.segment.startDist / 1000).toFixed(1))
-    const endInput = mkField('Loppu (km)', 'segment-view-bounds-end', (this.segment.endDist / 1000).toFixed(1))
+    const startInput = mkField('Alku (km)', 'segment-view-bounds-start', ((this.segment.startDist ?? 0) / 1000).toFixed(1))
+    const endInput = mkField('Loppu (km)', 'segment-view-bounds-end', ((this.segment.endDist ?? 0) / 1000).toFixed(1))
 
     const boundsError = document.createElement('p')
     boundsError.className = 'segment-view-bounds-error'
@@ -393,8 +394,8 @@ export class SegmentView {
     boundsSection.appendChild(boundsForm)
 
     const openForm = () => {
-      startInput.value = (this.segment.startDist / 1000).toFixed(1)
-      endInput.value = (this.segment.endDist / 1000).toFixed(1)
+      startInput.value = ((this.segment.startDist ?? 0) / 1000).toFixed(1)
+      endInput.value = ((this.segment.endDist ?? 0) / 1000).toFixed(1)
       boundsError.hidden = true
       boundsForm.hidden = false
       boundsToggle.hidden = true

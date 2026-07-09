@@ -53,10 +53,14 @@ export class SegmentOverlay {
       const style = LINE_STATE_STYLE[state]
       // tarkastus-vaiheen valmis-pätkä saa ✓ tooltipiin
       const labelSuffix = seg.phase === 'tarkastus' && state === 'valmis' ? ' ✓' : ''
+      // V139: reititön tehtävä ei piirrä reitti-polylinea (T217 tuo oman render-haaran).
+      if (!seg.routeIds || seg.startDist === undefined || seg.endDist === undefined) continue
+      const segStart = seg.startDist
+      const segEnd = seg.endDist
       for (const routeId of seg.routeIds) {
         const route = this.routes.find(r => r.id === routeId)
         if (!route) continue
-        const pts = sliceRoutePoints(route.routePoints, seg.startDist, seg.endDist)
+        const pts = sliceRoutePoints(route.routePoints, segStart, segEnd)
         if (pts.length < 2) continue
         const line = L.polyline(pts, {
           color, weight: style.weight, opacity: style.opacity,
@@ -98,10 +102,13 @@ export class SegmentOverlay {
   ): void {
     this.hideCreationSnapMarkers()
     for (const seg of store.values()) {
+      if (!seg.routeIds || seg.startDist === undefined || seg.endDist === undefined) continue
+      const segStart = seg.startDist
+      const segEnd = seg.endDist
       for (const routeId of seg.routeIds) {
         const route = this.routes.find(r => r.id === routeId)
         if (!route) continue
-        for (const [dist, color] of [[seg.startDist, '#f59e0b'], [seg.endDist, '#10b981']] as [number, string][]) {
+        for (const [dist, color] of [[segStart, '#f59e0b'], [segEnd, '#10b981']] as [number, string][]) {
           const pos = routePointAtDist(route.routePoints, dist)
           const m = L.circleMarker(pos, { radius: 8, color, fillColor: color, fillOpacity: 0.9, weight: 2 })
           m.on('click', (e: L.LeafletMouseEvent) => {
@@ -123,7 +130,9 @@ export class SegmentOverlay {
   // Place draggable start/end markers for the segment. onSave called on each snap.
   enterEditMode(seg: Segment, onSave: (startDist: number, endDist: number) => void): void {
     this.exitEditMode()
-    const route = this.routes.find(r => seg.routeIds.includes(r.id))
+    // V139: reitittömällä tehtävällä ei raahattavia raja-merkkejä.
+    if (!seg.routeIds || seg.startDist === undefined || seg.endDist === undefined) return
+    const route = this.routes.find(r => seg.routeIds!.includes(r.id))
     if (!route) return
 
     let editStartDist = seg.startDist
@@ -184,7 +193,8 @@ function sliceRoutePoints(points: RoutePoint[], startDist: number, endDist: numb
 function computeGapRanges(segments: Segment[], routeId: string, routePoints: RoutePoint[]): [number, number][] {
   const totalEnd = routePoints[routePoints.length - 1]?.distanceFromStart ?? 0
   const covered = segments
-    .filter(s => s.routeIds.includes(routeId))
+    .filter((s): s is Segment & { startDist: number; endDist: number } =>
+      !!s.routeIds && s.routeIds.includes(routeId) && s.startDist !== undefined && s.endDist !== undefined)
     .map(s => [s.startDist, s.endDist] as [number, number])
     .sort((a, b) => a[0] - b[0])
   const gaps: [number, number][] = []
