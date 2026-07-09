@@ -86,9 +86,9 @@ function initSchema(db: Database): void {
 
     CREATE TABLE IF NOT EXISTS segments (
       id TEXT PRIMARY KEY,
-      route_ids TEXT NOT NULL,
-      start_dist REAL NOT NULL,
-      end_dist REAL NOT NULL,
+      route_ids TEXT,
+      start_dist REAL,
+      end_dist REAL,
       assigned_code TEXT,
       display_name TEXT,
       description TEXT,
@@ -188,12 +188,59 @@ function initSchema(db: Database): void {
   // SQLITE_CONSTRAINT_NOTNULL → EI YKSIKÄÄN merkki tallennu. Pudota sarake idempotentisti.
   try { db.exec('ALTER TABLE markers DROP COLUMN bearing') } catch { /* already dropped / never existed */ }
 
+  // T213/V141: segments route-kentät nullable (reititön tehtävä persistoituu).
+  migrateSegmentsNullable(db)
+
   const existing = db.query<{ count: number }, []>(
     "SELECT COUNT(*) as count FROM map_state WHERE key='status'"
   ).get()
   if (!existing || existing.count === 0) {
     db.run("INSERT INTO map_state (key, value) VALUES ('status', 'luonnos')")
   }
+}
+
+// T213/V141: route_ids/start_dist/end_dist NOT NULL → nullable (reititön tehtävä).
+// SQLite ei tue NOT NULL -poistoa ALTER COLUMN:lla → rakenna taulu uudelleen transaktiossa.
+// B84-oppi: EI DROP/recreate ilman datan kopiointia — vanhat reitilliset pätkät säilyvät.
+// Idempotentti: aja vain jos route_ids on vielä NOT NULL (PRAGMA table_info notnull=1).
+export function migrateSegmentsNullable(db: Database): void {
+  const info = db.query<{ name: string; notnull: number }, []>('PRAGMA table_info(segments)').all()
+  if (info.length === 0) return // taulua ei vielä ole (initSchema luo sen nullable-muodossa)
+  const routeIdsCol = info.find(col => col.name === 'route_ids')
+  if (!routeIdsCol || routeIdsCol.notnull === 0) return // jo nullable → ei tehtävää
+
+  const hasInspected = info.some(col => col.name === 'inspected')
+  const hasInspectionNote = info.some(col => col.name === 'inspection_note')
+  const extra = [
+    ...(hasInspected ? ['inspected'] : []),
+    ...(hasInspectionNote ? ['inspection_note'] : []),
+  ]
+  const cols = [
+    'id', 'route_ids', 'start_dist', 'end_dist', 'assigned_code',
+    'display_name', 'description', 'equipment', 'phase', 'updated_at', ...extra,
+  ].join(', ')
+
+  db.transaction(() => {
+    db.exec('ALTER TABLE segments RENAME TO segments_old')
+    db.exec(`
+      CREATE TABLE segments (
+        id TEXT PRIMARY KEY,
+        route_ids TEXT,
+        start_dist REAL,
+        end_dist REAL,
+        assigned_code TEXT,
+        display_name TEXT,
+        description TEXT,
+        equipment TEXT NOT NULL DEFAULT '[]',
+        phase TEXT NOT NULL DEFAULT 'asettaminen',
+        updated_at TEXT NOT NULL,
+        inspected INTEGER NOT NULL DEFAULT 0,
+        inspection_note TEXT
+      )
+    `)
+    db.exec(`INSERT INTO segments (${cols}) SELECT ${cols} FROM segments_old`)
+    db.exec('DROP TABLE segments_old')
+  })()
 }
 
 export function seedAdmin(db: Database): void {

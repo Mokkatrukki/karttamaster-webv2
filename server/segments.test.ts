@@ -312,4 +312,61 @@ describe('T61: Segments API', () => {
       expect(res.status).toBe(403)
     })
   })
+
+  // T213/V141: reititön tehtävä persistoituu (route-kentät nullable)
+  describe('T213/V141: reititön tehtävä', () => {
+    test('POST reititön tehtävä ilman route-kenttiä → 201, roundtrip ilman route-kenttiä', async () => {
+      const app = makeApp(db)
+      const res = await app.request('/api/segments', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayName: 'Maalialue', phase: 'asettaminen', equipment: [] }),
+      })
+      expect(res.status).toBe(201)
+      const body = await res.json() as Record<string, unknown>
+      expect(body.routeIds).toBeUndefined()
+      expect(body.startDist).toBeUndefined()
+      expect(body.endDist).toBeUndefined()
+      expect(body.displayName).toBe('Maalialue')
+
+      // GET / roundtrip
+      const list = await (await app.request('/api/segments', {
+        headers: authHeaders(db, 'järjestäjä'),
+      })).json() as Record<string, unknown>[]
+      const found = list.find(s => s.id === body.id)!
+      expect(found.routeIds).toBeUndefined()
+      expect(found.startDist).toBeUndefined()
+    })
+
+    test('reitillinen tehtävä ennallaan (route-kentät säilyvät)', async () => {
+      const app = makeApp(db)
+      const res = await app.request('/api/segments', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ routeIds: ['35km'], startDist: 1000, endDist: 5000, phase: 'asettaminen', equipment: [] }),
+      })
+      expect(res.status).toBe(201)
+      const body = await res.json() as Record<string, unknown>
+      expect(body.routeIds).toEqual(['35km'])
+      expect(body.startDist).toBe(1000)
+      expect(body.endDist).toBe(5000)
+    })
+
+    test('reitittömän tehtävän GET by-code palauttaa ilman route-kenttiä', async () => {
+      const app = makeApp(db)
+      const post = await app.request('/api/segments', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignedCode: 'ALUE1', displayName: 'Keräysalue', phase: 'purku', equipment: [] }),
+      })
+      expect(post.status).toBe(201)
+      const res = await app.request('/api/segments/by-code/ALUE1', {
+        headers: authHeaders(db, 'järjestäjä'),
+      })
+      expect(res.status).toBe(200)
+      const body = await res.json() as Record<string, unknown>
+      expect(body.routeIds).toBeUndefined()
+      expect(body.assignedCode).toBe('ALUE1')
+    })
+  })
 })

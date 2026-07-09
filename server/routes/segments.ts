@@ -6,9 +6,9 @@ import { requireAuth, requireRole } from '../middleware/auth'
 
 interface SegmentRow {
   id: string
-  route_ids: string
-  start_dist: number
-  end_dist: number
+  route_ids: string | null
+  start_dist: number | null
+  end_dist: number | null
   assigned_code: string | null
   display_name: string | null
   description: string | null
@@ -21,10 +21,11 @@ interface SegmentRow {
 
 function rowToSegment(row: SegmentRow) {
   return {
+    // V141: reititön tehtävä — route-kentät null kannassa → undefined ulos.
     id: row.id,
-    routeIds: JSON.parse(row.route_ids) as string[],
-    startDist: row.start_dist,
-    endDist: row.end_dist,
+    routeIds: row.route_ids ? (JSON.parse(row.route_ids) as string[]) : undefined,
+    startDist: row.start_dist ?? undefined,
+    endDist: row.end_dist ?? undefined,
     assignedCode: row.assigned_code ?? undefined,
     displayName: row.display_name ?? undefined,
     description: row.description ?? undefined,
@@ -49,9 +50,9 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
   const db: Database = c.get('db')
   const body = await c.req.json<{
     id?: string
-    routeIds: string[]
-    startDist: number
-    endDist: number
+    routeIds?: string[]
+    startDist?: number
+    endDist?: number
     assignedCode?: string
     displayName?: string
     description?: string
@@ -81,9 +82,10 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
        updated_at = excluded.updated_at`,
     [
       id,
-      JSON.stringify(body.routeIds),
-      body.startDist,
-      body.endDist,
+      // V141: reititön tehtävä → route-kentät null kantaan.
+      body.routeIds != null ? JSON.stringify(body.routeIds) : null,
+      body.startDist ?? null,
+      body.endDist ?? null,
       body.assignedCode?.toUpperCase() ?? null,
       body.displayName ?? null,
       body.description ?? null,
