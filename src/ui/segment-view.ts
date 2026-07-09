@@ -66,7 +66,6 @@ export class SegmentView {
   private readonly panelPatka: HTMLElement
   private readonly panelMerkit: HTMLElement
   private readonly panelVarusteet: HTMLElement
-  private activeTab: TabKey = 'patka'
   private currentMarkers: SignMarker[] = []
 
   constructor(
@@ -117,7 +116,6 @@ export class SegmentView {
 
   // T224 (E): vaihda aktiivinen välilehti — näytä sen paneeli, piilota muut.
   private setActiveTab(tab: TabKey): void {
-    this.activeTab = tab
     for (const btn of Array.from(this.tabsBar.querySelectorAll('.segment-view-tab'))) {
       btn.classList.toggle('active', (btn as HTMLElement).dataset.tab === tab)
       btn.setAttribute('aria-selected', String((btn as HTMLElement).dataset.tab === tab))
