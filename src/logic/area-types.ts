@@ -23,6 +23,9 @@ export interface AreaMarker {
   status: AreaStatus
   hashCode: string
   features: AreaFeature[]
+  // V140: AreaMarker on strukturaalinen TaskMarkerSource — sama resolveTaskMarkers palvelee sitä.
+  linkedMarkerIds?: string[]
+  markerTypeFilter?: string
 }
 
 export function createAreaMarker(

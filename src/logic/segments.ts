@@ -1,4 +1,5 @@
 import type { SignMarker, MarkerStatus } from './types'
+import { resolveTaskMarkers } from './task-markers'
 
 export interface EquipmentItem {
   name: string
@@ -12,6 +13,8 @@ export interface Segment {
   routeIds?: string[]
   startDist?: number
   endDist?: number
+  linkedMarkerIds?: string[]   // V140: eksplisiittisesti liitetyt merkit (poimittu kartalta)
+  markerTypeFilter?: string    // V140/V143: dynaaminen tyyppisuodatin (templateId-osumat)
   assignedCode?: string
   displayName?: string
   description?: string
@@ -223,23 +226,11 @@ export function validateNoOverlap(
   return true
 }
 
-// V25: include marker if routeIds intersects AND distanceFromStart in [startDist, endDist].
-// Deduplication is implicit — each marker id is unique.
-// V139: reitittömällä tehtävällä ei reittifiltteriä → tyhjä (linkedMarkerIds/typeFilter tulee T214).
+// V140: delegoi kanoniseen resolveTaskMarkers:iin — Segment on strukturaalinen TaskMarkerSource.
+// Reittifiltteri (V25) ∪ linkedMarkerIds ∪ markerTypeFilter. Reitilliselle sama tulos kuin ennen.
 export function getMarkersForSegment(
   segment: Segment,
   markers: SignMarker[],
 ): SignMarker[] {
-  if (!segment.routeIds || segment.startDist === undefined || segment.endDist === undefined) {
-    return []
-  }
-  const routeSet = new Set(segment.routeIds)
-  const startDist = segment.startDist
-  const endDist = segment.endDist
-  return markers.filter(
-    m =>
-      m.routeIds.some(r => routeSet.has(r)) &&
-      m.distanceFromStart >= startDist &&
-      m.distanceFromStart <= endDist,
-  )
+  return resolveTaskMarkers(segment, markers)
 }
