@@ -3,7 +3,7 @@ import type { MarkerManager } from '../map/markers'
 import { SegmentOverlay } from '../map/segment-overlay'
 import { SegmentPanel } from '../ui/segment-panel'
 import { PhaseSwitcher } from '../ui/phase-switcher'
-import { getSegmentsForPhase } from '../logic/segments'
+import { getSegmentsForPhase, getSegmentForCode } from '../logic/segments'
 import type { Segment } from '../logic/segments'
 import { fetchSegmentByCode, fetchAllSegments } from '../logic/segment-sync'
 import { getActivePhase } from '../logic/phase-view'
@@ -59,6 +59,12 @@ export async function wireSegments(
   }
 
   const segmentOverlay = new SegmentOverlay(map, routes)
+  // V142: talkoolaisen näkymässä oma tehtävä kirkas+klikattava, muut himmeä+read-only.
+  // Oma = koodilla haettu pätkä; muut näkyvät vasta kun kontekstihaku tuo ne (erillinen task).
+  if (talkoolainenCode) {
+    const own = getSegmentForCode(segmentStore, talkoolainenCode)
+    segmentOverlay.setContextOwn(own?.id)
+  }
   renderSegmentOverlay()
 
   let tempCreationMarker: L.CircleMarker | null = null

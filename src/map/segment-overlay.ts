@@ -15,11 +15,38 @@ const LINE_STATE_STYLE: Record<SegmentLineState, { opacity: number; weight: numb
   ei_alkanut: { opacity: 0.4,  weight: 9,  dashArray: '1 9' }, // haalea katko
 }
 
+export interface ContextLineStyle {
+  opacity: number
+  weight: number
+  dashArray?: string
+  interactive: boolean
+}
+
+// V142: talkoolaisen näkymässä oma tehtävä kirkas + klikattava, muut himmeä + read-only.
+// Pure — Leaflet vain soveltaa. contextOwnId === undefined = järjestäjä (ei himmennystä).
+// Testattavuus: Vitest-pure (oma → interactive täysi tyyli; muu → himmennetty non-interactive).
+export const CONTEXT_DIM_OPACITY = 0.22
+export function contextSegmentStyle(
+  base: { opacity: number; weight: number; dashArray?: string },
+  contextOwnId: string | undefined,
+  segId: string,
+): ContextLineStyle {
+  const isOwn = contextOwnId === undefined || segId === contextOwnId
+  if (isOwn) return { ...base, interactive: true }
+  return {
+    opacity: Math.min(base.opacity, CONTEXT_DIM_OPACITY),
+    weight: Math.max(base.weight - 4, 5),
+    dashArray: base.dashArray,
+    interactive: false,
+  }
+}
+
 export class SegmentOverlay {
   private layers: L.Layer[] = []
   private editMarkers: L.Marker[] = []
   private snapMarkers: L.CircleMarker[] = []
   private onSegmentClick?: (seg: Segment) => void
+  private contextOwnId?: string
 
   constructor(
     private readonly map: L.Map,
@@ -28,6 +55,12 @@ export class SegmentOverlay {
 
   setOnSegmentClick(cb: (seg: Segment) => void): void {
     this.onSegmentClick = cb
+  }
+
+  // V142: talkoolaisen näkymä — oma tehtävä kirkas+klikattava, muut himmeä+read-only.
+  // undefined = järjestäjä (kaikki kirkkaita, klikattavia). Kutsu ennen update():a.
+  setContextOwn(ownId: string | undefined): void {
+    this.contextOwnId = ownId
   }
 
   update(store: SegmentStore, markers: SignMarker[] = []): void {
@@ -50,7 +83,8 @@ export class SegmentOverlay {
       const color = colorForSegment(seg.id)
       const progress = getPhaseProgress(seg, markers)
       const state = segmentLineState(progress)
-      const style = LINE_STATE_STYLE[state]
+      // V142: himmennä muut tehtävät talkoolaisen näkymässä; oma säilyy kirkkaana.
+      const style = contextSegmentStyle(LINE_STATE_STYLE[state], this.contextOwnId, seg.id)
       // tarkastus-vaiheen valmis-pätkä saa ✓ tooltipiin
       const labelSuffix = seg.phase === 'tarkastus' && state === 'valmis' ? ' ✓' : ''
       // V139: reititön tehtävä ei piirrä reitti-polylinea (T217 tuo oman render-haaran).
@@ -65,11 +99,17 @@ export class SegmentOverlay {
         const line = L.polyline(pts, {
           color, weight: style.weight, opacity: style.opacity,
           dashArray: style.dashArray, lineCap: 'round',
+          // V142: muut tehtävät read-only — Leaflet ei kaappaa klikkiä (menee kartalle läpi).
+          interactive: style.interactive,
         })
         if (seg.displayName) {
-          line.bindTooltip(seg.displayName + labelSuffix, { permanent: true, className: 'segment-label', direction: 'center' })
+          line.bindTooltip(seg.displayName + labelSuffix, {
+            permanent: true,
+            className: style.interactive ? 'segment-label' : 'segment-label segment-label--dim',
+            direction: 'center',
+          })
         }
-        if (this.onSegmentClick) {
+        if (this.onSegmentClick && style.interactive) {
           const clickedSeg = seg
           line.on('click', (e: L.LeafletMouseEvent) => {
             L.DomEvent.stopPropagation(e)

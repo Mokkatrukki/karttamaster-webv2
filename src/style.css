@@ -1358,7 +1358,9 @@ button {
   background: var(--surface-app);
   border-bottom: 1px solid var(--border-subtle);
   padding: 10px 12px;
-  max-height: 48vh;
+  /* T228: 48vh→38vh — inline-lista poistettu ∴ paneeli kompakti yläkortti,
+     kartta (#map flex:1) saa ~65% ruudusta, seuraava merkki näkyy ⊥ scroll. */
+  max-height: 38vh;
   overflow-y: auto;
 }
 
@@ -1417,10 +1419,10 @@ button {
 /* Kutistettuna vain otsikko + edistymispalkki näkyvät → kartta saa lähes koko ruudun (T223). */
 .segment-view--collapsed .segment-view-desc,
 .segment-view--collapsed .segment-view-next,
-.segment-view--collapsed .segment-view-list,
 .segment-view--collapsed .segment-view-varuste-btn,
 .segment-view--collapsed .segment-view-bounds,
 .segment-view--collapsed .segment-view-inspect,
+.segment-view--collapsed .segment-view-complete,
 .segment-view--collapsed .btn-bulk-collect {
   display: none;
 }
@@ -1553,67 +1555,27 @@ button {
 
 .segment-view-next-done {
   text-align: center;
-  padding: 6px 0;
+  padding: 4px 0;
 }
 
 .segment-view-next-done-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--confirm);
-}
-
-.segment-view-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.segment-view-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 6px;
-  border-bottom: 1px solid var(--border-card);
   font-size: 13px;
-  min-height: 44px;
-}
-
-.segment-view-item--clickable {
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-}
-
-.segment-view-item--clickable:hover {
-  background: var(--hover);
-}
-
-.segment-view-item-info {
-  flex: 1;
-  color: var(--text-body);
-  min-width: 0;
-}
-
-/* Status = pilli, sama väripaletti kuin järjestäjän listassa (.marker-status--*) */
-.segment-view-status {
-  font-size: 11px;
   font-weight: 600;
-  flex-shrink: 0;
-  padding: 2px 8px;
-  border-radius: 999px;
+  color: var(--text-muted);
 }
 
-.segment-view-status.status-suunniteltu { color: var(--status-suunniteltu); background: color-mix(in srgb, var(--status-suunniteltu) 14%, transparent); }
-.segment-view-status.status-asetettu    { color: var(--status-asetettu);    background: color-mix(in srgb, var(--status-asetettu) 14%, transparent); }
-.segment-view-status.status-tarkistettu { color: var(--status-tarkistettu); background: color-mix(in srgb, var(--status-tarkistettu) 14%, transparent); }
-.segment-view-status.status-kerätty     { color: var(--status-keratty);     background: color-mix(in srgb, var(--status-keratty) 14%, transparent); }
-.segment-view-status.status-ei_tarpeen  { color: var(--status-ei-tarpeen);  background: color-mix(in srgb, var(--status-ei-tarpeen) 14%, transparent); }
-
-.segment-view-empty {
-  padding: 10px 0;
-  color: var(--text-meta);
-  font-size: 12px;
-  text-align: center;
+/* T228: done-tila = matala rivi ilman accent-kortti-korostusta → kartta esiin.
+   Passiivinen "kaikki asetettu" ei kilpaile kartan kanssa (VISION kartta=päänavigointi). */
+.segment-view-next--done {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 2px 0;
+  margin-bottom: 6px;
 }
+
+/* T228: inline-merkkilista (.segment-view-list/.segment-view-item/-status/-empty) poistettu —
+   "Kaikki merkit" -modaali on ainoa per-merkki-lista (duplikaatti + karttatilan syöppö). */
 
 .btn-bulk-collect {
   width: 100%;
@@ -1684,6 +1646,24 @@ button {
 /* T147: tarkastus-phase — kevyt läpiajo talkoolaiselle/tarkastajalle */
 .segment-view-inspect {
   margin: 8px 0;
+}
+
+/* T230: "Merkitse pätkä valmiiksi" — asettaminen/purku-vaiheen valmis-toggle */
+.segment-view-complete {
+  margin: 8px 0 4px;
+}
+
+.segment-view-complete-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--confirm);
+  margin: 0 0 6px;
+  text-align: center;
+}
+
+.segment-view-complete-btn {
+  width: 100%;
+  justify-content: center;
 }
 
 .segment-view-inspect-status {
@@ -2753,6 +2733,12 @@ button {
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 .segment-label::before { display: none; }
+/* V142: talkoolaisen näkymä — muiden tehtävien nimilaput himmeät (konteksti, ei fokus). */
+.segment-label--dim {
+  opacity: 0.4;
+  font-weight: 600;
+  pointer-events: none;
+}
 
 /* ── Marker type select (T38) ── */
 
