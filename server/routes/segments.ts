@@ -130,7 +130,8 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
     session.talkoolainen_code.toUpperCase() === existing.assigned_code.toUpperCase()
   if (!isOrganizer && !isOwnTalkoolainen) return c.json({ error: 'forbidden' }, 403)
 
-  // V93: talkoolainen saa muuttaa vain inspected/inspectionNote/startDist/endDist (oma kenttätyö)
+  // V93 (T224 laajennus): talkoolainen saa muuttaa oman pätkän kenttätyön kentät: inspected/
+  // inspectionNote/startDist/endDist + equipment (varustelistan päivitys ennen lähtöä, VISION r42/239).
   const body = isOrganizer
     ? raw
     : {
@@ -138,6 +139,7 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
         inspectionNote: raw.inspectionNote,
         startDist: raw.startDist,
         endDist: raw.endDist,
+        equipment: raw.equipment,
       }
 
   const now = new Date().toISOString()

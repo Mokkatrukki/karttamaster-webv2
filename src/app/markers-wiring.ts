@@ -182,6 +182,16 @@ export function wireMarkers(
               segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
             }
           },
+          // T224 (C)/V38/V93: talkoolainen muokkaa oman pätkän varustelistaa (valmisteluvaihe).
+          // Sama tallennuspolku kuin rajoilla: store + backend + näkymä-refresh.
+          onEquipmentChange: (equipment) => {
+            const updatedSeg = updateSegment(segmentStore, seg.id, { equipment })
+            const flagErr = () => showWarning('⚠ Varustelistan tallennus epäonnistui — yritä uudelleen', 5000)
+            updateSegmentRemote(seg.id, { equipment })
+              .then(ok => { if (!ok) flagErr() })
+              .catch(() => flagErr())
+            if (updatedSeg) segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
+          },
         },
       )
       segmentView.update(getMarkersForSegment(seg, markerManager.getAll()))

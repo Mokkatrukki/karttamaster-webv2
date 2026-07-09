@@ -311,6 +311,26 @@ describe('T61: Segments API', () => {
       })
       expect(res.status).toBe(403)
     })
+
+    // T224 (C)/V93-laajennus: talkoolainen muokkaa oman pätkän varustelistaa (VISION r42/239)
+    test('talkoolainen muokkaa oman pätkän equipmentia — 200, roundtrippaa', async () => {
+      const app = makeApp(db)
+      const code = 'VARUSTE-KOODI'
+      const id = await createOwnSegment(app, db, code)
+
+      const res = await app.request(`/api/segments/${id}`, {
+        method: 'PUT',
+        headers: { ...talkoolainenCodeHeaders(db, code), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ equipment: [{ name: 'lisäkylttejä', count: 3 }, { name: 'vasara', count: 1 }] }),
+      })
+      expect(res.status).toBe(200)
+      const updated = await res.json() as Record<string, unknown>
+      expect(updated.equipment).toEqual([{ name: 'lisäkylttejä', count: 3 }, { name: 'vasara', count: 1 }])
+
+      // Roundtrip: järjestäjän GET näkee talkoolaisen päivityksen
+      const list = await (await app.request('/api/segments', { headers: authHeaders(db, 'järjestäjä') })).json() as Record<string, unknown>[]
+      expect(list.find(s => s.id === id)?.equipment).toEqual([{ name: 'lisäkylttejä', count: 3 }, { name: 'vasara', count: 1 }])
+    })
   })
 
   // T213/V141: reititön tehtävä persistoituu (route-kentät nullable)
