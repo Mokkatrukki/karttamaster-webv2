@@ -174,14 +174,15 @@ test.describe('RouteBar-jako (T204/V134)', () => {
     await expect(page.locator('.route-tab-drive')).toHaveCount(0)
   })
 
-  test('talkoolainen: drive-kontrollit näkyvissä', async ({ page }) => {
+  // T224/V148: talkoolaisen alapalkki (#route-bar) piilotettu kokonaan — ei reittivalitsinta
+  // eikä drive-kontrolleja. Navigointi tapahtuu SegmentView-heron + kartan kautta.
+  test('talkoolainen: alapalkki piilotettu (ei drive-kontrolleja)', async ({ page }) => {
     await mockAuthAsTalkoolainen(page)
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    await expect(page.locator('.route-tab-drive').first()).toBeVisible()
-    await expect(page.locator('#route-track')).toBeVisible()
+    await expect(page.locator('#route-bar')).toBeHidden()
     await expect(page.locator('.route-vis-pill')).toHaveCount(0)
   })
 })

@@ -64,7 +64,8 @@ server/       ← Hono + Bun + SQLite
 | SignIcon | `src/map/icons.ts` | ✓ T172 | critical-paths: "toolbar-dropdown", "yhdistelmämerkki" | [map.md](docs/components/map.md) |
 | DriveMode | `src/map/drive.ts` | ✓ | critical-paths: "Drive mode" | [map.md](docs/components/map.md) |
 | MarkerManager | `src/map/markers.ts` | ✓ T182 | critical-paths: "Merkki kartalle", "Drag-to-move", "Merkin zoom-skaalaus", "tallennus epäonnistuu" | [map.md](docs/components/map.md) |
-| RouteBar | `src/map/route-bar.ts` | ✓ T224 (talkoolaisen pätkä-yhteenveto reittitabien tilalle) | tests/t224-route-bar.test.ts | [map.md](docs/components/map.md) |
+| RouteBar | `src/map/route-bar.ts` | ✓ (T224: piilotettu talkoolaiselta, `#route-bar` hidden) | — | [map.md](docs/components/map.md) |
+| NextMarkerHighlight | `src/map/next-marker-highlight.ts` | ✓ T224/b1 (seuraava merkki korostuu kartalla) | — (Leaflet-glue) | [map.md](docs/components/map.md) |
 | GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30 | critical-paths: "GPS-paikannin" | [map.md](docs/components/map.md) |
 | AreaOverlay | `src/map/area-overlay.ts` | ✓ | area-interaction | [map.md](docs/components/map.md) |
 | MapRectEditor | `src/map/map-rect-editor.ts` | ✓ T117 | area-interaction | [map.md](docs/components/map.md) |
@@ -77,13 +78,14 @@ server/       ← Hono + Bun + SQLite
 | RoleView | `src/app/role-view.ts` | ✓ T155 | critical-paths: "Auth screen", "Rooli backendistä" | [ui.md](docs/components/ui.md) |
 | AreasWiring | `src/app/areas-wiring.ts` | ✓ T155 | area-interaction | [ui.md](docs/components/ui.md) |
 | SegmentsWiring | `src/app/segments-wiring.ts` | ✓ T155 | e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
-| MarkersWiring | `src/app/markers-wiring.ts` | ✓ T182,T224 (zoom-to-segment, pätkä-summary wiring, gps-drive-panel poistettu) | critical-paths: "Merkki kartalle", "Drive mode", "tallennus epäonnistuu" | [ui.md](docs/components/ui.md) |
+| MarkersWiring | `src/app/markers-wiring.ts` | ✓ T182,T224 (zoom-to-segment, alapalkki piilotettu, next-highlight, gps-drive-panel poistettu) | critical-paths: "Merkki kartalle", "Drive mode", "tallennus epäonnistuu" | [ui.md](docs/components/ui.md) |
 | SignLibraryPanel | `src/ui/sign-library-panel.ts` | ✓ T176 | critical-paths: "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
 | RoleSelector | `src/ui/role-selector.ts` | ✓ T12 (V80: toggle dead code) | critical-paths: "Rooli backendistä" | [ui.md](docs/components/ui.md) |
 | SegmentPanel | `src/ui/segment-panel.ts` | ✓ T148 | e2e/segments.spec.ts ".segment-km näyttää status-lukumäärän" | [ui.md](docs/components/ui.md) |
 | SegmentCreationModal | `src/ui/segment-creation-modal.ts` | ✓ T150 | — | [ui.md](docs/components/ui.md) |
 | SegmentDetailsModal | `src/ui/segment-details-modal.ts` | ✓ T146,T199 ⚠️ pilkko | tests/t69-segment-details-modal.test.ts, tests/t199-segment-markers-list.test.ts | [ui.md](docs/components/ui.md) |
-| SegmentView | `src/ui/segment-view.ts` | ✓ T147,T220,T223,T224 (välilehdet, hero-overflow, muokattava varustelista) | tests/t14-segment-view.test.ts, tests/t224-segment-view.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
+| SegmentView | `src/ui/segment-view.ts` | ✓ T147,T220,T223,T224 (yksi sarake, hero-overflow, varustelista-nappi→modaali, ei alapalkkia) | tests/t14-segment-view.test.ts, tests/t224-segment-view.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
+| EquipmentModal | `src/ui/equipment-modal.ts` | ✓ T224/C (talkoolaisen varustelista tilavana modaalina) | tests/t224-equipment-modal.test.ts | [ui.md](docs/components/ui.md) |
 | PhaseSwitcher | `src/ui/phase-switcher.ts` | ✓ T148,T180 (stopPropagation, B80) | e2e/t180-phase-switcher-menu.spec.ts | [ui.md](docs/components/ui.md) |
 | AuthScreen | `src/ui/auth-screen.ts` | ✓ T51 | — | [ui.md](docs/components/ui.md) |
 | MapStateBadge | `src/ui/map-state-badge.ts` | stub — approval-konsepti poistettu (B46/V79), ei renderöi mitään | — | [ui.md](docs/components/ui.md) |
