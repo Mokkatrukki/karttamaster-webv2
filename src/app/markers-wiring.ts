@@ -375,14 +375,10 @@ export function wireMarkers(
 
   document.getElementById('btn-list')!.addEventListener('click', () => openMarkerModal())
 
-  // T229: talkoolaisen näkyvä merkin-lisäys — avaa sign-picker kartan keskelle. Löydettävä
-  // vaihtoehto tuplatäppäykselle (main.ts dblclick, ei ilmeinen mobiilissa). POST sallittu omalle
-  // pätkälle (V149 talkoolainenMayPlace: route+dist pätkän sisällä). Nappi vain talkoolaiselle
-  // (data-role-hide="järjestäjä"); järjestäjä lisää sivupalkin merkkikirjastosta.
-  document.getElementById('btn-add-marker')?.addEventListener('click', () => {
-    const c = map.getCenter()
-    placeMode.openPicker(c.lat, c.lng, window.innerWidth / 2, window.innerHeight / 2)
-  })
+  // T233/V155: talkoolaisen yläpalkin "🎒 Varustelista" → avaa SegmentView:n EquipmentModal
+  // (siirretty pois pätkänäkymän panelista, ettei kilpaile hero-primaryn kanssa). Nappi vain
+  // talkoolaiselle (data-role-hide="järjestäjä"). Merkin-lisäys (T229) siirtyi hero-overflowiin.
+  document.getElementById('btn-varuste')?.addEventListener('click', () => segmentView?.openEquipment())
 
   document.getElementById('btn-modal-close')!.addEventListener('click', closeMarkerModal)
   markerModalBackdrop.addEventListener('click', closeMarkerModal)

@@ -15,6 +15,37 @@ export async function mockAuthAsTalkoolainen(page: Page, code = 'TEST01'): Promi
   )
 }
 
+// T232/T233: talkoolaisen SegmentView-hero (GPS-nappi, ◀▶, +Merkki) vaatii ladatun pätkän
+// (`/api/segments/by-code/:code`). Seedaa pätkä + valinnaisesti yksi asettamaton merkki
+// (`/api/markers`) jotta hero renderöi seuraava-merkki-ohjauksen. Kutsu ENNEN page.goto.
+export async function mockTalkoolainenSegment(
+  page: Page,
+  opts: { code?: string; withMarker?: boolean } = {},
+): Promise<void> {
+  const code = opts.code ?? 'TEST01'
+  const seg = {
+    id: 'seg-e2e', routeIds: ['35km'], startDist: 0, endDist: 100000,
+    assignedCode: code, displayName: 'E2E-pätkä', description: '', equipment: [],
+    phase: 'asettaminen', inspected: false, completed: false,
+  }
+  await page.route(new RegExp(`/api/segments/by-code/${code}$`), route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(seg) }))
+  if (opts.withMarker) {
+    const marker = {
+      id: 'mk-e2e', type: 'right', lat: 65.62, lon: 27.62, distance_from_start: 5000,
+      route_ids: ['35km'], status: 'suunniteltu', location_note: null, color: null,
+      label: null, icon_id: null, image_id: null, template_id: null, parts_json: null,
+      description: null, images: [], created_by: null,
+    }
+    await page.route(/\/api\/markers(\?|$)/, route => {
+      if (route.request().method() === 'GET') {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([marker]) })
+      }
+      return route.fulfill({ status: 201, contentType: 'application/json', body: '{}' })
+    })
+  }
+}
+
 // T195/V125: kirjasto seedaa tyhjänä ja tulee backendistä (V123). E2E-pickerit tarvitsevat
 // suosikkeja → mockaa /api/templates palauttamaan kiinteä joukko (id 'right' = "Oikealle").
 export async function mockTemplates(page: Page): Promise<void> {

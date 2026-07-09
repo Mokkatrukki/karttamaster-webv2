@@ -52,12 +52,12 @@ describe('T224 — pätkäkeskeinen näkymä', () => {
     expect(container.querySelector('.segment-view-item')).toBeNull()
   })
 
-  it('T228: hero + varustelista-nappi säilyvät ilman listaa', () => {
+  it('T228/T233: hero säilyy; varuste EI enää panelissa (siirtyi yläpalkkiin V155)', () => {
     const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }))
     view.update([makeMarker({ status: 'suunniteltu' })])
     // Seuraava-merkki-hero (kartta=päänavigointi, VISION)
     expect(container.querySelector('.segment-view-next-set')).not.toBeNull()
-    expect(container.querySelector('.segment-view-varuste-btn')).not.toBeNull()
+    expect(container.querySelector('.segment-view-varuste-btn')).toBeNull()
   })
 
   it('T228: done-tila = matala rivi, .segment-view-next--done -luokka (⊥ accent-kortti)', () => {
@@ -178,27 +178,23 @@ describe('T224 — pätkäkeskeinen näkymä', () => {
     })
   })
 
-  // ---- C: Varustelista-nappi → modaali ----
-  describe('Varustelista-nappi (C)', () => {
-    it('nappi näkyy ja näyttää määrän (auto + manuaali)', () => {
-      const view = new SegmentView(container, makeSeg({ equipment: [{ name: 'Nauha', count: 3 }] }))
-      view.update([makeMarker({ id: 'a' }), makeMarker({ id: 'b', distanceFromStart: 8000 })])
-      const btn = container.querySelector('.segment-view-varuste-btn') as HTMLButtonElement
-      expect(btn).not.toBeNull()
-      expect(btn.textContent).toContain('🎒 Varustelista')
-      // 2 merkkiä (auto) + 3 (manuaali) = 5
-      expect(btn.textContent).toContain('(5)')
-    })
-
-    it('klikkaus avaa EquipmentModalin (kuten "Kaikki merkit")', () => {
+  // ---- C/T233: Varustelista siirtyi yläpalkkiin → SegmentView.openEquipment() ----
+  describe('Varustelista (C/T233) — openEquipment()', () => {
+    it('openEquipment() avaa EquipmentModalin (yläpalkin #btn-varuste kutsuu tätä)', () => {
       const view = new SegmentView(container, makeSeg({ equipment: [{ name: 'Nauha', count: 3 }] }), undefined, undefined, {
         onEquipmentChange: () => {},
       })
       view.update([makeMarker()])
       expect(document.querySelector('.equipment-modal')).toBeNull()
-      ;(container.querySelector('.segment-view-varuste-btn') as HTMLButtonElement).click()
+      view.openEquipment()
       expect(document.querySelector('.equipment-modal')).not.toBeNull()
       expect(document.querySelector('.equipment-modal-save')).not.toBeNull()
+    })
+
+    it('EI in-panel varuste-nappia (siirtyi yläpalkkiin V155)', () => {
+      const view = new SegmentView(container, makeSeg())
+      view.update([makeMarker()])
+      expect(container.querySelector('.segment-view-varuste-btn')).toBeNull()
     })
   })
 })

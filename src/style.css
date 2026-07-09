@@ -850,15 +850,7 @@ button {
 .marker-item .marker-status { margin-top: 0; }
 .marker-item .marker-type-label { flex: 1; font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-#toolbar #btn-layer {
-  background: var(--hover) !important;
-  color: var(--text-muted) !important;
-  border: 1px solid var(--border-default) !important;
-  font-size: 11px !important;
-  margin-left: auto;
-}
-#toolbar #btn-layer:hover { background: var(--hover-strong) !important; }
-
+/* T233/V155: Karttatyyli siirtyi yläpalkista ⋯-valikkoon (ei enää #toolbar #btn-layer). */
 #toolbar-menu #btn-layer {
   background: transparent !important;
   color: var(--text-body) !important;
@@ -867,9 +859,8 @@ button {
   margin-left: 0 !important;
 }
 
-#btn-gps { background: transparent; color: var(--text-muted); border: 1px solid var(--border-default); font-size: 12px; }
-#btn-gps.gps-active { background: var(--gps-active); color: #fff; border-color: transparent; }
-#btn-gps:hover:not(.gps-active) { background: var(--hover); }
+/* T232/T233: #btn-gps poistettu yläpalkista — GPS-toggle asuu SegmentView-herossa
+   (.segment-view-gps-btn.gps-active). */
 
 /* ── Marker status badge ── */
 
@@ -1428,7 +1419,6 @@ button {
 .segment-view--collapsed .segment-view-desc,
 .segment-view--collapsed .segment-view-next,
 .segment-view--collapsed .segment-view-gps-btn,
-.segment-view--collapsed .segment-view-varuste-btn,
 .segment-view--collapsed .segment-view-more,
 .segment-view--collapsed .segment-view-bounds,
 .segment-view--collapsed .segment-view-inspect,
@@ -1500,12 +1490,7 @@ button {
   margin-top: 8px;
 }
 
-/* T224 (C): Varustelista-nappi (avaa EquipmentModalin). */
-.segment-view-varuste-btn {
-  width: 100%;
-  justify-content: center;
-  margin-bottom: 10px;
-}
+/* T233/V155: Varustelista-nappi siirtyi yläpalkkiin (#btn-varuste) — ei enää panelissa. */
 
 .segment-view-desc {
   font-size: 12px;
@@ -2871,12 +2856,11 @@ button {
   min-height: 0;
 }
 
-/* Vain talkoolaisella on täysleveä RouteBar (position:fixed, drive) → varaa 84px ettei
-   se peitä karttaa. Järjestäjä/admin saavat leijuvan pillerin (data-mode="visibility"),
-   ei varausta → ei haamuraitaa kartan alla. Rooli tulee tili-per-rooli-authista
-   (admin | järjestäjä | talkoolainen), joten scope talkoolaiseen, ei järjestäjään. */
-body[data-role="talkoolainen"] #app-main {
-  padding-bottom: 84px;
+/* B101/V157: talkoolaisen `#route-bar` on PIILOTETTU kokonaan (T224/V148) → 84px-varaus oli
+   orpo (kuollut alagap kartan alla). Talkoolaiselle EI route-bar-varausta: nollaa #app:n
+   globaali padding-bottom (r145). Järjestäjä/admin säilyttävät varauksen (leijuva reittipilleri). */
+body[data-role="talkoolainen"] #app {
+  padding-bottom: 0;
 }
 
 #left-panel {
@@ -2920,6 +2904,14 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   #left-panel.collapsed {
     box-shadow: none;
   }
+
+  /* T233/V155: talkoolaisen yläpalkki (Kaikki merkit + Varustelista + ⋯) ei saa hajota
+     kapealla mobiililla (≤360px). Tiivistä napit + salli brändin kutistua (ellipsis),
+     44px-touch säilyy (global button min-height). */
+  #toolbar { gap: 4px; padding: 6px; }
+  #app-brand { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+  #toolbar-actions { gap: 4px; }
+  #toolbar-actions button { font-size: 12px; padding: 0 8px; }
 }
 
 #left-panel-header {

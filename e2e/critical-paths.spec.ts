@@ -6,7 +6,7 @@
  *   3. Rooli (backendistä) muuttaa toolbaria
  */
 import { test, expect } from 'playwright/test'
-import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTemplates } from './helpers/auth'
+import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTemplates, mockTalkoolainenSegment } from './helpers/auth'
 
 // Dev-server pyörii ulkopuolella (bun run dev) — playwright.config.ts baseURL
 
@@ -100,42 +100,12 @@ test.describe('Merkki kartalle', () => {
   })
 })
 
-test.describe('Drive mode', () => {
-  // T204/V134: drive-kontrollit (◀▶, km-scrubber) ovat VAIN talkoolaisen näkymässä.
-  test('käynnistyy + navigoi eteenpäin', async ({ page }) => {
-    await mockAuthAsTalkoolainen(page)
-    await mockTemplates(page)
-    await page.setViewportSize({ width: 1280, height: 720 })
-    await page.goto('/')
-    await page.waitForTimeout(1500)
-
-    // Alkutila: 0.00 km
-    const initialKm = await page.locator('#route-km').innerText()
-    expect(initialKm).toContain('0.00')
-
-    // Klikkaa ▶ (btn-route-next)
-    await page.click('#btn-route-next')
-    await page.waitForTimeout(300)
-
-    const afterKm = await page.locator('#route-km').innerText()
-    // Pitää edetä > 0 km
-    const km = parseFloat(afterKm.split('/')[0].trim())
-    expect(km).toBeGreaterThan(0)
-
-    // Keyboard: ArrowRight etenee
-    await page.keyboard.press('ArrowRight')
-    await page.waitForTimeout(300)
-    const afterArrow = await page.locator('#route-km').innerText()
-    const km2 = parseFloat(afterArrow.split('/')[0].trim())
-    expect(km2).toBeGreaterThan(km)
-
-    // Escape pysäyttää drive moden — km palaa 0:aan
-    await page.keyboard.press('Escape')
-    await page.waitForTimeout(300)
-    const afterEsc = await page.locator('#route-km').innerText()
-    expect(afterEsc).toContain('0.00')
-  })
-})
+// POISTETTU (T233/B102): "Drive mode" -testi ajoi talkoolaisen #btn-route-next / #route-km
+// -drive-kontrolleja #route-barista. T224/V148 PIILOTTI talkoolaisen #route-barin kokonaan
+// (navigointi = SegmentView-hero + kartta) → drive-UI on tavoittamaton molemmilla rooleilla
+// (järjestäjä: drive-kontrollit piilossa V134; talkoolainen: koko route-bar piilossa V148).
+// Testi jäi orvoksi T224:n muutoksesta ja on ristiriidassa sisartestin 'RouteBar-jako →
+// talkoolainen: alapalkki piilotettu' kanssa. Drive-nav ei ole enää tuote-UI:ssa.
 
 test.describe('Rooli backendistä (V80: #btn-role-toggle on dead code tili-per-rooli-authin jälkeen)', () => {
   test('järjestäjä-tili näyttää järjestäjän toolbarin', async ({ page }) => {
@@ -270,40 +240,37 @@ test.describe('Drag-to-move — T37', () => {
 })
 
 test.describe('GPS-paikannin — T30', () => {
-  test('GPS-nappi käynnistää paikannus — piste ilmestyy kartalle', async ({ browser }) => {
-    const context = await browser.newContext({
-      permissions: ['geolocation'],
-      geolocation: { latitude: 65.627, longitude: 27.628 },
-    })
-    await context.route('/api/auth/me', route =>
-      route.fulfill({ status: 200, contentType: 'application/json',
-        body: JSON.stringify({ role: 'talkoolainen', code: 'TEST01', display_name: 'Testi' }) })
-    )
-    const page = await context.newPage()
+  test('GPS-nappi käynnistää paikannus — piste ilmestyy kartalle', async ({ page }) => {
+    await mockAuthAsTalkoolainen(page)
+    // T232/T233: GPS-toggle siirtyi yläpalkista SegmentView-heroon → seedaa pätkä + merkki jotta
+    // hero renderöi. HUOM: talkoolaisen koodi tulee URL-polusta /s/<koodi> (V27), ei /api/auth/me:stä.
+    await mockTalkoolainenSegment(page, { withMarker: true })
+    await page.context().grantPermissions(['geolocation'])
+    await page.context().setGeolocation({ latitude: 65.627, longitude: 27.628 })
     await page.setViewportSize({ width: 1280, height: 720 })
-    await page.goto('/')
+    await page.goto('/s/TEST01')
     await page.waitForTimeout(1500)
 
-    // GPS on talkoolainen-only (data-role-hide="järjestäjä") — alkutila: GPS ei aktiivinen
-    await expect(page.locator('#btn-gps')).not.toHaveClass(/gps-active/)
+    // GPS-toggle hero:ssa (talkoolainen). Alkutila: ei aktiivinen
+    const gpsBtn = page.locator('.segment-view-gps-btn')
+    await expect(gpsBtn).toBeVisible()
+    await expect(gpsBtn).not.toHaveClass(/gps-active/)
 
     // Käynnistä GPS
-    await page.click('#btn-gps')
+    await gpsBtn.click()
     await page.waitForTimeout(800)
 
     // Nappi on aktiivinen
-    await expect(page.locator('#btn-gps')).toHaveClass(/gps-active/)
+    await expect(gpsBtn).toHaveClass(/gps-active/)
 
     // GPS-piste (.gps-dot) ilmestyy kartalle
     await expect(page.locator('.leaflet-overlay-pane .gps-dot')).toBeVisible()
 
     // Pysäytä GPS
-    await page.click('#btn-gps')
+    await gpsBtn.click()
     await page.waitForTimeout(300)
-    await expect(page.locator('#btn-gps')).not.toHaveClass(/gps-active/)
+    await expect(gpsBtn).not.toHaveClass(/gps-active/)
     await expect(page.locator('.leaflet-overlay-pane .gps-dot')).not.toBeVisible()
-
-    await context.close()
   })
 })
 

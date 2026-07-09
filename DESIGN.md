@@ -132,10 +132,13 @@ metsässä, hanskat kädessä.
 
 ## §K Komponentit
 
-### Toolbar (`#toolbar`) — yhdistetty yläpalkki (T203/V133)
+### Toolbar (`#toolbar`) — yhdistetty yläpalkki (T203/V133, roolijako T233/V155)
 - Kiinteä yläreuna, `z-index: 200`, korkeus ~56px, `surface-app`, alaraja `border-subtle`
 - **Vasemmalla:** `#app-brand` tuotenimi ("Karttamaster", `font-weight:700`, `15px`)
-- **Oikealla:** `#toolbar-actions` (`margin-left:auto`, `gap:6px`): `📍 GPS` (talkoolainen), `➕ Merkki #btn-add-marker` (talkoolainen, T229 — avaa sign-picker kartan keskelle, POST omalle pätkälle V149; järjestäjä lisää sivupalkista), `Karttatyyli #btn-layer`, `Kaikki merkit #btn-list`, `⋯ #btn-menu` (tilivalikko-trigger)
+- **Oikealla:** `#toolbar-actions` (`margin-left:auto`, `gap:6px`) — **koostumus roolikohtainen:**
+  - **Talkoolainen (T233/V155):** TASAN `Kaikki merkit #btn-list` + `🎒 Varustelista #btn-varuste` (`data-role-hide="järjestäjä"`, avaa `EquipmentModal`) + `⋯ #btn-menu`. Vain 3 nappia → mahtuu mobiiliin, ⊥ rivinylitä ≤360px. GPS (`#btn-gps`) + `➕ Merkki #btn-add-marker` EIVÄT toolbarissa — asuvat `SegmentView`-herossa (T232, GPS-toggle + hero-overflow).
+  - **Järjestäjä:** `Kaikki merkit #btn-list` + `⋯ #btn-menu` (`🎒 Varustelista` piilossa `data-role-hide`illa; `➕ Merkki` lisätään sivupalkista).
+  - `Karttatyyli #btn-layer` siirretty ⋯-valikkoon (`#toolbar-menu`) **molemmilla rooleilla** — ei enää näkyvä toolbar-nappi (T233).
 - `⋯ #btn-menu`: 44×44px, `border: 1px solid border-strong`
 - Ei h1-otsikkoa erikseen — tuotenimi toimii otsikkona
 
@@ -143,7 +146,7 @@ metsässä, hanskat kädessä.
 - `position: fixed; top: 56px; right: 8px` — avautuu toolbarin alta oikeasta reunasta
 - `surface-card`, `border-default`, `border-radius-md`, `box-shadow`, `z-index: 2001`
 - Toggle: `.open`-class (`#btn-menu`-klikki), sulkee document-click
-- Sisältö ylhäältä: **tilivalikko** (`#account-menu-section`, AccountMenu) → phase-switcher (järjestäjä) → Varmuuskopiot → Vie/Tuo kartta-aineisto (gpkg)
+- Sisältö ylhäältä: **tilivalikko** (`#account-menu-section`, AccountMenu) → `Karttatyyli #btn-layer` (talkoolainen T233/V155 — siirretty toolbarista valikkoon) → phase-switcher (järjestäjä) → Varmuuskopiot → Vie/Tuo kartta-aineisto (gpkg)
 
 ### AccountMenu (`src/ui/account-menu.ts`, T203/V133)
 - Renderöi `#account-menu-section`iin: `display_name` (`/api/auth/me`, `.account-menu-name` bold) + teemavalitsin + Kirjaudu ulos

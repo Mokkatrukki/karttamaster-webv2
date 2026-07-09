@@ -59,7 +59,6 @@ export class SegmentView {
   private readonly progressEl: HTMLElement
   private readonly gpsBtn: HTMLButtonElement
   private readonly nextEl: HTMLElement
-  private readonly varusteBtn: HTMLButtonElement
   private readonly bulkBtn: HTMLButtonElement
   private readonly inspectSection: HTMLElement
   private readonly inspectBtn: HTMLButtonElement
@@ -92,7 +91,6 @@ export class SegmentView {
     this.progressEl = b.progressEl
     this.gpsBtn = b.gpsBtn
     this.nextEl = b.nextEl
-    this.varusteBtn = b.varusteBtn
     this.bulkBtn = b.bulkBtn
     this.inspectSection = b.inspectSection
     this.inspectBtn = b.inspectBtn
@@ -110,9 +108,14 @@ export class SegmentView {
     this.renderCompleteSection()
     this.renderProgress()
     this.renderNext()
-    this.renderVarusteBtn()
     this.renderBoundsSection()
     this.renderMoreSection()
+  }
+
+  // T233/V155: yläpalkin "🎒 Varustelista" -nappi avaa tämän (varuste siirtyi pois pätkänäkymän
+  // panelista, ettei kilpaile hero-primaryn kanssa). EquipmentModal elää yhä SegmentView:ssä.
+  openEquipment(): void {
+    this.equipmentModal.open(this.segment, this.currentMarkers)
   }
 
   update(markers: SignMarker[], segment?: Segment): void {
@@ -121,7 +124,6 @@ export class SegmentView {
     this.renderProgress()
     this.renderNext()
     this.updateBulkBtn(markers)
-    this.renderVarusteBtn()
     this.renderInspectSection()
     this.renderCompleteSection()
     this.renderBoundsSection()
@@ -166,14 +168,6 @@ export class SegmentView {
     const hasComplete = !!this.actions.onComplete && phaseOk
     const hasBounds = !!this.actions.onEditBounds
     this.moreSection.hidden = !(hasComplete || hasBounds)
-  }
-
-  // T224 (C): Varustelista-nappi näyttää määrän ja avaa tilavan modaalin (kuten "Kaikki merkit").
-  private renderVarusteBtn(): void {
-    const autoCount = this.currentMarkers.length
-    const manualCount = this.segment.equipment.reduce((s, i) => s + (i.count || 0), 0)
-    const total = autoCount + manualCount
-    this.varusteBtn.textContent = total > 0 ? `🎒 Varustelista (${total})` : '🎒 Varustelista'
   }
 
   // T78/V43: pätkän rajojen muokkaus kentällä. Näkyy vain jos onEditBounds annettu (talkoolainen).
@@ -428,7 +422,6 @@ export class SegmentView {
     progressEl: HTMLElement
     gpsBtn: HTMLButtonElement
     nextEl: HTMLElement
-    varusteBtn: HTMLButtonElement
     bulkBtn: HTMLButtonElement
     inspectSection: HTMLElement
     inspectBtn: HTMLButtonElement
@@ -509,15 +502,7 @@ export class SegmentView {
 
     // T228: EI inline-merkkilistaa — "Kaikki merkit" -modaali (yläpalkki) on ainoa per-merkki-lista
     // (bulk + rivi→MarkerDetailModal). Inline-lista duplikoi sen ja söi kartan tilan → poistettu.
-
-    // T224 (C): Varustelista-nappi → tilava EquipmentModal (kuten "Kaikki merkit" -massalista).
-    // (T233 siirtää tämän yläpalkkiin; toistaiseksi panelissa.)
-    const varusteBtn = document.createElement('button')
-    varusteBtn.type = 'button'
-    varusteBtn.className = 'btn btn--secondary segment-view-varuste-btn'
-    varusteBtn.textContent = '🎒 Varustelista'
-    varusteBtn.addEventListener('click', () => this.equipmentModal.open(this.segment, this.currentMarkers))
-    panel.appendChild(varusteBtn)
+    // T233/V155: Varustelista-nappi siirtyi yläpalkkiin (avaa openEquipment()); ei enää panelissa.
 
     const bulkBtn = document.createElement('button')
     bulkBtn.className = 'btn btn--confirm btn-bulk-collect'
@@ -602,7 +587,7 @@ export class SegmentView {
     panel.appendChild(moreSection)
 
     return {
-      panel, progressEl, gpsBtn, nextEl, varusteBtn, bulkBtn,
+      panel, progressEl, gpsBtn, nextEl, bulkBtn,
       inspectSection, inspectBtn, inspectNoteInput, inspectStatus,
       moreSection, boundsSection,
       completeSection, completeBtn, completeStatus,

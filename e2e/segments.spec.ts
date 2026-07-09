@@ -5,7 +5,7 @@
  *           must click "Tallenna" to actually create the segment.
  */
 import { test, expect } from 'playwright/test'
-import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen } from './helpers/auth'
+import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTalkoolainenSegment } from './helpers/auth'
 
 /** Helper: create a segment via 2-click modal flow + Tallenna */
 async function createSegmentViaModal(page: import('playwright/test').Page) {
@@ -62,6 +62,33 @@ test.describe('T25 — SegmentPanel', () => {
     // Talkoolaisella ei segment-panel näkyvissä (data-role="talkoolainen")
     const panel = page.locator('#segment-panel')
     await expect(panel).not.toBeVisible()
+  })
+
+  test('T229/T232 — talkoolainen: hero-overflown "+ Merkki" avaa sign-pickerin', async ({ page }) => {
+    // T232/E: "+ Merkki" siirtyi yläpalkista SegmentView-heron ⋯-overflowiin. Seedaa pätkä +
+    // asettamaton merkki jotta hero renderöi seuraava-merkki-ohjauksen overflow-valikkoineen.
+    await mockAuthAsTalkoolainen(page)
+    await mockTalkoolainenSegment(page, { withMarker: true })
+    await page.setViewportSize({ width: 390, height: 844 })
+    // Talkoolaisen koodi tulee URL-polusta /s/<koodi> (V27), ei /api/auth/me:stä → goto /s/TEST01.
+    await page.goto('/s/TEST01')
+    await page.waitForTimeout(1500)
+
+    await page.click('.segment-view-next-more')
+    const addItem = page.locator('.segment-view-next-add')
+    await expect(addItem).toBeVisible()
+    await addItem.click()
+    await expect(page.locator('#floating-picker')).toHaveClass(/open/)
+  })
+
+  test('T232 — järjestäjällä ei talkoolais-heroa (+Merkki sivupalkin kirjastosta)', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+    // Ei hero-+Merkkiä eikä yläpalkin #btn-add-markeria (poistettu T233)
+    await expect(page.locator('.segment-view-next-add')).toHaveCount(0)
+    await expect(page.locator('#btn-add-marker')).toHaveCount(0)
   })
 
   test('kaksi klikkausta + Tallenna luo pätkän (T94 modal flow)', async ({ page }) => {
@@ -383,6 +410,8 @@ test.describe('T25 — SegmentPanel', () => {
     await page.goto('/s/BND01')
     await page.waitForTimeout(1500)
 
+    // T232/V158: rajojen muokkaus siirtyi "Lisää ⋯" -sekundäärivalikkoon → avaa se ensin.
+    await page.locator('.segment-view-more-toggle').click()
     await page.locator('.segment-view-bounds-toggle').scrollIntoViewIfNeeded()
     await page.locator('.segment-view-bounds-toggle').click()
     await page.locator('.segment-view-bounds-end').fill('15')
