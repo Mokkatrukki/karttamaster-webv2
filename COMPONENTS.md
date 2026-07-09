@@ -60,10 +60,11 @@ server/       ← Hono + Bun + SQLite
 | Sync | `src/logic/sync.ts` | ✓ T172 | — | [logic.md](docs/components/logic.md) |
 | WriteOutbox | `src/logic/write-outbox.ts` + `outbox-instance.ts` | ✓ T183 (durable kirjoitusjono, V116) | — | [logic.md](docs/components/logic.md) |
 | MarkerScale | `src/logic/marker-scale.ts` | ✓ T175 | — | [logic.md](docs/components/logic.md) |
+| SegmentZoom | `src/logic/segment-zoom.ts` | ✓ T224 (planSegmentZoom: fit vs anchor pätkän latauksessa) | tests/t224-segment-zoom.test.ts | [logic.md](docs/components/logic.md) |
 | SignIcon | `src/map/icons.ts` | ✓ T172 | critical-paths: "toolbar-dropdown", "yhdistelmämerkki" | [map.md](docs/components/map.md) |
 | DriveMode | `src/map/drive.ts` | ✓ | critical-paths: "Drive mode" | [map.md](docs/components/map.md) |
 | MarkerManager | `src/map/markers.ts` | ✓ T182 | critical-paths: "Merkki kartalle", "Drag-to-move", "Merkin zoom-skaalaus", "tallennus epäonnistuu" | [map.md](docs/components/map.md) |
-| RouteBar | `src/map/route-bar.ts` | ✓ | — | [map.md](docs/components/map.md) |
+| RouteBar | `src/map/route-bar.ts` | ✓ T224 (talkoolaisen pätkä-yhteenveto reittitabien tilalle) | tests/t224-route-bar.test.ts | [map.md](docs/components/map.md) |
 | GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30 | critical-paths: "GPS-paikannin" | [map.md](docs/components/map.md) |
 | AreaOverlay | `src/map/area-overlay.ts` | ✓ | area-interaction | [map.md](docs/components/map.md) |
 | MapRectEditor | `src/map/map-rect-editor.ts` | ✓ T117 | area-interaction | [map.md](docs/components/map.md) |
@@ -76,13 +77,13 @@ server/       ← Hono + Bun + SQLite
 | RoleView | `src/app/role-view.ts` | ✓ T155 | critical-paths: "Auth screen", "Rooli backendistä" | [ui.md](docs/components/ui.md) |
 | AreasWiring | `src/app/areas-wiring.ts` | ✓ T155 | area-interaction | [ui.md](docs/components/ui.md) |
 | SegmentsWiring | `src/app/segments-wiring.ts` | ✓ T155 | e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
-| MarkersWiring | `src/app/markers-wiring.ts` | ✓ T182 | critical-paths: "Merkki kartalle", "Drive mode", "tallennus epäonnistuu" | [ui.md](docs/components/ui.md) |
+| MarkersWiring | `src/app/markers-wiring.ts` | ✓ T182,T224 (zoom-to-segment, pätkä-summary wiring, gps-drive-panel poistettu) | critical-paths: "Merkki kartalle", "Drive mode", "tallennus epäonnistuu" | [ui.md](docs/components/ui.md) |
 | SignLibraryPanel | `src/ui/sign-library-panel.ts` | ✓ T176 | critical-paths: "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
 | RoleSelector | `src/ui/role-selector.ts` | ✓ T12 (V80: toggle dead code) | critical-paths: "Rooli backendistä" | [ui.md](docs/components/ui.md) |
 | SegmentPanel | `src/ui/segment-panel.ts` | ✓ T148 | e2e/segments.spec.ts ".segment-km näyttää status-lukumäärän" | [ui.md](docs/components/ui.md) |
 | SegmentCreationModal | `src/ui/segment-creation-modal.ts` | ✓ T150 | — | [ui.md](docs/components/ui.md) |
 | SegmentDetailsModal | `src/ui/segment-details-modal.ts` | ✓ T146,T199 ⚠️ pilkko | tests/t69-segment-details-modal.test.ts, tests/t199-segment-markers-list.test.ts | [ui.md](docs/components/ui.md) |
-| EquipmentList | `src/ui/segment-view.ts` | ✓ T147 | e2e/segments.spec.ts "tarkastus-segmentti näyttää..." | [ui.md](docs/components/ui.md) |
+| SegmentView | `src/ui/segment-view.ts` | ✓ T147,T220,T223,T224 (välilehdet, hero-overflow, muokattava varustelista) | tests/t14-segment-view.test.ts, tests/t224-segment-view.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | PhaseSwitcher | `src/ui/phase-switcher.ts` | ✓ T148,T180 (stopPropagation, B80) | e2e/t180-phase-switcher-menu.spec.ts | [ui.md](docs/components/ui.md) |
 | AuthScreen | `src/ui/auth-screen.ts` | ✓ T51 | — | [ui.md](docs/components/ui.md) |
 | MapStateBadge | `src/ui/map-state-badge.ts` | stub — approval-konsepti poistettu (B46/V79), ei renderöi mitään | — | [ui.md](docs/components/ui.md) |
@@ -95,7 +96,6 @@ server/       ← Hono + Bun + SQLite
 | AreaPanel | `src/ui/area-panel.ts` | ✓ | area-interaction | [ui.md](docs/components/ui.md) |
 | AreaView | `src/ui/area-view.ts` | ✓ | — | [ui.md](docs/components/ui.md) |
 | GpkgControls | `src/ui/gpkg-controls.ts` | ✓ T127 | — | [ui.md](docs/components/ui.md) |
-| GpsDrivePanel | `src/ui/gps-drive-panel.ts` | ✓ T30 | — | [ui.md](docs/components/ui.md) |
 | MarkerDetailModal | `src/ui/marker-detail-modal.ts` | ✓ T172 | screenshots: "marker-detail-modal" | [ui.md](docs/components/ui.md) |
 | FeedbackWidget | `src/devtools/feedback-widget.ts` | ✓ devtools | feedback-widget | — |
 | BackendServer | `server/index.ts` | ✓ T41 | — | [backend.md](docs/components/backend.md) |
