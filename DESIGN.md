@@ -358,6 +358,10 @@ metsässä, hanskat kädessä.
   - **tiedot:** progress (●●●), nimi-input + kuvaus-textarea + footer
 - Footer-napit: Tallenna (`confirm`-tausta, `min-height:44px`), Peruuta (`field-tint`, `min-height:44px`)
 - Tallenna luo segmentin ja sulkee modaalin — ei auto-save (käyttäjä vahvistaa)
+- **Reititön-haara (T216, `mode:'reititon'`):** avautuu "+ Luo aluetehtävä (reititön)" -napista (segment-panel footer, `.btn-segment-footer` `min-height:44px`) — maali/keräysalue ilman reittipätkää. EI progress-askelia, EI kartta-klikkiä. Otsikko "Luo aluetehtävä". Lomake: nimi-input + kuvaus-textarea + valinnaiset merkkiliitokset:
+  - `.segment-creation-typefilter` (`<select>`, `min-height:44px`, input-tokenointi) — dynaaminen tyyppisuodatin (uniikit templateId:t olemassa olevista merkeistä). Näkyy vain jos merkkejä on.
+  - `.segment-creation-marker-checklist` (`max-height:180px; overflow-y:auto`, `border-default`) + `.segment-creation-marker-check` -rivit (`min-height:44px`, checkbox `18×18px` + label) — eksplisiittinen merkkiliitos. Näkyy vain jos merkkejä on.
+  - Tallenna → reititön segmentti (ei route-kenttiä) + linkedMarkerIds/markerTypeFilter.
 
 ### SegmentDetailsModal (`.segment-details-modal`)
 - Avautuu "Lisätiedot & varusteet" -napista pätkärivillä — vain järjestäjälle

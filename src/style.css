@@ -2574,6 +2574,53 @@ button {
   border-color: var(--accent);
 }
 
+/* T216: reitittömän tehtävän tyyppisuodatin + merkkien liitos-checklist.
+   Noudattaa samaa input-tokenointia; touch-target 44px (DESIGN.md §A). */
+.segment-creation-typefilter {
+  background: var(--surface-app);
+  border: 1px solid var(--border-default);
+  color: var(--text-body);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: var(--font-ui);
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+.segment-creation-typefilter:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.segment-creation-marker-checklist {
+  display: flex;
+  flex-direction: column;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-app);
+}
+.segment-creation-marker-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 10px;
+  font-size: 13px;
+  color: var(--text-body);
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-card);
+}
+.segment-creation-marker-check:last-child {
+  border-bottom: none;
+}
+.segment-creation-marker-check input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
 .segment-creation-modal-footer {
   display: flex;
   gap: 8px;
