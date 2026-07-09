@@ -234,6 +234,60 @@ describe('T61: Segments API', () => {
     })
   })
 
+  // ── T230/V93: "pätkä valmiiksi" (completed) persistoituu + talkoolainen muokkaa omaa pätkää ──
+  describe('T230/V93: completed + talkoolaisen oma pätkä', () => {
+    async function createOwnSeg(app: Hono, db: Database, code: string): Promise<string> {
+      const res = await app.request('/api/segments', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...SEG_BODY, phase: 'asettaminen', assignedCode: code }),
+      })
+      const { id } = await res.json() as { id: string }
+      return id
+    }
+
+    test('POST default completed=false; järjestäjä PUT completed=true roundtrippaa', async () => {
+      const app = makeApp(db)
+      const headers = { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' }
+      const postRes = await app.request('/api/segments', {
+        method: 'POST', headers, body: JSON.stringify({ ...SEG_BODY }),
+      })
+      const { id } = await postRes.json() as { id: string }
+      const created = await (await app.request('/api/segments', { headers })).json() as Record<string, unknown>[]
+      expect(created[0].completed).toBe(false)
+
+      const putRes = await app.request(`/api/segments/${id}`, {
+        method: 'PUT', headers, body: JSON.stringify({ completed: true }),
+      })
+      expect(putRes.status).toBe(200)
+      expect((await putRes.json() as Record<string, unknown>).completed).toBe(true)
+    })
+
+    test('talkoolainen merkitsee oman pätkän valmiiksi — 200', async () => {
+      const app = makeApp(db)
+      const code = 'VALM-KOODI-1'
+      const id = await createOwnSeg(app, db, code)
+      const res = await app.request(`/api/segments/${id}`, {
+        method: 'PUT',
+        headers: { ...talkoolainenCodeHeaders(db, code), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: true }),
+      })
+      expect(res.status).toBe(200)
+      expect((await res.json() as Record<string, unknown>).completed).toBe(true)
+    })
+
+    test('talkoolainen EI voi merkitä vierasta pätkää valmiiksi — 403', async () => {
+      const app = makeApp(db)
+      const id = await createOwnSeg(app, db, 'OMA-KOODI')
+      const res = await app.request(`/api/segments/${id}`, {
+        method: 'PUT',
+        headers: { ...talkoolainenCodeHeaders(db, 'VIERAS-KOODI'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: true }),
+      })
+      expect(res.status).toBe(403)
+    })
+  })
+
   // ── T149/V93: tarkastuskuittaus persistoituu + talkoolainen muokkaa omaa pätkää ──
   describe('T149/V93: inspected + talkoolaisen oma pätkä', () => {
     async function createOwnSegment(app: Hono, db: Database, code: string): Promise<string> {

@@ -162,6 +162,35 @@ function initSchema(db: Database): void {
       data BLOB NOT NULL,
       created_at TEXT NOT NULL
     );
+
+    -- T221/T75: yleiskäyttöinen kommentti — kiinnitys merkkiin/pätkään/vapaaseen pisteeseen.
+    -- target_type='point' → lat/lon pakolliset (vapaa karttapiste); 'marker'/'segment' → target_id.
+    CREATE TABLE IF NOT EXISTS comments (
+      id TEXT PRIMARY KEY,
+      target_type TEXT NOT NULL,
+      target_id TEXT,
+      lat REAL,
+      lon REAL,
+      text TEXT NOT NULL,
+      icon_id TEXT,
+      author_name TEXT,
+      created_at TEXT NOT NULL
+    );
+
+    -- T226/V152: merkki-audit-loki. Jokainen merkkimutaatio (POST/PUT/DELETE markers.ts)
+    -- kirjaa rivin SAMASSA transaktiossa mutaation kanssa. payload_json tallentaa
+    -- peruutettaville actioneille (move/status/remove) ENNEN-tilan (V153-restore-lähde).
+    -- segment_code = null jos järjestäjä/admin; talkoolaisen pätkäkoodi muuten.
+    CREATE TABLE IF NOT EXISTS marker_audit (
+      id TEXT PRIMARY KEY,
+      marker_id TEXT NOT NULL,
+      action TEXT NOT NULL,
+      actor TEXT,
+      actor_role TEXT NOT NULL,
+      segment_code TEXT,
+      created_at TEXT NOT NULL,
+      payload_json TEXT
+    );
   `)
 
   // Migraatiot — idempotent ALTER TABLE (epäonnistuu hiljaa jos kolumni jo on)
@@ -184,6 +213,10 @@ function initSchema(db: Database): void {
   try { db.exec('ALTER TABLE markers ADD COLUMN image_id TEXT') } catch { /* already exists */ }
   // T215/V143: templateId denormalisoitu markerille — dynaamisen markerTypeFilter-osuman vakaa viite
   try { db.exec('ALTER TABLE markers ADD COLUMN template_id TEXT') } catch { /* already exists */ }
+  // T226/V151: created_by erottaa talkoolaisen itse-lisäämän merkin (kova DELETE sallittu) vs
+  // järjestäjän suunnitteleman (vain soft ei_tarpeen). Talkoolainen_code ensisijainen tunniste
+  // (display_name törmää nimikaimoilla). Olemassa olevat merkit → NULL (= suunniteltu, ei poistettavissa).
+  try { db.exec('ALTER TABLE markers ADD COLUMN created_by TEXT') } catch { /* already exists */ }
   // B84/V121: bearing-feature poistettiin (T129/T132) mutta DROP-migraatiota ei koskaan
   // kirjoitettu. Ennen poistoa luotu markers-taulu (esim. tuotanto Jun 11) säilyttää
   // `bearing NOT NULL` -sarakkeen ilman defaultia → koodin INSERT (ei bearingia) kaatuu
@@ -197,6 +230,9 @@ function initSchema(db: Database): void {
   // kolumneja; rebuild ajetaan vain kerran kun route_ids vielä NOT NULL, joten datakato ei uhkaa).
   try { db.exec('ALTER TABLE segments ADD COLUMN linked_marker_ids TEXT') } catch { /* already exists */ }
   try { db.exec('ALTER TABLE segments ADD COLUMN marker_type_filter TEXT') } catch { /* already exists */ }
+  // T230: talkoolaisen eksplisiittinen "pätkä valmiiksi" -signaali asettaminen/purku-vaiheelle
+  // (eri kuin merkkimatematiikka). Sama migraatiovyöhyke kuin yllä — rebuildin jälkeen.
+  try { db.exec('ALTER TABLE segments ADD COLUMN completed INTEGER NOT NULL DEFAULT 0') } catch { /* already exists */ }
 
   const existing = db.query<{ count: number }, []>(
     "SELECT COUNT(*) as count FROM map_state WHERE key='status'"
