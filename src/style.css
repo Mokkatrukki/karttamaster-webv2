@@ -479,28 +479,6 @@ button {
   align-items: center;
 }
 
-/* T224 (A): talkoolaisen pätkä-yhteenveto reittivalitsimen tilalle — pituus + merkkimäärä. */
-.route-segment-summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-  background: var(--field-tint);
-  border: 1px solid var(--border-default);
-}
-.route-segment-summary .rss-icon { font-size: 14px; }
-.route-segment-summary .rss-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-body);
-}
-.route-segment-summary .rss-meta {
-  font-size: 12px;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
 .route-tab {
   display: flex;
   border-radius: var(--radius-sm);
@@ -1436,10 +1414,14 @@ button {
   max-height: none;
 }
 
-/* Kutistettuna vain otsikko + edistymispalkki näkyvät → kartta saa lähes koko ruudun (T223).
-   Välilehtien tultua (T224) riittää piilottaa tab-palkki + kaikki tab-paneelit. */
-.segment-view--collapsed .segment-view-tabs,
-.segment-view--collapsed .segment-view-tab-panel {
+/* Kutistettuna vain otsikko + edistymispalkki näkyvät → kartta saa lähes koko ruudun (T223). */
+.segment-view--collapsed .segment-view-desc,
+.segment-view--collapsed .segment-view-next,
+.segment-view--collapsed .segment-view-list,
+.segment-view--collapsed .segment-view-varuste-btn,
+.segment-view--collapsed .segment-view-bounds,
+.segment-view--collapsed .segment-view-inspect,
+.segment-view--collapsed .btn-bulk-collect {
   display: none;
 }
 
@@ -1478,50 +1460,12 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
-/* T224 (E): välilehtipalkki — [Pätkä] · [Kaikki merkit] · [Varusteet]. Keskity yhteen asiaan. */
-.segment-view-tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid var(--border-subtle, var(--border-default));
-}
-.segment-view-tab {
-  flex: 1;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
+/* T224 (C): Varustelista-nappi (avaa EquipmentModalin). */
+.segment-view-varuste-btn {
+  width: 100%;
   justify-content: center;
-  gap: 6px;
-  padding: 0 6px;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
+  margin-bottom: 10px;
 }
-.segment-view-tab.active {
-  color: var(--text-body);
-  border-bottom-color: var(--accent);
-}
-.segment-view-tab-count:empty { display: none; }
-.segment-view-tab-count {
-  min-width: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: var(--field-tint);
-  color: var(--text-meta);
-  font-size: 11px;
-  line-height: 18px;
-  font-variant-numeric: tabular-nums;
-}
-.segment-view-tab.active .segment-view-tab-count {
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
-  color: var(--accent);
-}
-.segment-view-tab-panel[hidden] { display: none; }
 
 .segment-view-desc {
   font-size: 12px;
@@ -2695,21 +2639,68 @@ button {
   color: var(--text-muted);
 }
 
-/* T224 (C): talkoolaisen muokattava manuaali-varustelista — count + nimi + poisto per rivi. */
-.segment-view-equipment-manual {
+/* T224 (C): EquipmentModal — talkoolaisen varustelista tilavana modaalina (kuten "Kaikki merkit"). */
+.equipment-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: 3000;
+}
+.equipment-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(480px, 94vw);
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 6px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  z-index: 3001;
+  overflow: hidden;
 }
-.segment-view-equipment-edit-row {
+.equipment-modal-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-subtle, var(--border-default));
 }
-.segment-view-equipment-count {
-  width: 56px;
+.equipment-modal-header h2 { margin: 0; font-size: 16px; font-weight: 700; color: var(--text-body); }
+.equipment-modal-close {
+  min-width: 44px;
+  min-height: 44px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+}
+.equipment-modal-body { padding: 14px 16px; overflow-y: auto; flex: 1; }
+.equipment-modal-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-meta);
+  margin: 0 0 6px;
+}
+.equipment-modal-auto-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.equipment-modal-empty { font-size: 13px; color: var(--text-muted); margin: 0 0 10px; }
+.equipment-modal-manual { display: flex; flex-direction: column; gap: 8px; }
+.equipment-modal-row { display: flex; align-items: center; gap: 8px; }
+.equipment-modal-count {
+  width: 64px;
   min-height: 44px;
   padding: 0 8px;
   text-align: center;
@@ -2717,28 +2708,35 @@ button {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   color: var(--text-body);
-  font-size: 14px;
+  font-size: 15px;
   font-variant-numeric: tabular-nums;
 }
-.segment-view-equipment-name {
+.equipment-modal-name {
   flex: 1;
   min-width: 0;
   min-height: 44px;
-  padding: 0 10px;
+  padding: 0 12px;
   background: var(--field-tint);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   color: var(--text-body);
-  font-size: 14px;
+  font-size: 15px;
 }
-.segment-view-equipment-remove {
-  flex: 0 0 auto;
-  min-width: 44px;
-  color: var(--text-muted);
+.equipment-modal-remove { flex: 0 0 auto; min-width: 44px; }
+.equipment-modal-add { align-self: flex-start; margin-top: 2px; }
+.equipment-modal-footer {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-subtle, var(--border-default));
 }
-.segment-view-equipment-add {
-  align-self: flex-start;
-  margin-top: 2px;
+.equipment-modal-footer .btn { flex: 1; }
+
+/* T224 (b1): seuraava-merkin kartta-korostusrengas — hienovarainen pulssi. */
+.next-marker-ring { animation: next-marker-pulse 1.6s ease-in-out infinite; }
+@keyframes next-marker-pulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.35; }
 }
 
 /* ── Segment label (Leaflet tooltip) ── */

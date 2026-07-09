@@ -4,6 +4,7 @@ import { firstUnsetMarker } from '../logic/navigation'
 import { getPhaseProgress, formatPhaseProgress } from '../logic/segments'
 import type { Segment, EquipmentItem } from '../logic/segments'
 import { buildMarkerVisual } from './marker-visual-row'
+import { EquipmentModal } from './equipment-modal'
 import { SIGN_TYPES } from '../logic/sign-picker'
 import type { SignMarker } from '../logic/types'
 
@@ -21,9 +22,6 @@ const STATUS_LABELS: Record<string, string> = {
   kerätty: 'Kerätty',
   ei_tarpeen: 'Ei tarpeen',
 }
-
-// T224: talkoolaisen näkymä jaettu välilehtiin — keskity omaan pätkään, ei kaikkea yhtä aikaa.
-type TabKey = 'patka' | 'merkit' | 'varusteet'
 
 // Merkin ihmisluettava nimi: oma label > kirjaston tyyppilabel > tyyppikoodi.
 function markerLabel(m: SignMarker): string {
@@ -55,17 +53,14 @@ export class SegmentView {
   private readonly progressEl: HTMLElement
   private readonly nextEl: HTMLElement
   private readonly markerListEl: HTMLUListElement
+  private readonly varusteBtn: HTMLButtonElement
   private readonly bulkBtn: HTMLButtonElement
-  private readonly equipmentSection: HTMLElement
   private readonly inspectSection: HTMLElement
   private readonly inspectBtn: HTMLButtonElement
   private readonly inspectNoteInput: HTMLTextAreaElement
   private readonly inspectStatus: HTMLElement
   private readonly boundsSection: HTMLElement
-  private readonly tabsBar: HTMLElement
-  private readonly panelPatka: HTMLElement
-  private readonly panelMerkit: HTMLElement
-  private readonly panelVarusteet: HTMLElement
+  private readonly equipmentModal: EquipmentModal
   private currentMarkers: SignMarker[] = []
 
   constructor(
@@ -75,29 +70,24 @@ export class SegmentView {
     private readonly onInspect?: (inspected: boolean, note: string) => void,
     private readonly actions: SegmentViewActions = {},
   ) {
+    this.equipmentModal = new EquipmentModal((equipment) => this.actions.onEquipmentChange?.(equipment))
     const b = this.build()
     this.progressEl = b.progressEl
     this.nextEl = b.nextEl
     this.markerListEl = b.markerListEl
+    this.varusteBtn = b.varusteBtn
     this.bulkBtn = b.bulkBtn
-    this.equipmentSection = b.equipmentSection
     this.inspectSection = b.inspectSection
     this.inspectBtn = b.inspectBtn
     this.inspectNoteInput = b.inspectNoteInput
     this.inspectStatus = b.inspectStatus
     this.boundsSection = b.boundsSection
-    this.tabsBar = b.tabsBar
-    this.panelPatka = b.panelPatka
-    this.panelMerkit = b.panelMerkit
-    this.panelVarusteet = b.panelVarusteet
     this.panel = b.panel
     container.appendChild(b.panel)
-    this.setActiveTab('patka')
     this.renderInspectSection()
     this.renderProgress()
     this.renderNext()
-    this.renderEquipment(this.currentMarkers)
-    this.renderTabCounts()
+    this.renderVarusteBtn()
     this.renderBoundsSection()
   }
 
@@ -108,33 +98,17 @@ export class SegmentView {
     this.renderNext()
     this.renderMarkers(markers)
     this.updateBulkBtn(markers)
-    this.renderEquipment(markers)
+    this.renderVarusteBtn()
     this.renderInspectSection()
     this.renderBoundsSection()
-    this.renderTabCounts()
   }
 
-  // T224 (E): vaihda aktiivinen välilehti — näytä sen paneeli, piilota muut.
-  private setActiveTab(tab: TabKey): void {
-    for (const btn of Array.from(this.tabsBar.querySelectorAll('.segment-view-tab'))) {
-      btn.classList.toggle('active', (btn as HTMLElement).dataset.tab === tab)
-      btn.setAttribute('aria-selected', String((btn as HTMLElement).dataset.tab === tab))
-    }
-    this.panelPatka.hidden = tab !== 'patka'
-    this.panelMerkit.hidden = tab !== 'merkit'
-    this.panelVarusteet.hidden = tab !== 'varusteet'
-  }
-
-  // Välilehtinapin laskurit: "Kaikki merkit (N)" + "Varusteet (N)" — talkoolaiselle näkyvämpi.
-  private renderTabCounts(): void {
-    const merkitCount = this.currentMarkers.length
+  // T224 (C): Varustelista-nappi näyttää määrän ja avaa tilavan modaalin (kuten "Kaikki merkit").
+  private renderVarusteBtn(): void {
     const autoCount = this.currentMarkers.length
     const manualCount = this.segment.equipment.reduce((s, i) => s + (i.count || 0), 0)
-    const equipCount = autoCount + manualCount
-    const merkitBadge = this.tabsBar.querySelector('.segment-view-tab[data-tab="merkit"] .segment-view-tab-count')
-    const varusteetBadge = this.tabsBar.querySelector('.segment-view-tab[data-tab="varusteet"] .segment-view-tab-count')
-    if (merkitBadge) merkitBadge.textContent = merkitCount > 0 ? String(merkitCount) : ''
-    if (varusteetBadge) varusteetBadge.textContent = equipCount > 0 ? String(equipCount) : ''
+    const total = autoCount + manualCount
+    this.varusteBtn.textContent = total > 0 ? `🎒 Varustelista (${total})` : '🎒 Varustelista'
   }
 
   // T78/V43: pätkän rajojen muokkaus kentällä. Näkyy vain jos onEditBounds annettu (talkoolainen).
@@ -145,7 +119,6 @@ export class SegmentView {
       return
     }
     this.boundsSection.hidden = false
-    // Päivitä toggle-napin km-teksti nykyisillä rajoilla (jos form ei ole auki).
     const toggle = this.boundsSection.querySelector('.segment-view-bounds-toggle') as HTMLButtonElement | null
     const form = this.boundsSection.querySelector('.segment-view-bounds-form') as HTMLElement | null
     if (toggle && form && form.hidden) {
@@ -168,7 +141,6 @@ export class SegmentView {
   }
 
   // T143/V90: phase-tietoinen edistymispalkki — "N/M asetettu" tai "N/M kerätty".
-  // Sama getPhaseProgress-logiikka kuin järjestäjän sivupalkissa (yhtenäisyys).
   private renderProgress(): void {
     const p = getPhaseProgress(this.segment, this.currentMarkers)
     const text = formatPhaseProgress(p)
@@ -180,9 +152,8 @@ export class SegmentView {
       <span class="segment-view-progress-text">${text}</span>`
   }
 
-  // "Seuraava merkki" -ohjaus (VISION: "Jos GPS ei ole päällä, näyttää listan seuraavista
-  // asettamattomista merkeistä"). Vain asettaminen-phasessa. Ohjaa pätkän ENSIMMÄISEEN
-  // asettamattomaan merkkiin (firstUnsetMarker, pienin distanceFromStart) — ei "randomiin".
+  // "Seuraava merkki" -ohjaus (hero). Vain asettaminen-phasessa. Ohjaa pätkän ENSIMMÄISEEN
+  // asettamattomaan merkkiin (firstUnsetMarker, pienin distanceFromStart).
   private renderNext(): void {
     if (this.segment.phase !== 'asettaminen') {
       this.nextEl.hidden = true
@@ -193,7 +164,6 @@ export class SegmentView {
 
     const next = firstUnsetMarker(this.currentMarkers)
     if (!next) {
-      // Kaikki asetettu → valmis-tila.
       const done = document.createElement('div')
       done.className = 'segment-view-next-done'
       const total = this.currentMarkers.length
@@ -251,14 +221,11 @@ export class SegmentView {
     showBtn.className = 'btn btn--secondary segment-view-next-show'
     showBtn.textContent = 'Näytä kartalla'
     showBtn.addEventListener('click', () => {
-      // Panoroi + kutista näkymä → kartta esiin (ei avaa modaalia). Fallback onFocusMarker jos
-      // onShowOnMap ei annettu.
       if (this.actions.onShowOnMap) { this.actions.onShowOnMap(next.id); this.setCollapsed(true) }
       else this.actions.onFocusMarker?.(next.id)
     })
     actionsRow.appendChild(showBtn)
 
-    // ⋯-overflow-nappi
     const moreBtn = document.createElement('button')
     moreBtn.className = 'btn btn--ghost segment-view-next-more'
     moreBtn.setAttribute('aria-label', 'Lisää toimintoja')
@@ -282,7 +249,6 @@ export class SegmentView {
     const moveItem = document.createElement('button')
     moveItem.className = 'btn btn--ghost segment-view-next-menu-item segment-view-next-move'
     moveItem.textContent = 'Siirretty'
-    // Vain jos siirto-callback annettu (T222). Muuten disabled "tulossa".
     if (this.actions.onMoveMarker) {
       moveItem.addEventListener('click', () => { menu.hidden = true; this.actions.onMoveMarker?.(next.id) })
     } else {
@@ -291,7 +257,6 @@ export class SegmentView {
     }
     menu.appendChild(moveItem)
 
-    // Placeholderit — riippuvat yleiskäyttöisestä kommentti-/kuva-systeemistä (T221, ei vielä).
     for (const [cls, text] of [['segment-view-next-photo', 'Ota kuva'], ['segment-view-next-comment', 'Laita kommentti']] as const) {
       const item = document.createElement('button')
       item.className = `btn btn--ghost segment-view-next-menu-item ${cls}`
@@ -322,17 +287,13 @@ export class SegmentView {
     progressEl: HTMLElement
     nextEl: HTMLElement
     markerListEl: HTMLUListElement
+    varusteBtn: HTMLButtonElement
     bulkBtn: HTMLButtonElement
-    equipmentSection: HTMLElement
     inspectSection: HTMLElement
     inspectBtn: HTMLButtonElement
     inspectNoteInput: HTMLTextAreaElement
     inspectStatus: HTMLElement
     boundsSection: HTMLElement
-    tabsBar: HTMLElement
-    panelPatka: HTMLElement
-    panelMerkit: HTMLElement
-    panelVarusteet: HTMLElement
   } {
     const panel = document.createElement('div')
     panel.id = 'segment-view'
@@ -352,8 +313,6 @@ export class SegmentView {
     range.textContent = `${startKm}–${endKm} km`
     header.appendChild(range)
 
-    // Kokoontaitto: mobiilissa näkymä vie ~48vh → kartta jää pieneksi. Chevron kutistaa
-    // näkymän otsikko+edistymispalkkiin ja antaa kartalle tilaa navigointiin.
     const collapseBtn = document.createElement('button')
     collapseBtn.type = 'button'
     collapseBtn.className = 'segment-view-collapse'
@@ -364,53 +323,33 @@ export class SegmentView {
 
     panel.appendChild(header)
 
-    // Edistymispalkki: aina näkyvissä otsikon alla (myös kutistettuna) — välilehtien ULKOPUOLELLA.
     const progressEl = document.createElement('div')
     progressEl.className = 'segment-view-progress'
     panel.appendChild(progressEl)
-
-    // T224 (E): välilehtipalkki [Pätkä] · [Kaikki merkit] · [Varusteet].
-    const tabsBar = document.createElement('div')
-    tabsBar.className = 'segment-view-tabs'
-    tabsBar.setAttribute('role', 'tablist')
-    const mkTab = (tab: TabKey, labelText: string): HTMLButtonElement => {
-      const btn = document.createElement('button')
-      btn.type = 'button'
-      btn.className = 'segment-view-tab'
-      btn.dataset.tab = tab
-      btn.setAttribute('role', 'tab')
-      const lab = document.createElement('span')
-      lab.className = 'segment-view-tab-label'
-      lab.textContent = labelText
-      btn.appendChild(lab)
-      const count = document.createElement('span')
-      count.className = 'segment-view-tab-count'
-      btn.appendChild(count)
-      btn.addEventListener('click', () => this.setActiveTab(tab))
-      tabsBar.appendChild(btn)
-      return btn
-    }
-    mkTab('patka', 'Pätkä')
-    mkTab('merkit', 'Kaikki merkit')
-    mkTab('varusteet', 'Varusteet')
-    panel.appendChild(tabsBar)
-
-    // --- Paneeli: Pätkä (navigointi) ---
-    const panelPatka = document.createElement('div')
-    panelPatka.className = 'segment-view-tab-panel'
-    panelPatka.dataset.tab = 'patka'
 
     if (this.segment.description) {
       const desc = document.createElement('p')
       desc.className = 'segment-view-desc'
       desc.textContent = this.segment.description
-      panelPatka.appendChild(desc)
+      panel.appendChild(desc)
     }
 
     const nextEl = document.createElement('div')
     nextEl.className = 'segment-view-next'
     nextEl.hidden = true
-    panelPatka.appendChild(nextEl)
+    panel.appendChild(nextEl)
+
+    const markerListEl = document.createElement('ul')
+    markerListEl.className = 'segment-view-list'
+    panel.appendChild(markerListEl)
+
+    // T224 (C): Varustelista-nappi → tilava EquipmentModal (kuten "Kaikki merkit" -massalista).
+    const varusteBtn = document.createElement('button')
+    varusteBtn.type = 'button'
+    varusteBtn.className = 'btn btn--secondary segment-view-varuste-btn'
+    varusteBtn.textContent = '🎒 Varustelista'
+    varusteBtn.addEventListener('click', () => this.equipmentModal.open(this.segment, this.currentMarkers))
+    panel.appendChild(varusteBtn)
 
     const bulkBtn = document.createElement('button')
     bulkBtn.className = 'btn btn--confirm btn-bulk-collect'
@@ -420,7 +359,7 @@ export class SegmentView {
       const updated = bulkCollect(this.segment, this.currentMarkers)
       if (updated.length > 0) this.onBulkCollect?.(updated)
     })
-    panelPatka.appendChild(bulkBtn)
+    panel.appendChild(bulkBtn)
 
     const inspectSection = document.createElement('div')
     inspectSection.className = 'segment-view-inspect'
@@ -444,36 +383,14 @@ export class SegmentView {
     })
     inspectSection.appendChild(inspectBtn)
 
-    panelPatka.appendChild(inspectSection)
+    panel.appendChild(inspectSection)
 
-    // T78/V43: pätkän rajojen muokkaus — subtle, kokoontaitettu.
     const boundsSection = this.buildBoundsSection()
-    panelPatka.appendChild(boundsSection)
-
-    panel.appendChild(panelPatka)
-
-    // --- Paneeli: Kaikki merkit ---
-    const panelMerkit = document.createElement('div')
-    panelMerkit.className = 'segment-view-tab-panel'
-    panelMerkit.dataset.tab = 'merkit'
-    const markerListEl = document.createElement('ul')
-    markerListEl.className = 'segment-view-list'
-    panelMerkit.appendChild(markerListEl)
-    panel.appendChild(panelMerkit)
-
-    // --- Paneeli: Varusteet ---
-    const panelVarusteet = document.createElement('div')
-    panelVarusteet.className = 'segment-view-tab-panel'
-    panelVarusteet.dataset.tab = 'varusteet'
-    const equipmentSection = document.createElement('div')
-    equipmentSection.className = 'segment-view-equipment'
-    panelVarusteet.appendChild(equipmentSection)
-    panel.appendChild(panelVarusteet)
+    panel.appendChild(boundsSection)
 
     return {
-      panel, progressEl, nextEl, markerListEl, bulkBtn, equipmentSection,
+      panel, progressEl, nextEl, markerListEl, varusteBtn, bulkBtn,
       inspectSection, inspectBtn, inspectNoteInput, inspectStatus, boundsSection,
-      tabsBar, panelPatka, panelMerkit, panelVarusteet,
     }
   }
 
@@ -567,114 +484,6 @@ export class SegmentView {
     return boundsSection
   }
 
-  // T27/T224 (C): varustelista. Auto-laskuri (merkkityypeittäin) pysyy readonly. Manuaalirivit
-  // muokattavia jos onEquipmentChange annettu (talkoolainen valmisteluvaiheessa) — muuten readonly.
-  private renderEquipment(markers: SignMarker[]): void {
-    this.equipmentSection.innerHTML = ''
-
-    // Auto-count: markers per type
-    const counts = new Map<string, number>()
-    for (const m of markers) counts.set(m.type, (counts.get(m.type) ?? 0) + 1)
-
-    const editable = !!this.actions.onEquipmentChange
-    const hasAuto = counts.size > 0
-    const hasManual = this.segment.equipment.length > 0
-
-    if (!hasAuto && !hasManual && !editable) return
-
-    const title = document.createElement('p')
-    title.className = 'segment-view-equipment-title'
-    title.textContent = 'Varusteet'
-    this.equipmentSection.appendChild(title)
-
-    if (hasAuto) {
-      const autoList = document.createElement('ul')
-      autoList.className = 'segment-view-equipment-list'
-      for (const [type, count] of counts) {
-        const li = document.createElement('li')
-        li.className = 'equipment-auto-item'
-        // Ihmisluettava tyyppilabel (esim. "Vasemmalle") — ei raakaa koodia ("left").
-        li.textContent = `${count}× ${TYPE_LABELS[type] ?? SIGN_TYPES.find(s => s.type === type)?.label ?? type}`
-        autoList.appendChild(li)
-      }
-      this.equipmentSection.appendChild(autoList)
-    }
-
-    if (editable) this.renderEquipmentEditable()
-    else if (hasManual) this.renderEquipmentReadonly()
-  }
-
-  private renderEquipmentReadonly(): void {
-    const list = document.createElement('ul')
-    list.className = 'segment-view-equipment-list'
-    for (const item of this.segment.equipment) {
-      const li = document.createElement('li')
-      li.className = 'equipment-manual-item'
-      li.textContent = `${item.count}× ${item.name}`
-      list.appendChild(li)
-    }
-    this.equipmentSection.appendChild(list)
-  }
-
-  // T224 (C): talkoolainen lisää/poistaa/muokkaa manuaali-varusteet. Commit blur/change → callback.
-  private renderEquipmentEditable(): void {
-    const commit = (next: EquipmentItem[]) => this.actions.onEquipmentChange?.(next)
-
-    const wrap = document.createElement('div')
-    wrap.className = 'segment-view-equipment-manual'
-
-    this.segment.equipment.forEach((item, i) => {
-      const row = document.createElement('div')
-      row.className = 'segment-view-equipment-edit-row equipment-manual-item'
-
-      const countInput = document.createElement('input')
-      countInput.type = 'number'
-      countInput.className = 'segment-view-equipment-count'
-      countInput.min = '1'
-      countInput.step = '1'
-      countInput.inputMode = 'numeric'
-      countInput.value = String(item.count)
-      countInput.setAttribute('aria-label', 'Määrä')
-      countInput.addEventListener('change', () => {
-        const n = Math.max(1, Math.round(parseFloat(countInput.value) || 1))
-        const next = this.segment.equipment.map((x, j) => j === i ? { ...x, count: n } : x)
-        commit(next)
-      })
-      row.appendChild(countInput)
-
-      const nameInput = document.createElement('input')
-      nameInput.type = 'text'
-      nameInput.className = 'segment-view-equipment-name'
-      nameInput.value = item.name
-      nameInput.placeholder = 'Varuste'
-      nameInput.setAttribute('aria-label', 'Varusteen nimi')
-      nameInput.addEventListener('change', () => {
-        const next = this.segment.equipment.map((x, j) => j === i ? { ...x, name: nameInput.value.trim() } : x)
-        commit(next)
-      })
-      row.appendChild(nameInput)
-
-      const removeBtn = document.createElement('button')
-      removeBtn.type = 'button'
-      removeBtn.className = 'btn btn--ghost btn--sm segment-view-equipment-remove'
-      removeBtn.setAttribute('aria-label', 'Poista varuste')
-      removeBtn.textContent = '✕'
-      removeBtn.addEventListener('click', () => commit(this.segment.equipment.filter((_, j) => j !== i)))
-      row.appendChild(removeBtn)
-
-      wrap.appendChild(row)
-    })
-
-    const addBtn = document.createElement('button')
-    addBtn.type = 'button'
-    addBtn.className = 'btn btn--secondary btn--sm segment-view-equipment-add'
-    addBtn.textContent = '+ Lisää varuste'
-    addBtn.addEventListener('click', () => commit([...this.segment.equipment, { name: '', count: 1 }]))
-    wrap.appendChild(addBtn)
-
-    this.equipmentSection.appendChild(wrap)
-  }
-
   private renderMarkers(markers: SignMarker[]): void {
     this.markerListEl.innerHTML = ''
     if (markers.length === 0) {
@@ -695,8 +504,6 @@ export class SegmentView {
     li.className = 'segment-view-item'
     li.dataset.id = marker.id
 
-    // T198/V136: jaettu merkkivisuaali — sama korttimuoto + väri kuin kartalla ja järjestäjän
-    // listassa (yhtenäinen UI). Talkoolainen tunnistaa merkin listalta samasta ulkoasusta.
     li.appendChild(buildMarkerVisual(
       { type: marker.type, iconId: marker.iconId, label: marker.label, parts: marker.parts, color: marker.color },
       { size: 30, zoomable: false },
@@ -724,8 +531,6 @@ export class SegmentView {
     status.textContent = statusLabel
     li.appendChild(status)
 
-    // Rivin klikkaus → kohdista + avaa detaljit (ohjeet, tyyppi, siirto). Sama kuin järjestäjän
-    // listassa (V127: mobiilissa detaljin avaus sulkee overlayn).
     if (this.actions.onFocusMarker) {
       li.classList.add('segment-view-item--clickable')
       li.addEventListener('click', () => this.actions.onFocusMarker?.(marker.id))

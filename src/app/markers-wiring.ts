@@ -1,7 +1,7 @@
 import type L from 'leaflet'
 import { MarkerManager } from '../map/markers'
 import { DriveMode } from '../map/drive'
-import { RouteBar, type RouteBarSegmentSummary } from '../map/route-bar'
+import { RouteBar } from '../map/route-bar'
 import { RouteVisibilityControl } from '../map/route-visibility-control'
 import { ProgressBar } from '../ui/progress-bar'
 import { PlaceMode } from '../ui/place-mode'
@@ -17,6 +17,8 @@ import { MarkerDetailModal } from '../ui/marker-detail-modal'
 import { getSegmentForCode, getMarkersForSegment, updateSegment } from '../logic/segments'
 import type { Segment } from '../logic/segments'
 import { planSegmentZoom } from '../logic/segment-zoom'
+import { firstUnsetMarker } from '../logic/navigation'
+import { NextMarkerHighlight } from '../map/next-marker-highlight'
 import { updateSegmentRemote } from '../logic/segment-sync'
 import { outbox, setOutboxChangeHandler } from '../logic/outbox-instance'
 import type { RouteConfig } from '../logic/multi-route'
@@ -82,6 +84,15 @@ export function wireMarkers(
   let statusPanel!: StatusPanel
   let segmentView: SegmentView | null = null
   let signLibrary: SignLibrary | null = null
+  let nextHighlight: NextMarkerHighlight | null = null
+
+  // T224 (b1): korosta pätkän seuraava asettamaton merkki kartalla (vain asettaminen-phase).
+  function updateNextHighlight(seg: Segment, segMarkers: SignMarker[]): void {
+    if (!nextHighlight) return
+    const next = seg.phase === 'asettaminen' ? firstUnsetMarker(segMarkers) : null
+    if (next) nextHighlight.set(next.lat, next.lon)
+    else nextHighlight.clear()
+  }
 
   // T185/V117: outbox-resurssiavaimista ('marker:<id>') pending-merkkien id-joukko listalle.
   const markerPendingIds = (): Set<string> =>
@@ -114,7 +125,11 @@ export function wireMarkers(
     renderSegmentOverlay()
     if (segmentView) {
       const seg = talkoolainenCode ? getSegmentForCode(segmentStore, talkoolainenCode) : undefined
-      if (seg) segmentView.update(getMarkersForSegment(seg, markerManager.getAll()))
+      if (seg) {
+        const segMarkers = getMarkersForSegment(seg, markerManager.getAll())
+        segmentView.update(segMarkers)
+        updateNextHighlight(seg, segMarkers)
+      }
     }
   }, initialMarkers, distM => showWarning(`⚠ Merkki kaukana reitistä (${Math.round(distM)} m)`), msg => showWarning(msg, 5000))
 
@@ -192,9 +207,13 @@ export function wireMarkers(
           },
         },
       )
-      segmentView.update(getMarkersForSegment(seg, markerManager.getAll()))
+      const segMarkers0 = getMarkersForSegment(seg, markerManager.getAll())
+      segmentView.update(segMarkers0)
       // T224 (D): "tässä on sun pätkä" — zoomaa pätkään heti latauksessa.
-      fitMapToSegment(map, routes, seg, getMarkersForSegment(seg, markerManager.getAll()))
+      fitMapToSegment(map, routes, seg, segMarkers0)
+      // T224 (b1): korosta seuraava asettamaton merkki kartalla (kartta = päänavigointi).
+      nextHighlight = new NextMarkerHighlight(map)
+      updateNextHighlight(seg, segMarkers0)
     }
   }
 
@@ -212,24 +231,17 @@ export function wireMarkers(
   const routeSelectorEl = document.getElementById('route-selector')!
 
   if (isTalkoolainen) {
-    // T224 (A): talkoolaisen alapalkki näyttää OMAN pätkän yhteenvedon (pituus + merkkimäärä),
-    // ei reittivalitsinta (V148). Reittiajo lukitaan pätkän reittiin.
-    const seg = talkoolainenCode ? getSegmentForCode(segmentStore, talkoolainenCode) : undefined
-    let segmentSummary: RouteBarSegmentSummary | undefined
-    if (seg && seg.startDist !== undefined && seg.endDist !== undefined && seg.routeIds && seg.routeIds.length > 0) {
-      segmentSummary = {
-        routeId: seg.routeIds.find(rid => routes.some(r => r.id === rid)) ?? seg.routeIds[0],
-        lengthKm: ((seg.endDist - seg.startDist) / 1000).toFixed(1),
-        markerCount: getMarkersForSegment(seg, markerManager.getAll()).length,
-      }
-    }
+    // T224 (A/V148): talkoolaisen alapalkki (`#route-bar`) POISTETTU kokonaan — se ei tuonut
+    // arvoa pätkäkeskeisessä flowssa (hero + kartta + "Kaikki merkit"/"Varustelista" -napit riittää).
+    // RouteBar luodaan yhä driveMode-reitin + activeRouteProviderin vuoksi, mutta itse palkki
+    // piilotetaan. (◀▶/scrubber ohjasi koko reittiä, ei pätkää → hämäävä; pois näkyvistä.)
     routeBar = new RouteBar(
       routes, polylines, map, driveMode, markerManager,
       routeSelectorEl,
       document.getElementById('route-track-fill') as HTMLElement,
       () => { progressBar.update(0); progressBar.refreshDots() },
-      segmentSummary,
     )
+    document.getElementById('route-bar')?.setAttribute('hidden', '')
   } else {
     routeVis = new RouteVisibilityControl(routes, polylines, map, markerManager, routeSelectorEl)
     // Piilota drive-osat järjestäjältä (V134)
