@@ -18,7 +18,7 @@
   /* Text — kuusenmusta */
   --text-body:   #17221D;
   --text-muted:  #5B6A61;
-  --text-meta:   #7C8A80;
+  --text-meta:   #647268;
 
   /* Accent (huomionauha) — yksi per näkymä */
   --accent:       #F2542D;
@@ -82,7 +82,7 @@
 
   --text-body:   #F0EAE4;
   --text-muted:  #A99E95;
-  --text-meta:   #857B72;
+  --text-meta:   #9A8F85;
 
   --accent:       #F2542D;
   --accent-text:  #ffffff;
@@ -1938,7 +1938,7 @@ button {
   color: var(--text-muted);
   font-size: 11px;
   padding: 0 8px;
-  min-height: 36px;
+  min-height: 44px;
   cursor: pointer;
   width: 100%;
   text-align: left;
@@ -2024,7 +2024,7 @@ button {
   padding: 6px 6px;
   font-size: 12px;
   width: 56px;
-  min-height: 36px;
+  min-height: 44px;
   text-align: center;
 }
 
@@ -2036,7 +2036,7 @@ button {
   padding: 6px 8px;
   font-size: 12px;
   flex: 1;
-  min-height: 36px;
+  min-height: 44px;
 }
 
 .equipment-count-input:focus,
@@ -2052,7 +2052,7 @@ button {
   border-radius: var(--radius-sm);
   font-size: 11px;
   padding: 4px 8px;
-  min-height: 36px;
+  min-height: 44px;
   flex-shrink: 0;
 }
 
@@ -2074,7 +2074,7 @@ button {
   border-radius: var(--radius-sm);
   font-size: 11px;
   padding: 4px 12px;
-  min-height: 36px;
+  min-height: 44px;
   white-space: nowrap;
   flex-shrink: 0;
 }
