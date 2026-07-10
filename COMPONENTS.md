@@ -150,11 +150,11 @@ Lippu ilman toimenpidettä on hukkaa: ⚠️-tason lippu → varmista pilkko-§T
 
 | Moduuli | Lippu | Peruste |
 |---|---|---|
-| `src/ui/sign-library-panel.ts` | ⚠️ | suurin moduuli — lista + malli-lomake (luonti/muokkaus) + kuvalataus + suosikit = ≥3 vastuuta (analysoi 2026-07-10) |
-| `src/ui/segment-view.ts` | ⚠️ | kasvoi voimakkaasti talkoolainen-parannus-branchilla (T224/T228/T232) — hero + navigointi + varuste-wiring + collapse + bounds-edit + phase (analysoi 2026-07-10) |
+| `src/ui/sign-library-panel.ts` | ⚠️ **T235** | suurin moduuli — `openModal` 625r yhdessä metodissa → irrota `sign-template-modal.ts` (SPEC §T235) |
+| `src/ui/segment-view.ts` | ⚠️ **T234** | hero + nav + inspect/complete/bounds/more — irrota `renderNext`-hero `segment-hero.ts`:ään (SPEC §T234) |
 | `src/ui/segment-details-modal.ts` | ⚠️ | monta vastuuta: nimi/kuvaus/merkit/varusteet/assign/editpts/klooni/poisto |
 | `src/ui/area-panel.ts` | ⚠️ | ylittää 400 riv -kynnyksen (analysoi 2026-07-04) |
-| `src/map/markers.ts` | ⚠️ | ylitti 400 riv -kynnyksen (analysoi 2026-07-10) |
+| `src/map/markers.ts` | ⚠️ **T236** | domain-state + Leaflet + API-glue sekaisin (rajatapaus 410r) — SPEC §T236 |
 | `src/ui/marker-detail-modal.ts` | seuraa | kasvoi T103/T137:ssä |
 | `src/map/map-rect-editor.ts` | seuraa | erota drag-logiikka jos vastuut eriytyvät |
 | `src/map/area-overlay.ts` | seuraa | — |
