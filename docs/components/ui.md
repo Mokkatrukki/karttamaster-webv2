@@ -217,21 +217,6 @@ DOM-komponentit ilman Leafletia. **Testattavuus: Vitest-jsdom.**
 
 ---
 
-## MapStateBadge
-**Vastuu:** *(ei aktiivinen — stub)*
-**Käyttäjä:** ei kenellekään, säilytetty vain rajapintayhteensopivuuden vuoksi
-**Moduuli:** `src/ui/map-state-badge.ts` (11 riv)
-**Testattavuus:** ei testattu erikseen (ei logiikkaa)
-
-### Ominaisuudet
-- Stub-luokka, ei renderöi mitään DOM:iin — kaikki metodit (`refresh`, `update`) ovat no-op
-- HUOM SPEC.md §B46/§V79: approval-konsepti ("luonnos"/"hyväksytty" -tila kartalle) poistettiin kokonaan — kaikki merkit ovat aina näkyvissä kaikille autentikoiduille käyttäjille. Tiedosto säilytetty vain jotta vanhat importit eivät riko buildia; ei kutsuta enää `main.ts`:stä
-
-### Käyttäjätarkistus
-> Ei sovellu — komponentti ei tee mitään
-
----
-
 ## SnapshotPanel
 **Vastuu:** Varmuuskopiomodaali — luo/listaa/palauta snapshotteja
 **Käyttäjä:** järjestäjä + admin

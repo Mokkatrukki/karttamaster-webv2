@@ -25,7 +25,7 @@ PM **ei koskaan**:
 - Muokkaa SPEC.md:tä suoraan (se on `/ck:spec`:n rooli)
 
 PM **aina**:
-- Bugi havaitaan → `/ck:spec bug: <kuvaus>` → `/karttamaster-rakentaja §B<n>` — ei poikkeuksia
+- Bugi havaitaan → `/ck:spec bug: <kuvaus>` (kirjaa §B + §V + korjaus-§T) → `/karttamaster-rakentaja §T<n>` — ei poikkeuksia. Build kohdistetaan aina §T:hen, ei §B:hen.
 - Feature-idea → `/karttamaster-spec <kuvaus>` — ei toteuteta itse
 - Koodianalyysi tarvitaan → `/karttamaster-arkkitehtuuri analysoi <tiedosto>` — ei tutkita itse
 
@@ -107,8 +107,8 @@ PM:n rooli tässä: **triagi ja delegointi**, ei korjaaminen itse.
    2. [Suuri] <kuvaus> — syy: ...
    3. [Pieni] <kuvaus> — syy: ...
    ```
-5. Kutsu `/ck:spec bug: <kuvaus>` jokaiselle bugille — ne rekisteröityvät §B:hen.
-6. Kutsu `/karttamaster-rakentaja §B<n>` kriittisimmälle ensin — rakentaja + testaaja hoitavat korjauksen.
+5. Kutsu `/ck:spec bug: <kuvaus>` jokaiselle bugille — rekisteröi §B-rivin, §V-invariantin ja korjaus-§T:n.
+6. Kutsu `/karttamaster-rakentaja §T<n>` (korjaus-§T) kriittisimmälle ensin — rakentaja + testaaja hoitavat korjauksen. Build ei ota §B-tunnusta kohteeksi.
 7. UI/UX-bugit (tilaa vie, näkymäongelma): kutsu myös `/karttamaster-ux` analyysin jälkeen.
 
 **PM ei tutki koodia eikä korjaa bugia itse.** Jos bugille tarvitaan syväanalyysi ennen spec-kirjausta, kutsu `/karttamaster-arkkitehtuuri analysoi <tiedosto>`.
@@ -212,11 +212,19 @@ Ei backendiä, ei synkronointia.
 | Skill | Milloin PM kutsuu |
 |---|---|
 | `/ck:spec bug: <kuvaus>` | Jokainen bugi kirjataan — PM kutsuu `bugiraportoi`-flowssa |
-| `/karttamaster-rakentaja §B<n>` | Bugin korjaus — PM käynnistää prioriteettijärjestyksessä |
+| `/karttamaster-rakentaja §T<n>` | Bugin korjaus-§T (ei §B) — PM käynnistää prioriteettijärjestyksessä |
 | `/karttamaster-ux` | UI/UX-bugit tai näkymäongelmat |
 | `/karttamaster-spec <feature>` | Kun prioriteetti on selvä ja feature halutaan specata |
 | `/karttamaster-arkkitehtuuri analysoi` | Kun tarvitaan syväanalyysi ennen spec-kirjausta |
-| `/ck:check` | Kun epäillään että koodi on ajautunut irti SPEC:stä |
+| `/ck:check` | Kun epäillään että koodi on ajautunut irti SPEC:stä (aja buildin jälkeen) |
+| `/ck:grill` | Sumea idea putkessa — terävöitä §G/§C ennen kuin priorisoit |
+| `/ck:research` | Kirjasto-/tekninen valinta blokkaa päätöstä — löydöt §R:ään, lähde per rivi |
+| `/ck:review` | Iso/riskialtis feature ennen buildia — adversariaalinen katselmus, go/no-go |
+
+**Right-size (cavekit v4.1) — PM päättää seremonian tason blast-radiuksen mukaan:**
+- Yhden rivin korjaus → suoraan `/karttamaster-rakentaja`, ei spec-seremoniaa.
+- Sumea/iso/jaettu-moduulin feature → koko ketju: `/ck:grill` → `/karttamaster-spec` → `/ck:review` → `/karttamaster-rakentaja`.
+- Seremonia skaalaa blast-radiuksen mukaan, ei egon. Älä yliprosessoi typoa.
 
 PM ei muuta SPEC.md:tä suoraan — se on `/ck:spec`:n rooli.
 PM ei rakenna eikä korjaa bugia itse — se on `/karttamaster-rakentaja`:n rooli.

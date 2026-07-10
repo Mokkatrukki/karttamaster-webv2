@@ -16,8 +16,14 @@ Tämä skill on ohut wrapper `/ck:build`:n ympärillä. Lisää automaattisen
 ## Flow
 
 ```
+0. Blast-radius-tarkistus (cavekit v4.1 right-size):
+   → Jaettu moduuli / auth / data / kriittinen §I / iso epävarmuus?
+     → Ehdota /ck:review ENNEN buildia (kovettaa §V, go/no-go-portti).
+   → Triviaali & reversible? Suoraan buildiin, ei review-seremoniaa.
 1. Kutsu /ck:build §T<n>  (tai --next tai --all)
 2. ck:build toteuttaa + ajaa testit + commitoi
+   → v4.1: build nimeää TARKAN testin joka todistaa jokaisen kosketun §V:n
+     (verification contract). Jos §R-osio on, build maadoittuu sen faktoihin.
 3. KUN ck:build merkitsee taskin ✓:
    → Kutsu /karttamaster-testaaja T<n>
 4. karttamaster-testaaja tarkistaa kattavuuden + käyttäjäperspektiivin

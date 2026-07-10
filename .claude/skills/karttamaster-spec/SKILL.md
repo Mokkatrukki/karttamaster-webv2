@@ -36,6 +36,18 @@ arvaillaan, UX-vaatimukset unohtuvat, käyttäjärooli jää epäselväksi.
 6. Kutsu /ck:spec amend §T <rikastettu kuvaus>
 ```
 
+### Right-size — kuinka paljon seremoniaa? (cavekit v4.1)
+
+Seremonia skaalaa blast-radiuksen mukaan, ei egon. Älä yliprosessoi pikkukorjausta.
+
+| Muutos | Polku |
+|---|---|
+| Yhden rivin korjaus, reversible | Suoraan `/karttamaster-rakentaja` — ei spec-rikastusta |
+| Normaali logiikka-/UI-task | Tämä skill → `/ck:spec amend §T` (perusflow yllä) |
+| Sumea idea, epäselvä scope | `/ck:grill` ensin → terävöittää §G/§C → sitten tämä skill |
+| Jaettu moduuli / auth / data / kriittinen §I | Tämä skill → **`/ck:review`** ennen buildia → kovettaa §V, go/no-go |
+| Kirjastovalinta / tekninen tuntematon | `/ck:research` → kirjaa löydöt **§R**:ään (lähde per rivi) → build maadoittuu faktoihin |
+
 ---
 
 ## Kontekstin kerääminen
@@ -141,6 +153,11 @@ Luo sopimus ensin: kutsu `/karttamaster-ux komponentti <nimi>`. Sitten spec.
 | `/karttamaster-ux komponentti <nimi>` | Kun UI-komponentilla ei vielä ole §K-sopimusta DESIGN.md:ssä |
 | `/ck:spec amend §T` | Aina lopuksi — kirjoittaa rikastetun taskin |
 | `/karttamaster-pm mitä seuraavaksi` | Ennen spec-kirjoitusta jos prioriteetti epäselvä |
+| `/ck:grill` | Idea on sumea — terävöitä §G/§C ennen rikastusta |
+| `/ck:research` | Kirjasto-/tekninen valinta epäselvä — löydöt §R:ään, lähde per rivi |
+| `/ck:review` | Iso tai riskialtis feature — adversariaalinen spec-katselmus ennen buildia |
+
+**Sectioned ownership (v4.1):** jokainen ck-verbi kirjoittaa vain omat §-osionsa (`grill`→§G/§C, `research`→§R, `review`→§V). Vain `/ck:spec` on yleismutaattori. Älä koskaan anna yhden verbin ylikirjoittaa vierasta osiota.
 
 Normaali logiikka- tai UI-task: analyysi inline, ei erillisiä skill-kutsuja ennen `/ck:spec`:iä.
 

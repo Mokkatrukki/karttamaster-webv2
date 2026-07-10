@@ -11,14 +11,15 @@
       <div id="toolbar">
         <span id="app-brand">Karttamaster</span>
         <div id="toolbar-actions">
-          <button id="btn-gps" data-role-hide="järjestäjä">📍 GPS</button>
-          <button id="btn-layer">Karttatyyli</button>
           <button id="btn-list">Kaikki merkit</button>
+          <button id="btn-varuste" data-role-hide="järjestäjä" aria-label="Varustelista">🎒 Varustelista</button>
           <button id="btn-menu" aria-label="Tilivalikko">⋯</button>
         </div>
       </div>
       <div id="toolbar-menu">
         <div id="account-menu-section"></div>
+        <div class="menu-sep"></div>
+        <button id="btn-layer">Karttatyyli</button>
         <div class="menu-sep"></div>
         <div id="phase-switcher-container" data-role-hide="talkoolainen"></div>
         <div class="menu-sep"></div>
@@ -71,17 +72,6 @@
       <div id="route-track">
         <div id="route-track-fill"></div>
         <div id="route-track-handle"></div>
-      </div>
-      <div id="gps-drive-panel" hidden>
-        <div id="gdp-info">
-          <span id="gdp-dist"></span>
-          <span id="gdp-label"></span>
-        </div>
-        <div id="gdp-actions">
-          <button id="gdp-jump">⇒ Seuraava</button>
-          <button id="gdp-aseta" class="btn-status-primary">✓ Aseta</button>
-          <button id="gdp-ohita" class="btn-status-secondary">Ei tarpeen</button>
-        </div>
       </div>
     </div>
 

@@ -234,6 +234,60 @@ describe('T61: Segments API', () => {
     })
   })
 
+  // ── T230/V93: "pätkä valmiiksi" (completed) persistoituu + talkoolainen muokkaa omaa pätkää ──
+  describe('T230/V93: completed + talkoolaisen oma pätkä', () => {
+    async function createOwnSeg(app: Hono, db: Database, code: string): Promise<string> {
+      const res = await app.request('/api/segments', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...SEG_BODY, phase: 'asettaminen', assignedCode: code }),
+      })
+      const { id } = await res.json() as { id: string }
+      return id
+    }
+
+    test('POST default completed=false; järjestäjä PUT completed=true roundtrippaa', async () => {
+      const app = makeApp(db)
+      const headers = { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' }
+      const postRes = await app.request('/api/segments', {
+        method: 'POST', headers, body: JSON.stringify({ ...SEG_BODY }),
+      })
+      const { id } = await postRes.json() as { id: string }
+      const created = await (await app.request('/api/segments', { headers })).json() as Record<string, unknown>[]
+      expect(created[0].completed).toBe(false)
+
+      const putRes = await app.request(`/api/segments/${id}`, {
+        method: 'PUT', headers, body: JSON.stringify({ completed: true }),
+      })
+      expect(putRes.status).toBe(200)
+      expect((await putRes.json() as Record<string, unknown>).completed).toBe(true)
+    })
+
+    test('talkoolainen merkitsee oman pätkän valmiiksi — 200', async () => {
+      const app = makeApp(db)
+      const code = 'VALM-KOODI-1'
+      const id = await createOwnSeg(app, db, code)
+      const res = await app.request(`/api/segments/${id}`, {
+        method: 'PUT',
+        headers: { ...talkoolainenCodeHeaders(db, code), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: true }),
+      })
+      expect(res.status).toBe(200)
+      expect((await res.json() as Record<string, unknown>).completed).toBe(true)
+    })
+
+    test('talkoolainen EI voi merkitä vierasta pätkää valmiiksi — 403', async () => {
+      const app = makeApp(db)
+      const id = await createOwnSeg(app, db, 'OMA-KOODI')
+      const res = await app.request(`/api/segments/${id}`, {
+        method: 'PUT',
+        headers: { ...talkoolainenCodeHeaders(db, 'VIERAS-KOODI'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: true }),
+      })
+      expect(res.status).toBe(403)
+    })
+  })
+
   // ── T149/V93: tarkastuskuittaus persistoituu + talkoolainen muokkaa omaa pätkää ──
   describe('T149/V93: inspected + talkoolaisen oma pätkä', () => {
     async function createOwnSegment(app: Hono, db: Database, code: string): Promise<string> {
@@ -310,6 +364,138 @@ describe('T61: Segments API', () => {
         body: JSON.stringify({ inspected: true }),
       })
       expect(res.status).toBe(403)
+    })
+
+    // T224 (C)/V93-laajennus: talkoolainen muokkaa oman pätkän varustelistaa (VISION r42/239)
+    test('talkoolainen muokkaa oman pätkän equipmentia — 200, roundtrippaa', async () => {
+      const app = makeApp(db)
+      const code = 'VARUSTE-KOODI'
+      const id = await createOwnSegment(app, db, code)
+
+      const res = await app.request(`/api/segments/${id}`, {
+        method: 'PUT',
+        headers: { ...talkoolainenCodeHeaders(db, code), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ equipment: [{ name: 'lisäkylttejä', count: 3 }, { name: 'vasara', count: 1 }] }),
+      })
+      expect(res.status).toBe(200)
+      const updated = await res.json() as Record<string, unknown>
+      expect(updated.equipment).toEqual([{ name: 'lisäkylttejä', count: 3 }, { name: 'vasara', count: 1 }])
+
+      // Roundtrip: järjestäjän GET näkee talkoolaisen päivityksen
+      const list = await (await app.request('/api/segments', { headers: authHeaders(db, 'järjestäjä') })).json() as Record<string, unknown>[]
+      expect(list.find(s => s.id === id)?.equipment).toEqual([{ name: 'lisäkylttejä', count: 3 }, { name: 'vasara', count: 1 }])
+    })
+  })
+
+  // T213/V141: reititön tehtävä persistoituu (route-kentät nullable)
+  describe('T213/V141: reititön tehtävä', () => {
+    test('POST reititön tehtävä ilman route-kenttiä → 201, roundtrip ilman route-kenttiä', async () => {
+      const app = makeApp(db)
+      const res = await app.request('/api/segments', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayName: 'Maalialue', phase: 'asettaminen', equipment: [] }),
+      })
+      expect(res.status).toBe(201)
+      const body = await res.json() as Record<string, unknown>
+      expect(body.routeIds).toBeUndefined()
+      expect(body.startDist).toBeUndefined()
+      expect(body.endDist).toBeUndefined()
+      expect(body.displayName).toBe('Maalialue')
+
+      // GET / roundtrip
+      const list = await (await app.request('/api/segments', {
+        headers: authHeaders(db, 'järjestäjä'),
+      })).json() as Record<string, unknown>[]
+      const found = list.find(s => s.id === body.id)!
+      expect(found.routeIds).toBeUndefined()
+      expect(found.startDist).toBeUndefined()
+    })
+
+    test('reitillinen tehtävä ennallaan (route-kentät säilyvät)', async () => {
+      const app = makeApp(db)
+      const res = await app.request('/api/segments', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ routeIds: ['35km'], startDist: 1000, endDist: 5000, phase: 'asettaminen', equipment: [] }),
+      })
+      expect(res.status).toBe(201)
+      const body = await res.json() as Record<string, unknown>
+      expect(body.routeIds).toEqual(['35km'])
+      expect(body.startDist).toBe(1000)
+      expect(body.endDist).toBe(5000)
+    })
+
+    test('reitittömän tehtävän GET by-code palauttaa ilman route-kenttiä', async () => {
+      const app = makeApp(db)
+      const post = await app.request('/api/segments', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignedCode: 'ALUE1', displayName: 'Keräysalue', phase: 'purku', equipment: [] }),
+      })
+      expect(post.status).toBe(201)
+      const res = await app.request('/api/segments/by-code/ALUE1', {
+        headers: authHeaders(db, 'järjestäjä'),
+      })
+      expect(res.status).toBe(200)
+      const body = await res.json() as Record<string, unknown>
+      expect(body.routeIds).toBeUndefined()
+      expect(body.assignedCode).toBe('ALUE1')
+    })
+  })
+
+  // T216/V140: reitittömän tehtävän merkkiliitos persistoituu (linkedMarkerIds + markerTypeFilter)
+  describe('T216/V140: merkkiliitos', () => {
+    test('POST tallentaa linkedMarkerIds + markerTypeFilter, roundtrippaa', async () => {
+      const app = makeApp(db)
+      const res = await app.request('/api/segments', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          displayName: 'Keräystehtävä', phase: 'purku', equipment: [],
+          linkedMarkerIds: ['m1', 'm2'], markerTypeFilter: 'keräyskasa',
+        }),
+      })
+      expect(res.status).toBe(201)
+      const body = await res.json() as Record<string, unknown>
+      expect(body.linkedMarkerIds).toEqual(['m1', 'm2'])
+      expect(body.markerTypeFilter).toBe('keräyskasa')
+
+      const list = await (await app.request('/api/segments', { headers: authHeaders(db, 'järjestäjä') })).json() as Record<string, unknown>[]
+      const found = list.find(s => s.id === body.id)!
+      expect(found.linkedMarkerIds).toEqual(['m1', 'm2'])
+      expect(found.markerTypeFilter).toBe('keräyskasa')
+    })
+
+    test('tyhjä linkedMarkerIds → undefined (ei tallenna tyhjää taulukkoa)', async () => {
+      const app = makeApp(db)
+      const res = await app.request('/api/segments', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayName: 'Tyhjä', phase: 'asettaminen', equipment: [], linkedMarkerIds: [] }),
+      })
+      const body = await res.json() as Record<string, unknown>
+      expect(body.linkedMarkerIds).toBeUndefined()
+    })
+
+    test('PUT päivittää merkkiliitoksen (järjestäjä)', async () => {
+      const app = makeApp(db)
+      const post = await app.request('/api/segments', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayName: 'T', phase: 'purku', equipment: [] }),
+      })
+      const { id } = await post.json() as { id: string }
+
+      const put = await app.request(`/api/segments/${id}`, {
+        method: 'PUT',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ linkedMarkerIds: ['x1'], markerTypeFilter: 'wc' }),
+      })
+      expect(put.status).toBe(200)
+      const updated = await put.json() as Record<string, unknown>
+      expect(updated.linkedMarkerIds).toEqual(['x1'])
+      expect(updated.markerTypeFilter).toBe('wc')
     })
   })
 })

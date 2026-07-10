@@ -366,7 +366,8 @@ describe('MarkerDetailModal', () => {
     const select = document.querySelector<HTMLSelectElement>('.marker-detail-type-select')!
     select.value = 'left'
     select.dispatchEvent(new Event('change'))
-    expect(manager.updateType).toHaveBeenCalledWith('test-id', 'left', undefined, undefined, undefined, undefined, undefined)
+    // T215/V143: viimeinen arg = templateId (template?.id) — 'left' ei ole kirjastossa → undefined
+    expect(manager.updateType).toHaveBeenCalledWith('test-id', 'left', undefined, undefined, undefined, undefined, undefined, undefined)
     expect(onUpdate).toHaveBeenCalled()
   })
 
@@ -380,6 +381,41 @@ describe('MarkerDetailModal', () => {
     const select = document.querySelector<HTMLSelectElement>('.marker-detail-type-select')!
     select.value = 'custom-1'
     select.dispatchEvent(new Event('change'))
-    expect(manager.updateType).toHaveBeenCalledWith('test-id', 'custom-1', '#ff0000', 'Vaara', undefined, undefined, undefined)
+    // T215/V143: viimeinen arg = template.id ('custom-1') — vakaa viite dynaamiseen typeFilteriin
+    expect(manager.updateType).toHaveBeenCalledWith('test-id', 'custom-1', '#ff0000', 'Vaara', undefined, undefined, undefined, 'custom-1')
+  })
+
+  // T225/V151: talkoolaisen kova-poisto vain oma itse-luoma merkki.
+  describe('T225: talkoolaisen kova-poisto', () => {
+    it('oma itse-luoma merkki (createdBy === koodi) → "Poista oma merkki" -nappi näkyy', () => {
+      const marker = makeMarker({ createdBy: 'OMA1' })
+      const manager = makeMockManager(marker)
+      const modal = new MarkerDetailModal(manager as any, () => null, () => 'talkoolainen', vi.fn(), () => 'OMA1')
+      modal.open('test-id')
+      const del = document.querySelector('.modal-btn-destructive')
+      expect(del).not.toBeNull()
+      expect(del?.textContent).toBe('Poista oma merkki')
+    })
+
+    it('järjestäjän suunnittelema merkki (createdBy ≠ koodi) → EI poistonappia talkoolaiselle', () => {
+      const marker = makeMarker({ createdBy: 'Testi Järjestäjä' })
+      const manager = makeMockManager(marker)
+      const modal = new MarkerDetailModal(manager as any, () => null, () => 'talkoolainen', vi.fn(), () => 'OMA1')
+      modal.open('test-id')
+      expect(document.querySelector('.modal-btn-destructive')).toBeNull()
+    })
+
+    it('poistonappi confirmilla kutsuu manager.remove + onUpdate', () => {
+      const marker = makeMarker({ createdBy: 'OMA1' })
+      const manager = makeMockManager(marker)
+      const onUpdate = vi.fn()
+      vi.spyOn(window, 'confirm').mockReturnValue(true)
+      const modal = new MarkerDetailModal(manager as any, () => null, () => 'talkoolainen', onUpdate, () => 'OMA1')
+      modal.open('test-id')
+      document.querySelector<HTMLButtonElement>('.modal-btn-destructive')!.click()
+      expect(manager.remove).toHaveBeenCalledWith('test-id')
+      expect(onUpdate).toHaveBeenCalled()
+      vi.restoreAllMocks()
+    })
   })
 })

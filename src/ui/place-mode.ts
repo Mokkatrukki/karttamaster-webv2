@@ -43,7 +43,7 @@ export class PlaceMode {
   placeArmedAt(lat: number, lon: number): boolean {
     if (!this.armedTemplate) return false
     const t = this.armedTemplate
-    this.markerManager.add(lat, lon, t.id as MarkerType, t.color, t.label, t.iconId, t.parts, t.imageId)
+    this.markerManager.add(lat, lon, t.id as MarkerType, t.color, t.label, t.iconId, t.parts, t.imageId, t.id)
     this.disarm()
     return true
   }
@@ -80,7 +80,10 @@ export class PlaceMode {
       if (!btn || !this.pendingDblClick) return
       const { lat, lon } = this.pendingDblClick
       const parts = btn.dataset.parts ? JSON.parse(btn.dataset.parts) : undefined
-      this.markerManager.add(lat, lon, btn.dataset.type as MarkerType, btn.dataset.color, btn.dataset.label, btn.dataset.icon || undefined, parts, btn.dataset.image || undefined)
+      // T215/V143: viimeinen arg = templateId (= data-type, joka on template.id) → denormalisoi
+      // template-viite myös picker-polulla (kuten sidebar armFromSidebar). Ilman tätä talkoolaisen
+      // pickeristä sijoittama merkki jäisi ilman templateId:tä (dynaaminen tyyppisuodatin, T218).
+      this.markerManager.add(lat, lon, btn.dataset.type as MarkerType, btn.dataset.color, btn.dataset.label, btn.dataset.icon || undefined, parts, btn.dataset.image || undefined, btn.dataset.type)
       this.closePicker()
     })
 

@@ -40,6 +40,9 @@ export class MarkerManager {
   private onUpdate: () => void
   private onFarFromRoute?: (distM: number) => void
   private onMarkerClick: ((id: string) => void) | null = null
+  // T222/V150: mitkä merkit ovat raahattavia. Oletus = kaikki (järjestäjä). Talkoolaiselle
+  // asetetaan predikaatti joka sallii vain oman pätkän merkit → ei raahaa vieraita (backend 403).
+  private draggableFn: (m: SignMarker) => boolean = () => true
 
   constructor(map: L.Map, routes: RouteRef[], onUpdate: () => void, initialMarkers: SignMarker[] = [], onFarFromRoute?: (distM: number) => void, onSaveError?: (msg: string) => void) {
     this.map = map
@@ -110,6 +113,7 @@ export class MarkerManager {
         label: marker.label ?? null,
         icon_id: marker.iconId ?? null,
         image_id: marker.imageId ?? null,
+        template_id: marker.templateId ?? null,
         parts_json: marker.parts ? JSON.stringify(marker.parts) : null,
       }),
       onDelivered: (text) => this.reconcileFromServer(text),
@@ -170,7 +174,7 @@ export class MarkerManager {
     return { routeIds, distanceFromStart: point.distanceFromStart }
   }
 
-  add(lat: number, lon: number, type: MarkerType, color?: string, label?: string, iconId?: string, parts?: SignPart[], imageId?: string): SignMarker {
+  add(lat: number, lon: number, type: MarkerType, color?: string, label?: string, iconId?: string, parts?: SignPart[], imageId?: string, templateId?: string): SignMarker {
     const { routeIds, distanceFromStart } = this.nearestRouteAssignment(lat, lon)
 
     const marker: SignMarker = {
@@ -183,6 +187,8 @@ export class MarkerManager {
       ...(label ? { label } : {}),
       ...(iconId ? { iconId } : {}),
       ...(imageId ? { imageId } : {}),
+      // T215/V143: denormalisoi template-viite dynaamista markerTypeFilter-osumaa varten
+      ...(templateId ? { templateId } : {}),
       ...(parts && parts.length > 0 ? { parts } : {}),
     }
     this.markers.push(marker)
@@ -279,6 +285,18 @@ export class MarkerManager {
     this.onMarkerClick = cb
   }
 
+  // T222/V150: aseta raahattavuus-predikaatti (talkoolainen = vain oma pätkä) + sovella heti
+  // olemassa oleviin Leaflet-merkkeihin. Uudet merkit lukevat predikaatin piirtohetkellä.
+  setDraggablePredicate(fn: (m: SignMarker) => boolean): void {
+    this.draggableFn = fn
+    this.leafletMarkers.forEach((lm, id) => {
+      const m = this.markers.find((x) => x.id === id)
+      if (!m) return
+      if (fn(m)) lm.dragging?.enable()
+      else lm.dragging?.disable()
+    })
+  }
+
   updateStatus(id: string, action: StatusAction): void {
     const m = this.markers.find((x) => x.id === id)
     if (!m) return
@@ -301,7 +319,7 @@ export class MarkerManager {
     if (ids.length > 0) this.onUpdate()
   }
 
-  updateType(id: string, newType: MarkerType, color?: string, label?: string, iconId?: string, parts?: SignPart[], imageId?: string): void {
+  updateType(id: string, newType: MarkerType, color?: string, label?: string, iconId?: string, parts?: SignPart[], imageId?: string, templateId?: string): void {
     const m = this.markers.find((x) => x.id === id)
     if (!m) return
     m.type = newType
@@ -309,10 +327,12 @@ export class MarkerManager {
     m.label = label ?? undefined
     m.iconId = iconId ?? undefined
     m.imageId = imageId ?? undefined
+    // T215/V143: uudelleentyypitys päivittää template-viitteen → typeFilter täsmää uuteen templateen
+    m.templateId = templateId ?? undefined
     m.parts = (parts && parts.length > 0) ? parts : undefined
     const lm = this.leafletMarkers.get(id)
     if (lm) lm.setIcon(createSignIcon(newType, m.status, m.color, compactOf(m), m.iconId, signImageSrc(m.imageId ?? newType), visualPartsOf(m)))
-    this.apiPut(id, { type: newType, color: color ?? null, icon_id: iconId ?? null, image_id: imageId ?? null, parts_json: m.parts ? JSON.stringify(m.parts) : null })
+    this.apiPut(id, { type: newType, color: color ?? null, icon_id: iconId ?? null, image_id: imageId ?? null, template_id: templateId ?? null, parts_json: m.parts ? JSON.stringify(m.parts) : null })
     this.onUpdate()
   }
 
@@ -344,7 +364,7 @@ export class MarkerManager {
 
   private addLeafletMarker(m: SignMarker): void {
     const icon = createSignIcon(m.type, m.status, m.color, compactOf(m), m.iconId, signImageSrc(m.imageId ?? m.type), visualPartsOf(m))
-    const lm = L.marker([m.lat, m.lon], { icon, draggable: true }).addTo(this.map)
+    const lm = L.marker([m.lat, m.lon], { icon, draggable: this.draggableFn(m) }).addTo(this.map)
     this.leafletMarkers.set(m.id, lm)
 
     lm.on('dragend', () => {

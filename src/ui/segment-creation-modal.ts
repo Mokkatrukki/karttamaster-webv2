@@ -1,6 +1,7 @@
 import { createSegment } from '../logic/segments'
 import { pushSegment } from '../logic/segment-sync'
 import type { Segment, SegmentStore } from '../logic/segments'
+import type { SignMarker } from '../logic/types'
 import { registerEscClose, createBackdrop } from './modal-helpers'
 
 export type CreationState =
@@ -8,6 +9,20 @@ export type CreationState =
   | { mode: 'vaihe1' }
   | { mode: 'vaihe2'; routeId: string; startDist: number }
   | { mode: 'tiedot'; routeIds: string[]; startDist: number; endDist: number }
+  // T216/V139: reititön (alue)tehtävä — ei reitti-klikkejä, vaan nimi + kuvaus + valinnainen merkkijoukko
+  | { mode: 'reititon' }
+
+// T216/V140: markerTypeFilter-vaihtoehdot johdetaan olemassa olevista merkeistä — uniikit
+// templateId:t (ei erillistä template-kirjastoa tarvita). Label = merkin label tai templateId.
+function distinctTemplateOptions(markers: SignMarker[]): { templateId: string; label: string }[] {
+  const seen = new Map<string, string>()
+  for (const m of markers) {
+    if (m.templateId && !seen.has(m.templateId)) {
+      seen.set(m.templateId, m.label ?? m.type ?? m.templateId)
+    }
+  }
+  return Array.from(seen, ([templateId, label]) => ({ templateId, label }))
+}
 
 export class SegmentCreationModal {
   private backdrop: HTMLElement | null = null
@@ -20,6 +35,8 @@ export class SegmentCreationModal {
     private readonly onSaved: (seg: Segment) => void,
     // T150/V94: uusi pätkä syntyy järjestäjän aktiiviseen phase-näkymään, ei hardcoded 'asettaminen'
     private readonly getPhase: () => Segment['phase'] = () => 'asettaminen',
+    // T216/V140: merkkiliitoksen lähde (eksplisiittinen checklist + tyyppisuodattimen vaihtoehdot)
+    private readonly getMarkers: () => SignMarker[] = () => [],
   ) {
     this.segmentCounter = store.size
   }
@@ -55,7 +72,7 @@ export class SegmentCreationModal {
     this.backdrop.style.pointerEvents = inMapPhase ? 'none' : 'all'
     modal.style.pointerEvents = 'all'
 
-    modal.appendChild(this.buildHeader())
+    modal.appendChild(this.buildHeader(state.mode === 'reititon' ? 'Luo aluetehtävä' : 'Luo uusi pätkä'))
 
     if (state.mode === 'vaihe1' || state.mode === 'vaihe2') {
       const step = state.mode === 'vaihe1' ? 1 : 2
@@ -81,6 +98,8 @@ export class SegmentCreationModal {
     } else if (state.mode === 'tiedot') {
       modal.appendChild(this.buildProgress(3))
       this.appendTiedotForm(modal, state.routeIds, state.startDist, state.endDist)
+    } else if (state.mode === 'reititon') {
+      this.appendReititonForm(modal)
     }
   }
 
@@ -101,13 +120,13 @@ export class SegmentCreationModal {
     this.unregEsc = null
   }
 
-  private buildHeader(): HTMLElement {
+  private buildHeader(titleText = 'Luo uusi pätkä'): HTMLElement {
     const header = document.createElement('div')
     header.className = 'segment-creation-modal-header'
 
     const title = document.createElement('span')
     title.className = 'segment-creation-modal-title'
-    title.textContent = 'Luo uusi pätkä'
+    title.textContent = titleText
     header.appendChild(title)
 
     const cancelBtn = document.createElement('button')
@@ -179,6 +198,128 @@ export class SegmentCreationModal {
         phase: this.getPhase(),
         displayName,
         description,
+      })
+      pushSegment(seg).catch(() => {})
+      this.close()
+      this.onSaved(seg)
+    })
+    footer.appendChild(saveBtn)
+
+    const cancelBtn = document.createElement('button')
+    cancelBtn.className = 'btn-segment-creation-cancel'
+    cancelBtn.textContent = 'Peruuta'
+    cancelBtn.addEventListener('click', () => this.onCancel())
+    footer.appendChild(cancelBtn)
+
+    modal.appendChild(footer)
+  }
+
+  // T216/V139/V140: reitittömän (alue)tehtävän luontilomake — ei reitti-klikkiä.
+  // Nimi + kuvaus + valinnainen merkkijoukko: (a) eksplisiittinen checklist (linkedMarkerIds),
+  // (b) dynaaminen tyyppisuodatin (markerTypeFilter).
+  private appendReititonForm(modal: HTMLElement): void {
+    const nameSection = document.createElement('div')
+    nameSection.className = 'segment-creation-modal-section'
+    const nameLabel = document.createElement('label')
+    nameLabel.textContent = 'Tehtävän nimi'
+    nameSection.appendChild(nameLabel)
+    const nameInput = document.createElement('input')
+    nameInput.className = 'segment-creation-name-input'
+    nameInput.type = 'text'
+    this.segmentCounter++
+    nameInput.value = `Aluetehtävä ${this.segmentCounter}`
+    nameInput.placeholder = 'Esim. Maalialue, Keräyskasat'
+    nameSection.appendChild(nameInput)
+    modal.appendChild(nameSection)
+
+    const descSection = document.createElement('div')
+    descSection.className = 'segment-creation-modal-section'
+    const descLabel = document.createElement('label')
+    descLabel.textContent = 'Järjestäjän ohjeet'
+    descSection.appendChild(descLabel)
+    const descInput = document.createElement('textarea')
+    descInput.className = 'segment-creation-desc-input'
+    descInput.placeholder = 'Esim. Kerää kaikki keräyskasat maastosta'
+    descInput.rows = 3
+    descSection.appendChild(descInput)
+    modal.appendChild(descSection)
+
+    const markers = this.getMarkers()
+
+    // (b) Dynaaminen tyyppisuodatin — valitse merkkityyppi, jonka kaikki osumat kuuluvat tehtävään.
+    const typeOptions = distinctTemplateOptions(markers)
+    let typeSelect: HTMLSelectElement | null = null
+    if (typeOptions.length > 0) {
+      const typeSection = document.createElement('div')
+      typeSection.className = 'segment-creation-modal-section'
+      const typeLabel = document.createElement('label')
+      typeLabel.textContent = 'Tyyppisuodatin (valinnainen)'
+      typeSection.appendChild(typeLabel)
+      typeSelect = document.createElement('select')
+      typeSelect.className = 'segment-creation-typefilter'
+      const none = document.createElement('option')
+      none.value = ''
+      none.textContent = '— ei tyyppisuodatinta —'
+      typeSelect.appendChild(none)
+      for (const opt of typeOptions) {
+        const o = document.createElement('option')
+        o.value = opt.templateId
+        o.textContent = opt.label
+        typeSelect.appendChild(o)
+      }
+      typeSection.appendChild(typeSelect)
+      modal.appendChild(typeSection)
+    }
+
+    // (a) Eksplisiittinen merkkiliitos — checklist olemassa olevista merkeistä.
+    const checkedIds = new Set<string>()
+    if (markers.length > 0) {
+      const linkSection = document.createElement('div')
+      linkSection.className = 'segment-creation-modal-section segment-creation-linklist'
+      const linkLabel = document.createElement('label')
+      linkLabel.textContent = 'Liitä merkit (valinnainen)'
+      linkSection.appendChild(linkLabel)
+      const list = document.createElement('div')
+      list.className = 'segment-creation-marker-checklist'
+      for (const m of markers) {
+        const row = document.createElement('label')
+        row.className = 'segment-creation-marker-check'
+        const cb = document.createElement('input')
+        cb.type = 'checkbox'
+        cb.value = m.id
+        cb.addEventListener('change', () => {
+          if (cb.checked) checkedIds.add(m.id)
+          else checkedIds.delete(m.id)
+        })
+        const txt = document.createElement('span')
+        txt.textContent = m.label ?? m.type ?? m.id.slice(0, 6)
+        row.appendChild(cb)
+        row.appendChild(txt)
+        list.appendChild(row)
+      }
+      linkSection.appendChild(list)
+      modal.appendChild(linkSection)
+    }
+
+    const footer = document.createElement('div')
+    footer.className = 'segment-creation-modal-footer'
+
+    const saveBtn = document.createElement('button')
+    saveBtn.className = 'btn-segment-creation-save'
+    saveBtn.textContent = 'Tallenna'
+    saveBtn.addEventListener('click', () => {
+      const displayName = nameInput.value.trim() || `Aluetehtävä ${this.segmentCounter}`
+      const description = descInput.value.trim() || undefined
+      const markerTypeFilter = typeSelect?.value || undefined
+      const linkedMarkerIds = checkedIds.size > 0 ? Array.from(checkedIds) : undefined
+      // V139: reititön → EI route-kenttiä. createSegment ohittaa V11/V25 (T212).
+      const seg = createSegment(this.store, {
+        equipment: [],
+        phase: this.getPhase(),
+        displayName,
+        description,
+        linkedMarkerIds,
+        markerTypeFilter,
       })
       pushSegment(seg).catch(() => {})
       this.close()

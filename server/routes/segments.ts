@@ -6,9 +6,9 @@ import { requireAuth, requireRole } from '../middleware/auth'
 
 interface SegmentRow {
   id: string
-  route_ids: string
-  start_dist: number
-  end_dist: number
+  route_ids: string | null
+  start_dist: number | null
+  end_dist: number | null
   assigned_code: string | null
   display_name: string | null
   description: string | null
@@ -16,15 +16,19 @@ interface SegmentRow {
   phase: string
   inspected: number
   inspection_note: string | null
+  completed: number
+  linked_marker_ids: string | null
+  marker_type_filter: string | null
   updated_at: string
 }
 
 function rowToSegment(row: SegmentRow) {
   return {
+    // V141: reititön tehtävä — route-kentät null kannassa → undefined ulos.
     id: row.id,
-    routeIds: JSON.parse(row.route_ids) as string[],
-    startDist: row.start_dist,
-    endDist: row.end_dist,
+    routeIds: row.route_ids ? (JSON.parse(row.route_ids) as string[]) : undefined,
+    startDist: row.start_dist ?? undefined,
+    endDist: row.end_dist ?? undefined,
     assignedCode: row.assigned_code ?? undefined,
     displayName: row.display_name ?? undefined,
     description: row.description ?? undefined,
@@ -32,6 +36,10 @@ function rowToSegment(row: SegmentRow) {
     phase: row.phase as 'asettaminen' | 'tarkastus' | 'purku',
     inspected: !!row.inspected,
     inspectionNote: row.inspection_note ?? undefined,
+    completed: !!row.completed,
+    // V140: reitittömän tehtävän merkkiliitos — eksplisiittiset id:t + dynaaminen tyyppisuodatin.
+    linkedMarkerIds: row.linked_marker_ids ? (JSON.parse(row.linked_marker_ids) as string[]) : undefined,
+    markerTypeFilter: row.marker_type_filter ?? undefined,
   }
 }
 
@@ -49,9 +57,9 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
   const db: Database = c.get('db')
   const body = await c.req.json<{
     id?: string
-    routeIds: string[]
-    startDist: number
-    endDist: number
+    routeIds?: string[]
+    startDist?: number
+    endDist?: number
     assignedCode?: string
     displayName?: string
     description?: string
@@ -59,14 +67,17 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
     phase?: string
     inspected?: boolean
     inspectionNote?: string
+    completed?: boolean
+    linkedMarkerIds?: string[]
+    markerTypeFilter?: string
   }>()
 
   const id = body.id ?? randomUUID()
   const now = new Date().toISOString()
 
   db.run(
-    `INSERT INTO segments (id, route_ids, start_dist, end_dist, assigned_code, display_name, description, equipment, phase, inspected, inspection_note, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO segments (id, route_ids, start_dist, end_dist, assigned_code, display_name, description, equipment, phase, inspected, inspection_note, completed, linked_marker_ids, marker_type_filter, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        route_ids = excluded.route_ids,
        start_dist = excluded.start_dist,
@@ -78,12 +89,16 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
        phase = excluded.phase,
        inspected = excluded.inspected,
        inspection_note = excluded.inspection_note,
+       completed = excluded.completed,
+       linked_marker_ids = excluded.linked_marker_ids,
+       marker_type_filter = excluded.marker_type_filter,
        updated_at = excluded.updated_at`,
     [
       id,
-      JSON.stringify(body.routeIds),
-      body.startDist,
-      body.endDist,
+      // V141: reititön tehtävä → route-kentät null kantaan.
+      body.routeIds != null ? JSON.stringify(body.routeIds) : null,
+      body.startDist ?? null,
+      body.endDist ?? null,
       body.assignedCode?.toUpperCase() ?? null,
       body.displayName ?? null,
       body.description ?? null,
@@ -91,6 +106,10 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
       body.phase ?? 'asettaminen',
       body.inspected ? 1 : 0,
       body.inspectionNote ?? null,
+      body.completed ? 1 : 0,
+      // V140: merkkiliitos — tyhjä/puuttuva → null (ei tallenna tyhjää taulukkoa)
+      body.linkedMarkerIds != null && body.linkedMarkerIds.length > 0 ? JSON.stringify(body.linkedMarkerIds) : null,
+      body.markerTypeFilter ?? null,
       now,
     ],
   )
@@ -115,6 +134,9 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
     phase: string
     inspected: boolean
     inspectionNote: string
+    completed: boolean
+    linkedMarkerIds: string[]
+    markerTypeFilter: string | null
   }>>()
 
   const existing = db.query<SegmentRow, [string]>('SELECT * FROM segments WHERE id = ?').get(id)
@@ -128,14 +150,17 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
     session.talkoolainen_code.toUpperCase() === existing.assigned_code.toUpperCase()
   if (!isOrganizer && !isOwnTalkoolainen) return c.json({ error: 'forbidden' }, 403)
 
-  // V93: talkoolainen saa muuttaa vain inspected/inspectionNote/startDist/endDist (oma kenttätyö)
+  // V93 (T224 laajennus): talkoolainen saa muuttaa oman pätkän kenttätyön kentät: inspected/
+  // inspectionNote/startDist/endDist + equipment (varustelistan päivitys ennen lähtöä, VISION r42/239).
   const body = isOrganizer
     ? raw
     : {
         inspected: raw.inspected,
         inspectionNote: raw.inspectionNote,
+        completed: raw.completed,
         startDist: raw.startDist,
         endDist: raw.endDist,
+        equipment: raw.equipment,
       }
 
   const now = new Date().toISOString()
@@ -143,7 +168,7 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
     `UPDATE segments SET
       route_ids = ?, start_dist = ?, end_dist = ?, assigned_code = ?,
       display_name = ?, description = ?, equipment = ?, phase = ?,
-      inspected = ?, inspection_note = ?, updated_at = ?
+      inspected = ?, inspection_note = ?, completed = ?, linked_marker_ids = ?, marker_type_filter = ?, updated_at = ?
      WHERE id = ?`,
     [
       'routeIds' in body && body.routeIds ? JSON.stringify(body.routeIds) : existing.route_ids,
@@ -156,6 +181,12 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
       'phase' in body ? (body.phase ?? existing.phase) : existing.phase,
       body.inspected !== undefined ? (body.inspected ? 1 : 0) : existing.inspected,
       body.inspectionNote !== undefined ? body.inspectionNote : existing.inspection_note,
+      body.completed !== undefined ? (body.completed ? 1 : 0) : existing.completed,
+      // V140: merkkiliitos vain järjestäjän patchissa (talkoolaisen body ei sisällä näitä avaimia)
+      'linkedMarkerIds' in body
+        ? (body.linkedMarkerIds && body.linkedMarkerIds.length > 0 ? JSON.stringify(body.linkedMarkerIds) : null)
+        : existing.linked_marker_ids,
+      'markerTypeFilter' in body ? (body.markerTypeFilter ?? null) : existing.marker_type_filter,
       now,
       id,
     ],

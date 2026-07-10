@@ -4,6 +4,7 @@ import type { Segment, SegmentStore, EquipmentItem } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
 import { registerEscClose, createBackdrop } from './modal-helpers'
 import { buildMarkerVisual } from './marker-visual-row'
+import { fetchSegmentAudit, undoSegmentActions, type AuditEntry, type AuditAction } from '../logic/audit-sync'
 
 const STATUS_LABELS: Record<string, string> = {
   suunniteltu: 'Suunniteltu',
@@ -62,6 +63,9 @@ export class SegmentDetailsModal {
     modal.appendChild(this.buildHeader(titleEl, () => this.close()))
 
     const { body, saveAll } = this.buildBody(seg, titleEl)
+    // T227: supervision-osio (aktiviteettiloki + massaperuutus) — vain jos pätkälle assignattu koodi
+    // (talkoolaisen audit-rivit kantavat segment_code = assignedCode). Async-lataus.
+    if (seg.assignedCode) body.appendChild(this.buildAuditSection(seg.assignedCode))
     modal.appendChild(body)
     modal.appendChild(this.buildSaveFooter(seg, saveAll))
     modal.appendChild(this.buildDangerZone(seg))
@@ -514,6 +518,91 @@ export class SegmentDetailsModal {
     })
     footer.appendChild(saveBtn)
     return footer
+  }
+
+  // T227: per-pätkä aktiviteettiloki + massaperuutus. Vastaa spammaus-huoleen (V149): talkoolaisen
+  // lisäykset näkyvät, ja "Peru kaikki lisäykset" poistaa ne atomisesti (POST /api/audit/undo, V153).
+  private static readonly ACTION_VERB: Record<AuditAction, string> = {
+    add: 'lisäsi merkin',
+    move: 'siirsi merkkiä',
+    remove: 'poisti merkin',
+    status: 'muutti tilan',
+  }
+
+  private buildAuditSection(code: string): HTMLElement {
+    const section = document.createElement('div')
+    section.className = 'segment-audit-section'
+
+    const title = document.createElement('p')
+    title.className = 'segment-details-section-title'
+    title.textContent = 'Aktiviteetti'
+    section.appendChild(title)
+
+    const listWrap = document.createElement('div')
+    listWrap.className = 'segment-audit-list'
+    listWrap.textContent = 'Ladataan…'
+    section.appendChild(listWrap)
+
+    const renderEntries = (entries: AuditEntry[]): void => {
+      listWrap.innerHTML = ''
+      if (entries.length === 0) {
+        const empty = document.createElement('p')
+        empty.className = 'segment-audit-empty'
+        empty.textContent = 'Ei aktiviteettia vielä.'
+        listWrap.appendChild(empty)
+      } else {
+        const ul = document.createElement('ul')
+        ul.className = 'segment-audit-items'
+        // Uusin ensin (backend palauttaa aikajärjestyksessä ASC).
+        for (const e of [...entries].reverse()) {
+          const li = document.createElement('li')
+          li.className = 'segment-audit-item'
+          const verb = SegmentDetailsModal.ACTION_VERB[e.action] ?? e.action
+          const time = e.created_at.slice(11, 16) // HH:MM ISO-stringistä
+          li.textContent = `${e.actor ?? '?'} — ${verb} · ${time}`
+          ul.appendChild(li)
+        }
+        listWrap.appendChild(ul)
+      }
+
+      // Massaperuutus: vain jos lisäyksiä olemassa.
+      const addCount = entries.filter((e) => e.action === 'add').length
+      if (addCount > 0) {
+        const undoBtn = document.createElement('button')
+        undoBtn.className = 'btn-segment-audit-undo'
+        undoBtn.textContent = `Peru kaikki lisäykset (${addCount})`
+        undoBtn.addEventListener('click', async () => {
+          if (!confirm(`Poistetaanko pätkän ${addCount} lisättyä merkkiä? Toimintoa ei voi peruuttaa.`)) return
+          undoBtn.disabled = true
+          const undone = await undoSegmentActions(code, 'add')
+          if (undone === null) {
+            undoBtn.disabled = false
+            alert('⚠ Massaperuutus epäonnistui — yritä uudelleen.')
+            return
+          }
+          this.onRender()
+          this.onUpdate()
+          await load() // päivitä loki
+        })
+        listWrap.appendChild(undoBtn)
+      }
+    }
+
+    const load = async (): Promise<void> => {
+      const entries = await fetchSegmentAudit(code)
+      if (entries === null) {
+        listWrap.innerHTML = ''
+        const err = document.createElement('p')
+        err.className = 'segment-audit-empty'
+        err.textContent = '⚠ Lokin lataus epäonnistui.'
+        listWrap.appendChild(err)
+        return
+      }
+      renderEntries(entries)
+    }
+
+    void load()
+    return section
   }
 
   private buildDangerZone(seg: Segment): HTMLElement {

@@ -132,10 +132,13 @@ metsässä, hanskat kädessä.
 
 ## §K Komponentit
 
-### Toolbar (`#toolbar`) — yhdistetty yläpalkki (T203/V133)
+### Toolbar (`#toolbar`) — yhdistetty yläpalkki (T203/V133, roolijako T233/V155)
 - Kiinteä yläreuna, `z-index: 200`, korkeus ~56px, `surface-app`, alaraja `border-subtle`
 - **Vasemmalla:** `#app-brand` tuotenimi ("Karttamaster", `font-weight:700`, `15px`)
-- **Oikealla:** `#toolbar-actions` (`margin-left:auto`, `gap:6px`): `📍 GPS` (talkoolainen), `Karttatyyli #btn-layer`, `Kaikki merkit #btn-list`, `⋯ #btn-menu` (tilivalikko-trigger)
+- **Oikealla:** `#toolbar-actions` (`margin-left:auto`, `gap:6px`) — **koostumus roolikohtainen:**
+  - **Talkoolainen (T233/V155):** TASAN `Kaikki merkit #btn-list` + `🎒 Varustelista #btn-varuste` (`data-role-hide="järjestäjä"`, avaa `EquipmentModal`) + `⋯ #btn-menu`. Vain 3 nappia → mahtuu mobiiliin, ⊥ rivinylitä ≤360px. GPS (`#btn-gps`) + `➕ Merkki #btn-add-marker` EIVÄT toolbarissa — asuvat `SegmentView`-herossa (T232, GPS-toggle + hero-overflow).
+  - **Järjestäjä:** `Kaikki merkit #btn-list` + `⋯ #btn-menu` (`🎒 Varustelista` piilossa `data-role-hide`illa; `➕ Merkki` lisätään sivupalkista).
+  - `Karttatyyli #btn-layer` siirretty ⋯-valikkoon (`#toolbar-menu`) **molemmilla rooleilla** — ei enää näkyvä toolbar-nappi (T233).
 - `⋯ #btn-menu`: 44×44px, `border: 1px solid border-strong`
 - Ei h1-otsikkoa erikseen — tuotenimi toimii otsikkona
 
@@ -143,7 +146,7 @@ metsässä, hanskat kädessä.
 - `position: fixed; top: 56px; right: 8px` — avautuu toolbarin alta oikeasta reunasta
 - `surface-card`, `border-default`, `border-radius-md`, `box-shadow`, `z-index: 2001`
 - Toggle: `.open`-class (`#btn-menu`-klikki), sulkee document-click
-- Sisältö ylhäältä: **tilivalikko** (`#account-menu-section`, AccountMenu) → phase-switcher (järjestäjä) → Varmuuskopiot → Vie/Tuo kartta-aineisto (gpkg)
+- Sisältö ylhäältä: **tilivalikko** (`#account-menu-section`, AccountMenu) → `Karttatyyli #btn-layer` (talkoolainen T233/V155 — siirretty toolbarista valikkoon) → phase-switcher (järjestäjä) → Varmuuskopiot → Vie/Tuo kartta-aineisto (gpkg)
 
 ### AccountMenu (`src/ui/account-menu.ts`, T203/V133)
 - Renderöi `#account-menu-section`iin: `display_name` (`/api/auth/me`, `.account-menu-name` bold) + teemavalitsin + Kirjaudu ulos
@@ -153,8 +156,8 @@ metsässä, hanskat kädessä.
 
 ### Route-bar (`#route-bar`) — roolijako (T204/V134)
 - Kiinteä alareuna, `z-index: 2000` (yli Leaflet-kontrollit 1000)
-- **Talkoolainen** = täysi drive-kontrolli (`RouteBar`, `src/map/route-bar.ts`): reittivalinta (▶ = aseta ajettavaksi) + km-scrubber (`#route-track`) + ◀▶-nuolet (`#route-drive-controls`) + `#gps-drive-panel`. Route-tab-drive/`btn-route-prev/next`: `min-height:44px` ✓.
-- **Järjestäjä** = kevyt reittivalitsin (`RouteVisibilityControl`, `src/map/route-visibility-control.ts`): pelkkä näytä/piilota per reitti pyöreinä pilleinä (`.route-vis-pill`, `border-radius:999px`, `min-height:44px`) kartan alakulmassa (`#route-bar[data-mode="visibility"]` → läpinäkyvä, `right:12px;bottom:12px`). EI drive-nuolia, EI km-scrubberia, EI gps-drive-panelia — piilotettu `hidden`-attribuutilla (V134). V6 säilyy: viimeistä näkyvää reittiä ei voi piilottaa (`disabled`).
+- **Talkoolainen (T224/A/V148):** koko alapalkki `#route-bar` PIILOTETTU (`hidden`). Ei reittivalitsinta, ei km-scrubberia, ei ◀▶-nuolia — ne ohjasivat koko reittiä (ei pätkää) ja hämäsivät. Talkoolaisen navigointi = SegmentView-hero + kartta (seuraava-merkki korostettu, T224/b1) + yläpalkin "Kaikki merkit"/"Varustelista"-napit. `RouteBar` luodaan silti (driveMode-reitin + activeRouteProviderin vuoksi) mutta itse palkki on piilossa. `#gps-drive-panel` POISTETTU (T224/F/V148, komponentti `gps-drive-panel.ts` poistettu) — duplikoi hero-ohjauksen. Oikea GPS-paikannin elää `gps-navigator.ts`:ssä (ei osa route-baria).
+- **Järjestäjä** = kevyt reittivalitsin (`RouteVisibilityControl`, `src/map/route-visibility-control.ts`): pelkkä näytä/piilota per reitti pyöreinä pilleinä (`.route-vis-pill`, `border-radius:999px`, `min-height:44px`) kartan alakulmassa (`#route-bar[data-mode="visibility"]` → läpinäkyvä, `right:12px;bottom:12px`). EI drive-nuolia, EI km-scrubberia (V134). V6 säilyy: viimeistä näkyvää reittiä ei voi piilottaa (`disabled`).
 
 ### StatusPanel (`#status-panel`, järjestäjä) — T205/V132
 - Per-reitti-rollup (35/55km valmis-%) SÄILYY (PM-päätös 2026-07-04). Logiikka `src/ui/status-panel.ts` ennallaan.
@@ -358,6 +361,10 @@ metsässä, hanskat kädessä.
   - **tiedot:** progress (●●●), nimi-input + kuvaus-textarea + footer
 - Footer-napit: Tallenna (`confirm`-tausta, `min-height:44px`), Peruuta (`field-tint`, `min-height:44px`)
 - Tallenna luo segmentin ja sulkee modaalin — ei auto-save (käyttäjä vahvistaa)
+- **Reititön-haara (T216, `mode:'reititon'`):** avautuu "+ Luo aluetehtävä (reititön)" -napista (segment-panel footer, `.btn-segment-footer` `min-height:44px`) — maali/keräysalue ilman reittipätkää. EI progress-askelia, EI kartta-klikkiä. Otsikko "Luo aluetehtävä". Lomake: nimi-input + kuvaus-textarea + valinnaiset merkkiliitokset:
+  - `.segment-creation-typefilter` (`<select>`, `min-height:44px`, input-tokenointi) — dynaaminen tyyppisuodatin (uniikit templateId:t olemassa olevista merkeistä). Näkyy vain jos merkkejä on.
+  - `.segment-creation-marker-checklist` (`max-height:180px; overflow-y:auto`, `border-default`) + `.segment-creation-marker-check` -rivit (`min-height:44px`, checkbox `18×18px` + label) — eksplisiittinen merkkiliitos. Näkyy vain jos merkkejä on.
+  - Tallenna → reititön segmentti (ei route-kenttiä) + linkedMarkerIds/markerTypeFilter.
 
 ### SegmentDetailsModal (`.segment-details-modal`)
 - Avautuu "Lisätiedot & varusteet" -napista pätkärivillä — vain järjestäjälle
@@ -445,18 +452,32 @@ CSS-luokat:
   - Järjestäjä: `[Tallenna] [↻ Käännä]` + footer-destructive rivillä `[Poista merkki]` (pieni, `danger-text`)
 - `[Poista merkki]` = `.modal-btn-destructive`, confirm vaaditaan (V58)
 
-### SegmentView (`#segment-view`, `src/ui/segment-view.ts`)
-- Vain talkoolaiselle jolla on assignedCode matchaava pätkä
-- Sijainti: `#app`:n sisällä ennen karttaa (erillinen `#segment-view-container`)
-- Tausta: `bg-primary`, bottom-border: `border-subtle`
-- Header: pätkän nimi `text-primary 12px bold`, km-väli `text-muted 11px`
-- Description: `text-muted 11px`, max 2 riviä, hidden jos tyhjä
-- Merkkilista: max-height 200px scrollable, `border-card`-separaattorit
-  - Merkkirivi: type-label + bearing + status-badge, `11px`
-  - Status-väri: sama kuin global status-värit (§C)
-- `[data-role="talkoolainen"] #segment-view { display: block }` — muille hidden
-- Ei purku-bulk-nappia vielä (T52 lisää)
-- **Tarkastus-osio (T147, `.segment-view-inspect`):** näkyy vain `phase==='tarkastus'`-pätkällä. `.segment-view-inspect-status` (`text-primary 12px bold`): "Tarkastettu ✓" / "Ei vielä tarkastettu". `.segment-view-inspect-note` (`<textarea>`, 3 riviä, `min-height:44px`, `field-tint` bg) — vapaateksti-huomio, ei per-merkki-kuittausta (VISION §4). `.btn-mark-inspected` (`min-height:44px;width:100%`, `confirm`-tyyli kuten `.btn-bulk-collect`) — tekstinä "Merkitse tarkastetuksi"/"Merkitse tarkastamattomaksi" (toggle).
+### SegmentView (`#segment-view`, `src/ui/segment-view.ts`) — talkoolaisen päänäkymä (T220/T223/T224)
+- Vain talkoolaiselle jolla on assignedCode matchaava pätkä. `[data-role="talkoolainen"] #segment-view { display: block }`.
+- Sijainti: `#segment-view-container`, ennen karttaa. Mobiili-first: **`max-height:38vh` (T228, 48vh→38vh — kompakti yläkortti)**, `overflow-y:auto`, `surface-app`. Ilman inline-listaa paneeli = otsikko + progress + hero/done + varuste-nappi ∴ kartta (`#map flex:1`) saa ~65% ruudusta, seuraava merkki näkyy ⊥ scroll (VISION r131 kartta=päänavigointi).
+- **Yhtenäistetty järjestäjän token-järjestelmään (T220):** jaettu `buildMarkerVisual` (MarkerVisualRow T198) merkkiriveillä, `.btn`-varianttinapit, `surface/border/status`-tokenit, status-pillit (`color-mix(... 14%)`). Sama korttimuoto+väri kuin kartalla ja järjestäjän listassa (V87/V136).
+- **Header (T232/D):** pätkän nimi `text-body 14px bold` + **pätkän pituus `.segment-view-length` `text-body 13px 600` ("· 1.0 km" = endDist−startDist)** päänäyttönä + km-väli `.segment-view-range` `text-muted 12px` (`margin-left:auto`) pienempänä metana + **kokoontaitto-chevron** (`.segment-view-collapse`, `44px`, T223).
+- **GPS-toggle (T232/B, `.segment-view-gps-btn`, V156):** `📍 GPS`/`📍 GPS päällä` -toggle (siirretty yläpalkista, VISION phase 3 core). Persistentti panel-kontrolli — näkyy KAIKISSA phaseissa (asettaminen+purku), EI asettaminen-only heron sisällä (muuten tavoittamaton purussa). Aktiivi → `.gps-active` (accent-täyttö). Ohjaa `GpsNavigator` (T30, oma sijainti) — erillään driveModesta. Näkyy vain jos `onToggleGps` annettu.
+- **Edistymispalkki (`.segment-view-progress`):** phase-tietoinen (`getPhaseProgress`/`formatPhaseProgress`, sama logiikka kuin järjestäjän sivupalkissa). `.segment-view-progress-bar/-fill` (`--confirm`-täyttö) + `.segment-view-progress-text` (esim "3/10 asetettu"). Aina näkyvissä otsikon alla (myös kutistettuna).
+- **T224: EI välilehtiä** — yksi pystysarake. "Kaikki merkit" -massalista löytyy yläpalkin napista (marker-modal, V144-suodatus omaan pätkään); Varustelista omana modaalinaan (alla). Tuplaotsikot ("Kaikki merkit" välilehti + yläpalkki) poistettu käyttäjäpalautteen mukaan.
+- **Description (`.segment-view-desc`):** ohjeteksti `field-tint`-kortissa, hidden jos tyhjä.
+- **"Seuraava merkki" -hero (`.segment-view-next`, vain `phase==='asettaminen'`):** accent-vasenreunainen kortti. **Valittu merkki (T232/C, V159):** oletus = pätkän ENSIMMÄINEN asettamaton (`firstUnsetMarker`, pienin distanceFromStart); **◀▶-selailunuolet (`.segment-view-next-prev/-fwd`, `.segment-view-next-nav`, näkyvät kun >1 asettamaton) selaavat asettamattomia (`stepUnset` T231, clamp päihin = disabled reunoilla).** Otsikossa laskuri "Seuraava merkki · n/N". Sisältö: `buildMarkerVisual(44px)` + nimi + km + `locationNote`. `✓ Aseta`/`Näytä kartalla`/overflow/kartan `NextMarkerHighlight` kohdistuvat KAIKKI valittuun merkkiin; `update()`-reconcile: valittu asetettu/poistettu → palaa `firstUnsetMarker`iin (V159). **Primary 2 nappia (VISION max 2):** `✓ Aseta` (`.btn--confirm`, `flex:2`) + `Näytä kartalla` (`.btn--secondary`, panoroi + kutistaa, EI modaalia) + `⋯` (`.segment-view-next-more`, avaa overflow). **Overflow-valikko (`.segment-view-next-menu`, hidden→toggle):** `Ei tarpeen` (`.segment-view-next-skip`, `onSkipMarker`) + **`Siirretty` (`.segment-view-next-move`, T222)** + **`Laita kommentti` (`.segment-view-next-comment`, T228)** + **`+ Merkki` (`.segment-view-next-add`, T232/E/T229: `onAddMarker`→sign-picker kartan keskelle, POST omalle pätkälle V149; siirretty yläpalkista; disabled jos ei annettu)** + `Ota kuva` (`.segment-view-next-photo`, disabled "tulossa"). Kaikki asetettu → `.segment-view-next-done` **slim-rivi "✓ Kaikki asetettu 🎉" + `.segment-view-next--done` (T228, matala paino → kartta esiin)**.
+- **EI inline-merkkilistaa (T228):** entinen `.segment-view-list` poistettu — se duplikoi "Kaikki merkit" -modaalin (bulk + rivi→MarkerDetailModal) ja söi kartan tilan (dominoiva ei-ydinkomponentti). Per-merkki-lista + detalji elää kahdessa paikassa: yläpalkin **"Kaikki merkit"** -modaali (klikattava rivi→`onOpenMarkerDetail`, V144-suodatus omaan pätkään) + **kartan merkin tap** (`markers-wiring` `setOnMarkerClick`→`onOpenMarkerDetail`). Kartta = päänavigointi.
+- **Varustelista-nappi (T224/C, `.segment-view-varuste-btn`):** `🎒 Varustelista (N)` (N = auto-merkit + manuaalimäärä) → avaa `EquipmentModal` (tilava modaali, kuten "Kaikki merkit"). EI ahdasta inline-editoria — käyttäjäpalaute.
+- **Purku-bulk (`.btn-bulk-collect`, `.btn--confirm`):** vain `phase==='purku'` + ei-terminal-merkkejä → "✓ Merkitse kaikki kerätyksi" (V28).
+- **"Lisää ⋯" sekundäärivalikko (T232/A, `.segment-view-more`, V158):** panel-tason toggle (`.segment-view-more-toggle` → `.segment-view-more-body` hidden↔näkyvä) joka pitää valmis- + rajat-toiminnot POIS hero-primarysta (tiivis hero) mutta tavoitettavina KAIKISSA phaseissa (EI marker-hero-overflow, joka on vain asettaminen+next → complete olisi tavoittamaton purussa/done-tilassa). Näkyy jos `onComplete` (asettaminen/purku) TAI `onEditBounds` annettu. Sisältää alla olevat complete + bounds -osiot.
+- **Rajojen muokkaus (T78/V43, `.segment-view-bounds`, "Lisää ⋯" sisällä T232):** kokoontaitettava "✎ Muokkaa pätkän rajoja (X–Y km)" (`.btn--secondary .btn--sm`) → numeeriset km-inputit (`.segment-view-bounds-start/-end`, `44px`, `type=number`) + validointi (`loppu>alku`, `.segment-view-bounds-error` `danger-text`) + Tallenna/Peruuta. Näkyy vain jos `onEditBounds` annettu (talkoolainen). Tallennus → `PUT /api/segments/:id` (server sallii omalle pätkälle V93).
+- **Valmis-osio (T230, `.segment-view-complete`, "Lisää ⋯" sisällä T232, vain `phase==='asettaminen'|'purku'`):** talkoolaisen eksplisiittinen "✓ Merkitse pätkä valmiiksi" / "Merkitse keskeneräiseksi" -toggle (`.segment-view-complete-btn` `.btn--confirm`/`.btn--secondary`) + `.segment-view-complete-status` "Pätkä merkitty valmiiksi ✓" (näkyy vain kun completed). Erillään per-merkki-kuittauksesta (VISION r49/r259). Näkyy vain jos `onComplete` annettu (talkoolainen). Tallennus `Segment.completed` → `PUT /api/segments/:id` (server sallii omalle pätkälle V93, kuten `inspected`).
+- **Tarkastus-osio (T147, `.segment-view-inspect`, vain `phase==='tarkastus'`):** `.segment-view-inspect-status` "Tarkastettu ✓"/"Ei vielä tarkastettu" + `.segment-view-inspect-note` (`<textarea>`, `field-tint`, vapaateksti-huomio) + `.btn-mark-inspected` (`.btn--confirm`, toggle-teksti).
+- **Kokoontaitto (T223, `.segment-view--collapsed`):** chevron kutistaa näkymän otsikkoon+edistymispalkkiin → kartta saa lähes koko ruudun. "Näytä kartalla" kutsuu myös automaattisesti. Kutistettuna desc/next/gps-btn/varuste-btn/more/bounds/inspect/bulk `display:none`.
+- **Latauksessa zoom pätkään (T224/D):** `/s/<koodi>` auki → kartta fittaa OMAAN pätkään (`fitMapToSegment` markers-wiring, `planSegmentZoom` `src/logic/segment-zoom.ts`) — lyhyt pätkä `fit`, pitkä `anchor` alkupäähän. "Tässä on sun pätkä" -fiilis, ei koko kartta.
+- **Seuraava merkki kartalla (T224/b1, `NextMarkerHighlight` `src/map/next-marker-highlight.ts`):** hero:n VALITTU asettamaton merkki (◀▶-selailu huomioiden, T232/F/V159 — ei suoraan `firstUnsetMarker`) korostuu kartalla accent-renkaalla (`.next-marker-ring`, ei-interaktiivinen) — talkoolainen näkee heti minne mennä. Korostus seuraa `onNavigate`-callbackia (markers-wiring). Kartta = päänavigointipinta. Vain `asettaminen`-phase.
+
+### EquipmentModal (`.equipment-modal`, `src/ui/equipment-modal.ts`) — talkoolaisen varustelista (T224/C)
+- Avautuu SegmentViewn `🎒 Varustelista` -napista. Tilava keskitetty modaali (`width:min(480px,94vw)`, `max-height:85vh`), backdrop + Esc/✕/backdrop-sulku (`registerEscClose`/`createBackdrop`).
+- **Auto-laskuri (readonly):** merkit pätkällä tyypeittäin (`.equipment-modal-auto-list`, ihmisluettava tyyppilabel).
+- **Omat varusteet (muokattava):** rivit `count`-input + nimi-input + `✕`-poisto (`.equipment-modal-count/-name/-remove`, `44px`), `+ Lisää varuste`. Muokkaa `draft`-kopiota.
+- **Footer:** `Tallenna` (`.btn--confirm`, commit → `onEquipmentChange` + sulje, tyhjänimiset karsitaan) + `Peruuta` (hylkää). Tallennus → `updateSegment` + `PUT /api/segments/:id` (V38/V93, server sallii talkoolaisen equipment omalle pätkälle).
 
 ### PhaseSwitcher (T148, `#phase-switcher-container`, `src/ui/phase-switcher.ts`)
 - Vain järjestäjälle — `data-role-hide="talkoolainen"` piilottaa containerin talkoolaiselta

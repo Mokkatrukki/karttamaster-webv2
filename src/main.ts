@@ -21,7 +21,7 @@ export const ROUTE_DEFS: Omit<RouteConfig, 'routePoints'>[] = [
   { id: '55km', label: '55 km', color: '#B5476B', file: '/route-55km.gpx' },
 ]
 
-const { map, toolbarMenu } = initMap()
+const { map, toolbarMenu, gpsNavigator } = initMap()
 
 let activeMarkerManager: MarkerManager | null = null
 
@@ -67,7 +67,12 @@ async function init(talkoolainenCode?: string) {
   // status-väritykseen (V96) mutta MarkerManager luodaan vasta sen jälkeen.
   const markerManagerRef: { current: MarkerManager | null } = { current: null }
 
-  await wireAreas(map, talkoolainenCode, () => showWarning('⚠ Alueiden lataus epäonnistui — päivitä sivu', 0))
+  // Talkoolaiselle alueet ovat vain kontekstia (noutopisteet/pudotuspisteet) — niiden
+  // latausvirhe ei saa peittää pätkänäkymän otsikkoa pysyvällä "päivitä sivu" -bannerilla
+  // (puhdas kenttäkokemus). Järjestäjälle alueet ovat työkalu → näytä virhe.
+  await wireAreas(map, talkoolainenCode, () => {
+    if (!talkoolainenCode) showWarning('⚠ Alueiden lataus epäonnistui — päivitä sivu', 0)
+  })
 
   const { segmentStore, segmentOverlay, renderSegmentOverlay, segmentPanel } = await wireSegments(
     map, routes, talkoolainenCode, initialMarkers, markerManagerRef,
@@ -77,7 +82,7 @@ async function init(talkoolainenCode?: string) {
 
   const { markerManager, driveMode, progressBar, placeMode, markerModal, closeMarkerModal } = wireMarkers(
     map, routes, polylines, initialMarkers, talkoolainenCode,
-    { segmentStore, renderSegmentOverlay, segmentPanel, showWarning },
+    { segmentStore, renderSegmentOverlay, segmentPanel, showWarning, gpsNavigator },
   )
   markerManagerRef.current = markerManager
   activeMarkerManager = markerManager

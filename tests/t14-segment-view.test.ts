@@ -59,52 +59,186 @@ describe('T14 — SegmentView', () => {
     expect(container.querySelector('.segment-view-desc')).toBeNull()
   })
 
-  it('näyttää tyhjä-tilan kun ei merkkejä', () => {
+  // T228: inline-merkkilista poistettu (duplikoi "Kaikki merkit" -modaalin) — tyhjä pätkä
+  // näkyy hero-done-tilana, ei erillisenä .segment-view-empty-listana.
+  it('tyhjä pätkä → hero-done "Ei merkkejä", ei inline-listaa', () => {
     const view = new SegmentView(container, makeSeg())
     view.update([])
-    expect(container.querySelector('.segment-view-empty')).not.toBeNull()
-    expect(container.querySelector('.segment-view-empty')?.textContent).toContain('Ei merkkejä')
+    expect(container.querySelector('.segment-view-list')).toBeNull()
+    expect(container.querySelector('.segment-view-next-done-title')?.textContent).toContain('Ei merkkejä')
   })
 
-  it('näyttää merkkilistan järjestettynä distanceFromStart mukaan (V25)', () => {
-    const view = new SegmentView(container, makeSeg())
-    view.update([
-      makeMarker({ id: 'm-2', distanceFromStart: 9000 }),
-      makeMarker({ id: 'm-1', distanceFromStart: 7000 }),
-    ])
-    const items = container.querySelectorAll('.segment-view-item')
-    expect(items.length).toBe(2)
-    expect(items[0].getAttribute('data-id')).toBe('m-1')
-    expect(items[1].getAttribute('data-id')).toBe('m-2')
+  // T208-talkoolainen: phase-tietoinen edistymispalkki (yhtenäisyys järjestäjän kanssa)
+  describe('edistymispalkki', () => {
+    it('asettaminen-phase näyttää N/M asetettu', () => {
+      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }))
+      view.update([
+        makeMarker({ id: 'a', distanceFromStart: 6000, status: 'asetettu' }),
+        makeMarker({ id: 'b', distanceFromStart: 7000, status: 'suunniteltu' }),
+      ])
+      expect(container.querySelector('.segment-view-progress-text')?.textContent).toBe('1/2 asetettu')
+      const fill = container.querySelector('.segment-view-progress-fill') as HTMLElement
+      expect(fill.style.width).toBe('50%')
+    })
+
+    it('tyhjä pätkä → "ei merkkejä", 0% täyttö', () => {
+      const view = new SegmentView(container, makeSeg())
+      view.update([])
+      expect(container.querySelector('.segment-view-progress-text')?.textContent).toBe('ei merkkejä')
+    })
   })
 
-  it('näyttää merkin tyypin suomeksi', () => {
-    const view = new SegmentView(container, makeSeg())
-    view.update([makeMarker({ type: 'left' })])
-    expect(container.querySelector('.segment-view-item-info')?.textContent).toContain('Vasemmalle')
+  // T208-talkoolainen / B-lista2: "Seuraava merkki" -ohjaus asettaa pätkän ENSIMMÄISEN merkin
+  describe('seuraava merkki -ohjaus (hero)', () => {
+    it('näyttää pätkän ensimmäisen suunniteltu-merkin (pienin distanceFromStart)', () => {
+      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }))
+      view.update([
+        makeMarker({ id: 'late', distanceFromStart: 9000, status: 'suunniteltu', type: 'left' }),
+        makeMarker({ id: 'early', distanceFromStart: 6000, status: 'suunniteltu', type: 'right' }),
+      ])
+      const next = container.querySelector('.segment-view-next') as HTMLElement
+      expect(next.hidden).toBe(false)
+      expect(container.querySelector('.segment-view-next-meta')?.textContent).toBe('6.0 km')
+    })
+
+    it('"Aseta" kutsuu onSetMarker ensimmäisen merkin id:llä', () => {
+      let setId: string | null = null
+      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, undefined, {
+        onSetMarker: (id) => { setId = id },
+      })
+      view.update([
+        makeMarker({ id: 'early', distanceFromStart: 6000, status: 'suunniteltu' }),
+        makeMarker({ id: 'late', distanceFromStart: 9000, status: 'suunniteltu' }),
+      ])
+      ;(container.querySelector('.segment-view-next-set') as HTMLButtonElement).click()
+      expect(setId).toBe('early')
+    })
+
+    it('"Ei tarpeen" kutsuu onSkipMarker, "Näytä kartalla" onFocusMarker', () => {
+      let skipId: string | null = null
+      let focusId: string | null = null
+      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, undefined, {
+        onSkipMarker: (id) => { skipId = id },
+        onFocusMarker: (id) => { focusId = id },
+      })
+      view.update([makeMarker({ id: 'm1', distanceFromStart: 6000, status: 'suunniteltu' })])
+      ;(container.querySelector('.segment-view-next-skip') as HTMLButtonElement).click()
+      ;(container.querySelector('.segment-view-next-show') as HTMLButtonElement).click()
+      expect(skipId).toBe('m1')
+      expect(focusId).toBe('m1')
+    })
+
+    it('kaikki asetettu → valmis-tila (slim), ei aseta-nappia', () => {
+      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }))
+      view.update([makeMarker({ id: 'm1', status: 'asetettu' })])
+      expect(container.querySelector('.segment-view-next-done-title')?.textContent).toContain('Kaikki asetettu')
+      expect(container.querySelector('.segment-view-next-set')).toBeNull()
+      // T228: done = matala rivi, ei accent-kortti
+      expect((container.querySelector('.segment-view-next') as HTMLElement).classList.contains('segment-view-next--done')).toBe(true)
+    })
+
+    it('hero piilotettu purku- ja tarkastus-phasessa', () => {
+      const purku = new SegmentView(container, makeSeg({ phase: 'purku' }))
+      purku.update([makeMarker({ status: 'asetettu' })])
+      expect((container.querySelector('.segment-view-next') as HTMLElement).hidden).toBe(true)
+    })
+
+    // T228: rivin-klikkaus-detalji siirtyi "Kaikki merkit" -modaaliin + kartan merkin tappiin
+    // (inline-lista poistettu). Hero säilyttää jaetun merkkivisuaalin.
+    it('hero sisältää jaetun merkkivisuaalin (yhtenäinen ulkoasu)', () => {
+      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }))
+      view.update([makeMarker({ id: 'm-1', status: 'suunniteltu' })])
+      expect(container.querySelector('.segment-view-next-row .marker-visual-row-sv')).not.toBeNull()
+    })
   })
 
-  it('näyttää merkin km-sijainnin', () => {
-    const view = new SegmentView(container, makeSeg())
-    view.update([makeMarker({ distanceFromStart: 7500 })])
-    expect(container.querySelector('.segment-view-item-info')?.textContent).toContain('7.5 km')
+  // Kokoontaitto — kartta esiin mobiilissa
+  describe('kokoontaitto', () => {
+    it('chevron kutistaa ja laajentaa näkymän', () => {
+      new SegmentView(container, makeSeg())
+      const panel = container.querySelector('#segment-view') as HTMLElement
+      const btn = container.querySelector('.segment-view-collapse') as HTMLButtonElement
+      expect(panel.classList.contains('segment-view--collapsed')).toBe(false)
+      btn.click()
+      expect(panel.classList.contains('segment-view--collapsed')).toBe(true)
+      btn.click()
+      expect(panel.classList.contains('segment-view--collapsed')).toBe(false)
+    })
+
+    it('"Näytä kartalla" kutsuu onShowOnMap + kutistaa (ei avaa detaljia)', () => {
+      let shown: string | null = null
+      let focused: string | null = null
+      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, undefined, {
+        onShowOnMap: (id) => { shown = id },
+        onFocusMarker: (id) => { focused = id },
+      })
+      view.update([makeMarker({ id: 'm1', distanceFromStart: 6000, status: 'suunniteltu' })])
+      ;(container.querySelector('.segment-view-next-show') as HTMLButtonElement).click()
+      expect(shown).toBe('m1')
+      expect(focused).toBeNull()
+      expect((container.querySelector('#segment-view') as HTMLElement).classList.contains('segment-view--collapsed')).toBe(true)
+    })
   })
 
-  it('näyttää statuksen oikealla CSS-luokalla', () => {
-    const view = new SegmentView(container, makeSeg())
-    view.update([makeMarker({ status: 'asetettu' })])
-    const statusEl = container.querySelector('.segment-view-status')
-    expect(statusEl?.classList.contains('status-asetettu')).toBe(true)
-    expect(statusEl?.textContent).toContain('Asetettu')
-  })
+  // T78/V43: pätkän rajojen muokkaus kentällä
+  describe('pätkän rajojen muokkaus (T78)', () => {
+    it('bounds-osio piilossa jos onEditBounds puuttuu', () => {
+      new SegmentView(container, makeSeg())
+      expect((container.querySelector('.segment-view-bounds') as HTMLElement).hidden).toBe(true)
+    })
 
-  it('update() päivittää listan uusilla merkeillä', () => {
-    const view = new SegmentView(container, makeSeg())
-    view.update([makeMarker({ id: 'm-1' })])
-    expect(container.querySelectorAll('.segment-view-item').length).toBe(1)
+    it('näyttää nykyiset rajat toggle-napissa', () => {
+      new SegmentView(container, makeSeg({ startDist: 5000, endDist: 12000 }), undefined, undefined, {
+        onEditBounds: () => {},
+      })
+      expect(container.querySelector('.segment-view-bounds-toggle')?.textContent).toContain('5.0–12.0 km')
+    })
 
-    view.update([makeMarker({ id: 'm-1' }), makeMarker({ id: 'm-2', distanceFromStart: 9000 })])
-    expect(container.querySelectorAll('.segment-view-item').length).toBe(2)
+    it('toggle avaa formin esitäytetyillä km-arvoilla', () => {
+      new SegmentView(container, makeSeg({ startDist: 5000, endDist: 12000 }), undefined, undefined, {
+        onEditBounds: () => {},
+      })
+      ;(container.querySelector('.segment-view-bounds-toggle') as HTMLButtonElement).click()
+      expect((container.querySelector('.segment-view-bounds-form') as HTMLElement).hidden).toBe(false)
+      expect((container.querySelector('.segment-view-bounds-start') as HTMLInputElement).value).toBe('5.0')
+      expect((container.querySelector('.segment-view-bounds-end') as HTMLInputElement).value).toBe('12.0')
+    })
+
+    it('Tallenna kutsuu onEditBounds metreinä (km×1000)', () => {
+      let bounds: [number, number] | null = null
+      new SegmentView(container, makeSeg(), undefined, undefined, {
+        onEditBounds: (s, e) => { bounds = [s, e] },
+      })
+      ;(container.querySelector('.segment-view-bounds-toggle') as HTMLButtonElement).click()
+      ;(container.querySelector('.segment-view-bounds-start') as HTMLInputElement).value = '2.5'
+      ;(container.querySelector('.segment-view-bounds-end') as HTMLInputElement).value = '8'
+      ;(container.querySelector('.segment-view-bounds-save') as HTMLButtonElement).click()
+      expect(bounds).toEqual([2500, 8000])
+    })
+
+    it('hylkää loppu <= alku virheellä, ei kutsu callbackia', () => {
+      let called = false
+      new SegmentView(container, makeSeg(), undefined, undefined, {
+        onEditBounds: () => { called = true },
+      })
+      ;(container.querySelector('.segment-view-bounds-toggle') as HTMLButtonElement).click()
+      ;(container.querySelector('.segment-view-bounds-start') as HTMLInputElement).value = '8'
+      ;(container.querySelector('.segment-view-bounds-end') as HTMLInputElement).value = '5'
+      ;(container.querySelector('.segment-view-bounds-save') as HTMLButtonElement).click()
+      expect(called).toBe(false)
+      expect((container.querySelector('.segment-view-bounds-error') as HTMLElement).hidden).toBe(false)
+    })
+
+    it('Peruuta sulkee formin tallentamatta', () => {
+      let called = false
+      new SegmentView(container, makeSeg(), undefined, undefined, {
+        onEditBounds: () => { called = true },
+      })
+      ;(container.querySelector('.segment-view-bounds-toggle') as HTMLButtonElement).click()
+      ;(container.querySelector('.segment-view-bounds-cancel') as HTMLButtonElement).click()
+      expect((container.querySelector('.segment-view-bounds-form') as HTMLElement).hidden).toBe(true)
+      expect(called).toBe(false)
+    })
   })
 
   // T147: tarkastus-UI — kevyt läpiajo, vapaateksti-huomio, ei per-merkki-kuittausta

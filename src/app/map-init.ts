@@ -8,6 +8,9 @@ const LS_KEY = 'karttamaster-layer'
 export interface MapInit {
   map: L.Map
   toolbarMenu: HTMLElement
+  // T232 (B): GPS-toggle asuu talkoolaisen SegmentView-herossa → navigaattori altistetaan
+  // wireMarkersille. Yläpalkin #btn-gps poistettu (T233).
+  gpsNavigator: GpsNavigator
 }
 
 export function initMap(): MapInit {
@@ -63,19 +66,9 @@ export function initMap(): MapInit {
     toolbarMenu.classList.remove('open')
   })
 
+  // T232/T233: GPS-toggle siirtyi talkoolaisen SegmentView-heroon (gpsNavigator altistetaan
+  // wireMarkersille). Yläpalkin #btn-gps poistettu (index.html) — ei enää toolbar-wiringiä.
   const gpsNavigator = new GpsNavigator(map)
-  const btnGps = document.getElementById('btn-gps')
-  if (btnGps) {
-    btnGps.addEventListener('click', () => {
-      if (gpsNavigator.isActive()) {
-        gpsNavigator.stop()
-        btnGps.classList.remove('gps-active')
-      } else {
-        gpsNavigator.start()
-        btnGps.classList.add('gps-active')
-      }
-    })
-  }
 
-  return { map, toolbarMenu }
+  return { map, toolbarMenu, gpsNavigator }
 }

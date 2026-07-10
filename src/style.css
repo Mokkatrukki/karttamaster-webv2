@@ -718,9 +718,16 @@ button {
   color: var(--text-muted);
   cursor: not-allowed;
 }
-.marker-item-checkbox {
-  width: 18px;
-  height: 18px;
+/* B53/V21/§R: kosketuskohde 44×44 — näkyvä ruutu pysyy kompaktina (22px), klikkausalue
+   laajennetaan padding-boxilla. Negatiivinen margin pitää layoutin ennallaan. Kriittinen
+   talkoolaiselle hanskat kädessä (bulk check-in .marker-checkin-cb sama kohtelu). */
+.marker-item-checkbox,
+.marker-checkin-cb {
+  width: 22px;
+  height: 22px;
+  box-sizing: content-box;
+  padding: 11px;
+  margin: -11px;
   accent-color: var(--accent);
   cursor: pointer;
   flex-shrink: 0;
@@ -843,15 +850,7 @@ button {
 .marker-item .marker-status { margin-top: 0; }
 .marker-item .marker-type-label { flex: 1; font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-#toolbar #btn-layer {
-  background: var(--hover) !important;
-  color: var(--text-muted) !important;
-  border: 1px solid var(--border-default) !important;
-  font-size: 11px !important;
-  margin-left: auto;
-}
-#toolbar #btn-layer:hover { background: var(--hover-strong) !important; }
-
+/* T233/V155: Karttatyyli siirtyi yläpalkista ⋯-valikkoon (ei enää #toolbar #btn-layer). */
 #toolbar-menu #btn-layer {
   background: transparent !important;
   color: var(--text-body) !important;
@@ -860,9 +859,8 @@ button {
   margin-left: 0 !important;
 }
 
-#btn-gps { background: transparent; color: var(--text-muted); border: 1px solid var(--border-default); font-size: 12px; }
-#btn-gps.gps-active { background: var(--gps-active); color: #fff; border-color: transparent; }
-#btn-gps:hover:not(.gps-active) { background: var(--hover); }
+/* T232/T233: #btn-gps poistettu yläpalkista — GPS-toggle asuu SegmentView-herossa
+   (.segment-view-gps-btn.gps-active). */
 
 /* ── Marker status badge ── */
 
@@ -921,67 +919,6 @@ button {
   transition: background 0.1s;
 }
 .btn-status-secondary:hover { background: var(--hover); color: var(--text-body); }
-
-/* ── GPS Drive Panel ── */
-
-#gps-drive-panel {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: var(--radius-sm);
-  background: var(--field-tint);
-  border: 1px solid var(--border-default);
-  flex-wrap: wrap;
-}
-
-#gps-drive-panel.gdp-near {
-  background: rgba(74, 222, 128, 0.12);
-  border-color: #4ade80;
-}
-
-#gdp-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 80px;
-}
-
-#gdp-dist {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-body);
-}
-
-#gps-drive-panel.gdp-near #gdp-dist { color: #4ade80; }
-
-#gdp-label {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-#gdp-actions {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-#gdp-jump {
-  min-height: 44px;
-  padding: 6px 10px;
-  background: var(--field-tint);
-  color: var(--text-body);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.1s;
-}
-#gdp-jump:hover { background: var(--hover-strong); }
 
 /* ── Empty state ── */
 
@@ -1088,48 +1025,6 @@ button {
   font-size: 12px;
   min-height: 16px;
   text-align: center;
-}
-
-/* ── Map state badge (T49) ── */
-
-#map-state-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.map-state-text {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  padding: 3px 8px;
-  border-radius: var(--radius-sm);
-  white-space: nowrap;
-}
-
-.map-state-text[data-status="luonnos"] {
-  background: rgba(245, 158, 11, 0.18);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.3);
-}
-
-.map-state-text[data-status="hyväksytty"] {
-  background: rgba(74, 222, 128, 0.15);
-  color: #4ade80;
-  border: 1px solid rgba(74, 222, 128, 0.3);
-}
-
-.btn-approve {
-  background: var(--confirm);
-  color: var(--confirm-text);
-  font-size: 11px;
-  padding: 4px 10px;
-  min-height: 44px;
-}
-
-.btn-approve:hover {
-  background: var(--confirm-hover);
 }
 
 /* ── Status panel (T28) — järjestäjä only ── */
@@ -1404,12 +1299,17 @@ button {
 
 /* ── Segment view (talkoolainen) ── */
 
+/* Talkoolaisen pätkänäkymä — mobiili-first päänäkymä. Yhtenäistetty järjestäjän
+   token-järjestelmään (T208-talkoolainen): samat surface/border/status-tokenit,
+   .btn-napit, jaettu buildMarkerVisual merkkiriveillä. */
 #segment-view {
   display: none;
   background: var(--surface-app);
   border-bottom: 1px solid var(--border-subtle);
-  padding: 8px 12px;
-  max-height: 260px;
+  padding: 10px 12px;
+  /* T228: 48vh→38vh — inline-lista poistettu ∴ paneeli kompakti yläkortti,
+     kartta (#map flex:1) saa ~65% ruudusta, seuraava merkki näkyy ⊥ scroll. */
+  max-height: 38vh;
   overflow-y: auto;
 }
 
@@ -1421,88 +1321,341 @@ button {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
 .segment-view-name {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-body);
 }
 
-.segment-view-range {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.segment-view-desc {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin: 0 0 6px;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.segment-view-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.segment-view-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border-card);
-  font-size: 12px;
-  min-height: 44px;
-}
-
-.segment-view-item-info {
-  flex: 1;
-  color: var(--text-muted);
-}
-
-.segment-view-status {
-  font-size: 11px;
+/* T232 (D): pätkän pituus päänäyttönä (nimen vieressä), km-väli pienempänä metana. */
+.segment-view-length {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-body);
   flex-shrink: 0;
 }
 
-.segment-view-status.status-suunniteltu { color: var(--status-suunniteltu); }
-.segment-view-status.status-asetettu    { color: var(--status-asetettu); }
-.segment-view-status.status-tarkistettu { color: var(--status-tarkistettu); }
-.segment-view-status.status-kerätty     { color: var(--status-keratty); }
-.segment-view-status.status-ei_tarpeen  { color: var(--status-ei-tarpeen); }
-
-.segment-view-empty {
-  padding: 6px 0;
-  color: var(--text-meta);
-  font-size: 11px;
+.segment-view-range {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
-.btn-bulk-collect {
-  display: block;
-  width: 100%;
+/* Kokoontaitto-chevron (mobiili: kartta esiin) */
+.segment-view-collapse {
+  min-width: 44px;
   min-height: 44px;
-  background: var(--confirm);
-  color: var(--confirm-text);
+  margin: -10px -6px -10px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
   border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.segment-view-collapse:hover {
+  color: var(--text-body);
+}
+
+.segment-view-collapse svg {
+  transition: transform 0.2s ease;
+}
+
+/* Kutistettu: vain otsikko + edistymispalkki näkyvät, muu piiloon → kartalle tilaa */
+.segment-view--collapsed {
+  max-height: none;
+}
+
+/* Kutistettuna vain otsikko + edistymispalkki näkyvät → kartta saa lähes koko ruudun (T223). */
+.segment-view--collapsed .segment-view-desc,
+.segment-view--collapsed .segment-view-next,
+.segment-view--collapsed .segment-view-gps-btn,
+.segment-view--collapsed .segment-view-more,
+.segment-view--collapsed .segment-view-bounds,
+.segment-view--collapsed .segment-view-inspect,
+.segment-view--collapsed .segment-view-complete,
+.segment-view--collapsed .btn-bulk-collect {
+  display: none;
+}
+
+.segment-view--collapsed .segment-view-collapse svg {
+  transform: rotate(180deg);
+}
+
+/* Phase-tietoinen edistymispalkki (sama getPhaseProgress kuin järjestäjällä) */
+.segment-view-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.segment-view-progress-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--field-tint);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.segment-view-progress-fill {
+  height: 100%;
+  background: var(--confirm);
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.segment-view-progress-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* T232 (B)/V156: GPS-toggle — persistentti panel-kontrolli (näkyy kaikissa phaseissa). */
+.segment-view-gps-btn {
+  width: 100%;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+.segment-view-gps-btn.gps-active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+/* T232 (A)/V158: "Lisää ⋯" panel-tason sekundäärivalikko (complete + bounds sen sisällä). */
+.segment-view-more {
+  margin-top: 4px;
+}
+.segment-view-more-toggle {
+  width: 100%;
+  justify-content: center;
+  color: var(--text-muted);
+}
+.segment-view-more-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* T233/V155: Varustelista-nappi siirtyi yläpalkkiin (#btn-varuste) — ei enää panelissa. */
+
+.segment-view-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  background: var(--field-tint);
   border-radius: var(--radius-sm);
+  line-height: 1.4;
+}
+
+/* "Seuraava merkki" -ohjaus (hero) — ohjaa talkoolaisen pätkän ensimmäiseen
+   asettamattomaan merkkiin. Korostettu accent-tintattu kortti. */
+.segment-view-next {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.segment-view-next-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.segment-view-next-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.segment-view-next-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.segment-view-next-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-body);
+}
+
+.segment-view-next-meta {
+  font-size: 12px;
+  color: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+.segment-view-next-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  line-height: 1.35;
+}
+
+.segment-view-next-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.segment-view-next-set { flex: 2; }
+.segment-view-next-show { flex: 1; }
+.segment-view-next-more { flex: 0 0 auto; min-width: 44px; padding: 0 12px; font-size: 18px; line-height: 1; }
+
+/* T232 (C): ◀▶-selailunuolet asettamattomien merkkien välillä (clamp päihin → disabled). */
+.segment-view-next-nav {
+  flex: 0 0 auto;
+  min-width: 40px;
+  min-height: 44px;
+  padding: 0 8px;
+  font-size: 16px;
+  line-height: 1;
+}
+.segment-view-next-nav:disabled { opacity: 0.3; cursor: default; }
+
+/* T224 (B): ⋯-overflow-valikko — lisätoiminnot (Ei tarpeen, Siirretty, kuva/kommentti tulossa). */
+.segment-view-next-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle, var(--border-default));
+}
+.segment-view-next-menu-item { width: 100%; justify-content: flex-start; }
+.segment-view-next-menu-item:disabled { opacity: 0.5; cursor: default; }
+
+.segment-view-next-done {
+  text-align: center;
+  padding: 4px 0;
+}
+
+.segment-view-next-done-title {
   font-size: 13px;
   font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* T228: done-tila = matala rivi ilman accent-kortti-korostusta → kartta esiin.
+   Passiivinen "kaikki asetettu" ei kilpaile kartan kanssa (VISION kartta=päänavigointi). */
+.segment-view-next--done {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 2px 0;
+  margin-bottom: 6px;
+}
+
+/* T228: inline-merkkilista (.segment-view-list/.segment-view-item/-status/-empty) poistettu —
+   "Kaikki merkit" -modaali on ainoa per-merkki-lista (duplikaatti + karttatilan syöppö). */
+
+.btn-bulk-collect {
+  width: 100%;
   margin: 8px 0;
 }
 
-.btn-bulk-collect:hover {
-  background: var(--confirm-hover);
+/* T78/V43: talkoolaisen pätkän rajojen muokkaus kentällä */
+.segment-view-bounds {
+  margin: 10px 0 4px;
+}
+
+.segment-view-bounds-toggle {
+  width: 100%;
+}
+
+.segment-view-bounds-form {
+  margin-top: 8px;
+  padding: 10px;
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.segment-view-bounds-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.segment-view-bounds-field span {
+  flex: 1;
+}
+
+.segment-view-bounds-field input {
+  width: 92px;
+  min-height: 44px;
+  text-align: right;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  font-size: 15px;
+  padding: 0 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.segment-view-bounds-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--danger-text);
+}
+
+.segment-view-bounds-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.segment-view-bounds-save,
+.segment-view-bounds-cancel {
+  flex: 1;
 }
 
 /* T147: tarkastus-phase — kevyt läpiajo talkoolaiselle/tarkastajalle */
 .segment-view-inspect {
   margin: 8px 0;
+}
+
+/* T230: "Merkitse pätkä valmiiksi" — asettaminen/purku-vaiheen valmis-toggle */
+.segment-view-complete {
+  margin: 8px 0 4px;
+}
+
+.segment-view-complete-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--confirm);
+  margin: 0 0 6px;
+  text-align: center;
+}
+
+.segment-view-complete-btn {
+  width: 100%;
+  justify-content: center;
 }
 
 .segment-view-inspect-status {
@@ -2038,6 +2191,61 @@ button {
   background: var(--confirm-hover);
 }
 
+/* T227: supervision — per-pätkä aktiviteettiloki + massaperuutus (järjestäjä). */
+.segment-audit-section {
+  padding: 8px 20px 4px;
+  border-top: 1px solid var(--border-default);
+  margin-top: 8px;
+}
+
+.segment-audit-list {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.segment-audit-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.segment-audit-item {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-subtle, var(--border-default));
+  color: var(--text-body);
+}
+
+.segment-audit-empty {
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 4px 0;
+}
+
+.btn-segment-audit-undo {
+  margin-top: 10px;
+  background: transparent;
+  color: var(--danger-text);
+  border: 1px solid var(--danger-text);
+  border-radius: 8px;
+  font-size: 13px;
+  padding: 8px 12px;
+  min-height: 44px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.btn-segment-audit-undo:hover {
+  background: var(--danger-text);
+  color: #fff;
+}
+
+.btn-segment-audit-undo:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .segment-modal-danger-zone {
   padding: 4px 20px 12px;
   display: flex;
@@ -2337,6 +2545,53 @@ button {
   border-color: var(--accent);
 }
 
+/* T216: reitittömän tehtävän tyyppisuodatin + merkkien liitos-checklist.
+   Noudattaa samaa input-tokenointia; touch-target 44px (DESIGN.md §A). */
+.segment-creation-typefilter {
+  background: var(--surface-app);
+  border: 1px solid var(--border-default);
+  color: var(--text-body);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: var(--font-ui);
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+.segment-creation-typefilter:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.segment-creation-marker-checklist {
+  display: flex;
+  flex-direction: column;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-app);
+}
+.segment-creation-marker-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 10px;
+  font-size: 13px;
+  color: var(--text-body);
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-card);
+}
+.segment-creation-marker-check:last-child {
+  border-bottom: none;
+}
+.segment-creation-marker-check input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
 .segment-creation-modal-footer {
   display: flex;
   gap: 8px;
@@ -2411,6 +2666,106 @@ button {
   color: var(--text-muted);
 }
 
+/* T224 (C): EquipmentModal — talkoolaisen varustelista tilavana modaalina (kuten "Kaikki merkit"). */
+.equipment-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: 3000;
+}
+.equipment-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(480px, 94vw);
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  z-index: 3001;
+  overflow: hidden;
+}
+.equipment-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-subtle, var(--border-default));
+}
+.equipment-modal-header h2 { margin: 0; font-size: 16px; font-weight: 700; color: var(--text-body); }
+.equipment-modal-close {
+  min-width: 44px;
+  min-height: 44px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+}
+.equipment-modal-body { padding: 14px 16px; overflow-y: auto; flex: 1; }
+.equipment-modal-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-meta);
+  margin: 0 0 6px;
+}
+.equipment-modal-auto-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.equipment-modal-empty { font-size: 13px; color: var(--text-muted); margin: 0 0 10px; }
+.equipment-modal-manual { display: flex; flex-direction: column; gap: 8px; }
+.equipment-modal-row { display: flex; align-items: center; gap: 8px; }
+.equipment-modal-count {
+  width: 64px;
+  min-height: 44px;
+  padding: 0 8px;
+  text-align: center;
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.equipment-modal-name {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  font-size: 15px;
+}
+.equipment-modal-remove { flex: 0 0 auto; min-width: 44px; }
+.equipment-modal-add { align-self: flex-start; margin-top: 2px; }
+.equipment-modal-footer {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-subtle, var(--border-default));
+}
+.equipment-modal-footer .btn { flex: 1; }
+
+/* T224 (b1): seuraava-merkin kartta-korostusrengas — hienovarainen pulssi. */
+.next-marker-ring { animation: next-marker-pulse 1.6s ease-in-out infinite; }
+@keyframes next-marker-pulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.35; }
+}
+
 /* ── Segment label (Leaflet tooltip) ── */
 .segment-label {
   background: rgba(15, 23, 42, 0.85);
@@ -2425,6 +2780,12 @@ button {
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 .segment-label::before { display: none; }
+/* V142: talkoolaisen näkymä — muiden tehtävien nimilaput himmeät (konteksti, ei fokus). */
+.segment-label--dim {
+  opacity: 0.4;
+  font-weight: 600;
+  pointer-events: none;
+}
 
 /* ── Marker type select (T38) ── */
 
@@ -2453,12 +2814,11 @@ button {
   min-height: 0;
 }
 
-/* Vain talkoolaisella on täysleveä RouteBar (position:fixed, drive) → varaa 84px ettei
-   se peitä karttaa. Järjestäjä/admin saavat leijuvan pillerin (data-mode="visibility"),
-   ei varausta → ei haamuraitaa kartan alla. Rooli tulee tili-per-rooli-authista
-   (admin | järjestäjä | talkoolainen), joten scope talkoolaiseen, ei järjestäjään. */
-body[data-role="talkoolainen"] #app-main {
-  padding-bottom: 84px;
+/* B101/V157: talkoolaisen `#route-bar` on PIILOTETTU kokonaan (T224/V148) → 84px-varaus oli
+   orpo (kuollut alagap kartan alla). Talkoolaiselle EI route-bar-varausta: nollaa #app:n
+   globaali padding-bottom (r145). Järjestäjä/admin säilyttävät varauksen (leijuva reittipilleri). */
+body[data-role="talkoolainen"] #app {
+  padding-bottom: 0;
 }
 
 #left-panel {
@@ -2502,6 +2862,14 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   #left-panel.collapsed {
     box-shadow: none;
   }
+
+  /* T233/V155: talkoolaisen yläpalkki (Kaikki merkit + Varustelista + ⋯) ei saa hajota
+     kapealla mobiililla (≤360px). Tiivistä napit + salli brändin kutistua (ellipsis),
+     44px-touch säilyy (global button min-height). */
+  #toolbar { gap: 4px; padding: 6px; }
+  #app-brand { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+  #toolbar-actions { gap: 4px; }
+  #toolbar-actions button { font-size: 12px; padding: 0 8px; }
 }
 
 #left-panel-header {
@@ -2882,7 +3250,7 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
    dimensiottomat propit → ei visuaalimuutosta olemassa oleviin). */
 .btn,
 .btn-bulk-apply, .btn-bulk-checkin-aseta, .btn-bulk-checkin-ohita,
-.btn-status-primary, .btn-status-secondary, .btn-approve, .btn-bulk-collect,
+.btn-status-primary, .btn-status-secondary, .btn-bulk-collect,
 .btn-mark-inspected, .btn-snapshot-create, .btn-snapshot-download,
 .btn-snapshot-restore, .btn-snapshot-restore-file, .btn-segment-create,
 .btn-segment-modal-save, .btn-segment-creation-save, .btn-segment-creation-cancel,
@@ -2919,13 +3287,13 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 /* Variantti: confirm (vihreä kuittaus) — + vanhat vihreät napit */
 .btn--confirm,
 .btn-bulk-apply:not(:disabled), .btn-bulk-checkin-aseta:not(:disabled),
-.btn-status-primary, .btn-approve, .btn-bulk-collect, .btn-mark-inspected,
+.btn-status-primary, .btn-bulk-collect, .btn-mark-inspected,
 .btn-segment-modal-save, .btn-segment-creation-save, .modal-btn-primary {
   background: var(--confirm);
   color: var(--confirm-text);
 }
 .btn--confirm:hover,
-.btn-status-primary:hover, .btn-approve:hover, .btn-bulk-collect:hover,
+.btn-status-primary:hover, .btn-bulk-collect:hover,
 .btn-mark-inspected:hover, .btn-segment-modal-save:hover, .modal-btn-primary:hover {
   background: var(--confirm-hover);
 }

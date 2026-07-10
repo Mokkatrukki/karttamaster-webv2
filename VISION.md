@@ -52,7 +52,7 @@ Työkalu SyöteMTB 2026 -tapahtuman reittimerkintöjen suunnitteluun, toteutukse
 
 **Mitä talkoolainen EI tarvitse:** järjestäjän kokonaiskuvaa, merkkikirjaston hallintaa, muiden pätkien tietoja, rooli-valikointia.
 
-**Näkymä:** Täysin oma näkymä ja flow. Avautuu suoraan omaan pätkään hash-URL:sta. Ei järjestäjän UI:ta näkyvissä.
+**Näkymä:** Täysin oma näkymä ja flow. Avautuu suoraan omaan pätkään hash-URL:sta. Ei järjestäjän UI:ta näkyvissä. Oma pätkä/tehtävä näkyy kirkkaana ja klikattavana; muut pätkät näkyvät himmeinä ja read-onlyna taustalla — konteksti näkyy, mutta interaktio vain omaan (päätös 2026-07-08, amendaa V33).
 
 **UX-testi talkoolaiselle:** "Saako oman pätkän tilanteen raportoitua nopeasti ja tarkasti? Toimiiko metsässä puhelimella huonolla netillä?"
 
@@ -284,12 +284,35 @@ Jos feature on teknisesti oikein mutta ei läpäise käyttäjätestiä, se on ke
 
 ---
 
+## Tehtävämalli — reittipätkä + aluetehtävä (grill 2026-07-08)
+
+Talkoolaisen työ jaetaan **tehtävinä**. Tehtävä on yleistetty `Segment`: **reitti on valinnainen.**
+
+- **Reitillinen tehtävä** = perinteinen pätkä (`routeIds` + `startDist`/`endDist`): väli reitillä. "Merkkaa km 12–18."
+- **Reititön tehtävä** = alue-/tehtäväpätkä ilman reittisidosta. "Rakenna maalialue", "keräysalue".
+
+Jokaisella tehtävällä (reitillisellä tai reitittömällä) on **merkkijoukko**, kaksi tapaa populoida sama joukko:
+
+- **Eksplisiittinen linkki** (staattinen): järjestäjä valitsee kartalta tietyt merkit tehtävään. "Aidat löytyvät täältä →", "sijoita nämä merkit matkalla".
+- **Tyyppisuodatin** (dynaaminen): tehtävä seuraa merkkikirjaston tyyppiä. Kuka tahansa lisää sitä tyyppiä olevan merkin → ilmestyy tehtävän listalle heti. "Autoporukka näkee kaikki keräyskasa-merkit."
+
+**Avainperiaate:** merkkikirjaston tyyppi (SignTemplate) on jo "tagi" — ei erillistä tagi-systeemiä. "Hae aidat" = suodata merkit tyypillä aita.
+
+**Kolme käyttötapausta jotka tämä kattaa:**
+1. **Maalialue + aidat:** reititön tehtävä (`AreaMarker`-geometria: laatikot + ohje) + eksplisiittinen linkki aita-merkkeihin.
+2. **Keräys/autoporukka:** talkoolainen droppaa keräyskasa-merkkejä maastoon → autoporukan reititön tehtävä = tyyppisuodatin niihin, kuittaa "haettu".
+3. **Reittipätkä + matkan merkit:** reitillinen tehtävä + eksplisiittinen linkki "sijoita nämä matkalla".
+
+**Toteutussuunta (speksataan erikseen, EI vielä rakennettu):** yleistä olemassa oleva `Segment` (reitti valinnaiseksi) + jaettu `resolveTaskMarkers`-logiikka. Uusiokäyttää navigointi (T16/T31), hash-jako (V42), kuittaus, phase. Ei uutta oliota, ei tagi-systeemiä. Refaktorin blast-radius arvioidaan arkkitehtuuri-passissa.
+
+**Auki spec-vaiheeseen:** näkyykö reititön tehtävä kartalla pelkkänä nimenä+merkkijoukkona vai valinnaisena rajauslaatikkona (uusiokäytä AreaMarker-geometria).
+
 ## Avoimet (selvitetään ennen toteutusta)
 
 1. **Ikonilähde**: Lucide — selvitetty (T9 ✓)
 2. **Auth-flow**: hash-URL talkoolaiselle (V27 ✓), invite-flow järjestäjälle (T36 ✓). Admin UI käyttäjähallintaan: T121–T123.
 3. **GPX-päivitys**: mitä tapahtuu olemassa oleville merkeille kun GPX korvataan? (T34, auki)
-4. **Impromptu-pätkäjako:** "käyn purkamassa tämän alueen" — miten talkoolainen ottaa alueen ilman järjestäjää? Hash-URL generointi talkoolaiselle itse?
-5. **Kasa-kuittaus:** kuka voi merkata kasan otetuksi — vain assignattu, vai kaikki autentikoidut?
+4. **Impromptu-pätkäjako:** ~~miten talkoolainen ottaa alueen ilman järjestäjää?~~ **RATKAISTU 2026-07-08: ei self-assignia.** Vain järjestäjä luo ja jakaa pätkät/tehtävät hash-URL:lla. Talkoolainen vastaanottaa, ei ota omia.
+5. **Kasa-kuittaus:** ~~kuka voi merkata kasan otetuksi?~~ **RATKAISTU 2026-07-08:** kasa = talkoolaisen droppaama SignMarker (tyyppi esim. "keräyskasa"). Autoporukan tehtävä = dynaaminen tyyppisuodatin (kaikki keräyskasa-merkit, elävä lista). Kuka tahansa autentikoitu kuittaa "haettu". Osa tehtävämallia (ks. §Tehtävämalli).
 6. **Kommentti-systeemi:** yleiskäyttöinen (merkki + pätkä + vapaa piste), ikoni valinnaisesti, nimi valinnaisesti. Suunnitellaan ennen toteutusta — vaikuttaa tietomalliin laajasti.
 7. **Karttamerkki-järjestelmä (POI/este/kasa):** custom karttamerkkien tyypit ja tietomalli suunnittelematta. Eri asia kuin reittimerkki (SignMarker).

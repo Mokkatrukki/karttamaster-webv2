@@ -24,15 +24,23 @@ function failureMessage(status: number | null): string {
   return `⚠ Tallennus epäonnistui${suffix} — yritetään automaattisesti uudelleen`
 }
 
+// B-lista3b: pysyvä 4xx-virhe → retry ei auta, entry on jo pudotettu jonosta. Näytä selkeä,
+// kertaluontoinen viesti — EI "yritetään uudelleen" (harhaanjohtava, toistuisi).
+function permanentFailureMessage(status: number | null): string {
+  const suffix = status ? ` (${status})` : ''
+  if (status === 403) return `⚠ Tallennus estetty${suffix} — ei oikeutta tähän muutokseen`
+  return `⚠ Tallennus epäonnistui pysyvästi${suffix} — muutosta ei tallennettu`
+}
+
 export const outbox = new WriteOutbox({
-  onFailure: (_entry: OutboxEntry, status: number | null) => {
+  onFailure: (_entry: OutboxEntry, status: number | null, permanent: boolean) => {
     // T186/V119: 401 → re-auth-kehote (ei "yritä uudelleen"-banneria — retry ei auta
     // ennen uudelleenkirjautumista). Kirjoitus säilyy jonossa ja retrytään flushilla.
     if (status === 401) {
       reauthHandler?.()
       return
     }
-    saveErrorHandler?.(failureMessage(status))
+    saveErrorHandler?.(permanent ? permanentFailureMessage(status) : failureMessage(status))
   },
   onChange: () => {
     changeHandler?.(outbox.pendingResourceKeys())

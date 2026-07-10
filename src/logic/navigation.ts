@@ -1,5 +1,44 @@
 import type { SignMarker } from './types'
 
+// V3/V143 (B-lista2): pätkän ENSIMMÄINEN asettamaton merkki — pienin distanceFromStart jolla
+// status==='suunniteltu'. Tämä on "Aseta seuraava" -ohjauksen valinta talkoolaiselle: se etenee
+// pätkän merkit järjestyksessä alusta loppuun, EI lähimpään kursorin/GPS-sijainnin merkkiin.
+// Anna `markers` valmiiksi pätkälle rajattuna (getMarkersForSegment) — funktio ei tunne pätkää.
+export function firstUnsetMarker(markers: SignMarker[]): SignMarker | null {
+  let best: SignMarker | null = null
+  for (const m of markers) {
+    if (m.status !== 'suunniteltu') continue
+    if (best === null || m.distanceFromStart < best.distanceFromStart) best = m
+  }
+  return best
+}
+
+// T231/V159: pätkän asettamattomat merkit km-järjestyksessä (distanceFromStart asc). Sama
+// 'suunniteltu'-predikaatti kuin firstUnsetMarker. Hero-◀▶-selailun (stepUnset) lähde.
+// Anna `markers` valmiiksi pätkälle rajattuna (getMarkersForSegment) — funktio ei tunne pätkää.
+export function unsetMarkersOrdered(markers: SignMarker[]): SignMarker[] {
+  return markers
+    .filter((m) => m.status === 'suunniteltu')
+    .sort((a, b) => a.distanceFromStart - b.distanceFromStart)
+}
+
+// T231/V159: hero-◀▶ — seuraava/edellinen asettamaton merkki `currentId`:stä. Clamp päihin
+// (EI wrap-around): ensimmäisestä taakse → ensimmäinen; viimeisestä eteen → viimeinen.
+// Tuntematon tai jo-asetettu `currentId` (katosi listalta) → firstUnsetMarker (reconcile V159).
+// dir: 1 = seuraava, -1 = edellinen.
+export function stepUnset(
+  markers: SignMarker[],
+  currentId: string,
+  dir: 1 | -1,
+): SignMarker | null {
+  const ordered = unsetMarkersOrdered(markers)
+  if (ordered.length === 0) return null
+  const idx = ordered.findIndex((m) => m.id === currentId)
+  if (idx === -1) return ordered[0] // currentId ei asettamattomien joukossa → palaa ensimmäiseen
+  const next = Math.min(ordered.length - 1, Math.max(0, idx + dir)) // clamp, ei wrap
+  return ordered[next]
+}
+
 export function nearestUnsetMarker(
   markers: SignMarker[],
   currentDist: number,

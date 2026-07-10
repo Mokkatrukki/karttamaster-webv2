@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { nearestUnsetMarker, distanceToNext } from '../src/logic/navigation'
+import { nearestUnsetMarker, distanceToNext, firstUnsetMarker, unsetMarkersOrdered, stepUnset } from '../src/logic/navigation'
 import type { SignMarker } from '../src/logic/types'
 
 function makeMarker(overrides: Partial<SignMarker>): SignMarker {
@@ -58,6 +58,88 @@ describe('nearestUnsetMarker', () => {
     const b = makeMarker({ id: 'b', distanceFromStart: 100, routeIds: ['r1'] })
     const result = nearestUnsetMarker([a, b], 100, 'r1')
     expect(['a', 'b']).toContain(result?.id)
+  })
+})
+
+// B-lista2/V3: pätkän ensimmäinen asettamaton merkki — pienin distanceFromStart, EI lähin kursoriin.
+describe('firstUnsetMarker', () => {
+  it('palauttaa pienimmän distanceFromStart -suunniteltu-merkin (ei lähintä kursoriin)', () => {
+    // m1=100, m2=300 — kummatkin suunniteltu; ensimmäinen = m1 riippumatta järjestyksestä
+    expect(firstUnsetMarker([m2, m1])?.id).toBe('m1')
+  })
+
+  it('ohittaa ei-suunniteltu-merkit', () => {
+    // m3 (500, asetettu) ohitetaan; m2 (300, suunniteltu) valitaan
+    expect(firstUnsetMarker([m3, m2])?.id).toBe('m2')
+  })
+
+  it('palauttaa null kun ei suunniteltu-merkkejä', () => {
+    expect(firstUnsetMarker([m3])).toBeNull()
+    expect(firstUnsetMarker([])).toBeNull()
+  })
+
+  it('valitsee aina saman ensimmäisen syötejärjestyksestä riippumatta', () => {
+    const early = makeMarker({ id: 'early', distanceFromStart: 50 })
+    const late = makeMarker({ id: 'late', distanceFromStart: 900 })
+    expect(firstUnsetMarker([late, early])?.id).toBe('early')
+    expect(firstUnsetMarker([early, late])?.id).toBe('early')
+  })
+})
+
+// T231/V159: hero-◀▶-selailu asettamattomien merkkien välillä.
+describe('unsetMarkersOrdered', () => {
+  it('palauttaa vain suunniteltu-merkit km-järjestyksessä (asc)', () => {
+    const ids = unsetMarkersOrdered([m2, m1, m3]).map(m => m.id) // m3=asetettu tippuu
+    expect(ids).toEqual(['m1', 'm2'])
+  })
+
+  it('tyhjä lista → tyhjä', () => {
+    expect(unsetMarkersOrdered([])).toEqual([])
+  })
+
+  it('kaikki asetettu → tyhjä', () => {
+    expect(unsetMarkersOrdered([m3])).toEqual([])
+  })
+
+  it('ei mutatoi syötteen järjestystä', () => {
+    const input = [m2, m1]
+    unsetMarkersOrdered(input)
+    expect(input.map(m => m.id)).toEqual(['m2', 'm1'])
+  })
+})
+
+describe('stepUnset', () => {
+  // ordered = [m1(100), m2(300)]
+  it('dir=1 seuraava asettamaton', () => {
+    expect(stepUnset([m1, m2, m3], 'm1', 1)?.id).toBe('m2')
+  })
+
+  it('dir=-1 edellinen asettamaton', () => {
+    expect(stepUnset([m1, m2, m3], 'm2', -1)?.id).toBe('m1')
+  })
+
+  it('clamp: viimeisestä eteen → viimeinen (ei wrap)', () => {
+    expect(stepUnset([m1, m2], 'm2', 1)?.id).toBe('m2')
+  })
+
+  it('clamp: ensimmäisestä taakse → ensimmäinen (ei wrap)', () => {
+    expect(stepUnset([m1, m2], 'm1', -1)?.id).toBe('m1')
+  })
+
+  it('tuntematon id → firstUnsetMarker (ensimmäinen asettamaton)', () => {
+    expect(stepUnset([m2, m1], 'ei-ole', 1)?.id).toBe('m1')
+  })
+
+  it('jo-asetettu id (katosi listalta) → firstUnsetMarker (reconcile V159)', () => {
+    expect(stepUnset([m1, m2, m3], 'm3', 1)?.id).toBe('m1')
+  })
+
+  it('tyhjä lista → null', () => {
+    expect(stepUnset([], 'm1', 1)).toBeNull()
+  })
+
+  it('kaikki asetettu → null', () => {
+    expect(stepUnset([m3], 'm3', 1)).toBeNull()
   })
 })
 

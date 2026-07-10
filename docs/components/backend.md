@@ -178,35 +178,12 @@ Talkoolaisella ei käyttäjätunnusta — koodi on "avain". Voi syöttää uudel
 
 ---
 
-## Kartta-tila: luonnos / hyväksytty
+## Kartta-tila: luonnos / hyväksytty — POISTETTU (V22/B46/V79, T211)
 
-```
-luonnos  → vain järjestäjät + admin näkevät merkit
-         → talkoolaiset saavat "kartta ei vielä valmis" -viestin
-hyväksytty → kaikki näkevät merkit
-           → talkoolaiset voivat päivittää statusta (aseta/kuittaa)
-           → järjestäjät voivat edelleen muokata sijaintia ja tyyppiä
-```
-
-**Server-enforcement (middleware):**
-```typescript
-// markers.ts — GET /api/markers
-if (mapState === 'luonnos' && session.role === 'talkoolainen') {
-  return c.json({ error: 'map_not_ready' }, 403)
-}
-```
-
-**Client-side:**
-- `PersistenceLayer.syncMarkers()` saa 403 → näyttää "Kartta valmisteilla" -bannerin
-- Järjestäjä-näkymässä: badge "LUONNOS / HYVÄKSYTTY" toolbarissa
-
-**Approve-flow:**
-```
-Järjestäjä klikkaa "Hyväksy kartta" → POST /api/admin/map-state {status: 'hyväksytty'}
-  → server: tallentaa approved_at + approved_by
-  → server: luo automaattinen snapshot (trigger: 'approve')
-  → kaikki talkoolaiset saavat 200 seuraavalla sync-pollilla
-```
+Approval-konsepti poistettu kokonaan: **kaikki merkit ovat aina näkyvissä kaikille
+autentikoiduille käyttäjille.** Ei enää `luonnos`/`hyväksytty`-porttia, ei
+`/api/admin/map-state`-endpointtia, ei `MapStateBadge`-komponenttia.
+`map_state`-taulu jää kantaan (seed-idempotenssi), mutta mikään live-koodi ei lue sitä.
 
 ---
 
@@ -301,8 +278,6 @@ POST   /api/admin/invites           → luo invite-token järjestäjälle
 POST   /api/admin/codes             → luo talkoolainen-koodeja (bulk)
 DELETE /api/admin/codes/:code       → poista koodi
 POST   /api/admin/password          → vaihda oma salasana (admin/järjestäjä)
-GET    /api/admin/map-state         → luonnos | hyväksytty
-POST   /api/admin/map-state         → vaihda tila (järjestäjä+)
 GET    /api/admin/snapshots         → lista snapshotseista
 POST   /api/admin/snapshots         → luo manual snapshot
 POST   /api/admin/snapshots/:id/restore → palauta versio

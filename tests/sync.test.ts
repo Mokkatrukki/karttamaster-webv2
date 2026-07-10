@@ -97,6 +97,26 @@ describe('fetchMarkers', () => {
     expect(markers[0].images).toEqual(['/api/markers/test-id/images/img1'])
   })
 
+  it('T226/V151: mappaa created_by → createdBy (talkoolaisen kova-poisto-tunniste)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [{ ...SERVER_MARKER, created_by: 'OMA1' }],
+    }))
+    const markers = okMarkers(await fetchMarkers())
+    expect(markers[0].createdBy).toBe('OMA1')
+  })
+
+  it('T226: createdBy undefined kun created_by null', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [SERVER_MARKER],
+    }))
+    const markers = okMarkers(await fetchMarkers())
+    expect(markers[0].createdBy).toBeUndefined()
+  })
+
   it('T103: omits description/images fields when absent (SignMarker accepts optional fields)', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,

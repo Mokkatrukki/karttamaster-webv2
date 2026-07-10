@@ -63,6 +63,7 @@ export class SegmentPanel {
         void seg
       },
       () => this.creationPhase(),
+      () => this.callbacks.getMarkers?.() ?? [],
     )
 
     this.detailsModal = new SegmentDetailsModal(
@@ -106,14 +107,15 @@ export class SegmentPanel {
   }
 
   onMapClick(lat: number, lon: number): void {
-    if (this.state.mode === 'idle' || this.state.mode === 'tiedot') return
+    // reititön/tiedot/idle eivät ota kartta-klikkejä (vain reitin piste-poiminta vaihe1/vaihe2)
+    if (this.state.mode !== 'vaihe1' && this.state.mode !== 'vaihe2') return
     const resolved = this.resolveClick(lat, lon)
     if (!resolved) return
     this.receivePoint(resolved.routeId, resolved.distanceFromStart, resolved.lat, resolved.lon)
   }
 
   onSnapClick(routeId: string, dist: number, lat: number, lon: number): void {
-    if (this.state.mode === 'idle' || this.state.mode === 'tiedot') return
+    if (this.state.mode !== 'vaihe1' && this.state.mode !== 'vaihe2') return
     this.receivePoint(routeId, dist, lat, lon)
   }
 
@@ -241,12 +243,21 @@ export class SegmentPanel {
     this.creationModal.open(this.state)
   }
 
+  // T216/V139: reititön (alue)tehtävä — ei kartta-klikkiflowta, avaa suoraan tiedot+liitoslomake.
+  private enterRoutelessCreation(): void {
+    this.collapsed = false
+    this.applyCollapsed()
+    this.state = { mode: 'reititon' }
+    this.callbacks.onEnterCreationMode?.()
+    this.creationModal.open(this.state)
+  }
+
   private render(): void {
     this.applyCollapsed()
     this.listEl.innerHTML = ''
 
     const panel = this.listEl.parentElement
-    panel?.querySelector('.btn-segment-footer')?.remove()
+    panel?.querySelectorAll('.btn-segment-footer').forEach(el => el.remove())
 
     const activePhase = this.callbacks.getActivePhase?.()
     const segments = activePhase ? getSegmentsForPhase(this.store, activePhase) : Array.from(this.store.values())
@@ -262,14 +273,25 @@ export class SegmentPanel {
     }
 
     if (!this.collapsed) {
+      const footerStyle =
+        'min-height:44px;width:100%;background:var(--field-tint);border:1px solid var(--border-default);border-top:none;color:var(--text-muted);font-size:12px;cursor:pointer;text-align:left;padding:0 12px'
+
       const footerBtn = document.createElement('button')
       footerBtn.id = 'btn-segment-create'
       footerBtn.className = 'btn-segment-footer'
       footerBtn.textContent = '+ Luo uusi pätkä'
-      footerBtn.style.cssText =
-        'min-height:44px;width:100%;background:var(--field-tint);border:1px solid var(--border-default);border-top:none;color:var(--text-muted);font-size:12px;cursor:pointer;text-align:left;padding:0 12px'
+      footerBtn.style.cssText = footerStyle
       footerBtn.addEventListener('click', () => this.enterCreationMode())
       panel?.appendChild(footerBtn)
+
+      // T216/V139: reitittömän (alue)tehtävän luonti — maali/keräysalue ilman reittipätkää.
+      const routelessBtn = document.createElement('button')
+      routelessBtn.id = 'btn-segment-create-routeless'
+      routelessBtn.className = 'btn-segment-footer'
+      routelessBtn.textContent = '+ Luo aluetehtävä (reititön)'
+      routelessBtn.style.cssText = footerStyle
+      routelessBtn.addEventListener('click', () => this.enterRoutelessCreation())
+      panel?.appendChild(routelessBtn)
     }
   }
 
@@ -287,8 +309,11 @@ export class SegmentPanel {
     kmSpan.className = 'segment-km'
     const markers = this.callbacks.getMarkers?.() ?? []
     kmSpan.textContent = formatPhaseProgress(getPhaseProgress(seg, markers))
-    const kmRange = `${(seg.startDist / 1000).toFixed(1)}–${(seg.endDist / 1000).toFixed(1)} km`
-    kmSpan.title = `${kmRange} · ${formatStatusCounts(getSegmentStatusCounts(seg, markers))}`
+    // V139: reitittömällä tehtävällä ei km-aluetta.
+    const kmRange = seg.startDist !== undefined && seg.endDist !== undefined
+      ? `${(seg.startDist / 1000).toFixed(1)}–${(seg.endDist / 1000).toFixed(1)} km · `
+      : ''
+    kmSpan.title = `${kmRange}${formatStatusCounts(getSegmentStatusCounts(seg, markers))}`
 
     const detailsBtn = document.createElement('button')
     detailsBtn.className = 'btn-segment-details-open'

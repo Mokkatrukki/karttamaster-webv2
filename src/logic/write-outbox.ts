@@ -41,7 +41,9 @@ export interface WriteOutboxOptions {
   fetchFn?: typeof fetch
   storage?: Storageish
   // Kutsutaan kun yksittäinen kirjoitus ei saa 2xx-vastausta (näkyvä virhe UI:lle, V115).
-  onFailure?: (entry: OutboxEntry, status: number | null) => void
+  // `permanent`=true → pysyvä 4xx-virhe (esim. 403/400/404): entry on POISTETTU jonosta
+  // (dead-letter), retryä ei tule. `permanent`=false → ohimenevä (verkko/5xx/401): jää jonoon.
+  onFailure?: (entry: OutboxEntry, status: number | null, permanent: boolean) => void
   // Kutsutaan kun jonon koko muuttuu (pending-visuaali T185 voi kuunnella).
   onChange?: (pending: number) => void
 }
@@ -60,7 +62,7 @@ export class WriteOutbox {
   private storageKey: string
   private fetchFn: typeof fetch
   private storage?: Storageish
-  private onFailure?: (entry: OutboxEntry, status: number | null) => void
+  private onFailure?: (entry: OutboxEntry, status: number | null, permanent: boolean) => void
   private onChange?: (pending: number) => void
   private flushing = false
 
@@ -164,14 +166,23 @@ export class WriteOutbox {
     }
   }
 
-  // Yksi toimitusyritys: 2xx poistaa jonosta, muu kasvattaa attempts + onFailure.
+  // Yksi toimitusyritys:
+  //  - 2xx → poista jonosta.
+  //  - pysyvä 4xx (403/400/404…) → POISTA jonosta (dead-letter) + onFailure(permanent=true).
+  //    Retry ei koskaan korjaisi näitä → muuten jono "myrkyttyy" ja virhebanneri toistuu joka
+  //    retry-kierroksella (B-lista3b). 401 EI ole pysyvä (uudelleenautentikointi voi korjata).
+  //  - muu (verkko/5xx/401) → jää jonoon, kasvata attempts + onFailure(permanent=false).
   private async attemptEntry(entry: OutboxEntry): Promise<number | null> {
     const status = await this.tryDeliver(entry)
     if (isOk(status)) {
       this.remove(entry.id)
+    } else if (isPermanent(status)) {
+      this.remove(entry.id)
+      entry.attempts += 1
+      this.onFailure?.(entry, status, true)
     } else {
       entry.attempts += 1
-      this.onFailure?.(entry, status)
+      this.onFailure?.(entry, status, false)
     }
     return status
   }
@@ -203,6 +214,14 @@ export class WriteOutbox {
 
 function isOk(status: number | null): boolean {
   return status !== null && status >= 200 && status < 300
+}
+
+// Pysyvä client-virhe: retry ei koskaan onnistuisi → dead-letter. 401 (uudelleenauth) ja
+// 408/425/429 (ohimenevä rate-limit/timeout) EIVÄT ole pysyviä; ne jäävät jonoon.
+function isPermanent(status: number | null): boolean {
+  if (status === null) return false
+  if (status === 401 || status === 408 || status === 425 || status === 429) return false
+  return status >= 400 && status < 500
 }
 
 function isValidEntry(e: unknown): e is OutboxEntry {

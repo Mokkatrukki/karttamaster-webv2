@@ -6,7 +6,6 @@ import { RouteVisibilityControl } from '../map/route-visibility-control'
 import { ProgressBar } from '../ui/progress-bar'
 import { PlaceMode } from '../ui/place-mode'
 import { renderMarkerList } from '../ui/marker-list'
-import { GpsDrivePanel } from '../ui/gps-drive-panel'
 import { SegmentView } from '../ui/segment-view'
 import { SignLibraryPanel, createSignLibrary } from '../ui/sign-library-panel'
 import { saveLibrary, type SignLibrary, type SignTemplate } from '../logic/sign-library'
@@ -17,6 +16,10 @@ import { getRole } from '../logic/role'
 import { MarkerDetailModal } from '../ui/marker-detail-modal'
 import { getSegmentForCode, getMarkersForSegment, updateSegment } from '../logic/segments'
 import type { Segment } from '../logic/segments'
+import { planSegmentZoom } from '../logic/segment-zoom'
+import { firstUnsetMarker } from '../logic/navigation'
+import { NextMarkerHighlight } from '../map/next-marker-highlight'
+import type { GpsNavigator } from '../map/gps-navigator'
 import { updateSegmentRemote } from '../logic/segment-sync'
 import { outbox, setOutboxChangeHandler } from '../logic/outbox-instance'
 import type { RouteConfig } from '../logic/multi-route'
@@ -38,6 +41,32 @@ interface MarkersWiringDeps {
   renderSegmentOverlay: () => void
   segmentPanel: SegmentPanel
   showWarning: (msg: string, ms?: number) => void
+  // T232 (B): GPS-navigaattori (luotu map-init.ts:ssä) → talkoolaisen SegmentView-heron GPS-toggle.
+  gpsNavigator: GpsNavigator
+}
+
+// T224 (D): latauksessa zoomaa talkoolaisen OMAAN pätkään ("tässä on sun pätkä"), ei koko karttaan.
+// planSegmentZoom päättää fit vs anchor (pitkä pätkä → aloita alkupäästä). Boundit route-slicestä;
+// jos slice tyhjä (reititön/harva data) → fallback pätkän merkkien latlngeihin.
+function fitMapToSegment(map: L.Map, routes: RouteConfig[], seg: Segment, segMarkers: SignMarker[]): void {
+  const plan = planSegmentZoom(seg.startDist, seg.endDist)
+  const latlngs: [number, number][] = []
+  if (plan) {
+    const routeSet = new Set(seg.routeIds ?? [])
+    for (const r of routes) {
+      if (!routeSet.has(r.id)) continue
+      for (const p of r.routePoints) {
+        if (p.distanceFromStart >= plan.startDist && p.distanceFromStart <= plan.endDist) {
+          latlngs.push([p.lat, p.lon])
+        }
+      }
+    }
+  }
+  if (latlngs.length === 0) {
+    for (const m of segMarkers) latlngs.push([m.lat, m.lon])
+  }
+  if (latlngs.length === 1) map.setView(latlngs[0], 15)
+  else if (latlngs.length > 1) map.fitBounds(latlngs, { padding: [40, 40], maxZoom: 16 })
 }
 
 // T85-T105/T140-T152: merkkien sijoitus, tila, ajotila, tarkastusnäkymä ja liittyvä UI.
@@ -52,17 +81,36 @@ export function wireMarkers(
   talkoolainenCode: string | undefined,
   deps: MarkersWiringDeps,
 ): MarkersWiring {
-  const { segmentStore, renderSegmentOverlay, segmentPanel, showWarning } = deps
+  const { segmentStore, renderSegmentOverlay, segmentPanel, showWarning, gpsNavigator } = deps
 
   let progressBar!: ProgressBar
   let statusPanel!: StatusPanel
-  let gpsDrivePanel: GpsDrivePanel | null = null
   let segmentView: SegmentView | null = null
   let signLibrary: SignLibrary | null = null
+  let nextHighlight: NextMarkerHighlight | null = null
+
+  // T224 (b1): korosta pätkän seuraava asettamaton merkki kartalla (vain asettaminen-phase).
+  function updateNextHighlight(seg: Segment, segMarkers: SignMarker[]): void {
+    if (!nextHighlight) return
+    const next = seg.phase === 'asettaminen' ? firstUnsetMarker(segMarkers) : null
+    if (next) nextHighlight.set(next.lat, next.lon)
+    else nextHighlight.clear()
+  }
 
   // T185/V117: outbox-resurssiavaimista ('marker:<id>') pending-merkkien id-joukko listalle.
   const markerPendingIds = (): Set<string> =>
     new Set([...outbox.pendingResourceKeys()].filter(k => k.startsWith('marker:')).map(k => k.slice('marker:'.length)))
+
+  // V33/V142 (B-lista1): talkoolaisen merkkilista näyttää VAIN oman pätkän merkit — myös
+  // re-renderissä (status-muutos, outbox-vahvistus, modaalin refresh). Aiemmin re-render-
+  // callbackit välittivät segmentMarkerIds=undefined → lista palasi näyttämään kaikki reitin
+  // merkit heti ensimmäisen muutoksen jälkeen. Järjestäjälle undefined = kaikki merkit (oikein).
+  const currentSegmentMarkerIds = (): Set<string> | undefined => {
+    if (!talkoolainenCode) return undefined
+    const seg = getSegmentForCode(segmentStore, talkoolainenCode)
+    if (!seg) return undefined
+    return new Set(getMarkersForSegment(seg, markerManager.getAll()).map(m => m.id))
+  }
 
   // Forward declaration — modaali luodaan vasta markerManagerin jälkeen
   let markerDetailModal: MarkerDetailModal | null = null
@@ -72,7 +120,7 @@ export function wireMarkers(
   }
 
   const markerManager = new MarkerManager(map, routes, () => {
-    renderMarkerList(markerManager, undefined, undefined, signLibrary, onOpenMarkerDetail, markerPendingIds())
+    renderMarkerList(markerManager, undefined, currentSegmentMarkerIds(), signLibrary, onOpenMarkerDetail, markerPendingIds())
     progressBar.refreshDots()
     statusPanel?.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
     segmentPanel.refreshCounts()
@@ -80,7 +128,13 @@ export function wireMarkers(
     renderSegmentOverlay()
     if (segmentView) {
       const seg = talkoolainenCode ? getSegmentForCode(segmentStore, talkoolainenCode) : undefined
-      if (seg) segmentView.update(getMarkersForSegment(seg, markerManager.getAll()))
+      if (seg) {
+        const segMarkers = getMarkersForSegment(seg, markerManager.getAll())
+        // T232 (F)/V159: segmentView.update() → renderNext → onNavigate synkkaa kartan korostuksen
+        // hero:n VALITTUUN merkkiin (◀▶-selailu huomioiden). EI erillistä updateNextHighlightia tässä
+        // — se osoittaisi aina firstUnsetMarkeriin ja ohittaisi selatun valinnan (epäjohdonmukainen).
+        segmentView.update(segMarkers)
+      }
     }
   }, initialMarkers, distM => showWarning(`⚠ Merkki kaukana reitistä (${Math.round(distM)} m)`), msg => showWarning(msg, 5000))
 
@@ -89,9 +143,11 @@ export function wireMarkers(
     () => signLibrary,
     getRole,
     () => {
-      renderMarkerList(markerManager, undefined, undefined, signLibrary, onOpenMarkerDetail, markerPendingIds())
+      renderMarkerList(markerManager, undefined, currentSegmentMarkerIds(), signLibrary, onOpenMarkerDetail, markerPendingIds())
       progressBar.refreshDots()
     },
+    // T225/V151: talkoolaisen oma koodi → kova-poisto vain oman itse-luoman merkin kohdalla.
+    () => talkoolainenCode,
   )
   markerManager.setOnMarkerClick((id) => onOpenMarkerDetail(id))
 
@@ -99,7 +155,7 @@ export function wireMarkers(
   // Käsittelijä kattaa myös 2xx-vahvistuksen (avain poistuu → korostus katoaa).
   setOutboxChangeHandler((keys) => {
     markerManager.setPendingKeys(keys)
-    renderMarkerList(markerManager, undefined, undefined, signLibrary, onOpenMarkerDetail, markerPendingIds())
+    renderMarkerList(markerManager, undefined, currentSegmentMarkerIds(), signLibrary, onOpenMarkerDetail, markerPendingIds())
   })
   // Edellisen session vahvistamattomat kirjoitukset voivat olla vielä jonossa käynnistyessä.
   markerManager.setPendingKeys(outbox.pendingResourceKeys())
@@ -111,7 +167,10 @@ export function wireMarkers(
         document.getElementById('segment-view-container')!,
         seg,
         (updated) => {
-          for (const m of updated) markerManager.updateStatus(m.id, 'kerää')
+          // V28 (B-lista3): bulkCollect palauttaa merkit jo 'kerätty'-tilassa. Käytä suoraa
+          // bulkSetStatus-asetusta — EI 'kerää'-actionia, joka heittää "Virheellinen siirtymä"
+          // suunniteltu/ei_tarpeen-merkeille (uncaught throw, osittainen päivitys, ei banneria).
+          markerManager.bulkSetStatus(updated.map(m => m.id), 'kerätty')
         },
         (inspected, note) => {
           const updatedSeg = updateSegment(segmentStore, seg.id, { inspected, inspectionNote: note || undefined })
@@ -122,32 +181,124 @@ export function wireMarkers(
             .catch(() => flagInspectError())
           if (updatedSeg) segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
         },
+        {
+          // "Seuraava merkki" -ohjaus: aseta/ohita etenee pätkän merkit järjestyksessä (V9/V3).
+          // markerManager.onUpdate → currentSegmentMarkerIds() + segmentView.update() re-render.
+          onSetMarker: (id) => markerManager.updateStatus(id, 'aseta'),
+          onSkipMarker: (id) => markerManager.updateStatus(id, 'ohita'),
+          onFocusMarker: (id) => onOpenMarkerDetail(id),
+          // "Näytä kartalla": panoroi ilman modaalia (näkymä kutistuu → kartta esiin)
+          onShowOnMap: (id) => markerManager.panTo(id),
+          // T228: "Laita kommentti" hero-overflowsta → avaa detail-modaalin (Kommentti-kenttä,
+          // updateNote → location_note-PUT, server sallii omalle pätkälle V93). Per-merkki-kommentti
+          // löydettäväksi herosta — geneerinen kommentti (pätkä/vapaa piste) on eri asia (T221).
+          onComment: (id) => onOpenMarkerDetail(id),
+          // T222: "Siirretty" hero-overflowsta → panoroi merkkiin + ohje. Varsinainen siirto =
+          // raahaus kartalla (vain oman pätkän merkit draggable, V150). Backend sallii oman pätkän
+          // sijaintimuutoksen range-sisällä (V150b).
+          onMoveMarker: (id) => {
+            markerManager.panTo(id)
+            showWarning('Raahaa merkkiä kartalla uuteen paikkaan — muutos tallentuu', 4000)
+          },
+          // T78/V43: talkoolainen muokkaa oman pätkän rajoja kentällä. Server sallii (V93:
+          // talkoolainen_code === assigned_code). Päivitä store + backend + kartta + näkymä.
+          onEditBounds: (startDist, endDist) => {
+            const updatedSeg = updateSegment(segmentStore, seg.id, { startDist, endDist })
+            const flagErr = () => showWarning('⚠ Pätkän rajojen tallennus epäonnistui — yritä uudelleen', 5000)
+            updateSegmentRemote(seg.id, { startDist, endDist })
+              .then(ok => { if (!ok) flagErr() })
+              .catch(() => flagErr())
+            if (updatedSeg) {
+              renderSegmentOverlay()
+              segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
+              // T222/V150: rajat muuttuivat → oma merkki-setti muuttuu → päivitä raahattavuus.
+              markerManager.setDraggablePredicate(m => currentSegmentMarkerIds()?.has(m.id) ?? false)
+            }
+          },
+          // T224 (C)/V38/V93: talkoolainen muokkaa oman pätkän varustelistaa (valmisteluvaihe).
+          // Sama tallennuspolku kuin rajoilla: store + backend + näkymä-refresh.
+          onEquipmentChange: (equipment) => {
+            const updatedSeg = updateSegment(segmentStore, seg.id, { equipment })
+            const flagErr = () => showWarning('⚠ Varustelistan tallennus epäonnistui — yritä uudelleen', 5000)
+            updateSegmentRemote(seg.id, { equipment })
+              .then(ok => { if (!ok) flagErr() })
+              .catch(() => flagErr())
+            if (updatedSeg) segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
+          },
+          // T230/V93: talkoolainen merkitsee pätkän valmiiksi (asettaminen/purku). Sama tallennuspolku.
+          onComplete: (completed) => {
+            const updatedSeg = updateSegment(segmentStore, seg.id, { completed })
+            const flagErr = () => showWarning('⚠ Pätkän valmiiksi-merkinnän tallennus epäonnistui — yritä uudelleen', 5000)
+            updateSegmentRemote(seg.id, { completed })
+              .then(ok => { if (!ok) flagErr() })
+              .catch(() => flagErr())
+            if (updatedSeg) {
+              renderSegmentOverlay()
+              segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
+            }
+          },
+          // T232 (B)/V156: GPS-toggle herosta (siirretty yläpalkista). Ohjaa GpsNavigatoria (T30,
+          // oma sijainti) — ERILLINEN driveModesta. Palauttaa uuden aktiivitilan napin ilmeeseen.
+          onToggleGps: () => {
+            if (gpsNavigator.isActive()) { gpsNavigator.stop(); return false }
+            gpsNavigator.start(); return true
+          },
+          isGpsActive: () => gpsNavigator.isActive(),
+          // T232 (F)/V159: hero:n valittu merkki (◀▶-selailu/reconcile) → synkkaa kartan korostus.
+          // null = ei valittua (done/väärä phase) → tyhjennä. Korostus SEURAA valintaa, ei suoraan
+          // firstUnsetMarkeria (estää "highlight osoittaa eri merkkiin kuin hero" -epäjohdonmukaisuuden).
+          onNavigate: (id) => {
+            if (!nextHighlight) return
+            if (!id) { nextHighlight.clear(); return }
+            const m = markerManager.getAll().find(x => x.id === id)
+            if (m) nextHighlight.set(m.lat, m.lon)
+            else nextHighlight.clear()
+          },
+          // T232 (E)/T229: "+ Merkki" hero-overflowsta → sign-picker kartan keskelle (POST omalle
+          // pätkälle V149). Sama polku kuin yläpalkin #btn-add-marker (poistuu T233).
+          onAddMarker: () => {
+            const c = map.getCenter()
+            placeMode.openPicker(c.lat, c.lng, window.innerWidth / 2, window.innerHeight / 2)
+          },
+        },
       )
-      segmentView.update(getMarkersForSegment(seg, markerManager.getAll()))
+      const segMarkers0 = getMarkersForSegment(seg, markerManager.getAll())
+      segmentView.update(segMarkers0)
+      // T224 (D): "tässä on sun pätkä" — zoomaa pätkään heti latauksessa.
+      fitMapToSegment(map, routes, seg, segMarkers0)
+      // T224 (b1): korosta seuraava asettamaton merkki kartalla (kartta = päänavigointi).
+      nextHighlight = new NextMarkerHighlight(map)
+      updateNextHighlight(seg, segMarkers0)
+      // T222/V150: vain oman pätkän merkit raahattavia — vieraita ei voi siirtää (backend 403).
+      markerManager.setDraggablePredicate(m => currentSegmentMarkerIds()?.has(m.id) ?? false)
     }
   }
 
   const driveMode = new DriveMode(map, routes[0].routePoints, km => {
     progressBar.update(km)
-    gpsDrivePanel?.update(km)
   })
 
   // T204/V134: RouteBar-jako. Talkoolainen saa täyden drive-kontrollin (RouteBar: reittivalinta
   // + ◀▶-nuolet + km-scrubber); järjestäjä saa vain kevyen näytä/piilota-reittivalitsimen
-  // (RouteVisibilityControl). Drive-DOM (scrubber, gps-drive-panel, ◀▶) renderöityy VAIN
-  // talkoolaiselle — piilotetaan järjestäjältä.
+  // (RouteVisibilityControl). Drive-DOM (scrubber, ◀▶) renderöityy VAIN talkoolaiselle —
+  // piilotetaan järjestäjältä. (GpsDrivePanel poistettu T224/V148 — hero on ainoa ohjaus.)
   const isTalkoolainen = getRole() === 'talkoolainen'
   let routeBar: RouteBar | null = null
   let routeVis: RouteVisibilityControl | null = null
   const routeSelectorEl = document.getElementById('route-selector')!
 
   if (isTalkoolainen) {
+    // T224 (A/V148): talkoolaisen alapalkki (`#route-bar`) POISTETTU kokonaan — se ei tuonut
+    // arvoa pätkäkeskeisessä flowssa (hero + kartta + "Kaikki merkit"/"Varustelista" -napit riittää).
+    // RouteBar luodaan yhä driveMode-reitin + activeRouteProviderin vuoksi, mutta itse palkki
+    // piilotetaan. (◀▶/scrubber ohjasi koko reittiä, ei pätkää → hämäävä; pois näkyvistä.)
     routeBar = new RouteBar(
       routes, polylines, map, driveMode, markerManager,
       routeSelectorEl,
       document.getElementById('route-track-fill') as HTMLElement,
       () => { progressBar.update(0); progressBar.refreshDots() },
     )
+    document.getElementById('route-bar')?.setAttribute('hidden', '')
   } else {
     routeVis = new RouteVisibilityControl(routes, polylines, map, markerManager, routeSelectorEl)
     // Piilota drive-osat järjestäjältä (V134)
@@ -168,15 +319,9 @@ export function wireMarkers(
   )
   progressBar.update(0)
 
-  if (isTalkoolainen) {
-    gpsDrivePanel = new GpsDrivePanel(
-      document.getElementById('gps-drive-panel')!,
-      driveMode,
-      markerManager,
-      () => activeRouteProvider().id,
-    )
-    gpsDrivePanel.update(0)
-  }
+  // T224 (F)/V148: talkoolaisen seuraava-merkki-ohjaus asuu YKSIN SegmentView-herossa (ylhäällä).
+  // Vanha alapalkin GpsDrivePanel (⇒ Seuraava / ✓ Aseta / Ei tarpeen) poistettu duplikaationa —
+  // hero on ainoa Aseta/ohjaa-kontrolli. Oikea GPS-geolokaatio elää erikseen (gps-navigator.ts).
 
   statusPanel = new StatusPanel(document.getElementById('status-panel')!)
   statusPanel.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
@@ -219,14 +364,7 @@ export function wireMarkers(
   const markerModal = document.getElementById('marker-modal')!
 
   const openMarkerModal = (highlightId?: string) => {
-    let segmentMarkerIds: Set<string> | undefined
-    if (talkoolainenCode) {
-      const seg = getSegmentForCode(segmentStore, talkoolainenCode)
-      if (seg) {
-        segmentMarkerIds = new Set(getMarkersForSegment(seg, markerManager.getAll()).map(m => m.id))
-      }
-    }
-    renderMarkerList(markerManager, highlightId, segmentMarkerIds, signLibrary, onOpenMarkerDetail, markerPendingIds())
+    renderMarkerList(markerManager, highlightId, currentSegmentMarkerIds(), signLibrary, onOpenMarkerDetail, markerPendingIds())
     markerModalBackdrop.classList.add('open')
     markerModal.classList.add('open')
   }
@@ -236,6 +374,12 @@ export function wireMarkers(
   }
 
   document.getElementById('btn-list')!.addEventListener('click', () => openMarkerModal())
+
+  // T233/V155: talkoolaisen yläpalkin "🎒 Varustelista" → avaa SegmentView:n EquipmentModal
+  // (siirretty pois pätkänäkymän panelista, ettei kilpaile hero-primaryn kanssa). Nappi vain
+  // talkoolaiselle (data-role-hide="järjestäjä"). Merkin-lisäys (T229) siirtyi hero-overflowiin.
+  document.getElementById('btn-varuste')?.addEventListener('click', () => segmentView?.openEquipment())
+
   document.getElementById('btn-modal-close')!.addEventListener('click', closeMarkerModal)
   markerModalBackdrop.addEventListener('click', closeMarkerModal)
   markerModal.addEventListener('click', e => e.stopPropagation())

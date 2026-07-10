@@ -1,15 +1,20 @@
 import type { SignMarker, MarkerStatus } from './types'
+import { resolveTaskMarkers } from './task-markers'
 
 export interface EquipmentItem {
   name: string
   count: number
 }
 
+// V139: reitilliset kentät VALINNAISIA. Reitillinen tehtävä = kaikki kolme annettu (lineaarinen
+// reittipätkä); reititön tehtävä = kentät puuttuvat (aluetehtävä: maali/keräysalue).
 export interface Segment {
   id: string
-  routeIds: string[]
-  startDist: number
-  endDist: number
+  routeIds?: string[]
+  startDist?: number
+  endDist?: number
+  linkedMarkerIds?: string[]   // V140: eksplisiittisesti liitetyt merkit (poimittu kartalta)
+  markerTypeFilter?: string    // V140/V143: dynaaminen tyyppisuodatin (templateId-osumat)
   assignedCode?: string
   displayName?: string
   description?: string
@@ -17,6 +22,9 @@ export interface Segment {
   phase: 'asettaminen' | 'tarkastus' | 'purku'
   inspected?: boolean
   inspectionNote?: string
+  // T230: talkoolaisen eksplisiittinen "pätkä valmiiksi" -signaali asettaminen/purku-vaiheelle.
+  // Eri kuin merkkimatematiikka (getPhaseProgress) — talkoolainen ilmoittaa "oma osuus tehty".
+  completed?: boolean
 }
 
 export type SegmentStore = Map<string, Segment>
@@ -25,18 +33,23 @@ export function createSegmentStore(): SegmentStore {
   return new Map()
 }
 
-// V11: startDist must be < endDist (continuous range). V25: routeIds non-empty.
+// V139: validoi V11 (startDist<endDist) + V25 (routeIds non-empty) VAIN kun reitilliset kentät
+// annettu. Reititön tehtävä (kentät puuttuvat) ohittaa route-validoinnit laillisesti.
+function validateRouteFields(seg: Pick<Segment, 'routeIds' | 'startDist' | 'endDist'>): void {
+  if (seg.startDist !== undefined && seg.endDist !== undefined && seg.startDist >= seg.endDist) {
+    throw new Error(`V11: startDist (${seg.startDist}) must be < endDist (${seg.endDist})`)
+  }
+  if (seg.routeIds !== undefined && seg.routeIds.length === 0) {
+    throw new Error('V25: routeIds must not be empty')
+  }
+}
+
 export function createSegment(
   store: SegmentStore,
   data: Omit<Segment, 'id'>,
   id?: string,
 ): Segment {
-  if (data.startDist >= data.endDist) {
-    throw new Error(`V11: startDist (${data.startDist}) must be < endDist (${data.endDist})`)
-  }
-  if (data.routeIds.length === 0) {
-    throw new Error('V25: routeIds must not be empty')
-  }
+  validateRouteFields(data)
   const segment: Segment = { id: id ?? crypto.randomUUID(), ...data }
   store.set(segment.id, segment)
   return segment
@@ -50,12 +63,7 @@ export function updateSegment(
   const existing = store.get(id)
   if (!existing) return null
   const updated = { ...existing, ...patch }
-  if (updated.startDist >= updated.endDist) {
-    throw new Error(`V11: startDist (${updated.startDist}) must be < endDist (${updated.endDist})`)
-  }
-  if (updated.routeIds.length === 0) {
-    throw new Error('V25: routeIds must not be empty')
-  }
+  validateRouteFields(updated)
   store.set(id, updated)
   return updated
 }
@@ -76,15 +84,18 @@ export const NEXT_PHASE: Record<Segment['phase'], Segment['phase']> = {
 // Kopioi routeIds/startDist/endDist/displayName, TYHJÄ assignedCode/equipment/description
 // (V26: eri talkoolainen eri vaiheessa, ei peri edellisen koodia). Vanha segmentti koskematon.
 // T151/V95: validoi kohde-phasen overlap ennen luontia — duplikaattiklooni (tuplaklikki) → null.
+// V139: undefined-safe — reititön tehtävä ei laske overlappia eikä kopioi olematonta reittiä.
 export function cloneSegmentToNextPhase(store: SegmentStore, segment: Segment): Segment | null {
   const targetPhase = NEXT_PHASE[segment.phase]
-  for (const routeId of segment.routeIds) {
-    if (!validateNoOverlap(store, routeId, segment.startDist, segment.endDist, targetPhase)) {
-      return null
+  if (segment.routeIds && segment.startDist !== undefined && segment.endDist !== undefined) {
+    for (const routeId of segment.routeIds) {
+      if (!validateNoOverlap(store, routeId, segment.startDist, segment.endDist, targetPhase)) {
+        return null
+      }
     }
   }
   return createSegment(store, {
-    routeIds: [...segment.routeIds],
+    routeIds: segment.routeIds ? [...segment.routeIds] : undefined,
     startDist: segment.startDist,
     endDist: segment.endDist,
     displayName: segment.displayName,
@@ -210,23 +221,19 @@ export function validateNoOverlap(
   for (const seg of store.values()) {
     if (seg.id === excludeId) continue
     if (seg.phase !== phase) continue
+    // V139: reitittömät tehtävät eivät osallistu overlappiin (overlap merkitsee vain reitillisille).
+    if (!seg.routeIds || seg.startDist === undefined || seg.endDist === undefined) continue
     if (!seg.routeIds.includes(routeId)) continue
     if (startDist < seg.endDist && seg.startDist < endDist) return false
   }
   return true
 }
 
-// V25: include marker if routeIds intersects AND distanceFromStart in [startDist, endDist].
-// Deduplication is implicit — each marker id is unique.
+// V140: delegoi kanoniseen resolveTaskMarkers:iin — Segment on strukturaalinen TaskMarkerSource.
+// Reittifiltteri (V25) ∪ linkedMarkerIds ∪ markerTypeFilter. Reitilliselle sama tulos kuin ennen.
 export function getMarkersForSegment(
   segment: Segment,
   markers: SignMarker[],
 ): SignMarker[] {
-  const routeSet = new Set(segment.routeIds)
-  return markers.filter(
-    m =>
-      m.routeIds.some(r => routeSet.has(r)) &&
-      m.distanceFromStart >= segment.startDist &&
-      m.distanceFromStart <= segment.endDist,
-  )
+  return resolveTaskMarkers(segment, markers)
 }
