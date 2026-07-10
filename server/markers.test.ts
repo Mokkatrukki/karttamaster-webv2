@@ -293,7 +293,6 @@ describe('T47: Markers REST API', () => {
   describe('PUT /api/markers/:id', () => {
     // T222/V150: talkoolainen saa muuttaa statuksen VAIN oman pätkän merkissä.
     test('talkoolainen can update status on OWN segment marker', async () => {
-      db.run("UPDATE map_state SET value = 'hyväksytty' WHERE key = 'status'")
       const id = await seedMarker(db)
       seedOwnedSegment(db, 'OMA-KOODI')
       const res = await makeApp(db).request(`/api/markers/${id}`, {
@@ -377,7 +376,6 @@ describe('T47: Markers REST API', () => {
     })
 
     test('updated_by set on status update (oma pätkä)', async () => {
-      db.run("UPDATE map_state SET value = 'hyväksytty' WHERE key = 'status'")
       const id = await seedMarker(db)
       seedOwnedSegment(db, 'OMA-KOODI')
       const res = await makeApp(db).request(`/api/markers/${id}`, {

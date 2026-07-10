@@ -1027,48 +1027,6 @@ button {
   text-align: center;
 }
 
-/* ── Map state badge (T49) ── */
-
-#map-state-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.map-state-text {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  padding: 3px 8px;
-  border-radius: var(--radius-sm);
-  white-space: nowrap;
-}
-
-.map-state-text[data-status="luonnos"] {
-  background: rgba(245, 158, 11, 0.18);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.3);
-}
-
-.map-state-text[data-status="hyväksytty"] {
-  background: rgba(74, 222, 128, 0.15);
-  color: #4ade80;
-  border: 1px solid rgba(74, 222, 128, 0.3);
-}
-
-.btn-approve {
-  background: var(--confirm);
-  color: var(--confirm-text);
-  font-size: 11px;
-  padding: 4px 10px;
-  min-height: 44px;
-}
-
-.btn-approve:hover {
-  background: var(--confirm-hover);
-}
-
 /* ── Status panel (T28) — järjestäjä only ── */
 
 /* T205/V132: hillitty leijuva tilannekortti kartan yläkulmassa — EI enää "päälle liimattua"
@@ -3292,7 +3250,7 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
    dimensiottomat propit → ei visuaalimuutosta olemassa oleviin). */
 .btn,
 .btn-bulk-apply, .btn-bulk-checkin-aseta, .btn-bulk-checkin-ohita,
-.btn-status-primary, .btn-status-secondary, .btn-approve, .btn-bulk-collect,
+.btn-status-primary, .btn-status-secondary, .btn-bulk-collect,
 .btn-mark-inspected, .btn-snapshot-create, .btn-snapshot-download,
 .btn-snapshot-restore, .btn-snapshot-restore-file, .btn-segment-create,
 .btn-segment-modal-save, .btn-segment-creation-save, .btn-segment-creation-cancel,
@@ -3329,13 +3287,13 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 /* Variantti: confirm (vihreä kuittaus) — + vanhat vihreät napit */
 .btn--confirm,
 .btn-bulk-apply:not(:disabled), .btn-bulk-checkin-aseta:not(:disabled),
-.btn-status-primary, .btn-approve, .btn-bulk-collect, .btn-mark-inspected,
+.btn-status-primary, .btn-bulk-collect, .btn-mark-inspected,
 .btn-segment-modal-save, .btn-segment-creation-save, .modal-btn-primary {
   background: var(--confirm);
   color: var(--confirm-text);
 }
 .btn--confirm:hover,
-.btn-status-primary:hover, .btn-approve:hover, .btn-bulk-collect:hover,
+.btn-status-primary:hover, .btn-bulk-collect:hover,
 .btn-mark-inspected:hover, .btn-segment-modal-save:hover, .modal-btn-primary:hover {
   background: var(--confirm-hover);
 }

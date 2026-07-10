@@ -89,7 +89,6 @@ server/       ← Hono + Bun + SQLite
 | EquipmentModal | `src/ui/equipment-modal.ts` | ✓ T224/C (talkoolaisen varustelista tilavana modaalina) | tests/t224-equipment-modal.test.ts | [ui.md](docs/components/ui.md) |
 | PhaseSwitcher | `src/ui/phase-switcher.ts` | ✓ T148,T180 (stopPropagation, B80) | e2e/t180-phase-switcher-menu.spec.ts | [ui.md](docs/components/ui.md) |
 | AuthScreen | `src/ui/auth-screen.ts` | ✓ T51 | — | [ui.md](docs/components/ui.md) |
-| MapStateBadge | `src/ui/map-state-badge.ts` | stub — approval-konsepti poistettu (B46/V79), ei renderöi mitään | — | [ui.md](docs/components/ui.md) |
 | SnapshotPanel | `src/ui/snapshot-panel.ts` | ✓ T164 (lataa/palauta tiedostosta) | — | [ui.md](docs/components/ui.md) |
 | LeftPanel | `src/ui/left-panel.ts` | ✓ T73,T179 (onToggle callback),T181 (mobiili-drawer, default-collapsed ≤480px) | critical-paths: "Left panel"; e2e/t179-map-invalidate-size.spec.ts; e2e/t181-left-panel-mobile-drawer.spec.ts | [ui.md](docs/components/ui.md) |
 | StatusPanel | `src/ui/status-panel.ts` | ✓ T28 | sprint-features: "T28" | [ui.md](docs/components/ui.md) |
