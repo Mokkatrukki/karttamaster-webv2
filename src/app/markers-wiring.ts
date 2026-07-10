@@ -19,6 +19,8 @@ import type { Segment } from '../logic/segments'
 import { planSegmentZoom } from '../logic/segment-zoom'
 import { firstUnsetMarker, nextMarkerAhead } from '../logic/navigation'
 import { NextMarkerHighlight } from '../map/next-marker-highlight'
+import { CommentLayer } from '../map/comment-layer'
+import { fetchComments, deleteComment } from '../logic/comments'
 import type { GpsNavigator } from '../map/gps-navigator'
 import { updateSegmentRemote } from '../logic/segment-sync'
 import { outbox, setOutboxChangeHandler } from '../logic/outbox-instance'
@@ -401,6 +403,23 @@ export function wireMarkers(
     const target = nextMarkerAhead(markerManager.getAll(), currentDistM, route.id)
     if (target) driveMode.jumpToDistance(target.distanceFromStart)
   })
+
+  // T221/T75: vapaa-piste-kommentit kartalle (targetType='point'). Ikoni-marker, klikkaus →
+  // järjestäjä voi poistaa (confirm), muut näkevät tekstin. Haetaan latauksessa; poiston jälkeen
+  // uudelleenrender. (Vapaan pisteen SIJOITUS-UI on erillinen jatko — tässä renderöinti + poisto.)
+  const commentLayer = new CommentLayer(map, (c) => {
+    if (getRole() === 'järjestäjä') {
+      if (window.confirm(`Poistetaanko kommentti: "${c.text}"?`)) {
+        void deleteComment(c.id).then((ok) => { if (ok) refreshPointComments() })
+      }
+    } else {
+      showWarning(c.text, 5000)
+    }
+  })
+  const refreshPointComments = () => {
+    void fetchComments('point').then((rows) => { if (rows) commentLayer.render(rows) })
+  }
+  refreshPointComments()
 
   return { markerManager, driveMode, routeBar, progressBar, placeMode, markerModal, closeMarkerModal }
 }
