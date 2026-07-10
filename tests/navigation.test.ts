@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { nearestUnsetMarker, distanceToNext, firstUnsetMarker, unsetMarkersOrdered, stepUnset } from '../src/logic/navigation'
+import { nearestUnsetMarker, distanceToNext, firstUnsetMarker, unsetMarkersOrdered, stepUnset, nextMarkerAhead } from '../src/logic/navigation'
 import type { SignMarker } from '../src/logic/types'
 
 function makeMarker(overrides: Partial<SignMarker>): SignMarker {
@@ -140,6 +140,47 @@ describe('stepUnset', () => {
 
   it('kaikki asetettu → null', () => {
     expect(stepUnset([m3], 'm3', 1)).toBeNull()
+  })
+})
+
+// T39: drive-mode "hyppää seuraavaan merkkiin" — seuraava merkki edessäpäin aktiivisella reitillä.
+describe('nextMarkerAhead', () => {
+  it('palauttaa seuraavan merkin edessäpäin (pienin distanceFromStart > currentDist)', () => {
+    // m1=100, m2=300; currentDist=150 → m2
+    expect(nextMarkerAhead([m1, m2], 150, 'r1')?.id).toBe('m2')
+  })
+
+  it('ennen ensimmäistä merkkiä → ensimmäinen', () => {
+    expect(nextMarkerAhead([m2, m1], 0, 'r1')?.id).toBe('m1')
+  })
+
+  it('strict >: seisoo tarkalleen merkin kohdalla → seuraava, ei sama (etenee)', () => {
+    // currentDist=100 (m1:n kohta) → ei m1 vaan m2
+    expect(nextMarkerAhead([m1, m2], 100, 'r1')?.id).toBe('m2')
+  })
+
+  it('ottaa mukaan kaikki statukset (myös asetettu)', () => {
+    // m3=500 asetettu; currentDist=350 → m3 (drive tarkastaa myös asetetut)
+    expect(nextMarkerAhead([m1, m2, m3], 350, 'r1')?.id).toBe('m3')
+  })
+
+  it('ohittaa väärän reitin merkit', () => {
+    // m4=200 kuuluu r2:lle → ei valita r1:llä
+    expect(nextMarkerAhead([m4], 0, 'r1')).toBeNull()
+  })
+
+  it('viimeisen merkin jälkeen → null (kursori jää paikalleen)', () => {
+    expect(nextMarkerAhead([m1, m2], 1000, 'r1')).toBeNull()
+  })
+
+  it('tyhjä lista → null', () => {
+    expect(nextMarkerAhead([], 0, 'r1')).toBeNull()
+  })
+
+  it('multi-route: merkki jaetulla reitillä valitaan aktiivisen reitin id:llä', () => {
+    const shared = makeMarker({ id: 'shared', distanceFromStart: 250, routeIds: ['r1', 'r2'] })
+    expect(nextMarkerAhead([shared], 0, 'r1')?.id).toBe('shared')
+    expect(nextMarkerAhead([shared], 0, 'r2')?.id).toBe('shared')
   })
 })
 

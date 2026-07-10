@@ -55,6 +55,25 @@ export function nearestUnsetMarker(
   )
 }
 
+// T39: drive-mode "hyppää seuraavaan merkkiin". Reittiä pitkin ajavan (järjestäjä/talkoolainen)
+// seuraava merkki EDESSÄPÄIN aktiivisella reitillä — pienin distanceFromStart joka on AIDOSTI
+// suurempi kuin currentDist (strict > → toistopainallus etenee, ei jää paikalleen samaan merkkiin).
+// Kaikki statukset mukana (drive tarkastaa myös jo asetetut) — EI GPS-riippuvainen, käyttää vain
+// merkin distanceFromStart-arvoa. Palauttaa null jos reitillä ei ole merkkiä currentDist:n edellä.
+export function nextMarkerAhead(
+  markers: SignMarker[],
+  currentDist: number,
+  routeId: string,
+): SignMarker | null {
+  let best: SignMarker | null = null
+  for (const m of markers) {
+    if (!m.routeIds.includes(routeId)) continue
+    if (m.distanceFromStart <= currentDist) continue
+    if (best === null || m.distanceFromStart < best.distanceFromStart) best = m
+  }
+  return best
+}
+
 export function distanceToNext(
   markers: SignMarker[],
   currentDist: number,
