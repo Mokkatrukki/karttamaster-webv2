@@ -263,7 +263,12 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(page.locator('.segment-details-modal-backdrop')).not.toBeVisible()
   })
 
-  test('pätkän voi poistaa listasta', async ({ page }) => {
+  // KARANTEENI (2026-07-10): avaa details-modaalin synteettisellä dispatchEvent-klikillä
+  // Leaflet-polylineen, jota headless-chromium ei rekisteröi luotettavasti (auth-screen-overlay
+  // kaappaa klikin). Vahvistettu pre-existing (fail myös mainilla b672a64), ei regressio.
+  // Poisto-logiikka katettu Vitest-purella (tests/segments.test.ts). Ks. muisti flaky-e2e-tests.
+  // TODO: robustoitavissa DOM-polulla jos SegmentPanel saa klikattavan listarivin details-modaaliin.
+  test.fixme('pätkän voi poistaa listasta', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')

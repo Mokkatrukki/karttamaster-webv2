@@ -48,6 +48,17 @@ export async function mockTalkoolainenSegment(
 
 // T195/V125: kirjasto seedaa tyhjänä ja tulee backendistä (V123). E2E-pickerit tarvitsevat
 // suosikkeja → mockaa /api/templates palauttamaan kiinteä joukko (id 'right' = "Oikealle").
+// Seedaa merkkijoukko /api/markers-GET-mockiin (POST/PUT → 201 no-op). Deterministinen
+// vaihtoehto flaky dblclick→picker-marker-luonnille headless-chromiumissa.
+export async function mockMarkers(page: Page, markers: unknown[]): Promise<void> {
+  await page.route(/\/api\/markers(\?|$)/, route => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(markers) })
+    }
+    return route.fulfill({ status: 201, contentType: 'application/json', body: '{}' })
+  })
+}
+
 export async function mockTemplates(page: Page): Promise<void> {
   await page.route('/api/templates', route => {
     if (route.request().method() === 'GET') {

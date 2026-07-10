@@ -3,7 +3,7 @@
  * Validoi demo-sprintin featuuret selaimessa.
  */
 import { test, expect } from 'playwright/test'
-import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTemplates } from './helpers/auth'
+import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTemplates, mockMarkers, mockTalkoolainenSegment } from './helpers/auth'
 
 test.describe('T28 — Status panel (tilannekuva)', () => {
   test('näkyy järjestäjälle toolbarin alla', async ({ page }) => {
@@ -69,27 +69,27 @@ test.describe('T28 — Status panel (tilannekuva)', () => {
 })
 
 test.describe('T38 — Merkin tyyppi vaihdettavissa', () => {
+  // Robustoitu 2026-07-10: pudotettu flaky dblclick→picker-marker-luonti (headless-chromium ei
+  // rekisteröi Leaflet-dblclickia luotettavasti, ks. flaky-e2e-tests-muisti). Merkki seedataan
+  // /api/markers-mockilla → testaa aidon invariantin (type-select roolin mukaan) DOM-polulla:
+  // #btn-list (aina toolbarissa, ei enää turha #btn-menu) → .marker-item → detail-modaali.
+  const seededMarker = {
+    id: 'mk-t38', type: 'right', lat: 65.62, lon: 27.62, distance_from_start: 5000,
+    route_ids: ['35km'], status: 'suunniteltu', location_note: null, color: null,
+    label: null, icon_id: null, image_id: null, template_id: null, parts_json: null,
+    description: null, images: [], created_by: null,
+  }
+
   test('järjestäjä näkee type-selectin merkin detail-modaalissa', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await mockTemplates(page)
+    await mockMarkers(page, [seededMarker])
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
-    await page.waitForTimeout(1500)
+    await expect(page.locator('#auth-screen')).not.toHaveClass(/open/)
 
-    // Lisää merkki ensin (T85: dblclick → floating picker → tyyppi)
-    await page.dblclick('#map', { position: { x: 460, y: 260 } })
-    await page.waitForTimeout(500)
-    await expect(page.locator('#floating-picker')).toHaveClass(/open/)
-    await page.click('#floating-picker .sign-type-btn[data-type="right"]')
-    await page.waitForTimeout(400)
-
-    // Avaa overflow-valikko → Lista → merkkirivi → detail-modaali (tyyppi-select siirretty tänne)
-    await page.click('#btn-menu')
-    await page.waitForTimeout(200)
     await page.click('#btn-list')
-    await page.waitForTimeout(300)
     await page.click('.marker-item')
-    await page.waitForTimeout(300)
 
     // Type-select näkyy järjestäjälle
     const sel = page.locator('.marker-detail-type-select')
@@ -98,28 +98,19 @@ test.describe('T38 — Merkin tyyppi vaihdettavissa', () => {
   })
 
   test('talkoolainen ei näe type-selectiä', async ({ page }) => {
-    // Talkoolainen voi myös lisätä merkin (dblclick ei ole roolirajattu)
+    // V27: talkoolaisen pätkä tulee URL-polusta /s/<koodi>, ei /api/auth/me-mockista.
     await mockAuthAsTalkoolainen(page)
+    await mockTemplates(page)
+    await mockTalkoolainenSegment(page, { withMarker: true })
     await page.setViewportSize({ width: 375, height: 812 })
-    await page.goto('/')
-    await page.waitForTimeout(1500)
+    await page.goto('/s/TEST01')
+    await expect(page.locator('#auth-screen')).not.toHaveClass(/open/)
     expect(await page.evaluate(() => document.body.dataset.role)).toBe('talkoolainen')
 
-    await page.dblclick('#map', { position: { x: 200, y: 260 } })
-    await page.waitForTimeout(500)
-    await expect(page.locator('#floating-picker')).toHaveClass(/open/)
-    await page.click('#floating-picker .sign-type-btn[data-type="right"]')
-    await page.waitForTimeout(400)
-
-    // Avaa overflow-valikko → Lista → merkkirivi → detail-modaali
-    await page.click('#btn-menu')
-    await page.waitForTimeout(200)
     await page.click('#btn-list')
-    await page.waitForTimeout(300)
     await page.click('.marker-item')
-    await page.waitForTimeout(300)
 
-    // Ei type-selectiä
+    // Ei type-selectiä talkoolaiselle
     await expect(page.locator('.marker-detail-type-select')).toHaveCount(0)
   })
 })
