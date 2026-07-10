@@ -5,6 +5,7 @@ import type { Segment, EquipmentItem } from '../logic/segments'
 import { buildMarkerVisual } from './marker-visual-row'
 import { EquipmentModal } from './equipment-modal'
 import { SegmentHero, markerLabel } from './segment-hero'
+import { CommentThread, type CommentThreadApi } from './comment-thread'
 import type { SignMarker } from '../logic/types'
 
 // T14/T208 (talkoolainen): pätkänäkymän toiminta-callbackit. Erillinen positional-parametreista
@@ -41,6 +42,10 @@ export interface SegmentViewActions {
   // T218/V143 (skenaario 2): keräyslistan "haettu"-kuittaus. Kuka tahansa autentikoitu, EI
   // ownership-gatea. collected=true → kerätty, false → suunniteltu (peruutus).
   onCollectMarker?: (id: string, collected: boolean) => void
+  // T221/T75: pätkän geneerinen kommenttilanka — kirjoittajan nimi (talkoolaisen koodi) esitäyttöön.
+  commentAuthorName?: string
+  // T221: injektoitava kommentti-api (Vitest-jsdom). Oletus = oikea logic/comments-slice.
+  commentApi?: CommentThreadApi
 }
 
 export class SegmentView {
@@ -65,6 +70,10 @@ export class SegmentView {
   private readonly completeStatus: HTMLElement
   private readonly equipmentModal: EquipmentModal
   private currentMarkers: SignMarker[] = []
+  // T221/T75: pätkän geneerinen kommenttilanka (targetType='segment'). Talkoolainen näkee/lisää,
+  // ei poista (canDelete=false). Eri asia kuin per-merkki-kommentit (MarkerDetailModal).
+  private readonly commentEl: HTMLElement
+  private commentThread: CommentThread | null = null
   // T234: "Seuraava merkki" -hero eristetty omaan luokkaansa (SegmentHero). SegmentView on
   // koordinaattori; hero omistaa selectedNavId-tilan ja ◀▶-selailun (V159).
   private readonly hero: SegmentHero
@@ -92,8 +101,19 @@ export class SegmentView {
     this.completeSection = b.completeSection
     this.completeBtn = b.completeBtn
     this.completeStatus = b.completeStatus
+    this.commentEl = b.commentEl
     this.panel = b.panel
     container.appendChild(b.panel)
+    // T221/T75: pätkän kommenttilanka. Talkoolainen-näkymä → canDelete=false (poisto järjestäjä+).
+    this.commentThread = new CommentThread({
+      targetType: 'segment',
+      targetId: this.segment.id,
+      canDelete: false,
+      authorName: this.actions.commentAuthorName,
+      api: this.actions.commentApi,
+    })
+    this.commentEl.appendChild(this.commentThread.el)
+    void this.commentThread.load()
     this.hero = new SegmentHero(this.nextEl, {
       getSegment: () => this.segment,
       getMarkers: () => this.currentMarkers,
@@ -301,6 +321,7 @@ export class SegmentView {
     completeSection: HTMLElement
     completeBtn: HTMLButtonElement
     completeStatus: HTMLElement
+    commentEl: HTMLElement
   } {
     const panel = document.createElement('div')
     panel.id = 'segment-view'
@@ -461,11 +482,16 @@ export class SegmentView {
 
     panel.appendChild(moreSection)
 
+    // T221/T75: pätkän kommenttilanka-container (thread liitetään konstruktorissa).
+    const commentEl = document.createElement('div')
+    commentEl.className = 'segment-view-comments'
+    panel.appendChild(commentEl)
+
     return {
       panel, progressEl, gpsBtn, nextEl, collectionEl, bulkBtn,
       inspectSection, inspectBtn, inspectNoteInput, inspectStatus,
       moreSection, boundsSection,
-      completeSection, completeBtn, completeStatus,
+      completeSection, completeBtn, completeStatus, commentEl,
     }
   }
 

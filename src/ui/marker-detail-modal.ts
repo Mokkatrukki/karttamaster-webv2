@@ -5,6 +5,7 @@ import { SIGN_TYPES } from '../logic/sign-picker'
 import { listTemplates } from '../logic/sign-library'
 import { validActions, canTransition } from '../logic/marker-status'
 import { registerEscClose, signPreviewHtml } from './modal-helpers'
+import { CommentThread } from './comment-thread'
 
 const STATUS_LABELS: Record<MarkerStatus, string> = {
   suunniteltu: 'Suunniteltu',
@@ -233,6 +234,18 @@ export class MarkerDetailModal {
     }
 
     body.appendChild(imagesSection)
+
+    // T221/T75: geneerinen kommenttilanka merkille (eri asia kuin per-merkki locationNote yllä).
+    // Kuka tahansa autentikoitu voi lähettää; poisto vain järjestäjä+. Talkoolaisen koodi
+    // esitäyttää nimikentän. Lataa kommentit modaalin avautuessa.
+    const thread = new CommentThread({
+      targetType: 'marker',
+      targetId: marker.id,
+      canDelete: isJarjestaja,
+      authorName: this.getTalkoolainenCode(),
+    })
+    body.appendChild(thread.el)
+    void thread.load()
 
     frag.appendChild(body)
 
