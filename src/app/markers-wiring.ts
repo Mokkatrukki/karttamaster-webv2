@@ -260,6 +260,10 @@ export function wireMarkers(
             const c = map.getCenter()
             placeMode.openPicker(c.lat, c.lng, window.innerWidth / 2, window.innerHeight / 2)
           },
+          // T218/V143 (skenaario 2): keräyslistan "Haettu"-kuittaus. Suora status-asetus (EI 'kerää'-
+          // action, joka heittää suunniteltu-tilaisille — sama syy kuin bulkCollect yllä). Kuka tahansa
+          // autentikoitu, ei ownership-gatea; kerätty ↔ suunniteltu. bulkSetStatus persistoi + onUpdate.
+          onCollectMarker: (id, collected) => markerManager.bulkSetStatus([id], collected ? 'kerätty' : 'suunniteltu'),
         },
       )
       const segMarkers0 = getMarkersForSegment(seg, markerManager.getAll())

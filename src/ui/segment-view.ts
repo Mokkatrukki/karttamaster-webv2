@@ -52,6 +52,9 @@ export interface SegmentViewActions {
   onNavigate?: (markerId: string | null) => void
   // T232 (E)/T229: "+ Merkki" hero-overflowsta → avaa sign-picker kartan keskelle (POST omalle pätkälle).
   onAddMarker?: () => void
+  // T218/V143 (skenaario 2): keräyslistan "haettu"-kuittaus. Kuka tahansa autentikoitu, EI
+  // ownership-gatea. collected=true → kerätty, false → suunniteltu (peruutus).
+  onCollectMarker?: (id: string, collected: boolean) => void
 }
 
 export class SegmentView {
@@ -59,6 +62,8 @@ export class SegmentView {
   private readonly progressEl: HTMLElement
   private readonly gpsBtn: HTMLButtonElement
   private readonly nextEl: HTMLElement
+  // T218/V143: keräyskasa-tehtävän (markerTypeFilter) elävä keräyslista — asettaminen-heron tilalla.
+  private readonly collectionEl: HTMLElement
   private readonly bulkBtn: HTMLButtonElement
   private readonly inspectSection: HTMLElement
   private readonly inspectBtn: HTMLButtonElement
@@ -91,6 +96,7 @@ export class SegmentView {
     this.progressEl = b.progressEl
     this.gpsBtn = b.gpsBtn
     this.nextEl = b.nextEl
+    this.collectionEl = b.collectionEl
     this.bulkBtn = b.bulkBtn
     this.inspectSection = b.inspectSection
     this.inspectBtn = b.inspectBtn
@@ -108,6 +114,7 @@ export class SegmentView {
     this.renderCompleteSection()
     this.renderProgress()
     this.renderNext()
+    this.renderCollectionList()
     this.renderBoundsSection()
     this.renderMoreSection()
   }
@@ -123,6 +130,7 @@ export class SegmentView {
     this.currentMarkers = markers
     this.renderProgress()
     this.renderNext()
+    this.renderCollectionList()
     this.updateBulkBtn(markers)
     this.renderInspectSection()
     this.renderCompleteSection()
@@ -215,6 +223,13 @@ export class SegmentView {
   // merkkeihin; oletus = ensimmäinen (firstUnsetMarker, pienin distanceFromStart), ◀▶ selaa
   // (stepUnset T231). Aseta/Näytä/overflow/highlight kohdistuvat valittuun merkkiin (V159).
   private renderNext(): void {
+    // T218/V143: keräyskasa-tehtävä (markerTypeFilter) käyttää elävää keräyslistaa, EI asettaminen-
+    // heroa — merkit sijoitetaan/kerätään tyypin perusteella, ei ennalta suunniteltuina "seuraavina".
+    if (this.segment.markerTypeFilter) {
+      this.nextEl.hidden = true
+      this.actions.onNavigate?.(null)
+      return
+    }
     if (this.segment.phase !== 'asettaminen') {
       this.nextEl.hidden = true
       this.actions.onNavigate?.(null)
@@ -405,6 +420,69 @@ export class SegmentView {
     }
   }
 
+  // T218/V143 (skenaario 2): dynaaminen keräyslista. markerTypeFilter-tehtävä = reititön keräys
+  // (keräyskasa/autoporukka). currentMarkers on jo resolveTaskMarkers-osumat (getMarkersForSegment
+  // delegoi V140) → lista päivittyy elävästi kun kuka tahansa lisää keräyskasa-merkin. Per-merkki
+  // "Haettu"-kuittaus (kerätty ↔ suunniteltu), ei ownership-gatea (V143). Näkyy vain typeFilter-taskille.
+  private renderCollectionList(): void {
+    if (!this.segment.markerTypeFilter) { this.collectionEl.hidden = true; return }
+    this.collectionEl.hidden = false
+    this.collectionEl.innerHTML = ''
+
+    const markers = [...this.currentMarkers].sort((a, b) => a.distanceFromStart - b.distanceFromStart)
+    const collected = markers.filter(m => m.status === 'kerätty').length
+
+    const header = document.createElement('div')
+    header.className = 'segment-view-collect-header'
+    header.textContent = markers.length === 0
+      ? 'Ei vielä keräyskohteita'
+      : `Keräyslista · ${collected}/${markers.length} haettu`
+    this.collectionEl.appendChild(header)
+
+    for (const m of markers) {
+      const done = m.status === 'kerätty'
+      const row = document.createElement('div')
+      row.className = 'segment-view-collect-row'
+      if (done) row.classList.add('segment-view-collect-row--done')
+
+      row.appendChild(buildMarkerVisual(
+        { type: m.type, iconId: m.iconId, label: m.label, parts: m.parts, color: m.color },
+        { size: 36, zoomable: false },
+      ))
+
+      const info = document.createElement('button')
+      info.type = 'button'
+      info.className = 'segment-view-collect-info'
+      const nameEl = document.createElement('span')
+      nameEl.className = 'segment-view-collect-name'
+      nameEl.textContent = markerLabel(m)
+      info.appendChild(nameEl)
+      if (m.locationNote) {
+        const noteEl = document.createElement('span')
+        noteEl.className = 'segment-view-collect-note'
+        noteEl.textContent = m.locationNote
+        info.appendChild(noteEl)
+      }
+      // Rivin klikkaus → näytä kartalla (löydä keräyskohde). Ei modaalia, kartta esiin.
+      info.addEventListener('click', () => {
+        if (this.actions.onShowOnMap) { this.actions.onShowOnMap(m.id); this.setCollapsed(true) }
+        else this.actions.onFocusMarker?.(m.id)
+      })
+      row.appendChild(info)
+
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = done
+        ? 'btn btn--secondary segment-view-collect-btn'
+        : 'btn btn--confirm segment-view-collect-btn'
+      btn.textContent = done ? 'Haettu ✓' : '✓ Haettu'
+      btn.addEventListener('click', () => this.actions.onCollectMarker?.(m.id, !done))
+      row.appendChild(btn)
+
+      this.collectionEl.appendChild(row)
+    }
+  }
+
   // T147: tarkastus-phase — kevyt läpiajo, vapaateksti-huomio, ei per-merkki-kuittausta
   private renderInspectSection(): void {
     const isInspectionPhase = this.segment.phase === 'tarkastus'
@@ -422,6 +500,7 @@ export class SegmentView {
     progressEl: HTMLElement
     gpsBtn: HTMLButtonElement
     nextEl: HTMLElement
+    collectionEl: HTMLElement
     bulkBtn: HTMLButtonElement
     inspectSection: HTMLElement
     inspectBtn: HTMLButtonElement
@@ -499,6 +578,12 @@ export class SegmentView {
     nextEl.className = 'segment-view-next'
     nextEl.hidden = true
     panel.appendChild(nextEl)
+
+    // T218/V143: keräyskasa-tehtävän elävä keräyslista (markerTypeFilter). Asettaminen-heron tilalla.
+    const collectionEl = document.createElement('div')
+    collectionEl.className = 'segment-view-collect'
+    collectionEl.hidden = true
+    panel.appendChild(collectionEl)
 
     // T228: EI inline-merkkilistaa — "Kaikki merkit" -modaali (yläpalkki) on ainoa per-merkki-lista
     // (bulk + rivi→MarkerDetailModal). Inline-lista duplikoi sen ja söi kartan tilan → poistettu.
@@ -587,7 +672,7 @@ export class SegmentView {
     panel.appendChild(moreSection)
 
     return {
-      panel, progressEl, gpsBtn, nextEl, bulkBtn,
+      panel, progressEl, gpsBtn, nextEl, collectionEl, bulkBtn,
       inspectSection, inspectBtn, inspectNoteInput, inspectStatus,
       moreSection, boundsSection,
       completeSection, completeBtn, completeStatus,

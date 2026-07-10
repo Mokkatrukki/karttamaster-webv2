@@ -1569,6 +1569,67 @@ button {
 /* T228: inline-merkkilista (.segment-view-list/.segment-view-item/-status/-empty) poistettu —
    "Kaikki merkit" -modaali on ainoa per-merkki-lista (duplikaatti + karttatilan syöppö). */
 
+/* T218/V143 (skenaario 2): dynaaminen keräyslista — markerTypeFilter-tehtävän elävä lista +
+   per-merkki "Haettu"-kuittaus. Talkoolainen kentällä: 44px touch-kohteet, iso kontrasti. */
+.segment-view-collect {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.segment-view-collect-header {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.segment-view-collect-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border-subtle, var(--border-default));
+}
+.segment-view-collect-row:first-of-type { border-top: none; }
+
+.segment-view-collect-row--done .segment-view-collect-name { color: var(--text-muted); }
+
+.segment-view-collect-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.segment-view-collect-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-body);
+}
+
+.segment-view-collect-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.segment-view-collect-btn {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 14px;
+}
+
 .btn-bulk-collect {
   width: 100%;
   margin: 8px 0;
