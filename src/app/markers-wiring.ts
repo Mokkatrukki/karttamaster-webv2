@@ -17,7 +17,7 @@ import { MarkerDetailModal } from '../ui/marker-detail-modal'
 import { getSegmentForCode, getMarkersForSegment, updateSegment } from '../logic/segments'
 import type { Segment } from '../logic/segments'
 import { planSegmentZoom } from '../logic/segment-zoom'
-import { firstUnsetMarker } from '../logic/navigation'
+import { firstUnsetMarker, nextMarkerAhead } from '../logic/navigation'
 import { NextMarkerHighlight } from '../map/next-marker-highlight'
 import type { GpsNavigator } from '../map/gps-navigator'
 import { updateSegmentRemote } from '../logic/segment-sync'
@@ -390,6 +390,17 @@ export function wireMarkers(
 
   document.getElementById('btn-route-next')!.addEventListener('click', () => driveMode.next())
   document.getElementById('btn-route-prev')!.addEventListener('click', () => driveMode.prev())
+
+  // T39: "hyppää seuraavaan merkkiin" — siirtää driveMode-kursorin seuraavan merkin
+  // distanceFromStart-kohtaan aktiivisella reitillä (edessäpäin). Ei GPS-riippuvainen — käyttää
+  // vain merkin distanceFromStart-arvoa (nextMarkerAhead) + driveMode.jumpToDistance. Jos edessä
+  // ei ole merkkiä, ei tehdä mitään (kursori jää paikalleen).
+  document.getElementById('btn-route-next-marker')?.addEventListener('click', () => {
+    const route = activeRouteProvider()
+    const currentDistM = driveMode.currentKm() * 1000
+    const target = nextMarkerAhead(markerManager.getAll(), currentDistM, route.id)
+    if (target) driveMode.jumpToDistance(target.distanceFromStart)
+  })
 
   return { markerManager, driveMode, routeBar, progressBar, placeMode, markerModal, closeMarkerModal }
 }
