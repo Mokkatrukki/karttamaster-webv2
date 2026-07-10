@@ -27,9 +27,17 @@ const ALL_STATUSES: { value: MarkerStatus; label: string }[] = [
   { value: 'ei_tarpeen', label: 'Ei tarpeen' },
 ]
 
+// T102: bulk kohdistuu VAIN näkyviin (filtteröityihin) riveihin. Suodatetut rivit
+// saavat .marker-item--filtered-out — ne jätetään kaikkien bulk-operaatioiden ulkopuolelle.
+function visibleCheckboxes(listEl: HTMLElement, selector: string): HTMLInputElement[] {
+  return Array.from(listEl.querySelectorAll<HTMLInputElement>(selector)).filter(
+    (cb) => !cb.closest('.marker-item')?.classList.contains('marker-item--filtered-out'),
+  )
+}
+
 function updateBulkApplyBtn(listEl: HTMLElement, modal: HTMLElement | null): void {
-  const checkboxes = listEl.querySelectorAll<HTMLInputElement>('.marker-item-checkbox[data-id]')
-  const checked = Array.from(checkboxes).filter((cb) => cb.checked)
+  const checkboxes = visibleCheckboxes(listEl, '.marker-item-checkbox[data-id]')
+  const checked = checkboxes.filter((cb) => cb.checked)
   const applyBtn = modal?.querySelector<HTMLButtonElement>('#btn-bulk-apply')
   const selectAll = modal?.querySelector<HTMLInputElement>('#bulk-select-all')
   if (applyBtn) {
@@ -43,8 +51,8 @@ function updateBulkApplyBtn(listEl: HTMLElement, modal: HTMLElement | null): voi
 }
 
 function updateBulkCheckinBtns(listEl: HTMLElement, modal: HTMLElement | null): void {
-  const checkboxes = listEl.querySelectorAll<HTMLInputElement>('.marker-checkin-cb[data-id]')
-  const checked = Array.from(checkboxes).filter((cb) => cb.checked)
+  const checkboxes = visibleCheckboxes(listEl, '.marker-checkin-cb[data-id]')
+  const checked = checkboxes.filter((cb) => cb.checked)
   const asetaBtn = modal?.querySelector<HTMLButtonElement>('#btn-bulk-checkin-aseta')
   const ohitaBtn = modal?.querySelector<HTMLButtonElement>('#btn-bulk-checkin-ohita')
   const selectAll = modal?.querySelector<HTMLInputElement>('#bulk-checkin-select-all')
@@ -55,6 +63,34 @@ function updateBulkCheckinBtns(listEl: HTMLElement, modal: HTMLElement | null): 
     selectAll.indeterminate = n > 0 && n < checkboxes.length
     selectAll.checked = checkboxes.length > 0 && n === checkboxes.length
   }
+}
+
+// T102: reaaliaikainen filtteri (haku label|km TAI tyyppi). Piilottaa rivit
+// .marker-item--filtered-out-luokalla ja näyttää "Ei tuloksia" tyhjälle tulokselle.
+// Palauttaa näkyvien rivien määrän.
+function applyMarkerFilter(listEl: HTMLElement, search: string, type: string): number {
+  const q = search.trim().toLowerCase()
+  const items = listEl.querySelectorAll<HTMLElement>('.marker-item')
+  let visible = 0
+  items.forEach((item) => {
+    const matchesSearch = q === '' || (item.dataset.search ?? '').includes(q)
+    const matchesType = type === '' || item.dataset.type === type
+    const show = matchesSearch && matchesType
+    item.classList.toggle('marker-item--filtered-out', !show)
+    if (show) visible++
+  })
+  let emptyEl = listEl.querySelector<HTMLElement>('.filter-empty-state')
+  if (items.length > 0 && visible === 0) {
+    if (!emptyEl) {
+      emptyEl = document.createElement('p')
+      emptyEl.className = 'empty-state filter-empty-state'
+      emptyEl.textContent = 'Ei tuloksia'
+      listEl.appendChild(emptyEl)
+    }
+  } else if (emptyEl) {
+    emptyEl.remove()
+  }
+  return visible
 }
 
 export function renderMarkerList(manager: MarkerManager, highlightId?: string, segmentMarkerIds?: Set<string>, library?: SignLibrary | null, onOpenDetail?: (id: string) => void, pendingIds?: Set<string>): void {
@@ -72,6 +108,35 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
   if (!isTalkoolainen) {
     modal?.classList.add('modal--järjestäjä')
     document.getElementById('marker-bulk-action-bar')?.remove()
+
+    // T102: haku + tyyppifiltteri modaalin yläosaan (järjestäjä). Säilytä nykyinen
+    // haku/tyyppi uudelleenrenderöinnin yli (esim. bulk-apply → renderMarkerList).
+    let filterBar = document.getElementById('marker-filter-bar')
+    const prevSearch = filterBar?.querySelector<HTMLInputElement>('#marker-search')?.value ?? ''
+    const prevType = filterBar?.querySelector<HTMLSelectElement>('#marker-type-filter')?.value ?? ''
+    if (!filterBar) {
+      filterBar = document.createElement('div')
+      filterBar.id = 'marker-filter-bar'
+      filterBar.className = 'marker-filter-bar'
+      listEl.parentElement?.insertBefore(filterBar, listEl)
+    }
+    const presentTypes = Array.from(new Set(markers.map((m) => m.type)))
+    const typeOptions = presentTypes
+      .map((t) => {
+        const label = library?.get(t)?.label ?? SIGN_TYPES.find((s) => s.type === t)?.label ?? t
+        return `<option value="${t}"${t === prevType ? ' selected' : ''}>${label}</option>`
+      })
+      .join('')
+    filterBar.innerHTML = `
+      <input type="text" id="marker-search" class="marker-search" placeholder="Hae merkki..." aria-label="Hae merkki">
+      <select id="marker-type-filter" class="marker-type-filter" aria-label="Suodata tyypin mukaan">
+        <option value="">Kaikki tyypit</option>
+        ${typeOptions}
+      </select>
+      <button type="button" id="marker-filter-clear" class="marker-filter-clear" title="Nollaa suodattimet" aria-label="Nollaa suodattimet">✕</button>`
+    const searchRestore = filterBar.querySelector<HTMLInputElement>('#marker-search')
+    if (searchRestore) searchRestore.value = prevSearch
+
     let toolbar = document.getElementById('marker-bulk-toolbar')
     if (!toolbar) {
       toolbar = document.createElement('div')
@@ -91,6 +156,7 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
   } else {
     modal?.classList.remove('modal--järjestäjä')
     document.getElementById('marker-bulk-toolbar')?.remove()
+    document.getElementById('marker-filter-bar')?.remove() // T102: filtteri vain järjestäjälle
     // BulkActionBar for talkoolainen (sticky bottom)
     let actionBar = document.getElementById('marker-bulk-action-bar')
     if (!actionBar) {
@@ -133,8 +199,10 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
         const noteDot = m.locationNote
           ? `<span class="marker-note-dot" aria-label="Kommentti kirjoitettu"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>`
           : ''
+        // T102: haku matchaa label TAI km-väli. Tyyppifiltteri lukee data-type.
+        const searchStr = `${displayLabel} ${m.label ?? ''} ${km}`.toLowerCase().replace(/"/g, '')
         return `
-          <div class="marker-item${highlighted}${pendingCls}" data-id="${m.id}">
+          <div class="marker-item${highlighted}${pendingCls}" data-id="${m.id}" data-type="${m.type}" data-search="${searchStr}">
             ${checkbox}
             <span class="marker-icon" style="color:${displayColor}">${displayShortLabel}</span>
             <span class="marker-type-label">${displayLabel}</span>
@@ -184,7 +252,8 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
 
     selectAllCb?.addEventListener('change', () => {
       const checked = selectAllCb.checked
-      listEl.querySelectorAll<HTMLInputElement>('.marker-item-checkbox[data-id]').forEach((cb) => {
+      // T102: "Valitse kaikki" valitsee VAIN näkyvät (filtteröidyt) rivit.
+      visibleCheckboxes(listEl, '.marker-item-checkbox[data-id]').forEach((cb) => {
         cb.checked = checked
       })
       updateBulkApplyBtn(listEl, modal)
@@ -193,12 +262,41 @@ export function renderMarkerList(manager: MarkerManager, highlightId?: string, s
     applyBtn?.addEventListener('click', () => {
       const statusSel = toolbar?.querySelector<HTMLSelectElement>('#bulk-status-select')
       const status = (statusSel?.value ?? 'suunniteltu') as MarkerStatus
-      const ids = Array.from(listEl.querySelectorAll<HTMLInputElement>('.marker-item-checkbox[data-id]'))
+      // T102: bulk kohdistuu VAIN näkyviin (filtteröityihin) riveihin.
+      const ids = visibleCheckboxes(listEl, '.marker-item-checkbox[data-id]')
         .filter((cb) => cb.checked)
         .map((cb) => cb.dataset.id ?? '')
         .filter(Boolean)
       if (ids.length > 0) manager.bulkSetStatus(ids, status)
     })
+
+    // T102: filtteri-events (haku + tyyppi + nollaus). Filtteröinti EI renderöi
+    // listaa uudelleen — piilottaa rivit → kirjoitusfokus säilyy.
+    const filterBar = document.getElementById('marker-filter-bar')
+    const searchInput = filterBar?.querySelector<HTMLInputElement>('#marker-search')
+    const typeFilter = filterBar?.querySelector<HTMLSelectElement>('#marker-type-filter')
+    const clearBtn = filterBar?.querySelector<HTMLButtonElement>('#marker-filter-clear')
+    const runFilter = () => {
+      applyMarkerFilter(listEl, searchInput?.value ?? '', typeFilter?.value ?? '')
+      // Piilotettujen rivien valinnat pois → bulk pysyy näkyvissä riveissä.
+      listEl.querySelectorAll<HTMLInputElement>('.marker-item-checkbox[data-id]').forEach((cb) => {
+        if (cb.closest('.marker-item')?.classList.contains('marker-item--filtered-out')) cb.checked = false
+      })
+      updateBulkApplyBtn(listEl, modal)
+    }
+    searchInput?.addEventListener('input', runFilter)
+    typeFilter?.addEventListener('change', runFilter)
+    clearBtn?.addEventListener('click', () => {
+      if (searchInput) searchInput.value = ''
+      if (typeFilter) typeFilter.value = ''
+      // Nollaa myös checkbox-valinnat.
+      listEl.querySelectorAll<HTMLInputElement>('.marker-item-checkbox[data-id]').forEach((cb) => {
+        cb.checked = false
+      })
+      runFilter()
+    })
+    // Sovella säilytetty filtteri (uudelleenrenderöinnin jälkeen).
+    applyMarkerFilter(listEl, searchInput?.value ?? '', typeFilter?.value ?? '')
   } else {
     // BulkActionBar event handlers (talkoolainen only)
     const actionBar = document.getElementById('marker-bulk-action-bar')

@@ -3714,3 +3714,75 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   text-align: center;
   color: var(--text-muted);
 }
+
+/* T102: Merkkilista-haku + tyyppifiltteri (järjestäjä). Modaalin yläosa. */
+.marker-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.marker-search {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 0 12px;
+}
+.marker-search::placeholder {
+  color: var(--text-muted);
+}
+.marker-search:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.marker-type-filter {
+  flex: 0 1 auto;
+  min-height: 44px;
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 0 8px;
+  cursor: pointer;
+}
+.marker-type-filter:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.marker-filter-clear {
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--field-tint);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.marker-filter-clear:hover {
+  background: var(--border-subtle);
+  color: var(--text-body);
+}
+.marker-filter-clear:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+/* Suodatettu pois: piilota rivi listalta. */
+.marker-item.marker-item--filtered-out {
+  display: none;
+}
