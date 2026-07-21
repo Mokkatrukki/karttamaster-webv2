@@ -180,13 +180,10 @@ export class SegmentView {
       : 'btn btn--confirm segment-view-complete-btn'
   }
 
-  // T232 (A)/V158: "Lisää ⋯" sekundäärivalikon näkyvyys. Näkyy jos on jotain sisältöä —
-  // valmis-toggle (asettaminen/purku) TAI rajojen muokkaus. Muuten piilossa kokonaan.
+  // T232 (A)/V158 + T260/R4: "Lisää ⋯" sekundäärivalikko. AINA näkyvissä — sisältää nyt myös
+  // pätkän kommentit (siirretty koti-etusivulta valikkoon, R4) valmis-toggle/rajojen lisäksi.
   private renderMoreSection(): void {
-    const phaseOk = this.segment.phase === 'asettaminen' || this.segment.phase === 'purku'
-    const hasComplete = !!this.actions.onComplete && phaseOk
-    const hasBounds = !!this.actions.onEditBounds
-    this.moreSection.hidden = !(hasComplete || hasBounds)
+    this.moreSection.hidden = false
   }
 
   // T78/V43: pätkän rajojen muokkaus kentällä. Näkyy vain jos onEditBounds annettu (talkoolainen).
@@ -480,12 +477,14 @@ export class SegmentView {
     const boundsSection = this.buildBoundsSection()
     moreBody.appendChild(boundsSection)
 
-    panel.appendChild(moreSection)
-
-    // T221/T75: pätkän kommenttilanka-container (thread liitetään konstruktorissa).
+    // T260/R4: pätkän kommenttilanka-container SIIRRETTY "Lisää ⋯":n alle (thread konstruktorissa).
+    // Ei enää liimattuna koti-etusivulle (käyttäjäpalaute "en ymmärrä mikä toi kommentti juttu on
+    // etusivulla") — koko-pätkän kommentit saavutettavissa valikosta. Per-merkki-kommentit = merkkimodaali.
     const commentEl = document.createElement('div')
     commentEl.className = 'segment-view-comments'
-    panel.appendChild(commentEl)
+    moreBody.appendChild(commentEl)
+
+    panel.appendChild(moreSection)
 
     return {
       panel, progressEl, gpsBtn, nextEl, collectionEl, bulkBtn,

@@ -204,10 +204,13 @@ describe('T232 — kokoava hero', () => {
 
   // ---- (A)/V158: "Lisää ⋯" panel-sekundäärivalikko (complete + bounds sen sisällä) ----
   describe('"Lisää ⋯" sekundäärivalikko (A/V158)', () => {
-    it('piilossa kun ei complete- eikä bounds-toimintoa', () => {
+    it('T260/R4: AINA näkyvissä — sisältää nyt pätkän kommentit (siirretty koti-etusivulta valikkoon)', () => {
       const view = new SegmentView(container, makeSeg())
       view.update([makeMarker()])
-      expect((container.querySelector('.segment-view-more') as HTMLElement).hidden).toBe(true)
+      // R4 (V158-amend): moreSection ei enää piiloudu ilman complete/bounds — se pitää sisällään
+      // aina saatavilla olevat pätkän kommentit. Complete/bounds-osiot gaten silti itsenäisesti.
+      expect((container.querySelector('.segment-view-more') as HTMLElement).hidden).toBe(false)
+      expect(container.querySelector('.segment-view-comments')?.closest('.segment-view-more-body')).not.toBeNull()
     })
 
     it('näkyy kun onComplete annettu; body piilossa kunnes toggle', () => {
