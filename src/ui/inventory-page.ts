@@ -66,12 +66,13 @@ export function renderInventory(container: HTMLElement, view: InventoryView, cb:
   // (add-form on olemassa vain edit-modessa, joten draftia luetaan vain silloin.)
   const draft = editable ? readAddDraft(container) : undefined
   container.innerHTML = ''
-  container.appendChild(buildTopBar(view, cb)) // T251: moodi-toggle yläpalkkiin
+  mountModeToggle(container, view, cb) // T251: moodi-toggle sivun headeriin (fallback: topbar)
   container.appendChild(buildLocationBar(view, cb, editable))
+  container.appendChild(buildContext(view)) // T251: paikka + lukumäärä (+ Muokkaustila-merkki editissä)
   if (editable) container.appendChild(buildAddForm(view, cb, draft)) // read-modessa ei lisäystä (V169)
 
   const list = document.createElement('div')
-  list.className = 'inv-list'
+  list.className = 'inv-list' + (editable ? '' : ' inv-list--read') // read = tiivis rekisteri (ei korttilaatikoita)
   list.id = 'inv-list'
 
   if (view.selectedLocationId === 'all') {
@@ -84,30 +85,67 @@ export function renderInventory(container: HTMLElement, view: InventoryView, cb:
   container.appendChild(list)
 }
 
-/** T251: yläpalkki jossa moodi-toggle "✎ Muokkaa" ↔ "✓ Valmis" (+ "Muokkaustila"-merkki editissä). */
-function buildTopBar(view: InventoryView, cb: InventoryPageCallbacks): HTMLElement {
-  const bar = document.createElement('div')
-  bar.className = 'inv-topbar'
-  bar.id = 'inv-topbar'
-
+/** T251: moodi-toggle "✎ Muokkaa" ↔ "✓ Valmis" — päänappi (accent-outline read, accent-täyttö edit). */
+function buildModeToggle(view: InventoryView, cb: InventoryPageCallbacks): HTMLButtonElement {
   const editable = view.viewMode === 'edit'
   const toggle = document.createElement('button')
   toggle.type = 'button'
-  toggle.className = 'inv-btn inv-mode-toggle' + (editable ? ' active' : '')
+  toggle.className = 'inv-mode-toggle' + (editable ? ' active' : '')
   toggle.id = 'inv-mode-toggle'
   toggle.textContent = editable ? '✓ Valmis' : '✎ Muokkaa'
   toggle.setAttribute('aria-pressed', editable ? 'true' : 'false')
   toggle.addEventListener('click', () => cb.onToggleViewMode?.())
-  bar.appendChild(toggle)
+  return toggle
+}
 
-  if (editable) {
+/**
+ * T251: mounttaa moodi-toggle sivun headeriin (`#inventory-header`) ← Kartta -napin viereen —
+ * yksi komentopalkki, ei orpoa yläpalkkia. Testeissä/eristetyssä mountissa (ei headeria) fallback:
+ * kevyt `.inv-topbar` containeriin, jotta `#inv-mode-toggle` löytyy samasta juuresta.
+ */
+function mountModeToggle(container: HTMLElement, view: InventoryView, cb: InventoryPageCallbacks): void {
+  const toggle = buildModeToggle(view, cb)
+  const actions = document.getElementById('inventory-header')?.querySelector('.inventory-header-actions')
+  if (actions) {
+    actions.querySelector('.inv-mode-toggle')?.remove() // dedup: load() re-renderöi joka mutaatiolla
+    actions.insertBefore(toggle, actions.firstChild) // ← Kartta / Kirjaudu ulos jäävät perään
+  } else {
+    const bar = document.createElement('div')
+    bar.className = 'inv-topbar'
+    bar.id = 'inv-topbar'
+    bar.appendChild(toggle)
+    container.appendChild(bar)
+  }
+}
+
+/** T251: kontekstirivi tabien alle — "<paikka> · N tavaraa" (+ Muokkaustila-merkki editissä). Antaa ryhdin. */
+function buildContext(view: InventoryView): HTMLElement {
+  const row = document.createElement('div')
+  row.className = 'inv-context'
+
+  const label = document.createElement('span')
+  label.className = 'inv-context-label'
+  label.textContent = contextLabel(view) // V164 textContent (paikannimi voi olla user-syöte)
+  row.appendChild(label)
+
+  if (view.viewMode === 'edit') {
     const badge = document.createElement('span')
     badge.className = 'inv-mode-badge'
     badge.textContent = 'Muokkaustila'
-    bar.appendChild(badge)
+    row.appendChild(badge)
   }
+  return row
+}
 
-  return bar
+/** Kontekstiotsikko: paikan nimi (tai koonti/orvot) + tavaramäärä. N tavara(a) suomen monikko. */
+function contextLabel(view: InventoryView): string {
+  const n = view.items.length
+  const noun = n === 1 ? 'tavara' : 'tavaraa'
+  let place: string
+  if (view.selectedLocationId === 'all') place = 'Kaikki paikat'
+  else if (view.selectedLocationId === 'none') place = 'Ei paikkaa'
+  else place = view.locations.find((l) => l.id === view.selectedLocationId)?.name ?? 'Paikka'
+  return `${place} · ${n} ${noun}`
 }
 
 function emptyHint(): HTMLElement {
@@ -490,22 +528,24 @@ function buildCard(item: InventoryItem, view: InventoryView, cb: InventoryPageCa
   }
   head.appendChild(nameEl)
 
-  // Yksikkö erillisenä stepperin VASEMMALLA → stepper pysyy samalla x:llä (T247)
-  if (item.unit) {
-    const unitEl = document.createElement('span')
-    unitEl.className = 'inv-card-unit'
-    unitEl.textContent = item.unit // V164
-    head.appendChild(unitEl)
+  const unitEl = (): HTMLElement => {
+    const el = document.createElement('span')
+    el.className = 'inv-card-unit'
+    el.textContent = item.unit! // V164
+    return el
   }
 
-  // Read = määrä pelkkänä tekstinä (tiivis, ei mutaatiota V169); edit = säädettävä stepper.
+  // Edit: yksikkö stepperin VASEMMALLA → stepper pysyy samalla x:llä (T247).
+  // Read: määrä pelkkänä tekstinä, yksikkö sen JÄLKEEN → rekisteririvi lukee "40 kpl" (V169).
   if (editable) {
+    if (item.unit) head.appendChild(unitEl())
     head.appendChild(buildStepper(item, cb))
   } else {
     const qtyEl = document.createElement('span')
     qtyEl.className = 'inv-card-qty'
     qtyEl.textContent = String(item.qty) // V164 textContent
     head.appendChild(qtyEl)
+    if (item.unit) head.appendChild(unitEl())
   }
   card.appendChild(head)
 

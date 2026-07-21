@@ -3840,40 +3840,66 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 
 .inv-forbidden { padding: 32px 16px; text-align: center; color: var(--text-muted); }
 
-/* T251: read/edit-moodi — yläpalkin toggle + tiivis read-rivi + edit-aksentti */
-.inv-topbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-}
+/* T251: read/edit-moodi — moodi-toggle headerissa + kontekstirivi + tiivis read-rekisteri + edit-aksentti */
+/* Toggle asuu #inventory-headerissa (← Kartta -napin vieressä); .inv-topbar on vain eristetyn mountin fallback. */
+.inv-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+/* Päänappi: read = accent-outline (erottuu paikkatabien field-tint-pilleistä), edit = accent-täyttö */
 .inv-mode-toggle {
   min-height: 44px;
   padding: 6px 16px;
-  background: var(--field-tint);
-  color: var(--text-body);
-  border: 1px solid var(--border-default);
-  border-radius: 999px;
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
 }
+.inv-mode-toggle:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .inv-mode-toggle.active {
   background: var(--accent);
   color: var(--accent-text);
   border-color: var(--accent);
 }
-.inv-mode-badge {
+.inv-mode-toggle.active:hover { background: var(--accent-hover); }
+
+/* Kontekstirivi: "<paikka> · N tavaraa" vasen, Muokkaustila-merkki oikea → aina tiedät missä olet */
+.inv-context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 10px;
   font-size: 13px;
-  font-weight: 600;
-  color: var(--accent);
+  color: var(--text-muted);
 }
-/* edit-moodin kevyt aksentti: inset vasen väripalkki (marker--pending-idiomi, EI reflowta) */
-.inv-edit-mode { box-shadow: inset 3px 0 0 var(--accent); }
-/* read-moodin tiivis yksirivi: pienempi pystypadding, määrä tekstinä oikealla */
-.inv-card--read { padding: 8px 12px; }
-.inv-card--read .inv-card-head { gap: 8px; }
-.inv-card--read .inv-card-qty { margin-left: auto; }
+.inv-context-label { font-weight: 600; }
+.inv-mode-badge { font-size: 13px; font-weight: 600; color: var(--accent); }
+
+/* edit-moodin aksentti: inset vasen väripalkki PER KORTTI (marker--pending-idiomi, EI reflowta).
+   EI containerissa — silloin korttien 10px-raot katkovat palkin irrallisiksi tikuiksi (B). */
+.inv-edit-mode .inv-card { box-shadow: inset 3px 0 0 var(--accent); }
+
+/* read-moodi = tiivis rekisteri: ei korttilaatikoita, hiusviivaerottimet, qty omaan sarakkeeseen */
+.inv-list--read { gap: 0; }
+.inv-card--read {
+  padding: 10px 4px;
+  background: none;
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.inv-list--read > .inv-card--read:last-child { border-bottom: none; }
+.inv-section .inv-card--read { margin-bottom: 0; }
+.inv-section .inv-card--read:last-child { border-bottom: none; }
+.inv-card--read .inv-card-head { gap: 10px; }
+.inv-card--read .inv-card-qty {
+  margin-left: auto;
+  min-width: 3.5em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
 
 /* T245: inventaario v2 — paikkanavigointi + määräsäädin */
 .inv-location-bar {
@@ -4011,11 +4037,23 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 }
 .inv-section .inv-card { margin-bottom: 8px; }
 
-.inv-stepper { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+/* Stepper = YKSI segmentti-kontrolli (ei kolmea irrallista laatikkoa gapilla). Ulkoreuna kerran,
+   sisällä hiusviivaerottimet → siisti [−│luku│+], rivit linjassa (ei "outoja pystyviivoja"). */
+.inv-stepper {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
 .inv-step {
   min-width: 44px;
   min-height: 44px;
   padding: 0;
+  border: none; /* kumoaa perityn .inv-btn-reunan → ei laatikkoa per nappi */
+  border-radius: 0;
+  background: var(--field-tint);
   font-size: 20px;
   font-weight: 700;
   line-height: 1;
@@ -4023,12 +4061,16 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   align-items: center;
   justify-content: center;
 }
+.inv-step:hover { background: var(--hover); }
 .inv-step-qty {
-  min-width: 44px;
+  min-width: 48px;
   min-height: 44px;
   padding: 0 8px;
-  background: transparent;
+  background: var(--surface-app);
   border: none;
+  border-left: 1px solid var(--border-default);
+  border-right: 1px solid var(--border-default);
+  border-radius: 0;
   color: var(--text-body);
   font-size: 17px;
   font-weight: 700;
