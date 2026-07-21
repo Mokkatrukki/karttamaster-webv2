@@ -404,10 +404,8 @@ export function wireMarkers(
 
   document.getElementById('btn-list')!.addEventListener('click', () => openMarkerModal())
 
-  // T233/V155: talkoolaisen yläpalkin "🎒 Varustelista" → avaa SegmentView:n EquipmentModal
-  // (siirretty pois pätkänäkymän panelista, ettei kilpaile hero-primaryn kanssa). Nappi vain
-  // talkoolaiselle (data-role-hide="järjestäjä"). Merkin-lisäys (T229) siirtyi hero-overflowiin.
-  document.getElementById('btn-varuste')?.addEventListener('click', () => segmentView?.openEquipment())
+  // T264/V184: yläpalkin "🎒 Varustelista" -nappi POISTETTU — varuste on nyt koti-Varustelista-tab
+  // (inline SegmentEquipment). EquipmentModal avautuu yhä koti-tabin "✎ Muokkaa varusteita" -napista.
 
   document.getElementById('btn-modal-close')!.addEventListener('click', closeMarkerModal)
   markerModalBackdrop.addEventListener('click', closeMarkerModal)

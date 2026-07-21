@@ -1,9 +1,10 @@
 import { test, expect } from 'playwright/test'
 import { mockAuthAsTalkoolainen, mockTalkoolainenSegment, mockTemplates } from './helpers/auth'
 
-// T233/V155: talkoolaisen yläpalkki = {Kaikki merkit, 🎒 Varustelista, ⋯}. Kapealla mobiililla
-// (≤360px) toolbar ⊥ rivinylitä eikä vuoda yli leveyden; 44px-touch säilyy joka napilla.
-test.describe('T233 — talkoolais-toolbar mobiili (≤360px)', () => {
+// T264/V184: talkoolaisen yläpalkki tiivistyi — Varustelista (#btn-varuste) poistettu, Kaikki
+// merkit (#btn-list) piilotettu talkoolaiselta (molemmat koti-tabeja). Koti-moodissa näkyy = {⋯}.
+// Testi varmistaa ettei kapea mobiili (≤360px) hajoa: näkyvät napit yhdellä rivillä, 44px, ei overflowia.
+test.describe('T233/T264 — talkoolais-toolbar mobiili (≤360px)', () => {
   test('yläpalkki ei hajoa 360px:llä: yksi rivi, 44px touch, ei overflowia', async ({ page }) => {
     await mockAuthAsTalkoolainen(page)
     await mockTalkoolainenSegment(page, { withMarker: true })
@@ -17,7 +18,7 @@ test.describe('T233 — talkoolais-toolbar mobiili (≤360px)', () => {
 
     const btns = actions.locator('button:visible')
     const n = await btns.count()
-    expect(n).toBeGreaterThanOrEqual(3)
+    expect(n).toBeGreaterThanOrEqual(1)
 
     const boxes = []
     for (let i = 0; i < n; i++) boxes.push(await btns.nth(i).boundingBox())

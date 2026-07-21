@@ -246,25 +246,27 @@ test.describe('GPS-paikannin — T30', () => {
     await page.goto('/s/TEST01')
     await page.waitForTimeout(1500)
 
-    // GPS-toggle hero:ssa (talkoolainen). Alkutila: ei aktiivinen
-    const gpsBtn = page.locator('.segment-view-gps-btn')
+    // T257/V179: GPS-toggle on yläpalkin ⋯-valikossa (#btn-tk-gps), ei enää hero-napissa.
+    // Siirry kartalle (map näkyvä → gps-dot piirtyy) ja avaa ⋯-valikko.
+    await page.click('#btn-to-map')
+    await page.click('#btn-menu')
+    const gpsBtn = page.locator('#btn-tk-gps')
     await expect(gpsBtn).toBeVisible()
-    await expect(gpsBtn).not.toHaveClass(/gps-active/)
+    await expect(gpsBtn).toHaveText('📍 GPS')
 
     // Käynnistä GPS
     await gpsBtn.click()
     await page.waitForTimeout(800)
 
-    // Nappi on aktiivinen
-    await expect(gpsBtn).toHaveClass(/gps-active/)
-
-    // GPS-piste (.gps-dot) ilmestyy kartalle
+    // Nappi aktiivinen (label vaihtuu) + GPS-piste (.gps-dot) ilmestyy kartalle
+    await expect(gpsBtn).toHaveText('📍 GPS päällä')
     await expect(page.locator('.leaflet-overlay-pane .gps-dot')).toBeVisible()
 
-    // Pysäytä GPS
+    // Pysäytä GPS (avaa valikko uudelleen — klikkaus sulki sen)
+    await page.click('#btn-menu')
     await gpsBtn.click()
     await page.waitForTimeout(300)
-    await expect(gpsBtn).not.toHaveClass(/gps-active/)
+    await expect(gpsBtn).toHaveText('📍 GPS')
     await expect(page.locator('.leaflet-overlay-pane .gps-dot')).not.toBeVisible()
   })
 })

@@ -202,46 +202,41 @@ describe('T232 — kokoava hero', () => {
     })
   })
 
-  // ---- (A)/V158: "Lisää ⋯" panel-sekundäärivalikko (complete + bounds sen sisällä) ----
-  describe('"Lisää ⋯" sekundäärivalikko (A/V158)', () => {
-    it('T260/R4: AINA näkyvissä — sisältää nyt pätkän kommentit (siirretty koti-etusivulta valikkoon)', () => {
+  // ---- T264/V184: "Lisää ⋯" -accordion POISTETTU → valmis/rajat "Kaikki merkit" -tabissa,
+  //      kommentit "Kommentit"-tabissa (SegmentKotiTabs). moreSection pysyy piilossa. ----
+  describe('koti-välilehdet korvaavat "Lisää ⋯" -accordionin (T264/V184)', () => {
+    it('"Lisää ⋯" -accordion (.segment-view-more) piilossa — ei enää haitaria', () => {
       const view = new SegmentView(container, makeSeg())
       view.update([makeMarker()])
-      // R4 (V158-amend): moreSection ei enää piiloudu ilman complete/bounds — se pitää sisällään
-      // aina saatavilla olevat pätkän kommentit. Complete/bounds-osiot gaten silti itsenäisesti.
-      expect((container.querySelector('.segment-view-more') as HTMLElement).hidden).toBe(false)
-      expect(container.querySelector('.segment-view-comments')?.closest('.segment-view-more-body')).not.toBeNull()
+      expect((container.querySelector('.segment-view-more') as HTMLElement).hidden).toBe(true)
     })
 
-    it('näkyy kun onComplete annettu; body piilossa kunnes toggle', () => {
-      const view = new SegmentView(container, makeSeg(), undefined, undefined, { onComplete: () => {} })
+    it('kommentit "Kommentit"-tab-panelin sisällä (ei accordionissa)', () => {
+      const view = new SegmentView(container, makeSeg())
       view.update([makeMarker()])
-      const more = container.querySelector('.segment-view-more') as HTMLElement
-      const body = container.querySelector('.segment-view-more-body') as HTMLElement
-      expect(more.hidden).toBe(false)
-      expect(body.hidden).toBe(true)
-      ;(container.querySelector('.segment-view-more-toggle') as HTMLButtonElement).click()
-      expect(body.hidden).toBe(false)
+      const panel = container.querySelector('.segment-koti-panel[data-tab="kommentit"]')
+      expect(panel).not.toBeNull()
+      expect(panel?.querySelector('.segment-view-comments')).not.toBeNull()
     })
 
-    it('complete + bounds elävät "Lisää"-bodyn sisällä (ei hero-primaryssä)', () => {
+    it('complete + bounds "Kaikki merkit" -tab-panelin sisällä (ei accordionissa/hero-primaryssä)', () => {
       const view = new SegmentView(container, makeSeg(), undefined, undefined, {
         onComplete: () => {},
         onEditBounds: () => {},
       })
       view.update([makeMarker()])
-      const body = container.querySelector('.segment-view-more-body') as HTMLElement
-      expect(body.querySelector('.segment-view-complete')).not.toBeNull()
-      expect(body.querySelector('.segment-view-bounds')).not.toBeNull()
+      const panel = container.querySelector('.segment-koti-panel[data-tab="merkit"]')
+      expect(panel?.querySelector('.segment-view-complete')).not.toBeNull()
+      expect(panel?.querySelector('.segment-view-bounds')).not.toBeNull()
     })
 
-    it('V158: näkyy JA complete tavoitettavissa purku-phasessa (ei asettaminen-only hero-overflow)', () => {
+    it('complete tavoitettavissa purku-phasessa (tab aina läsnä, ei phase-gattua accordionia)', () => {
       const view = new SegmentView(container, makeSeg({ phase: 'purku' }), undefined, undefined, {
         onComplete: () => {},
       })
       view.update([makeMarker({ status: 'kerätty' })])
-      expect((container.querySelector('.segment-view-more') as HTMLElement).hidden).toBe(false)
-      expect((container.querySelector('.segment-view-complete') as HTMLElement).hidden).toBe(false)
+      const panel = container.querySelector('.segment-koti-panel[data-tab="merkit"]')
+      expect((panel?.querySelector('.segment-view-complete') as HTMLElement).hidden).toBe(false)
     })
   })
 })

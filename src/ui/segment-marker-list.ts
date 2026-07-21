@@ -44,6 +44,25 @@ export class SegmentMarkerList {
       return
     }
 
+    // T264/V184: ryhmittele asettamatta (suunniteltu) / asetetut (asetettu·tarkistettu·kerätty) /
+    // ei tarpeen. Tyhjät ryhmät jätetään pois; talkoolainen näkee heti mitä on vielä laittamatta.
+    const unplaced = markers.filter(m => m.status === 'suunniteltu')
+    const placed = markers.filter(m => m.status === 'asetettu' || m.status === 'tarkistettu' || m.status === 'kerätty')
+    const skipped = markers.filter(m => m.status === 'ei_tarpeen')
+
+    this.renderGroup('Asettamatta', unplaced)
+    this.renderGroup('Asetetut', placed)
+    this.renderGroup('Ei tarpeen', skipped)
+  }
+
+  private renderGroup(title: string, markers: SignMarker[]): void {
+    if (markers.length === 0) return
+
+    const groupTitle = document.createElement('p')
+    groupTitle.className = 'segment-view-markers-group'
+    groupTitle.textContent = `${title} (${markers.length})`
+    this.el.appendChild(groupTitle)
+
     const list = document.createElement('ul')
     list.className = 'segment-view-markers-list'
     for (const m of markers) {

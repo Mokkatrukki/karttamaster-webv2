@@ -1,6 +1,6 @@
 import { test, expect } from 'playwright/test'
 import type { Page } from 'playwright/test'
-import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTemplates } from './helpers/auth'
+import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTemplates, mockTalkoolainenSegment } from './helpers/auth'
 import { snap } from './helpers/snap'
 
 const DESKTOP = { width: 1280, height: 800 }
@@ -45,11 +45,6 @@ async function mockAllApis(page: Page) {
 
 async function mockAdminWithData(page: Page) {
   await mockAuthAsJarjestaja(page)
-  await mockAllApis(page)
-}
-
-async function mockTalkoolainenWithData(page: Page) {
-  await mockAuthAsTalkoolainen(page)
   await mockAllApis(page)
 }
 
@@ -239,27 +234,25 @@ test('talkoolainen_desktop_initial', async ({ page }) => {
 })
 
 test('talkoolainen_desktop_marker-modal', async ({ page }) => {
+  // T264/V184: talkoolaisen "Kaikki merkit" = koti-tab (/s/<koodi>), ei enää yläpalkin modaali.
   await mockAuthAsTalkoolainen(page)
+  await mockTalkoolainenSegment(page, { withMarker: true })
   await page.setViewportSize(DESKTOP)
-  await page.goto('/')
+  await page.goto('/s/TEST01')
   await page.waitForTimeout(LOAD)
-  await page.click('#btn-menu')
-  await page.waitForTimeout(300)
-  await page.click('#btn-list')
-  await page.waitForTimeout(500)
+  await page.locator('.segment-koti-tab[data-tab="merkit"]').click()
+  await page.waitForTimeout(400)
   await snap(page, 'talkoolainen_desktop_marker-modal')
 })
 
 test('talkoolainen_desktop_marker-detail-modal', async ({ page }) => {
-  await mockTalkoolainenWithData(page)
+  await mockAuthAsTalkoolainen(page)
+  await mockTalkoolainenSegment(page, { withMarker: true })
   await page.setViewportSize(DESKTOP)
-  await page.goto('/')
+  await page.goto('/s/TEST01')
   await page.waitForTimeout(LOAD)
-  await page.click('#btn-menu')
-  await page.waitForTimeout(300)
-  await page.click('#btn-list')
-  await page.waitForTimeout(500)
-  await page.locator('.marker-item').first().click()
+  await page.locator('.segment-koti-tab[data-tab="merkit"]').click()
+  await page.locator('.segment-view-markers-row').first().click()
   await page.waitForTimeout(400)
   await snap(page, 'talkoolainen_desktop_marker-detail-modal')
 })
@@ -276,26 +269,23 @@ test('talkoolainen_mobile_initial', async ({ page }) => {
 
 test('talkoolainen_mobile_marker-modal', async ({ page }) => {
   await mockAuthAsTalkoolainen(page)
+  await mockTalkoolainenSegment(page, { withMarker: true })
   await page.setViewportSize(MOBILE)
-  await page.goto('/')
+  await page.goto('/s/TEST01')
   await page.waitForTimeout(LOAD)
-  await page.click('#btn-menu')
-  await page.waitForTimeout(300)
-  await page.click('#btn-list')
-  await page.waitForTimeout(500)
+  await page.locator('.segment-koti-tab[data-tab="merkit"]').click()
+  await page.waitForTimeout(400)
   await snap(page, 'talkoolainen_mobile_marker-modal')
 })
 
 test('talkoolainen_mobile_marker-detail-modal', async ({ page }) => {
-  await mockTalkoolainenWithData(page)
+  await mockAuthAsTalkoolainen(page)
+  await mockTalkoolainenSegment(page, { withMarker: true })
   await page.setViewportSize(MOBILE)
-  await page.goto('/')
+  await page.goto('/s/TEST01')
   await page.waitForTimeout(LOAD)
-  await page.click('#btn-menu')
-  await page.waitForTimeout(300)
-  await page.click('#btn-list')
-  await page.waitForTimeout(500)
-  await page.locator('.marker-item').first().click()
+  await page.locator('.segment-koti-tab[data-tab="merkit"]').click()
+  await page.locator('.segment-view-markers-row').first().click()
   await page.waitForTimeout(400)
   await snap(page, 'talkoolainen_mobile_marker-detail-modal')
 })

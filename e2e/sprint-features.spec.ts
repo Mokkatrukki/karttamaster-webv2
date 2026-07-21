@@ -107,8 +107,9 @@ test.describe('T38 — Merkin tyyppi vaihdettavissa', () => {
     await expect(page.locator('#auth-screen')).not.toHaveClass(/open/)
     expect(await page.evaluate(() => document.body.dataset.role)).toBe('talkoolainen')
 
-    await page.click('#btn-list')
-    await page.click('.marker-item')
+    // T264/V184: talkoolaisen "Kaikki merkit" = koti-tab (yläpalkin #btn-list piilotettu).
+    await page.locator('.segment-koti-tab[data-tab="merkit"]').click()
+    await page.locator('.segment-view-markers-row').first().click()
 
     // Ei type-selectiä talkoolaiselle
     await expect(page.locator('.marker-detail-type-select')).toHaveCount(0)

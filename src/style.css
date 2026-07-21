@@ -1505,6 +1505,34 @@ button {
    Koti näyttää varustelistan (.segment-view-equipment) heron tilalla. */
 #app[data-view-mode="koti"] .segment-view-next { display: none; }
 
+/* T264/V184: koti-välilehdet (Varustelista · Kaikki merkit · Kommentit). Aktiivi = accent-alareuna. */
+.segment-koti-tabbar {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--border-default);
+  margin: 8px 0 10px;
+}
+.segment-koti-tab {
+  flex: 1;
+  min-height: 44px;
+  padding: 8px 6px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.segment-koti-tab:hover { color: var(--text-body); }
+.segment-koti-tab.is-active {
+  color: var(--accent, var(--confirm));
+  border-bottom-color: var(--accent, var(--confirm));
+}
+.segment-koti-panel { margin-bottom: 4px; }
+
 /* Kartta-moodi (T255/V177, R5): kartta ~täysi (80%+), hero KELLUU alareunassa alapalkkina.
    Segment-view irrotetaan flow'sta (absolute) → #map flex:1 täyttää koko #map-area. Vain
    seuraava-merkki-hero (+ keräyslista/done) näkyy; header/progress/gps/varuste/lisää/kommentit/
@@ -1535,18 +1563,17 @@ body[data-role="talkoolainen"] .segment-view-gps-btn { display: none; }
 #app[data-view-mode="kartta"] .segment-view-gps-btn,
 #app[data-view-mode="kartta"] .segment-view-desc,
 #app[data-view-mode="kartta"] .segment-view-varuste-btn,
-#app[data-view-mode="kartta"] .segment-view-equipment,
-#app[data-view-mode="kartta"] .segment-view-markers,
+#app[data-view-mode="kartta"] .segment-koti-tabs,
 #app[data-view-mode="kartta"] .segment-view-more,
 #app[data-view-mode="kartta"] .segment-view-comments,
 #app[data-view-mode="kartta"] .segment-view-inspect {
   display: none;
 }
 
-/* T259/R9: kartta-moodin toolbar minimaali — "Kaikki merkit" + "Varustelista" ovat koti/valikko-
-   asioita. Kartassa toolbar = brändi + 🏠 + ⋯ (poistaa myös 🏠:n aiheuttaman ahtauden ≤390px). */
-body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-list,
-body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-varuste {
+/* T264/V184: talkoolaisen yläpalkista pois "Kaikki merkit" (#btn-list) — se on nyt koti-tab
+   (SegmentKotiTabs). Molemmissa moodeissa: kartalla merkit = kartta+tap, kodissa = Kaikki merkit -tab.
+   Järjestäjän #btn-list ennallaan (V134). (#btn-varuste poistettu index.html:stä kokonaan.) */
+body[data-role="talkoolainen"] #btn-list {
   display: none;
 }
 
@@ -2949,6 +2976,14 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   font-weight: 700;
   color: var(--text-body);
   margin-bottom: 6px;
+}
+.segment-view-markers-group {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  margin: 10px 0 4px;
 }
 .segment-view-markers-empty {
   margin: 0;

@@ -54,4 +54,22 @@ describe('T263 — SegmentMarkerList (KOTI-inline kaikki merkit)', () => {
     expect(el.querySelectorAll('.segment-view-markers-row').length).toBe(0)
     expect(el.querySelector('.segment-view-markers-header')?.textContent).toBe('Kaikki merkit (0)')
   })
+
+  // T264/V184: ryhmittely asetetut/asettamatta/ei tarpeen.
+  it('ryhmittelee: Asettamatta (suunniteltu) / Asetetut / Ei tarpeen', () => {
+    const el = mount([
+      makeMarker({ id: 'a', status: 'suunniteltu', distanceFromStart: 1000 }),
+      makeMarker({ id: 'b', status: 'asetettu', distanceFromStart: 2000 }),
+      makeMarker({ id: 'c', status: 'kerätty', distanceFromStart: 3000 }),
+      makeMarker({ id: 'd', status: 'ei_tarpeen', distanceFromStart: 4000 }),
+    ])
+    const groups = [...el.querySelectorAll('.segment-view-markers-group')].map(n => n.textContent)
+    expect(groups).toEqual(['Asettamatta (1)', 'Asetetut (2)', 'Ei tarpeen (1)'])
+  })
+
+  it('tyhjät ryhmät jätetään pois', () => {
+    const el = mount([makeMarker({ status: 'suunniteltu' })])
+    const groups = [...el.querySelectorAll('.segment-view-markers-group')].map(n => n.textContent)
+    expect(groups).toEqual(['Asettamatta (1)'])
+  })
 })

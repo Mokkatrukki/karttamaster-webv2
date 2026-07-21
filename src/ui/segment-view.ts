@@ -7,6 +7,7 @@ import { EquipmentModal } from './equipment-modal'
 import { SegmentHero, markerLabel } from './segment-hero'
 import { SegmentEquipment } from './segment-equipment'
 import { SegmentMarkerList } from './segment-marker-list'
+import { SegmentKotiTabs } from './segment-koti-tabs'
 import { CommentThread, type CommentThreadApi } from './comment-thread'
 import type { SignMarker } from '../logic/types'
 
@@ -86,6 +87,8 @@ export class SegmentView {
   // T263/V183: KOTI-moodin inline "Kaikki merkit" -lista (koti-only; kartta piilottaa CSS:llä).
   private readonly markerList: SegmentMarkerList
   private readonly markerListEl: HTMLElement
+  // T264/V184: koti-välilehdet (Varustelista · Kaikki merkit · Kommentit). Korvaa "Lisää ⋯" -accordionin.
+  private readonly kotiTabs: SegmentKotiTabs
 
   constructor(
     container: HTMLElement,
@@ -142,6 +145,15 @@ export class SegmentView {
       getMarkers: () => this.currentMarkers,
       onOpenDetail: (id) => this.actions.onFocusMarker?.(id),
     })
+    // T264/V184: koti-välilehdet. Reparentoi elementit paneleihin (varuste / kaikki merkit +
+    // valmis + rajat / kommentit). "Lisää ⋯" -accordion (moreSection) piilotetaan → valmis/rajat/
+    // kommentit tabeissa, ei haitarin alla. Tabit vain koti-moodissa (kartta: CSS piilottaa, hero näkyy).
+    this.kotiTabs = new SegmentKotiTabs([
+      { id: 'varuste', label: '🎒 Varustelista', els: [this.equipmentEl] },
+      { id: 'merkit', label: 'Kaikki merkit', els: [this.markerListEl, this.completeSection, this.boundsSection] },
+      { id: 'kommentit', label: 'Kommentit', els: [this.commentEl] },
+    ])
+    this.panel.insertBefore(this.kotiTabs.root, this.bulkBtn)
     this.renderGpsBtn()
     this.renderInspectSection()
     this.renderCompleteSection()
@@ -206,10 +218,11 @@ export class SegmentView {
       : 'btn btn--confirm segment-view-complete-btn'
   }
 
-  // T232 (A)/V158 + T260/R4: "Lisää ⋯" sekundäärivalikko. AINA näkyvissä — sisältää nyt myös
-  // pätkän kommentit (siirretty koti-etusivulta valikkoon, R4) valmis-toggle/rajojen lisäksi.
+  // T264/V184: "Lisää ⋯" -accordion POISTETTU — valmis/rajat siirtyivät Kaikki merkit -tabiin,
+  // kommentit Kommentit-tabiin (SegmentKotiTabs reparentoi). moreSection pysyy piilossa (elementti
+  // säilyy taaksepäin-yhteensopivuuden vuoksi, mutta ei näy — ei enää haitaria, käyttäjäpalaute).
   private renderMoreSection(): void {
-    this.moreSection.hidden = false
+    this.moreSection.hidden = true
   }
 
   // T78/V43: pätkän rajojen muokkaus kentällä. Näkyy vain jos onEditBounds annettu (talkoolainen).

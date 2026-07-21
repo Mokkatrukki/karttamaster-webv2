@@ -151,15 +151,16 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(page.locator('.segment-view-equipment .equipment-check-box').first()).toBeChecked()
   })
 
-  test('T263 — KOTI: "Kaikki merkit" -lista näkyy + rivi avaa modaalin; KARTTA: piilossa', async ({ page }) => {
-    // R3/V183: oman pätkän merkkilista inline koti-landingissa (koti-only).
+  test('T263/T264 — KOTI: "Kaikki merkit" -tab näyttää listan + rivi avaa modaalin; KARTTA: piilossa', async ({ page }) => {
+    // R3/V183 + R10/V184: oman pätkän merkkilista koti-Kaikki merkit -tabissa (koti-only).
     await mockAuthAsTalkoolainen(page)
     await mockTalkoolainenSegment(page, { withMarker: true })
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/s/TEST01')
     await page.waitForTimeout(1500)
 
-    // KOTI: lista näkyy + otsikko + 1 rivi.
+    // KOTI: avaa "Kaikki merkit" -tab → lista näkyy + otsikko + 1 rivi.
+    await page.locator('.segment-koti-tab[data-tab="merkit"]').click()
     await expect(page.locator('.segment-view-markers')).toBeVisible()
     await expect(page.locator('.segment-view-markers-header')).toContainText('Kaikki merkit')
     await expect(page.locator('.segment-view-markers-row')).toHaveCount(1)
@@ -169,9 +170,40 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(page.locator('.marker-detail-modal')).toBeVisible()
     await page.keyboard.press('Escape')
 
-    // KARTTA: lista piilossa.
+    // KARTTA: tabit + lista piilossa.
     await page.click('#btn-to-map')
     await expect(page.locator('.segment-view-markers')).toBeHidden()
+    await expect(page.locator('.segment-koti-tabs')).toBeHidden()
+  })
+
+  test('T264 — koti-välilehdet: 3 tabia, tab-vaihto, valmis+rajat Kaikki merkit -tabissa, #btn-varuste pois', async ({ page }) => {
+    await mockAuthAsTalkoolainen(page)
+    await mockTalkoolainenSegment(page, { withMarker: true })
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/s/TEST01')
+    await page.waitForTimeout(1500)
+
+    // 3 tabia, Varustelista aktiivinen oletuksena.
+    await expect(page.locator('.segment-koti-tab')).toHaveCount(3)
+    await expect(page.locator('.segment-koti-tab.is-active')).toContainText('Varustelista')
+    await expect(page.locator('.segment-view-equipment')).toBeVisible()
+
+    // Yläpalkin 🎒 Varustelista-nappi poistettu (T264).
+    await expect(page.locator('#btn-varuste')).toHaveCount(0)
+    // #btn-list piilotettu talkoolaiselta (koti-tab korvaa).
+    await expect(page.locator('#btn-list')).toBeHidden()
+
+    // "Kaikki merkit" -tab → lista + valmis + rajat samassa tabissa (ei haitarin alla).
+    await page.locator('.segment-koti-tab[data-tab="merkit"]').click()
+    const merkit = page.locator('.segment-koti-panel[data-tab="merkit"]')
+    await expect(merkit.locator('.segment-view-markers')).toBeVisible()
+    await expect(merkit.locator('.segment-view-complete')).toBeVisible()
+    await expect(merkit.locator('.segment-view-bounds')).toBeVisible()
+
+    // "Kommentit" -tab.
+    await page.locator('.segment-koti-tab[data-tab="kommentit"]').click()
+    await expect(page.locator('.segment-koti-panel[data-tab="kommentit"] .segment-view-comments')).toBeVisible()
+    await expect(page.locator('.segment-view-equipment')).toBeHidden()
   })
 
   test('T232 — järjestäjällä ei talkoolais-heroa (+Merkki sivupalkin kirjastosta)', async ({ page }) => {
@@ -505,8 +537,8 @@ test.describe('T25 — SegmentPanel', () => {
     await page.goto('/s/BND01')
     await page.waitForTimeout(1500)
 
-    // T232/V158: rajojen muokkaus siirtyi "Lisää ⋯" -sekundäärivalikkoon → avaa se ensin.
-    await page.locator('.segment-view-more-toggle').click()
+    // T264/V184: rajojen muokkaus siirtyi "Kaikki merkit" -tabiin (accordion poistettu) → avaa tab.
+    await page.locator('.segment-koti-tab[data-tab="merkit"]').click()
     await page.locator('.segment-view-bounds-toggle').scrollIntoViewIfNeeded()
     await page.locator('.segment-view-bounds-toggle').click()
     await page.locator('.segment-view-bounds-end').fill('15')

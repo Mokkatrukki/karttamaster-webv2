@@ -16,11 +16,16 @@ describe('T233 — yläpalkin reorg + orpo-padding', () => {
   const actions = html.match(/<div id="toolbar-actions">([\s\S]*?)<\/div>/)?.[1] ?? ''
   const menu = html.match(/<div id="toolbar-menu">([\s\S]*?)<div id="app-main">/)?.[1] ?? ''
 
-  // ---- Yläpalkki = TASAN {Kaikki merkit, Varustelista, ⋯} (V155) ----
-  it('#toolbar-actions sisältää Kaikki merkit + Varustelista + ⋯', () => {
+  // ---- Yläpalkki = {Kaikki merkit, ⋯}. T264/V184: Varustelista-nappi (#btn-varuste) POISTETTU
+  //      (varuste = koti-Varustelista-tab). #btn-list piilotetaan talkoolaiselta CSS:llä (koti-tab). ----
+  it('#toolbar-actions sisältää Kaikki merkit + ⋯, EI Varustelistaa (T264)', () => {
     expect(actions).toContain('id="btn-list"')
-    expect(actions).toContain('id="btn-varuste"')
+    expect(actions).not.toContain('id="btn-varuste"')
     expect(actions).toContain('id="btn-menu"')
+  })
+
+  it('T264/V184: #btn-list piilotettu talkoolaiselta (koti-Kaikki merkit -tab korvaa)', () => {
+    expect(css).toMatch(/body\[data-role="talkoolainen"\]\s+#btn-list\s*\{\s*display:\s*none/)
   })
 
   it('GPS + Merkin-lisäys EIVÄT ole yläpalkissa (siirtyivät heroon T232)', () => {
@@ -33,8 +38,9 @@ describe('T233 — yläpalkin reorg + orpo-padding', () => {
     expect(menu).toContain('id="btn-layer"')
   })
 
-  it('Varustelista-nappi vain talkoolaiselle (data-role-hide="järjestäjä")', () => {
-    expect(actions).toMatch(/id="btn-varuste"[^>]*data-role-hide="järjestäjä"/)
+  // T264/V184: Varustelista-nappi poistettu yläpalkista kokonaan → ei enää data-role-hide-nappia.
+  it('Varustelista-nappia EI enää yläpalkissa (T264 — inline koti-tab)', () => {
+    expect(actions).not.toContain('id="btn-varuste"')
   })
 
   // ---- #btn-gps ei jää orvoksi koodiin (map-init poistanut toolbar-wiringin) ----
@@ -43,10 +49,11 @@ describe('T233 — yläpalkin reorg + orpo-padding', () => {
     expect(mapInit).not.toContain("getElementById('btn-gps')")
   })
 
-  it('markers-wiring.ts EI enää wiraa #btn-add-marker; wiraa #btn-varuste', () => {
+  // T264/V184: #btn-varuste poistettu → wiringiä ei enää ole (varuste = koti-tab, "Muokkaa" avaa modaalin).
+  it('markers-wiring.ts EI enää wiraa #btn-add-marker EIKÄ #btn-varuste (T264)', () => {
     const wiring = read('src/app/markers-wiring.ts')
     expect(wiring).not.toContain("getElementById('btn-add-marker')")
-    expect(wiring).toContain("getElementById('btn-varuste')")
+    expect(wiring).not.toContain("getElementById('btn-varuste')")
   })
 
   // ---- V157/B101: orpo alapalkki-padding poistettu talkoolaiselta ----
