@@ -10,4 +10,13 @@ if [ -z "$MML_KEY" ]; then
   exit 1
 fi
 
+# Pre-deploy safety-backup: vedä tuotanto-DB ENNEN uuden koodin julkaisua (migraatio/bugi voi
+# korruptoida). Ei blokkaa deployta jos backup epäonnistuu (fly-snapshotit varalla) mutta varoittaa.
+if [ "${SKIP_BACKUP:-}" != "1" ]; then
+  echo "[deploy] pre-deploy backup…"
+  if ! ./backup.sh; then
+    echo "⚠️  PRE-DEPLOY BACKUP EPÄONNISTUI — jatketaan silti (fly-volume-snapshotit varalla). Selvitä backup.sh." >&2
+  fi
+fi
+
 fly deploy --build-arg VITE_MML_API_KEY="$MML_KEY" "$@"
