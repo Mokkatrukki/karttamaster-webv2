@@ -286,13 +286,17 @@ body[data-role="talkoolainen"] #gpkg-import-status {
   color: var(--text-body);
   padding: 4px 12px 2px;
 }
+/* T259/R9: teemavalitsin rinnakkain (kompakti), aktiivinen selvästi (accent + ✓). */
 .account-menu-theme {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
   padding: 2px 8px 4px;
 }
 .account-menu-theme-label {
+  flex-basis: 100%;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -300,32 +304,40 @@ body[data-role="talkoolainen"] #gpkg-import-status {
   padding: 0 4px;
 }
 .account-menu-theme-opt {
+  flex: 1;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   min-height: 40px;
-  padding: 0 12px;
-  background: var(--field-tint);
+  padding: 0 10px;
+  background: var(--surface-raised);
   color: var(--text-body);
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 13px;
+  font-weight: 600;
 }
 .account-menu-theme-opt.active {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-width: 2px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
   color: var(--text-body);
 }
+.account-menu-theme-opt.active::after { content: ' ✓'; margin-left: 4px; color: var(--accent); }
+/* T259/R9: "Kirjaudu ulos" kevyeksi (oli iso danger-laatikko) — tekstityyli, säilyttää 44px touch. */
 .account-menu-logout {
   min-height: 44px;
-  background: var(--danger-soft) !important;
+  background: transparent !important;
   color: var(--danger-text) !important;
-  border: 1px solid var(--danger) !important;
+  border: none !important;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+  padding: 0 12px;
 }
-.account-menu-logout:hover { background: var(--danger-soft-hover) !important; }
+.account-menu-logout:hover { background: var(--hover) !important; }
 
 button {
   padding: 6px 12px;
@@ -1523,6 +1535,13 @@ body[data-role="talkoolainen"] .segment-view-gps-btn { display: none; }
 #app[data-view-mode="kartta"] .segment-view-more,
 #app[data-view-mode="kartta"] .segment-view-comments,
 #app[data-view-mode="kartta"] .segment-view-inspect {
+  display: none;
+}
+
+/* T259/R9: kartta-moodin toolbar minimaali — "Kaikki merkit" + "Varustelista" ovat koti/valikko-
+   asioita. Kartassa toolbar = brändi + 🏠 + ⋯ (poistaa myös 🏠:n aiheuttaman ahtauden ≤390px). */
+body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-list,
+body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-varuste {
   display: none;
 }
 

@@ -30,17 +30,17 @@ export function initMap(): MapInit {
 
   const btnLayer = document.getElementById('btn-layer')
   if (btnLayer) {
-    // T207: nappi näyttää kiinteän toiminto­nimen "Karttatyyli" (ei vaihtuvaa karttakerroksen
-    // nimeä) — aktiivinen kerros näkyy title-tooltipissa.
-    btnLayer.textContent = 'Karttatyyli'
-    btnLayer.title = TILE_LAYERS[activeLayerIdx].label
+    // T259/R9: nappi näyttää AKTIIVISEN karttatyylin nimen (käyttäjäpalaute: "kerro mikä tyyli on")
+    // — klikki kiertää seuraavaan. Aiemmin kiinteä "Karttatyyli" + vain title-tooltip (epäselvä).
+    const syncLayerLabel = () => { btnLayer.textContent = `Karttatyyli: ${TILE_LAYERS[activeLayerIdx].label}` }
+    syncLayerLabel()
     btnLayer.addEventListener('click', () => {
       activeLayerIdx = (activeLayerIdx + 1) % TILE_LAYERS.length
       const cfg = TILE_LAYERS[activeLayerIdx]
       currentTileLayer.remove()
       currentTileLayer = L.tileLayer(cfg.urlTemplate, { attribution: cfg.attribution, maxZoom: cfg.maxZoom, maxNativeZoom: cfg.maxNativeZoom }).addTo(map)
       localStorage.setItem(LS_KEY, cfg.id)
-      btnLayer.title = cfg.label
+      syncLayerLabel()
     })
   }
 

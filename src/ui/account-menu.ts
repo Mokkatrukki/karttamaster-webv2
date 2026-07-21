@@ -41,9 +41,11 @@ export class AccountMenu {
     label.textContent = 'Teema'
     wrap.appendChild(label)
 
+    // T259/R9: lyhyet + ikonilliset nimet (käyttäjäpalaute: pitkät nimet + himmeä inaktiivi
+    // luki "rikkinäiseltä"). Aktiivinen selvästi merkitty (CSS ✓ + accent-reuna).
     const options: { theme: Theme; label: string }[] = [
-      { theme: 'light', label: 'Reittimerkki-vaalea' },
-      { theme: 'dark', label: 'Kaamos-tumma' },
+      { theme: 'light', label: '☀️ Vaalea' },
+      { theme: 'dark', label: '🌙 Tumma' },
     ]
     const current = getTheme()
     const btns: HTMLButtonElement[] = []

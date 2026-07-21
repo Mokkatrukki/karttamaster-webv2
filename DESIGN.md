@@ -151,7 +151,7 @@ metsässä, hanskat kädessä.
 
 ### AccountMenu (`src/ui/account-menu.ts`, T203/V133)
 - Renderöi `#account-menu-section`iin: `display_name` (`/api/auth/me`, `.account-menu-name` bold) + teemavalitsin + Kirjaudu ulos
-- **Teemavalitsin** (`.account-menu-theme`): kaksi vaihtoehtoa "Reittimerkki-vaalea" / "Kaamos-tumma" (`.account-menu-theme-opt`, `min-height:40px`). Aktiivinen = `--accent`-reuna + `color-mix`-tausta, heijastaa `getTheme()`. Klikki → `setTheme()` (theme.ts, persistoi + `data-theme`). Koskee kaikkia rooleja (V132).
+- **Teemavalitsin** (`.account-menu-theme`, T259/R9): kaksi vaihtoehtoa **"☀️ Vaalea" / "🌙 Tumma"** (`.account-menu-theme-opt`, `min-height:40px`, RINNAKKAIN `flex:1`). Aktiivinen = `--accent` 2px-reuna + `color-mix`-tausta + `✓` (`::after`), heijastaa `getTheme()`. Inaktiivi `surface-raised` + `border-strong` (luettava — ei "rikkinäinen"). Klikki → `setTheme()` (theme.ts, persistoi + `data-theme`). Koskee kaikkia rooleja (V132).
 - **Kirjaudu ulos** (`#btn-logout`, `.account-menu-logout`, danger-tyyli): `POST /api/auth/logout` → `onLoggedOut` → `AuthScreen.start()` (login-lomake). Verkkovirhekin → kirjautumisruutu (ei jää haamutilaan).
 - **Poistettu:** `#btn-role` + `RoleSelector` (B48/V80 dead code — rooli tulee tili-per-rooli-authista, ei toggle).
 
