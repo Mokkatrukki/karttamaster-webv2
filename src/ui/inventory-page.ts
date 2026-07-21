@@ -334,7 +334,10 @@ function buildCard(item: InventoryItem, view: InventoryView, cb: InventoryPageCa
   const tpl = item.templateId ? view.templates.get(item.templateId) : undefined
   if (tpl) {
     head.appendChild(buildMarkerVisual(
-      { type: tpl.id, iconId: tpl.iconId, label: tpl.label, parts: tpl.parts, color: tpl.color },
+      // T200-konventio: buildMarkerVisual lukee kuva-avaimen `type`-kentästä (signImageSrc).
+      // SignTemplaten kuva-avain on imageId ?? id → järjestäjän lataama kuva (T196) näkyy
+      // ensisijaisesti, muuten bundled-webp/ikoni/label (V99-precedence).
+      { type: tpl.imageId ?? tpl.id, iconId: tpl.iconId, label: tpl.label, parts: tpl.parts, color: tpl.color },
       { size: 40, zoomable: true },
     ))
   }

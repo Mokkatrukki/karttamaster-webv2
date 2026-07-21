@@ -3876,8 +3876,10 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   font-size: 13px;
 }
 .inv-loc-add-form { display: flex; gap: 6px; width: 100%; margin-top: 8px; }
+.inv-loc-add-form .inv-btn-primary { width: auto; margin-top: 0; white-space: nowrap; flex-shrink: 0; }
 .inv-loc-add-input {
   flex: 1;
+  min-width: 0;
   min-height: 44px;
   padding: 8px 10px;
   background: var(--surface-app);
@@ -3926,6 +3928,7 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 .inv-add-row { display: flex; gap: 8px; }
 .inv-add-row .inv-f-name {
   flex: 1;
+  min-width: 0;
   min-height: 44px;
   padding: 8px 10px;
   background: var(--surface-app);
@@ -3935,7 +3938,8 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   font-size: 16px;
 }
 .inv-add-row .inv-f-qty {
-  width: 80px;
+  width: 92px;
+  flex-shrink: 0;
   min-height: 44px;
   padding: 8px 10px;
   background: var(--surface-app);
