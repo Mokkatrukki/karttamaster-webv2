@@ -299,7 +299,23 @@ GET    /api/poi                     → kaikki POI:t
 POST   /api/poi                     → uusi POI (järjestäjä+)
 PUT    /api/poi/:id                 → päivitä
 DELETE /api/poi/:id                 → poista
+
+# Inventaario (T240) — kaikki requireAuth()+requireRole(admin,järjestäjä), talkoolainen 403 (V163)
+GET    /api/inventory               → kaikki inventory_items (created_at asc)
+POST   /api/inventory               → uusi rivi (name pakko V161, qty finite>=0 V162, created_by sessiosta)
+PUT    /api/inventory/:id           → päivitä (sama validointi; puuttuva id → 404)
+DELETE /api/inventory/:id           → poista (puuttuva id → 404)
 ```
+
+### InventoryAPI (T240)
+
+`server/routes/inventory.ts` — järjestäjän varastotavaran kirjaus (v1: pelkkä inventointi).
+Taulu `inventory_items`: `id, name (NOT NULL), qty (REAL DEFAULT 0), unit, location, note, created_by, created_at, updated_at`.
+Ei uniikkius-constraintia — duplikaatit sallittu tarkoituksella (grill 2026-07-21, kirjanpito ei vedenpitävä).
+Validointi backend-auktoritatiivinen (`server/` ⊥ importtaa `src/logic/`, arch-raja): name trim ei-tyhjä (V161),
+qty `typeof number && Number.isFinite && >=0` (V162 — torjuu coercion "5">=0 + NaN/Infinity). qty puuttuu → default 0.
+`created_by` = `session.display_name` (ei client-bodystä → spoof-esto). Testit: `server/inventory.test.ts` (21 kpl).
+v2+ (ei toteutettu): varustelista-dekrementointi, multi-sijainti, ostoslista.
 
 ---
 

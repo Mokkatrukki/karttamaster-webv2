@@ -171,6 +171,21 @@ describe('T240: inventaario-API', () => {
     expect(res.status).toBe(400)
   })
 
+  test('V161: PUT tyhjä name → 400 (invariantti kattaa myös PUT)', async () => {
+    const post = await app.request('/api/inventory', {
+      method: 'POST',
+      headers: jsonHeaders(authHeaders(db, 'järjestäjä')),
+      body: JSON.stringify({ name: 'kepit', qty: 5 }),
+    })
+    const { id } = (await post.json()) as InventoryItem
+    const put = await app.request(`/api/inventory/${id}`, {
+      method: 'PUT',
+      headers: jsonHeaders(authHeaders(db, 'järjestäjä')),
+      body: JSON.stringify({ name: '  ', qty: 5 }),
+    })
+    expect(put.status).toBe(400)
+  })
+
   // ── V162: qty äärellinen numero >= 0 ─────────────────────────────────────
 
   test('V162: qty=0 → 201', async () => {
