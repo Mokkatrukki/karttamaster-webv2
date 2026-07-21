@@ -170,6 +170,9 @@ export class SignTemplateModal {
         if (!idTouched) id.value = slugify(labelInput.value)
       })
       id.addEventListener('input', () => { idTouched = true })
+      // Esitäytetty nimi (prefill = inventaarion "Muuta merkiksi") → alusta Tunnus heti;
+      // ohjelmallinen labelInput.value EI laukaise 'input'-eventtiä, joten slug ei muuten synny.
+      if (labelInput.value) id.value = slugify(labelInput.value)
     }
 
     // Visual-osio label + tabit (T176): Ikoni vs Kuva — vaihtoehtoiset, kumpi tahansa
