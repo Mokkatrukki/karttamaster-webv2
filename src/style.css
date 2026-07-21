@@ -67,6 +67,12 @@
   --radius-md:  10px;
   --radius-lg:  14px;
 
+  /* Toast (T253): kiinteä tumma snackbar molemmissa teemoissa (EI käänny) →
+     --accent-toast (oranssi) säilyttää AA-kontrastin (5:1) myös dark-teemassa. */
+  --toast-bg:      #1F2A24;
+  --toast-fg:      #F6F9F5;
+  --toast-action:  #FF7A54; /* kirkastettu accent → 5.4:1 tummalla toast-bg:llä */
+
   /* Typography */
   --font-ui: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
 }
@@ -4232,8 +4238,8 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   gap: 12px;
   max-width: min(92vw, 420px);
   padding: 10px 12px 10px 16px;
-  background: var(--text-body);        /* tumma "snackbar" — kontrasti taustaan */
-  color: var(--surface-card);
+  background: var(--toast-bg);         /* kiinteä tumma snackbar molemmissa teemoissa */
+  color: var(--toast-fg);
   border-radius: var(--radius-md);
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
   font-size: 14px;
@@ -4254,16 +4260,16 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--accent);
+  color: var(--toast-action);
   font-weight: 700;
   font-size: 14px;
   cursor: pointer;
 }
 .toast-action:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.10);
 }
 .toast-action:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--toast-action);
   outline-offset: 1px;
 }
 @keyframes toast-in {

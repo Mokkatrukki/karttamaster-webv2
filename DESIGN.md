@@ -556,6 +556,16 @@ CSS-luokat:
 - **Merkki-integraatio** (T246): "+ Merkki kirjastosta" (`#inv-add-sign-btn`) → `.inv-sign-picker` modaali: haku (`.inv-sign-search`) + malli-lista (`.inv-sign-row`) → valinta luo template_id-rivin; "+ Uusi merkki" (`#inv-sign-new`) → uusiokäyttää `SignTemplateModal` (T239) luontitilassa → näkyy heti kirjastossa+kartalla (V165). Merkin luonti EI duplikoi logiikkaa (template-sync + sign-template-modal).
 - **XSS (V164):** kaikki user-teksti (name/unit/note/template-label) `textContent`illä.
 - LeftPanel-linkki (`.left-panel-link`, `href="/inventory.html"`) — ks. alla vanha huom.
+- **Undo-toast (T253, V172/V173):** jokainen mutaatio edit-modessa (poisto, −/+, siirto, paikan poisto) → `showToast` "Kumoa"-toastilla (ks. §K Toast). Client-only: yksi undo-slotti, reload → katoaa. Näkyy vain `viewMode='edit'`. Revert olemassa oleviin `/api/inventory`-reitteihin (POST uudelleen / PUT vanha arvo).
+
+### Toast — jaettu (`src/ui/toast.ts`, T253)
+- **Idiomi = snackbar:** kelluva ilmoitus alareunaan keskitettynä (`position:fixed; left:50%; transform:translateX(-50%); bottom:16px + safe-area-inset-bottom`). `z-index:5000` (modaalien 4000 yläpuolella, auth-gate 9999 alapuolella).
+- **Kiinteä tumma tausta MOLEMMISSA teemoissa** (EI teemakäänteinen): `--toast-bg #1F2A24` / `--toast-fg #F6F9F5`. Syy: jos bg kääntyisi (`--text-body`), accent-action jäisi dark-teemassa vaalealle pohjalle → 2.87:1 FAIL. Kiinteä tumma → action säilyy AA:na. **Nämä tokenit EIVÄT saa mennä `:root[dark]`-overrideen.**
+- **Action-nappi** (`.toast-action`, esim. "Kumoa"): `--toast-action #FF7A54` (kirkastettu accent → **5.77:1** tummalla toast-bg:llä, AA ✓), `font-weight:700`, `min-height:44px min-width:44px` (§R touch-target), focus-visible accent-outline.
+- **Viesti** (`.toast-msg`): `--toast-fg` (~14:1), yksirivinen `text-overflow:ellipsis; white-space:nowrap` (`flex:1; min-width:0`) → pitkä nimi katkeaa siististi, ei rivitä toastia korkeaksi. User-teksti `textContent` (V164).
+- **Kesto:** auto-dismiss 5000ms; uusi `showToast` korvaa edellisen + resetoi timerin (yksi kerrallaan). `toast-in`-animaatio 160ms + `prefers-reduced-motion:reduce`→ei animaatiota.
+- **A11y:** `role=status` + `aria-live=polite` (ei keskeytä ruudunlukijaa, mutta ilmoittaa).
+- Rooli: molemmat (nyt järjestäjä/admin inventaariossa; jaettu → talkoolaisen flowt voivat uusiokäyttää).
 
 ### InventoryPage (v1-huom, `inventory.html`, T242)
 - Erillinen entrypoint /admin-mallin mukaan — vain järjestäjä/admin (V163, talkoolainen → `.inv-forbidden`). Ei jaa `#app`-runkoa.
