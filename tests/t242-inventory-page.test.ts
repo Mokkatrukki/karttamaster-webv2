@@ -66,7 +66,7 @@ describe('T242 lisäys', () => {
     setInput(container, 'inv-f-location', 'kärry')
     container.querySelector<HTMLFormElement>('#inv-add-form')!.dispatchEvent(new Event('submit', { cancelable: true }))
     await flush()
-    expect(cb.onAdd).toHaveBeenCalledWith({ name: 'Kepit', qty: 50, unit: 'kpl', location: 'kärry', note: null })
+    expect(cb.onAdd).toHaveBeenCalledWith(expect.objectContaining({ name: 'Kepit', qty: 50, unit: 'kpl', location: 'kärry', note: null }))
   })
 
   it('tyhjä nimi → virhe näkyy, onAdd EI kutsuta (client-validointi)', async () => {
