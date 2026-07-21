@@ -3,7 +3,7 @@ import { AuthScreen } from './ui/auth-screen'
 import { renderInventory, renderForbidden, renderSignPicker, defaultSelection, type LocationSelection, type InventoryViewMode } from './ui/inventory-page'
 import { SignTemplateModal } from './ui/sign-template-modal'
 import { fetchTemplates, createTemplateRemote, updateTemplateRemote, deleteTemplateRemote } from './logic/template-sync'
-import { createLibrary, signDisplayLabel } from './logic/sign-library'
+import { createLibrary } from './logic/sign-library'
 import type { SignTemplate, SignLibrary } from './logic/sign-library'
 import type { InventoryItem, InventoryLocation, InventoryFields } from './logic/inventory'
 import { showToast } from './ui/toast'
@@ -23,11 +23,12 @@ let initialized = false // ensimmäisellä latauksella oletus = Kärry/paikka, E
 let viewMode: InventoryViewMode = 'read'
 
 // Server palauttaa snake_case — normalisoi camelCase-logiikkatyyppiin (resolveItemName lukee templateId).
-type ServerItem = InventoryItem & { location_id: string | null; template_id: string | null }
+type ServerItem = InventoryItem & { location_id: string | null; template_id: string | null; keppi: number | null }
 type ServerLocation = { id: string; name: string; sort_order: number }
 
 function normItem(r: ServerItem): InventoryItem {
-  return { ...r, locationId: r.location_id, templateId: r.template_id }
+  // keppi: 0 → false (irto), 1 → true (keppi), NULL → null (= keppi/oletus). V17x rivin attribuutti.
+  return { ...r, locationId: r.location_id, templateId: r.template_id, keppi: r.keppi == null ? null : r.keppi === 1 }
 }
 function normLoc(r: ServerLocation): InventoryLocation {
   return { id: r.id, name: r.name, sortOrder: r.sort_order }
@@ -35,7 +36,7 @@ function normLoc(r: ServerLocation): InventoryLocation {
 
 /** camelCase-kentät → snake_case API-body. */
 function toBody(f: InventoryFields): Record<string, unknown> {
-  return { name: f.name, qty: f.qty, unit: f.unit, note: f.note, location_id: f.locationId, template_id: f.templateId }
+  return { name: f.name, qty: f.qty, unit: f.unit, note: f.note, location_id: f.locationId, template_id: f.templateId, keppi: f.keppi }
 }
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
@@ -50,6 +51,7 @@ function fieldsOf(i: InventoryItem): InventoryFields {
     note: i.note,
     locationId: i.locationId ?? null,
     templateId: i.templateId ?? null,
+    keppi: i.keppi ?? null,
   }
 }
 
@@ -227,22 +229,10 @@ async function load(): Promise<void> {
         })
         modal.open(tpl) // muokkaustila
       },
-      // T250: tekstirivi → merkki. Avaa uuden mallin, nimi esitäytetty rivin nimestä; käyttäjä
-      // poistaa "irto"-sanan + valitsee kuvan. Inventaario-default: keppi=false + favorite=false (V168).
-      onConvertToSign: (item) => {
-        const library: SignLibrary = createLibrary()
-        for (const [id, t] of templates) library.set(id, t)
-        const modal = new SignTemplateModal(library, {
-          onChanged: () => { /* linkitys tapahtuu onSaveTemplaten kautta */ },
-          onSaveTemplate: async (tpl, isNew) => {
-            if (isNew) await createTemplateRemote(tpl)
-            else await updateTemplateRemote(tpl)
-            await linkItemToTemplate(item, tpl.id) // PUT olemassa olevaan riviin (EI uutta riviä)
-          },
-        })
-        // keppi aina default ON (yleisin) — myös convertissa; irto-kyltit merkataan käsin (poista täppä).
-        modal.open(null, { label: item.name, keppi: true, favorite: false })
-      },
+      // T250/T25x: tekstirivi → merkki. Picker: valitse OLEMASSA oleva merkki (linkitä rivi) TAI
+      // luo uusi (esitäytetty nimi). Kiinnitystapa (keppi/irto) säädetään jälkeenpäin rivin
+      // Tiedoissa — sama tunnus molemmille (V17x), ei erillistä irto-mallia.
+      onConvertToSign: (item) => void openConvertFlow(item),
     },
   )
 }
@@ -253,7 +243,7 @@ async function linkItemToTemplate(item: InventoryItem, templateId: string): Prom
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(
-      toBody({ name: item.name, qty: item.qty, unit: item.unit, location: item.location, note: item.note, locationId: item.locationId ?? null, templateId }),
+      toBody({ name: item.name, qty: item.qty, unit: item.unit, location: item.location, note: item.note, locationId: item.locationId ?? null, templateId, keppi: item.keppi ?? null }),
     ),
   })
   if (r.ok) await load()
@@ -273,8 +263,9 @@ async function createSignRow(templateId: string, locationId: string | null): Pro
 async function openSignFlow(locationId: string | null, knownTemplates: Map<string, { label: string }>): Promise<void> {
   const result = await fetchTemplates()
   const templates: SignTemplate[] = result.ok ? result.templates : []
+  // V17x: picker näyttää kylttipinnan (pelkkä label, yksi tunnus) — keppi/irto valitaan rivillä.
   const list = templates.length
-    ? templates.map((t) => ({ id: t.id, label: signDisplayLabel(t) })) // V168 ' - irto' -suffix pickerissä
+    ? templates.map((t) => ({ id: t.id, label: t.label }))
     : [...knownTemplates].map(([id, t]) => ({ id, label: t.label }))
   const library: SignLibrary = createLibrary()
   for (const t of templates) library.set(t.id, t)
@@ -297,6 +288,40 @@ async function openSignFlow(locationId: string | null, knownTemplates: Map<strin
         },
       })
       modal.open(null) // luontitila
+    },
+  })
+}
+
+/**
+ * T25x: "Muuta merkiksi" — picker olemassa oleviin merkkeihin + "Uusi merkki". Toisin kuin
+ * openSignFlow (luo UUDEN rivin), tämä LINKITTÄÄ olemassa olevan tekstirivin merkkiin (säilyttää
+ * qty/paikka/note, EI uutta riviä). Kiinnitystapa (keppi/irto) säädetään rivin Tiedoissa jälkeenpäin.
+ */
+async function openConvertFlow(item: InventoryItem): Promise<void> {
+  const result = await fetchTemplates()
+  const templates: SignTemplate[] = result.ok ? result.templates : []
+  const list = templates.map((t) => ({ id: t.id, label: t.label }))
+  const library: SignLibrary = createLibrary()
+  for (const t of templates) library.set(t.id, t)
+
+  let backdrop: HTMLElement | null = null
+  const close = (): void => {
+    backdrop?.remove()
+    backdrop = null
+  }
+  backdrop = renderSignPicker(document.body, list, {
+    onPick: (templateId) => void linkItemToTemplate(item, templateId), // olemassa oleva → linkitä rivi
+    onClose: close,
+    onCreateNew: () => {
+      const modal = new SignTemplateModal(library, {
+        onChanged: () => { /* linkitys tapahtuu onSaveTemplaten kautta */ },
+        onSaveTemplate: async (tpl, isNew) => {
+          if (isNew) await createTemplateRemote(tpl)
+          else await updateTemplateRemote(tpl)
+          await linkItemToTemplate(item, tpl.id) // PUT olemassa olevaan riviin (EI uutta riviä)
+        },
+      })
+      modal.open(null, { label: item.name, favorite: false }) // esitäytetty nimi rivin nimestä
     },
   })
 }

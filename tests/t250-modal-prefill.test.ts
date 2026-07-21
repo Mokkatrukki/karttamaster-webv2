@@ -15,10 +15,10 @@ describe('T250 SignTemplateModal prefill (inventaarion "Muuta merkiksi")', () =>
     expect(id.value).toBe(slugify('20km kyltti irto')) // '20km-kyltti-irto'
   })
 
-  it('keppi-täppä default ON prefillillä (keppi=true)', () => {
+  it('V17x: keppi-täppä POISTETTU mallista (kiinnitystapa elää rivillä), favorite säilyy', () => {
     const modal = new SignTemplateModal(createLibrary(), { onChanged: () => {}, onSaveTemplate: () => {} })
-    modal.open(null, { label: 'Oikealle', keppi: true, favorite: false })
-    expect(document.querySelector<HTMLInputElement>('.sign-lib-keppi-checkbox')!.checked).toBe(true)
+    modal.open(null, { label: 'Oikealle', favorite: false })
+    expect(document.querySelector('.sign-lib-keppi-checkbox')).toBeNull() // ei enää mallissa
     expect(document.querySelector<HTMLInputElement>('.sign-lib-fav-checkbox')!.checked).toBe(false)
   })
 })

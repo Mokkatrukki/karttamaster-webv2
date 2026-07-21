@@ -27,7 +27,7 @@ export interface LocationUndoAction {
 export type UndoAction = ItemUndoAction | LocationUndoAction
 
 /** Templates-lookup resolveItemName-yhteensopiva (rakenteellinen, T247-linja). */
-type TemplateLookup = { get(id: string): { label: string; keppi?: boolean } | undefined }
+type TemplateLookup = { get(id: string): { label: string } | undefined }
 
 /**
  * Toast-teksti mutaatiolle (V172). Nimi resolvoidaan resolveItemName-hengessä

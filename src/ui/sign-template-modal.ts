@@ -47,9 +47,10 @@ export class SignTemplateModal {
     private readonly callbacks: SignTemplateModalCallbacks,
   ) {}
 
-  // prefill (T250): luontitilassa (template=null) esitäyttö — nimi + keppi-oletus. Inventaarion
-  // "Muuta merkiksi" antaa { label: rivin nimi, keppi: false } (irto-default inventaariossa, V168).
-  open(template: SignTemplate | null, prefill?: { label?: string; keppi?: boolean; favorite?: boolean }): void {
+  // prefill (T250): luontitilassa (template=null) esitäyttö — nimi (+favorite). Inventaarion
+  // "Muuta merkiksi" antaa { label: rivin nimi }. Kiinnitystapa (keppi/irto) EI ole mallissa (V17x)
+  // vaan inventaariorivillä → sitä ei valita täällä.
+  open(template: SignTemplate | null, prefill?: { label?: string; favorite?: boolean }): void {
     this.closeModal()
 
     // T178-jälkeinen korjaus (B-löydös): pää-visuali (yllä) ja "Osat"-lista (alla) olivat kaksi
@@ -604,17 +605,8 @@ export class SignTemplateModal {
     favLabel.appendChild(document.createTextNode('Näytä suosikit-pickissä'))
     modal.appendChild(favLabel)
 
-    // Keppi-toggle (T249/V168): keppi (oletus, yleisin) = ei suffixia; pois → näyttönimeen ' - irto'.
-    const keppiLabel = document.createElement('label')
-    keppiLabel.style.cssText = 'display:flex;align-items:center;gap:8px;min-height:44px;cursor:pointer;font-size:13px;color:var(--text-body)'
-    const keppiCheckbox = document.createElement('input')
-    keppiCheckbox.type = 'checkbox'
-    keppiCheckbox.className = 'sign-lib-keppi-checkbox'
-    keppiCheckbox.checked = template?.keppi ?? prefill?.keppi ?? true // uusi = keppi; convert antaa false
-    keppiCheckbox.style.cssText = 'width:18px;height:18px;cursor:pointer'
-    keppiLabel.appendChild(keppiCheckbox)
-    keppiLabel.appendChild(document.createTextNode('Keppi (pois = irto → nimeen "- irto")'))
-    modal.appendChild(keppiLabel)
+    // V17x: keppi/irto EI enää mallissa — kiinnitystapa valitaan inventaariorivillä (sama tunnus
+    // molemmille). Malli = pelkkä kylttipinta.
 
     // Save / Cancel
     const btnRow = document.createElement('div')
@@ -640,7 +632,6 @@ export class SignTemplateModal {
       const iconId = selectedIconId ?? undefined
       const imageId = selectedImageId ?? undefined
       const favorite = favCheckbox.checked
-      const keppi = keppiCheckbox.checked
       const parts = selectedParts.length > 0 ? selectedParts : undefined
 
       if (!template) {
@@ -655,10 +646,10 @@ export class SignTemplateModal {
           return
         }
         const color = colorInput?.value ?? '#f59e0b'
-        const created = createTemplate(this.library, { label, color, description, favorite, keppi, iconId, imageId, parts }, id)
+        const created = createTemplate(this.library, { label, color, description, favorite, iconId, imageId, parts }, id)
         this.callbacks.onSaveTemplate?.(created, true)
       } else {
-        const patch: Partial<Omit<SignTemplate, 'id'>> = { label, description, iconId, imageId, favorite, keppi, parts }
+        const patch: Partial<Omit<SignTemplate, 'id'>> = { label, description, iconId, imageId, favorite, parts }
         if (colorInput) patch.color = colorInput.value
         const updated = updateTemplate(this.library, template.id, patch)
         if (updated) this.callbacks.onSaveTemplate?.(updated, false)
