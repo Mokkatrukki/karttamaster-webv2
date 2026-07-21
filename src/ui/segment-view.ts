@@ -35,7 +35,7 @@ export interface SegmentViewActions {
   // T232 (B): GPS-navigaattorin nykyinen tila (napin alkuperäisen ilmeen renderöintiin).
   isGpsActive?: () => boolean
   // T232 (F)/V159: hero:n valittu merkki muuttui (◀▶-selailu/reconcile) → synkkaa kartan
-  // NextMarkerHighlight. null = ei valittua merkkiä (done/väärä phase) → tyhjennä korostus.
+  // ikoni-korostus (T256 setNextHighlight). null = ei valittua merkkiä (done/väärä phase) → tyhjennä.
   onNavigate?: (markerId: string | null) => void
   // T232 (E)/T229: "+ Merkki" hero-overflowsta → avaa sign-picker kartan keskelle (POST omalle pätkälle).
   onAddMarker?: () => void

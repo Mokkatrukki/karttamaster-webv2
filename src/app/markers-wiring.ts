@@ -18,7 +18,6 @@ import { getSegmentForCode, getMarkersForSegment, updateSegment } from '../logic
 import type { Segment } from '../logic/segments'
 import { planSegmentZoom } from '../logic/segment-zoom'
 import { firstUnsetMarker, nextMarkerAhead } from '../logic/navigation'
-import { NextMarkerHighlight } from '../map/next-marker-highlight'
 import { CommentLayer } from '../map/comment-layer'
 import { fetchComments, deleteComment } from '../logic/comments'
 import type { GpsNavigator } from '../map/gps-navigator'
@@ -89,14 +88,11 @@ export function wireMarkers(
   let statusPanel!: StatusPanel
   let segmentView: SegmentView | null = null
   let signLibrary: SignLibrary | null = null
-  let nextHighlight: NextMarkerHighlight | null = null
-
-  // T224 (b1): korosta pätkän seuraava asettamaton merkki kartalla (vain asettaminen-phase).
+  // T224 (b1)/T256: korosta pätkän seuraava asettamaton merkki kartalla (vain asettaminen-phase).
+  // R6/V178: ikoni-hehku (.marker-next-highlight) renkaan sijaan → markerManager.setNextHighlight.
   function updateNextHighlight(seg: Segment, segMarkers: SignMarker[]): void {
-    if (!nextHighlight) return
     const next = seg.phase === 'asettaminen' ? firstUnsetMarker(segMarkers) : null
-    if (next) nextHighlight.set(next.lat, next.lon)
-    else nextHighlight.clear()
+    markerManager.setNextHighlight(next?.id ?? null)
   }
 
   // T185/V117: outbox-resurssiavaimista ('marker:<id>') pending-merkkien id-joukko listalle.
@@ -250,11 +246,8 @@ export function wireMarkers(
           // null = ei valittua (done/väärä phase) → tyhjennä. Korostus SEURAA valintaa, ei suoraan
           // firstUnsetMarkeria (estää "highlight osoittaa eri merkkiin kuin hero" -epäjohdonmukaisuuden).
           onNavigate: (id) => {
-            if (!nextHighlight) return
-            if (!id) { nextHighlight.clear(); return }
-            const m = markerManager.getAll().find(x => x.id === id)
-            if (m) nextHighlight.set(m.lat, m.lon)
-            else nextHighlight.clear()
+            // R6/V178: ikoni-hehku seuraa hero:n valintaa (◀▶). null = ei korostusta.
+            markerManager.setNextHighlight(id ?? null)
           },
           // T232 (E)/T229: "+ Merkki" hero-overflowsta → sign-picker kartan keskelle (POST omalle
           // pätkälle V149). Sama polku kuin yläpalkin #btn-add-marker (poistuu T233).
@@ -272,8 +265,7 @@ export function wireMarkers(
       segmentView.update(segMarkers0)
       // T224 (D): "tässä on sun pätkä" — zoomaa pätkään heti latauksessa.
       fitMapToSegment(map, routes, seg, segMarkers0)
-      // T224 (b1): korosta seuraava asettamaton merkki kartalla (kartta = päänavigointi).
-      nextHighlight = new NextMarkerHighlight(map)
+      // T224 (b1)/T256: korosta seuraava asettamaton merkki kartalla (kartta = päänavigointi).
       updateNextHighlight(seg, segMarkers0)
       // T222/V150: vain oman pätkän merkit raahattavia — vieraita ei voi siirtää (backend 403).
       markerManager.setDraggablePredicate(m => currentSegmentMarkerIds()?.has(m.id) ?? false)

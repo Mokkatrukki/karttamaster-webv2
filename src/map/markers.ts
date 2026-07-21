@@ -35,6 +35,8 @@ export class MarkerManager {
   // erottuvasti ("tallentamatta") kunnes 2xx vahvistaa. Säilytetään managerissa, koska
   // setIcon (status/tyyppimuutos) korvaa Leaflet-elementin → luokka on osattava piirtää uudelleen.
   private pendingIds = new Set<string>()
+  // T256/V178 (R6): pätkän seuraava-merkki-korostus — ikoni hehkuu (.marker-next-highlight).
+  private highlightNextId: string | null = null
   private map: L.Map
   private routes: RouteRef[]
   private visibleRouteIds: string[]
@@ -90,6 +92,21 @@ export class MarkerManager {
 
   private applyPendingClass(lm: L.Marker, on: boolean): void {
     lm.getElement()?.classList.toggle('leaflet-marker-pending', on)
+  }
+
+  // T256/V178 (R6): korosta pätkän seuraava asettamaton merkki KARTALLA — ei erillistä
+  // rengasta (poistettu, V178), vaan ITSE ikoni hehkuu huomiovärillä (.marker-next-highlight,
+  // filter-glow CSS). Sama pattern kuin pending-luokka; uudelleensovelletaan addLeafletMarkerissa
+  // (setIcon/reload korvaa elementin). null = ei korostusta (done/väärä phase).
+  setNextHighlight(id: string | null): void {
+    if (this.highlightNextId === id) return
+    if (this.highlightNextId) {
+      this.leafletMarkers.get(this.highlightNextId)?.getElement()?.classList.remove('marker-next-highlight')
+    }
+    this.highlightNextId = id
+    if (id) {
+      this.leafletMarkers.get(id)?.getElement()?.classList.add('marker-next-highlight')
+    }
   }
 
   // T183/V116: kaikki merkkikirjoitukset reititetään durable-outboxin kautta.
@@ -399,6 +416,8 @@ export class MarkerManager {
     this.applyZoomScale(lm)
     // T185/V117: uusi merkki voi olla jo pending (add() enqueuaa ennen piirtoa) → merkitse heti.
     this.applyPendingClass(lm, this.pendingIds.has(m.id))
+    // T256/V178: seuraava-merkki-korostus uudelleen jos tämä on korostettu (setIcon/reload korvaa elementin).
+    if (this.highlightNextId === m.id) el?.classList.add('marker-next-highlight')
 
     // V82: lm.on('click', ...) uses Leaflet's own event system, which suppresses
     // the synthetic click that follows a real drag (Draggable._onUp). A raw DOM

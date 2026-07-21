@@ -2964,10 +2964,16 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
 .equipment-modal-footer .btn { flex: 1; }
 
 /* T224 (b1): seuraava-merkin kartta-korostusrengas — hienovarainen pulssi. */
-.next-marker-ring { animation: next-marker-pulse 1.6s ease-in-out infinite; }
-@keyframes next-marker-pulse {
-  0%, 100% { opacity: 0.9; }
-  50% { opacity: 0.35; }
+/* T256/V178 (R6): seuraava-merkki-korostus = ITSE ikoni hehkuu huomiovärillä (--accent),
+   ei erillistä rengasta (poistettu). filter-drop-shadow EI kosketa Leafletin position-
+   transformia (.leaflet-marker-icon translate3d) → turvallinen. z-index nostaa muiden yli. */
+.marker-next-highlight {
+  z-index: 1000 !important;
+  animation: marker-next-glow 1.4s ease-in-out infinite;
+}
+@keyframes marker-next-glow {
+  0%, 100% { filter: drop-shadow(0 0 3px var(--accent)) drop-shadow(0 0 5px var(--accent)); }
+  50%      { filter: drop-shadow(0 0 8px var(--accent)) drop-shadow(0 0 15px var(--accent)); }
 }
 
 /* ── Segment label (Leaflet tooltip) ── */
