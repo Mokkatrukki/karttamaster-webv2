@@ -541,7 +541,16 @@ CSS-luokat:
 - Tila-pilli (`.admin-user-status`): käyttää olemassa olevia status-värejä (§C) — `active` = `#4ade80`/`rgba(74,222,128,0.10)` (sama kuin status-asetettu), `inactive` = `danger-text`/`danger-soft`. **Ei uutta `--confirm`-tekstiväriä tummalla taustalla** — kontrasti alle AA:n (3.1:1), käytä aina kirkkaampaa status-tokenia.
 - Toimintonapit (`.admin-toggle-active-btn`, `.admin-copy-invite-btn`): `min-height:44px`, `field-tint` tausta
 
-### InventoryPage (`inventory.html` + `src/inventory.ts` + `src/ui/inventory-page.ts`, T242)
+### InventoryPage — v2 (`inventory.html` + `src/inventory.ts` + `src/ui/inventory-page.ts`, T245/T246)
+- **Paikkatabit** (`.inv-location-bar` + `.inv-loc-tab` pillit `border-radius:999px min-height:44px`): valitse paikka → sen tavarat; aktiivi `.active` = accent-tausta. "Ei paikkaa"-tabi orvoille (V166). "+ Paikka" (`.inv-loc-add` katkoviiva) → inline-lomake.
+- **Minimilisäys** (`.inv-add-row`): nimi (`flex:1`) + määrä (`width:80px`) + "+ Lisää". Paikka tulee kontekstista, ei kenttää. Inputit `font-size:16px` (iOS-zoom-esto), 44px.
+- **Määräsäädin** (`.inv-stepper`): `[−]`(`.inv-step-minus`) `[luku]`(`.inv-step-qty` nappi) `[+]`(`.inv-step-plus`), kaikki 44×44px. − clamppaa 0:aan (adjustQty T244). Tap luku → `.inv-step-qty-input` tarkka-syöttö (Enter/blur tallentaa). Muutos persistoituu heti.
+- **Rivi** (`.inv-card` + `.inv-card-head`): nimi (resolveItemName V165 — merkillä `.inv-card-name-sign` accent) + stepper. Meta = kommentti (`.inv-card-meta`). Toiminnot: "✎ Tiedot" (`.inv-details-editor`: yksikkö+kommentti sekundäärinä) + "Poista" (confirm V102).
+- **Merkki-integraatio** (T246): "+ Merkki kirjastosta" (`#inv-add-sign-btn`) → `.inv-sign-picker` modaali: haku (`.inv-sign-search`) + malli-lista (`.inv-sign-row`) → valinta luo template_id-rivin; "+ Uusi merkki" (`#inv-sign-new`) → uusiokäyttää `SignTemplateModal` (T239) luontitilassa → näkyy heti kirjastossa+kartalla (V165). Merkin luonti EI duplikoi logiikkaa (template-sync + sign-template-modal).
+- **XSS (V164):** kaikki user-teksti (name/unit/note/template-label) `textContent`illä.
+- LeftPanel-linkki (`.left-panel-link`, `href="/inventory.html"`) — ks. alla vanha huom.
+
+### InventoryPage (v1-huom, `inventory.html`, T242)
 - Erillinen entrypoint /admin-mallin mukaan — vain järjestäjä/admin (V163, talkoolainen → `.inv-forbidden`). Ei jaa `#app`-runkoa.
 - `#inventory-app`: `max-width:720px;margin:0 auto;padding:16px` — kapeampi kuin admin (960px), koska mobiili-primääri (järjestäjä puhelimella kärryllä).
 - Header (`#inventory-header`): otsikko "Inventaario" + "← Kartta" (`#btn-inventory-back`) + "Kirjaudu ulos" — molemmat `min-height:44px`, `field-tint`/`border-strong`.

@@ -1,6 +1,10 @@
 import './style.css'
 import { AuthScreen } from './ui/auth-screen'
-import { renderInventory, renderForbidden, type LocationSelection } from './ui/inventory-page'
+import { renderInventory, renderForbidden, renderSignPicker, type LocationSelection } from './ui/inventory-page'
+import { SignTemplateModal } from './ui/sign-template-modal'
+import { fetchTemplates, createTemplateRemote } from './logic/template-sync'
+import { createLibrary } from './logic/sign-library'
+import type { SignTemplate, SignLibrary } from './logic/sign-library'
 import type { InventoryItem, InventoryLocation, InventoryFields } from './logic/inventory'
 
 const content = document.getElementById('inventory-content')!
@@ -97,8 +101,51 @@ async function load(): Promise<void> {
         const r = await fetch(`/api/inventory/${item.id}`, { method: 'DELETE' })
         if (r.ok) await load()
       },
+      onAddSign: (locationId) => void openSignFlow(locationId, templates),
     },
   )
+}
+
+/** Luo inventaariorivi joka linkittyy merkkikirjaston malliin (template_id, V165). qty oletus 1. */
+async function createSignRow(templateId: string, locationId: string | null): Promise<void> {
+  const r = await fetch('/api/inventory', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ template_id: templateId, location_id: locationId, qty: 1 }),
+  })
+  if (r.ok) await load()
+}
+
+/** T246: "Lisää merkki" — picker olemassa oleviin + "Uusi merkki" (SignTemplateModal-reuse). */
+async function openSignFlow(locationId: string | null, knownTemplates: Map<string, { label: string }>): Promise<void> {
+  const result = await fetchTemplates()
+  const templates: SignTemplate[] = result.ok ? result.templates : []
+  const list = templates.length
+    ? templates.map((t) => ({ id: t.id, label: t.label }))
+    : [...knownTemplates].map(([id, t]) => ({ id, label: t.label }))
+  const library: SignLibrary = createLibrary()
+  for (const t of templates) library.set(t.id, t)
+
+  let backdrop: HTMLElement | null = null
+  const close = (): void => {
+    backdrop?.remove()
+    backdrop = null
+  }
+  backdrop = renderSignPicker(document.body, list, {
+    onPick: (templateId) => void createSignRow(templateId, locationId),
+    onClose: close,
+    onCreateNew: () => {
+      const modal = new SignTemplateModal(library, {
+        onChanged: () => { /* inventaario reloadaa onSaveTemplaten kautta */ },
+        onSaveTemplate: async (tpl, isNew) => {
+          if (!isNew) return
+          await createTemplateRemote(tpl) // näkyy heti kirjastossa + kartalla (V165)
+          await createSignRow(tpl.id, locationId)
+        },
+      })
+      modal.open(null) // luontitila
+    },
+  })
 }
 
 const auth = new AuthScreen((result) => {

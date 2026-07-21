@@ -351,6 +351,100 @@ function showError(el: HTMLElement, code: string): void {
   el.hidden = false
 }
 
+// ── Merkki-picker (T246): hae olemassa oleva merkkikirjaston malli tai luo uusi ──
+
+export interface SignPickerCallbacks {
+  onPick: (templateId: string) => void
+  onCreateNew: () => void
+  onClose: () => void
+}
+
+/** Modaali: listaa merkkikirjaston mallit (haku) + "Uusi merkki". Palauttaa backdropin (kutsuja poistaa). */
+export function renderSignPicker(
+  host: HTMLElement,
+  templates: Array<{ id: string; label: string }>,
+  cb: SignPickerCallbacks,
+): HTMLElement {
+  const backdrop = document.createElement('div')
+  backdrop.className = 'inv-sign-picker-backdrop'
+  backdrop.addEventListener('click', () => cb.onClose())
+
+  const modal = document.createElement('div')
+  modal.className = 'inv-sign-picker'
+  modal.setAttribute('role', 'dialog')
+  modal.addEventListener('click', (e) => e.stopPropagation())
+
+  const title = document.createElement('h2')
+  title.className = 'inv-sign-picker-title'
+  title.textContent = 'Lisää merkki'
+  modal.appendChild(title)
+
+  const search = document.createElement('input')
+  search.type = 'text'
+  search.className = 'inv-sign-search'
+  search.placeholder = 'Hae merkkiä…'
+  search.setAttribute('aria-label', 'Hae merkkiä')
+  modal.appendChild(search)
+
+  const list = document.createElement('div')
+  list.className = 'inv-sign-list'
+  modal.appendChild(list)
+
+  const renderList = (filter: string): void => {
+    list.innerHTML = ''
+    const q = filter.trim().toLowerCase()
+    const matches = templates.filter((t) => t.label.toLowerCase().includes(q))
+    if (matches.length === 0) {
+      const empty = document.createElement('p')
+      empty.className = 'inv-empty'
+      empty.textContent = 'Ei osumia — luo uusi.'
+      list.appendChild(empty)
+      return
+    }
+    for (const t of matches) {
+      const row = document.createElement('button')
+      row.type = 'button'
+      row.className = 'inv-sign-row'
+      row.dataset.templateId = t.id
+      row.textContent = t.label // V164 textContent
+      row.addEventListener('click', () => {
+        cb.onClose()
+        cb.onPick(t.id)
+      })
+      list.appendChild(row)
+    }
+  }
+  renderList('')
+  search.addEventListener('input', () => renderList(search.value))
+
+  const actions = document.createElement('div')
+  actions.className = 'inv-sign-picker-actions'
+
+  const newBtn = document.createElement('button')
+  newBtn.type = 'button'
+  newBtn.className = 'inv-btn inv-btn-primary'
+  newBtn.id = 'inv-sign-new'
+  newBtn.textContent = '+ Uusi merkki'
+  newBtn.addEventListener('click', () => {
+    cb.onClose()
+    cb.onCreateNew()
+  })
+
+  const closeBtn = document.createElement('button')
+  closeBtn.type = 'button'
+  closeBtn.className = 'inv-btn'
+  closeBtn.textContent = 'Sulje'
+  closeBtn.addEventListener('click', () => cb.onClose())
+
+  actions.append(newBtn, closeBtn)
+  modal.appendChild(actions)
+
+  backdrop.appendChild(modal)
+  host.appendChild(backdrop)
+  search.focus()
+  return backdrop
+}
+
 function labeledInput(label: string, cls: string, value: string): { wrap: HTMLElement; input: HTMLInputElement } {
   const wrap = document.createElement('label')
   wrap.className = 'inv-field'
