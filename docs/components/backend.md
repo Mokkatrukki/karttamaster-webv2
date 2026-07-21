@@ -300,11 +300,16 @@ POST   /api/poi                     → uusi POI (järjestäjä+)
 PUT    /api/poi/:id                 → päivitä
 DELETE /api/poi/:id                 → poista
 
-# Inventaario (T240) — kaikki requireAuth()+requireRole(admin,järjestäjä), talkoolainen 403 (V163)
-GET    /api/inventory               → kaikki inventory_items (created_at asc)
-POST   /api/inventory               → uusi rivi (name pakko V161, qty finite>=0 V162, created_by sessiosta)
-PUT    /api/inventory/:id           → päivitä (sama validointi; puuttuva id → 404)
-DELETE /api/inventory/:id           → poista (puuttuva id → 404)
+# Inventaario (T240/T243) — kaikki requireAuth()+requireRole(admin,järjestäjä), talkoolainen 403 (V163)
+GET    /api/inventory                  → inventory_items (?location_id=X suodattaa, =none → orvot)
+POST   /api/inventory                  → uusi rivi (tarvike: name pakko V161; merkki: template_id → name=label snapshot V165; qty finite>=0 V162)
+PUT    /api/inventory/:id              → päivitä (sama validointi; puuttuva id → 404)
+DELETE /api/inventory/:id              → poista rivi — EI koske templates-tauluun (V165 unlink); puuttuva → 404
+# Inventaario-paikat (T243)
+GET    /api/inventory/locations        → inventory_locations (sort_order, created_at)
+POST   /api/inventory/locations        → uusi paikka (name pakko)
+PUT    /api/inventory/locations/:id    → nimeä/järjestä (puuttuva → 404)
+DELETE /api/inventory/locations/:id    → poista → nullaa itemien location_id (V166, ei kaskadi); puuttuva → 404
 ```
 
 ### InventoryAPI (T240)

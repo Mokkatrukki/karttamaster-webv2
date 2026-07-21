@@ -206,7 +206,19 @@ function initSchema(db: Database): void {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
+
+    -- T243: inventaario v2 — paikat säiliöinä (Kärry/Varasto). Poisto nullaa itemien location_id (V166).
+    CREATE TABLE IF NOT EXISTS inventory_locations (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
   `)
+
+  // T243/V165: inventaariorivi voi olla merkki (template_id → templates.id, elävä) tai kuulua paikkaan.
+  try { db.exec('ALTER TABLE inventory_items ADD COLUMN location_id TEXT') } catch { /* already exists */ }
+  try { db.exec('ALTER TABLE inventory_items ADD COLUMN template_id TEXT') } catch { /* already exists */ }
 
   // Migraatiot — idempotent ALTER TABLE (epäonnistuu hiljaa jos kolumni jo on)
   try { db.exec('ALTER TABLE markers ADD COLUMN color TEXT') } catch { /* already exists */ }

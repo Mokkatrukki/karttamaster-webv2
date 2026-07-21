@@ -112,7 +112,7 @@ server/       ← Hono + Bun + SQLite
 | MarkersAPI | `server/routes/markers.ts` | ✓ T226 (kanoninen ownership + audit-kirjaus + created_by) | — | [backend.md](docs/components/backend.md) |
 | MarkerAudit | `server/marker-audit.ts` | ✓ T226 (ownSegments + markerInOwnSegment-unioni V154 + logMarkerAudit) | — | [backend.md](docs/components/backend.md) |
 | AuditAPI | `server/routes/audit.ts` | ✓ T227 (GET /api/audit + POST /api/audit/undo massaperuutus) | — | [backend.md](docs/components/backend.md) |
-| InventoryAPI | `server/routes/inventory.ts` | ✓ T240 (inventory_items CRUD; requireAuth+requireRole järjestäjä/admin V163; validointi V161/V162) | — | [backend.md](docs/components/backend.md) |
+| InventoryAPI | `server/routes/inventory.ts` | ✓ T243 (v2: paikat `inventory_locations`-CRUD + `template_id`-merkkilinkki V165 + location_id-suodatus V166; snapshot-name; V161/V162/V163) | — | [backend.md](docs/components/backend.md) |
 | TemplatesAPI | `server/routes/templates.ts` | ✓ T192 | — | [backend.md](docs/components/backend.md) |
 | AreasAPI | `server/routes/areas.ts` | ✓ | area-interaction | [backend.md](docs/components/backend.md) |
 | DevFeedbackAPI | `server/routes/devfeedback.ts` | ✓ | — | [backend.md](docs/components/backend.md) |
