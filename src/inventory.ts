@@ -157,7 +157,8 @@ async function load(): Promise<void> {
             await linkItemToTemplate(item, tpl.id) // PUT olemassa olevaan riviin (EI uutta riviä)
           },
         })
-        modal.open(null, { label: item.name, keppi: false, favorite: false })
+        // keppi aina default ON (yleisin) — myös convertissa; irto-kyltit merkataan käsin (poista täppä).
+        modal.open(null, { label: item.name, keppi: true, favorite: false })
       },
     },
   )
