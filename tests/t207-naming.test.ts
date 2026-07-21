@@ -35,10 +35,9 @@ describe('T207 — käyttäjänäkyvät nimet', () => {
     expect(src).not.toContain('Pätkäjako')
   })
 
-  it('#btn-layer → kiinteä "Karttatyyli" (ei vaihtuva karttakerroksen nimi)', () => {
+  it('#btn-layer → näyttää AKTIIVISEN karttatyylin (T259/R9: "Karttatyyli: <label>", käyttäjäpyyntö)', () => {
+    // R9/T259 kumosi T207:n "kiinteä nimi" -linjan: käyttäjä halusi napin kertovan mikä tyyli on.
     const src = read('src/app/map-init.ts')
-    expect(src).toContain("btnLayer.textContent = 'Karttatyyli'")
-    expect(src).not.toContain('btnLayer.textContent = TILE_LAYERS')
-    expect(src).not.toContain('btnLayer.textContent = cfg.label')
+    expect(src).toContain('Karttatyyli: ${TILE_LAYERS[activeLayerIdx].label}')
   })
 })
