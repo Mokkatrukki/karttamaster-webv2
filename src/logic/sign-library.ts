@@ -32,21 +32,21 @@ export interface SignTemplate {
   color: string       // hex color for icon and swatch
   description: string // free text, e.g. "Käänny oikealle"
   favorite: boolean
-  // V17x/T25x: keppi POISTETTU templatesta — malli = kylttipinta (yksi tunnus). Kiinnitystapa
-  // (keppi/irto) elää nyt inventaariorivillä (InventoryItem.keppi), ei mallissa. Ks. signDisplayLabel.
+  // V186: kiinnitystapa (keppi/irto) POISTETTU kokonaan — malli = kylttipinta (yksi tunnus),
+  // oletus keppi, poikkeus "sido puuhun" merkin kommentissa kartalla. Ei keppi-kenttää missään.
   iconId?: string     // V50: optional Lucide icon name; if set, shown instead of compactLabel in circle
   imageId?: string    // V99/T158: optional template image key (convention = template.id); resolves src/assets/signs/<id>.webp
   parts?: SignPart[]  // V107: yhdistelmämerkki — pystypino kepissä, parts[0] ylin, max 4 osaa (ylimenevät typistetään)
 }
 
 /**
- * Näyttönimi (V17x): keppi=false → 'label - irto', muuten pelkkä label. keppi on RIVIN attribuutti
- * (InventoryItem.keppi), EI mallin — sama kylttipinta voi olla kepillä TAI irto samalla tunnuksella.
- * Puhdas, ei DOM. Käytetään VAIN inventaarion rivinäytössä (kartta/kirjasto = pelkkä tpl.label).
- * HUOM: kartan compactLabel-lyhenne johdetaan RAAKALABELISTA (tpl.label), ei tästä.
+ * Näyttönimi (V186): kiinnitystapa EI ole kenttä — oletus aina keppi, poikkeus "sido puuhun"
+ * ilmaistaan merkin kommentissa kartalla. signDisplayLabel palauttaa AINA raakalabelin.
+ * Säilyy erillisenä funktiona (yksi näyttönimi-piste, tuleva kartat↔merkit-convergenssi).
+ * Puhdas, ei DOM. HUOM: kartan compactLabel-lyhenne johdetaan RAAKALABELISTA (tpl.label).
  */
-export function signDisplayLabel(label: string, keppi?: boolean | null): string {
-  return keppi === false ? `${label} - irto` : label
+export function signDisplayLabel(label: string): string {
+  return label
 }
 
 const MAX_PARTS = 4

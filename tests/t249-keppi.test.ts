@@ -6,34 +6,28 @@ import type { InventoryView, InventoryPageCallbacks } from '../src/ui/inventory-
 import type { InventoryItem, InventoryLocation } from '../src/logic/inventory'
 import type { SignTemplate } from '../src/logic/sign-library'
 
-// ── Logic (Vitest-pure) — V17x signDisplayLabel + resolveItemName (keppi RIVILLÄ) ──
-describe('signDisplayLabel (V17x — keppi rivin attribuutti)', () => {
-  it('keppi=true → pelkkä label', () => {
-    expect(signDisplayLabel('Alueella pyöräkilpailu', true)).toBe('Alueella pyöräkilpailu')
-  })
-  it('keppi=false → "label - irto"', () => {
-    expect(signDisplayLabel('Alueella pyöräkilpailu', false)).toBe('Alueella pyöräkilpailu - irto')
-  })
-  it('keppi puuttuu (undefined/null) → pelkkä label (oletus keppi)', () => {
+// ── Logic (Vitest-pure) — V186: kiinnitystapa POISTETTU, signDisplayLabel = pelkkä label ──
+describe('signDisplayLabel (V186 — ei kiinnitystapaa)', () => {
+  it('palauttaa AINA raakalabelin (ei irto-suffixia)', () => {
+    expect(signDisplayLabel('Alueella pyöräkilpailu')).toBe('Alueella pyöräkilpailu')
     expect(signDisplayLabel('Oikealle')).toBe('Oikealle')
-    expect(signDisplayLabel('Oikealle', null)).toBe('Oikealle')
   })
 
-  it('resolveItemName lisää suffixin kun RIVIN keppi=false (sama malli molemmille)', () => {
-    // Sama malli (yksi tunnus), suffix tulee rivin keppistä — ei mallista.
+  it('resolveItemName = elävä template.label ilman suffixia', () => {
     const templates = new Map([['t1', { label: 'Oikealle' }]])
-    expect(resolveItemName({ name: 'x', templateId: 't1', keppi: false }, templates)).toBe('Oikealle - irto')
-    expect(resolveItemName({ name: 'x', templateId: 't1', keppi: true }, templates)).toBe('Oikealle')
-    expect(resolveItemName({ name: 'x', templateId: 't1', keppi: null }, templates)).toBe('Oikealle')
+    expect(resolveItemName({ name: 'x', templateId: 't1' }, templates)).toBe('Oikealle')
+  })
+  it('resolveItemName template puuttuu → fallback item.name', () => {
+    expect(resolveItemName({ name: 'snapshot', templateId: 't1' }, new Map())).toBe('snapshot')
   })
 })
 
-// ── UI (Vitest-jsdom) — inventaariokortti näyttää suffixin RIVIN keppistä ─────
+// ── UI (Vitest-jsdom) — V186: merkkirivi näyttää pelkän labelin, EI keppi-checkboxia ─────
 function tpl(over: Partial<SignTemplate> = {}): SignTemplate {
   return { id: 't1', label: 'Alueella pyöräkilpailu', color: '#10b981', description: '', favorite: false, ...over }
 }
 function item(over: Partial<InventoryItem> = {}): InventoryItem {
-  return { id: 'i1', name: 'snapshot', qty: 5, unit: null, location: null, note: null, locationId: 'l1', templateId: 't1', keppi: null, ...over }
+  return { id: 'i1', name: 'snapshot', qty: 5, unit: null, location: null, note: null, locationId: 'l1', templateId: 't1', ...over }
 }
 function loc(): InventoryLocation { return { id: 'l1', name: 'Kärry', sortOrder: 0 } }
 function view(templates: Map<string, SignTemplate>, over: Partial<InventoryView> = {}): InventoryView {
@@ -46,13 +40,14 @@ function makeCb(over: Partial<InventoryPageCallbacks> = {}): InventoryPageCallba
 let container: HTMLElement
 beforeEach(() => { container = document.createElement('div'); document.body.innerHTML = ''; document.body.appendChild(container) })
 
-describe('inventaariokortti suffix (V17x — keppi rivillä)', () => {
-  it('rivin keppi=false → nimessä " - irto"', () => {
-    renderInventory(container, view(new Map([['t1', tpl()]]), { items: [item({ keppi: false })] }), makeCb())
-    expect(container.querySelector('.inv-card-name')!.textContent).toBe('Alueella pyöräkilpailu - irto')
-  })
-  it('rivin keppi=true/null → ei suffixia', () => {
-    renderInventory(container, view(new Map([['t1', tpl()]]), { items: [item({ keppi: true })] }), makeCb())
+describe('inventaariokortti (V186 — pelkkä label, ei kiinnitystapaa)', () => {
+  it('merkkirivi näyttää pelkän labelin', () => {
+    renderInventory(container, view(new Map([['t1', tpl()]]), { items: [item()] }), makeCb())
     expect(container.querySelector('.inv-card-name')!.textContent).toBe('Alueella pyöräkilpailu')
+  })
+  it('merkkirivin Tiedoissa EI keppi-checkboxia', () => {
+    renderInventory(container, view(new Map([['t1', tpl()]]), { items: [item()] }), makeCb())
+    expect(container.querySelector('.inv-field-keppi')).toBeNull()
+    expect(container.querySelector('.inv-d-keppi')).toBeNull()
   })
 })

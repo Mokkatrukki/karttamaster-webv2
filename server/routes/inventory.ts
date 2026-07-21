@@ -18,7 +18,6 @@ export interface InventoryItem {
   location: string | null
   location_id: string | null
   template_id: string | null
-  keppi: number | null
   note: string | null
   created_by: string | null
   created_at: string
@@ -39,7 +38,6 @@ type InventoryInput = {
   note?: unknown
   location_id?: unknown
   template_id?: unknown
-  keppi?: unknown
 }
 
 type ValidatedItem = {
@@ -49,7 +47,6 @@ type ValidatedItem = {
   note: string | null
   location_id: string | null
   template_id: string | null
-  keppi: number | null
 }
 
 function strOrNull(x: unknown): string | null {
@@ -86,13 +83,10 @@ function validate(db: Database, body: InventoryInput): { ok: true; v: ValidatedI
     return { ok: false, error: 'invalid_qty' } // V162
   }
 
-  // V17x: keppi (kiinnitystapa) vain merkkirivillä — false→0 (irto), true→1, muu→NULL (keppi/oletus).
-  // Tarvike (ei template_id) → aina NULL.
-  const keppi = templateId ? (body.keppi === false ? 0 : body.keppi === true ? 1 : null) : null
-
+  // V186: kiinnitystapa (keppi/irto) POISTETTU — ei enää luku/kirjoitus (DB-sarake orpo).
   return {
     ok: true,
-    v: { name, qty, unit: strOrNull(body.unit), note: strOrNull(body.note), location_id: strOrNull(body.location_id), template_id: templateId, keppi },
+    v: { name, qty, unit: strOrNull(body.unit), note: strOrNull(body.note), location_id: strOrNull(body.location_id), template_id: templateId },
   }
 }
 
@@ -181,8 +175,8 @@ inventoryRoutes.post('/', ...guard, async (c) => {
   const id = randomUUID()
   const now = new Date().toISOString()
   db.run(
-    'INSERT INTO inventory_items (id, name, qty, unit, note, location_id, template_id, keppi, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [id, res.v.name, res.v.qty, res.v.unit, res.v.note, res.v.location_id, res.v.template_id, res.v.keppi, session.display_name ?? null, now, now],
+    'INSERT INTO inventory_items (id, name, qty, unit, note, location_id, template_id, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, res.v.name, res.v.qty, res.v.unit, res.v.note, res.v.location_id, res.v.template_id, session.display_name ?? null, now, now],
   )
   return c.json(getItem(db, id), 201)
 })
@@ -196,8 +190,8 @@ inventoryRoutes.put('/:id', ...guard, async (c) => {
 
   const now = new Date().toISOString()
   const result = db.run(
-    'UPDATE inventory_items SET name = ?, qty = ?, unit = ?, note = ?, location_id = ?, template_id = ?, keppi = ?, updated_at = ? WHERE id = ?',
-    [res.v.name, res.v.qty, res.v.unit, res.v.note, res.v.location_id, res.v.template_id, res.v.keppi, now, id],
+    'UPDATE inventory_items SET name = ?, qty = ?, unit = ?, note = ?, location_id = ?, template_id = ?, updated_at = ? WHERE id = ?',
+    [res.v.name, res.v.qty, res.v.unit, res.v.note, res.v.location_id, res.v.template_id, now, id],
   )
   if (result.changes === 0) return c.json({ error: 'not_found' }, 404)
   return c.json(getItem(db, id))

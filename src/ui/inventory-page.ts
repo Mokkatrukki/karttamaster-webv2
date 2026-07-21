@@ -692,22 +692,7 @@ function toggleDetailsEditor(card: HTMLElement, item: InventoryItem, view: Inven
     editor.appendChild(locWrap)
   }
 
-  // V17x: kiinnitystapa RIVILLÄ (vain merkkirivi) — täppä pois = irto → nimeen " - irto".
-  // Sama kylttipinta (tunnus) voi olla kepillä TAI irto, ei kahta erillistä mallia.
-  let keppiCheckbox: HTMLInputElement | null = null
-  if (item.templateId) {
-    const keppiWrap = document.createElement('label')
-    keppiWrap.className = 'inv-field inv-field-keppi'
-    keppiCheckbox = document.createElement('input')
-    keppiCheckbox.type = 'checkbox'
-    keppiCheckbox.className = 'inv-d-keppi'
-    keppiCheckbox.checked = item.keppi !== false // null/true = keppi (oletus), false = irto
-    const lbl = document.createElement('span')
-    lbl.className = 'inv-field-label'
-    lbl.textContent = 'Keppi (pois = irto)'
-    keppiWrap.append(keppiCheckbox, lbl)
-    editor.appendChild(keppiWrap)
-  }
+  // V186: kiinnitystapa (keppi/irto) POISTETTU — oletus keppi, poikkeus merkin kommenttiin kartalla.
 
   const save = document.createElement('button')
   save.type = 'button'
@@ -718,7 +703,6 @@ function toggleDetailsEditor(card: HTMLElement, item: InventoryItem, view: Inven
     if (saving) return
     const overrides: Partial<InventoryFields> = { unit: strOrNull(unit.input.value), note: strOrNull(note.input.value) }
     if (locSelect) overrides.locationId = locSelect.value || null
-    if (keppiCheckbox) overrides.keppi = keppiCheckbox.checked ? true : false
     saving = true
     save.disabled = true
     save.textContent = 'Tallennetaan…'
@@ -758,13 +742,12 @@ function fieldsOf(item: InventoryItem, overrides: Partial<InventoryFields>): Inv
     note: item.note,
     locationId: item.locationId ?? null,
     templateId: item.templateId ?? null,
-    keppi: item.keppi ?? null,
     ...overrides,
   }
 }
 
 function inputAsInput(item: InventoryItem): Record<string, unknown> {
-  return { name: item.name, unit: item.unit, note: item.note, locationId: item.locationId ?? undefined, templateId: item.templateId ?? undefined, keppi: item.keppi ?? undefined }
+  return { name: item.name, unit: item.unit, note: item.note, locationId: item.locationId ?? undefined, templateId: item.templateId ?? undefined }
 }
 
 function locationIdFromSelection(sel: LocationSelection): string | null {

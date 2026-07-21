@@ -220,15 +220,12 @@ function initSchema(db: Database): void {
   try { db.exec('ALTER TABLE inventory_items ADD COLUMN location_id TEXT') } catch { /* already exists */ }
   try { db.exec('ALTER TABLE inventory_items ADD COLUMN template_id TEXT') } catch { /* already exists */ }
 
-  // V17x/T25x: kiinnitystapa (keppi/irto) SIIRTYY templates → inventaariorivi — sama kylttipinta
-  // yhdellä tunnuksella voi olla kepillä TAI irto. keppi=0 → 'label - irto', NULL/1 → keppi (oletus).
-  // Vain merkkirivi (template_id) käyttää; tarvike jää NULL. Backfill AJETAAN VAIN KERRAN: ALTER
-  // onnistuu (kolumni tuore) → kopioi olemassa olevat irto-rivit templates.keppi=0:sta rivin kenttään
-  // (näyttönimi säilyy muuttumattomana). Kolumni jo olemassa → ALTER heittää → backfill ohitetaan.
+  // V186: kiinnitystapa (keppi/irto) POISTETTU kokonaan — koodi ei enää lue/kirjoita keppiä.
+  // Sarake inventory_items.keppi jää ORVOKSI (EI DROP, SQLite-turva). ALTER säilytetään
+  // idempoottina jotta vanhat kannat eivät kaadu jos jokin ulkoinen luku vielä olettaa sarakkeen.
   try {
     db.exec('ALTER TABLE inventory_items ADD COLUMN keppi INTEGER')
-    db.exec('UPDATE inventory_items SET keppi = 0 WHERE template_id IN (SELECT id FROM templates WHERE keppi = 0)')
-  } catch { /* already migrated */ }
+  } catch { /* already exists — orpo V186 */ }
 
   // Migraatiot — idempotent ALTER TABLE (epäonnistuu hiljaa jos kolumni jo on)
   try { db.exec('ALTER TABLE markers ADD COLUMN color TEXT') } catch { /* already exists */ }
