@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderInventory, renderForbidden } from '../src/ui/inventory-page'
 import type { InventoryView, InventoryPageCallbacks } from '../src/ui/inventory-page'
 import type { InventoryItem, InventoryLocation } from '../src/logic/inventory'
+import type { SignTemplate } from '../src/logic/sign-library'
+
+function tpl(id: string, label: string): SignTemplate {
+  return { id, label, color: '#10b981', description: '', favorite: false }
+}
 
 function item(over: Partial<InventoryItem> = {}): InventoryItem {
   return { id: 'i1', name: 'Kepit', qty: 5, unit: null, location: null, note: null, locationId: 'loc-karry', templateId: null, ...over }
@@ -47,12 +52,10 @@ beforeEach(() => {
 })
 
 describe('T245 paikkanavigointi', () => {
-  it('renderöi tabin per paikka + "Ei paikkaa"', () => {
+  it('renderöi tabin per paikka + "Kaikki" + "Ei paikkaa"', () => {
     renderInventory(container, view({ locations: [loc(), loc({ id: 'loc-varasto', name: 'Varasto' })] }), makeCb())
-    const tabs = container.querySelectorAll('.inv-loc-tab')
-    expect(tabs).toHaveLength(3) // Kärry, Varasto, Ei paikkaa
-    expect(tabs[0].textContent).toBe('Kärry')
-    expect(tabs[2].textContent).toBe('Ei paikkaa')
+    const tabs = [...container.querySelectorAll('.inv-loc-tab')].map((t) => t.textContent)
+    expect(tabs).toEqual(['Kaikki', 'Kärry', 'Varasto', 'Ei paikkaa'])
   })
 
   it('valittu paikka saa .active', () => {
@@ -64,7 +67,7 @@ describe('T245 paikkanavigointi', () => {
   it('tabin klikkaus → onSelectLocation', () => {
     const cb = makeCb()
     renderInventory(container, view(), cb)
-    container.querySelectorAll<HTMLButtonElement>('.inv-loc-tab')[1].click() // Ei paikkaa (Kärry=0)
+    container.querySelectorAll<HTMLButtonElement>('.inv-loc-tab')[2].click() // Kaikki=0, Kärry=1, Ei paikkaa=2
     expect(cb.onSelectLocation).toHaveBeenCalledWith('none')
   })
 
@@ -172,7 +175,7 @@ describe('T245 tiedot-editori + poisto', () => {
 
 describe('T245 merkki-rivi (V165 resolveItemName) + V164 XSS', () => {
   it('merkki-rivi näyttää elävän template.labelin', () => {
-    const templates = new Map([['tpl-1', { label: 'Alueella pyöräkilpailu' }]])
+    const templates = new Map([['tpl-1', tpl('tpl-1', 'Alueella pyöräkilpailu')]])
     renderInventory(container, view({ items: [item({ name: 'snapshot', templateId: 'tpl-1' })], templates }), makeCb())
     expect(container.querySelector('.inv-card-name')!.textContent).toBe('Alueella pyöräkilpailu')
   })

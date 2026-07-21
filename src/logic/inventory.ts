@@ -93,7 +93,8 @@ export function validateInventoryItem(input: InventoryInput): ValidationResult {
  */
 export function resolveItemName(
   item: { name: string | null; templateId?: string | null },
-  templates: Map<string, { label: string }>,
+  // Rakenteellinen — käy Map<string,{label}> JA Map<string,SignTemplate> (T247, invarianssin ohitus).
+  templates: { get(id: string): { label: string } | undefined },
 ): string {
   if (item.templateId) {
     return templates.get(item.templateId)?.label ?? item.name ?? '(poistettu merkki)'

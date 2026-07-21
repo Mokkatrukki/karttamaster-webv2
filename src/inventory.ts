@@ -2,7 +2,7 @@ import './style.css'
 import { AuthScreen } from './ui/auth-screen'
 import { renderInventory, renderForbidden, renderSignPicker, type LocationSelection } from './ui/inventory-page'
 import { SignTemplateModal } from './ui/sign-template-modal'
-import { fetchTemplates, createTemplateRemote } from './logic/template-sync'
+import { fetchTemplates, createTemplateRemote, updateTemplateRemote, deleteTemplateRemote } from './logic/template-sync'
 import { createLibrary } from './logic/sign-library'
 import type { SignTemplate, SignLibrary } from './logic/sign-library'
 import type { InventoryItem, InventoryLocation, InventoryFields } from './logic/inventory'
@@ -15,7 +15,7 @@ logoutBtn.addEventListener('click', async () => {
   window.location.href = '/'
 })
 
-let selected: LocationSelection = 'none'
+let selected: LocationSelection = 'all'
 
 // Server palauttaa snake_case — normalisoi camelCase-logiikkatyyppiin (resolveItemName lukee templateId).
 type ServerItem = InventoryItem & { location_id: string | null; template_id: string | null }
@@ -33,11 +33,10 @@ function toBody(f: InventoryFields): Record<string, unknown> {
   return { name: f.name, qty: f.qty, unit: f.unit, note: f.note, location_id: f.locationId, template_id: f.templateId }
 }
 
-async function fetchTemplateMap(): Promise<Map<string, { label: string }>> {
-  const res = await fetch('/api/templates')
+async function fetchTemplateMap(): Promise<Map<string, SignTemplate>> {
+  const res = await fetchTemplates()
   if (!res.ok) return new Map()
-  const rows = (await res.json()) as Array<{ id: string; label: string }>
-  return new Map(rows.map((t) => [t.id, { label: t.label }]))
+  return new Map(res.templates.map((t) => [t.id, t]))
 }
 
 async function load(): Promise<void> {
@@ -48,13 +47,19 @@ async function load(): Promise<void> {
   }
   const locations = ((await locRes.json()) as ServerLocation[]).map(normLoc)
 
-  // Oletusvalinta: ensimmäinen paikka jos on, muuten 'none'
-  if (selected !== 'none' && !locations.some((l) => l.id === selected)) {
-    selected = locations[0]?.id ?? 'none'
+  // Poistetun paikan valinta → takaisin 'all'. 'all'/'none' aina valideja.
+  if (selected !== 'all' && selected !== 'none' && !locations.some((l) => l.id === selected)) {
+    selected = 'all'
   }
 
-  const query = selected === 'none' ? 'location_id=none' : `location_id=${encodeURIComponent(selected)}`
-  const [itemsRes, templates] = await Promise.all([fetch(`/api/inventory?${query}`), fetchTemplateMap()])
+  // 'all' → kaikki itemit (page ryhmittää); 'none' → orvot; muuten paikan itemit.
+  const itemsUrl =
+    selected === 'all'
+      ? '/api/inventory'
+      : selected === 'none'
+        ? '/api/inventory?location_id=none'
+        : `/api/inventory?location_id=${encodeURIComponent(selected)}`
+  const [itemsRes, templates] = await Promise.all([fetch(itemsUrl), fetchTemplateMap()])
   const items = ((await itemsRes.json()) as ServerItem[]).map(normItem)
 
   renderInventory(
@@ -102,6 +107,25 @@ async function load(): Promise<void> {
         if (r.ok) await load()
       },
       onAddSign: (locationId) => void openSignFlow(locationId, templates),
+      onOpenSign: (templateId) => {
+        const tpl = templates.get(templateId)
+        if (!tpl) return
+        const library: SignLibrary = createLibrary()
+        for (const [id, t] of templates) library.set(id, t)
+        const modal = new SignTemplateModal(library, {
+          onChanged: () => { /* reload tapahtuu save/deleten kautta */ },
+          onSaveTemplate: async (t, isNew) => {
+            if (isNew) await createTemplateRemote(t)
+            else await updateTemplateRemote(t)
+            await load() // label/visuaali voi muuttua → päivitä rivit (V165 elävä)
+          },
+          onDeleteTemplate: async (id) => {
+            await deleteTemplateRemote(id)
+            await load() // inventaariorivi jää, näyttää fallback-nimen (V165)
+          },
+        })
+        modal.open(tpl) // muokkaustila
+      },
     },
   )
 }

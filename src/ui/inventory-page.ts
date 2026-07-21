@@ -1,14 +1,16 @@
 import { validateInventoryItem, resolveItemName, adjustQty } from '../logic/inventory'
 import type { InventoryItem, InventoryLocation, InventoryFields } from '../logic/inventory'
+import type { SignTemplate } from '../logic/sign-library'
+import { buildMarkerVisual } from './marker-visual-row'
 
-/** Valittu paikka: joko location.id tai 'none' (paikattomat orvot, V166). */
-export type LocationSelection = string | 'none'
+/** Valittu paikka: 'all' (kokooma), 'none' (orvot V166) tai location.id. */
+export type LocationSelection = string | 'all' | 'none'
 
 export interface InventoryView {
   locations: InventoryLocation[]
-  items: InventoryItem[] // valitun paikan tavarat (server-suodatettu)
+  items: InventoryItem[] // valitun paikan tavarat; 'all'-tilassa KAIKKI itemit (page ryhmittää)
   selectedLocationId: LocationSelection
-  templates: Map<string, { label: string }>
+  templates: Map<string, SignTemplate>
 }
 
 export interface InventoryPageCallbacks {
@@ -19,11 +21,18 @@ export interface InventoryPageCallbacks {
   onDeleteItem: (item: InventoryItem) => void
   onDeleteLocation?: (loc: InventoryLocation) => void
   onAddSign?: (locationId: string | null) => void // T246
+  onOpenSign?: (templateId: string) => void // T247: avaa SignTemplateModal (muokkaus)
 }
 
 const ERR_TEXT: Record<string, string> = {
   name_required: 'Nimi on pakollinen.',
   invalid_qty: 'Määrä = numero, 0 tai suurempi.',
+  location_required: 'Valitse paikka.',
+}
+
+/** Oletuspaikka lisäykseen: "Kärry" nimen mukaan, muuten ensimmäinen paikka. */
+function defaultLocationId(locations: InventoryLocation[]): string | null {
+  return locations.find((l) => l.name.trim().toLowerCase() === 'kärry')?.id ?? locations[0]?.id ?? null
 }
 
 export function renderInventory(container: HTMLElement, view: InventoryView, cb: InventoryPageCallbacks): void {
@@ -34,15 +43,55 @@ export function renderInventory(container: HTMLElement, view: InventoryView, cb:
   const list = document.createElement('div')
   list.className = 'inv-list'
   list.id = 'inv-list'
-  if (view.items.length === 0) {
-    const empty = document.createElement('p')
-    empty.className = 'inv-empty'
-    empty.textContent = 'Ei tavaroita täällä — lisää ylhäältä.'
-    list.appendChild(empty)
+
+  if (view.selectedLocationId === 'all') {
+    renderGrouped(list, view, cb)
+  } else if (view.items.length === 0) {
+    list.appendChild(emptyHint())
   } else {
     for (const item of view.items) list.appendChild(buildCard(item, view, cb))
   }
   container.appendChild(list)
+}
+
+function emptyHint(): HTMLElement {
+  const empty = document.createElement('p')
+  empty.className = 'inv-empty'
+  empty.textContent = 'Ei tavaroita täällä — lisää ylhäältä.'
+  return empty
+}
+
+/** 'Kaikki'-kokooma: itemit ryhmiteltynä paikoittain väliotsikoin (+ "Ei paikkaa" orvoille). */
+function renderGrouped(list: HTMLElement, view: InventoryView, cb: InventoryPageCallbacks): void {
+  if (view.items.length === 0) {
+    list.appendChild(emptyHint())
+    return
+  }
+  const byLoc = new Map<string | null, InventoryItem[]>()
+  for (const it of view.items) {
+    const key = it.locationId ?? null
+    const arr = byLoc.get(key) ?? []
+    arr.push(it)
+    byLoc.set(key, arr)
+  }
+  // Paikat järjestyksessä, sitten "Ei paikkaa"
+  for (const loc of view.locations) {
+    const items = byLoc.get(loc.id)
+    if (items && items.length) list.appendChild(buildSection(loc.name, items, view, cb))
+  }
+  const orphans = byLoc.get(null)
+  if (orphans && orphans.length) list.appendChild(buildSection('Ei paikkaa', orphans, view, cb))
+}
+
+function buildSection(title: string, items: InventoryItem[], view: InventoryView, cb: InventoryPageCallbacks): HTMLElement {
+  const section = document.createElement('div')
+  section.className = 'inv-section'
+  const head = document.createElement('h3')
+  head.className = 'inv-section-title'
+  head.textContent = title // V164 textContent
+  section.appendChild(head)
+  for (const item of items) section.appendChild(buildCard(item, view, cb))
+  return section
 }
 
 export function renderForbidden(container: HTMLElement): void {
@@ -62,6 +111,7 @@ function buildLocationBar(view: InventoryView, cb: InventoryPageCallbacks): HTML
   bar.className = 'inv-location-bar'
   bar.id = 'inv-location-bar'
 
+  bar.appendChild(locationTab('Kaikki', 'all', view.selectedLocationId === 'all', () => cb.onSelectLocation('all')))
   for (const loc of view.locations) {
     bar.appendChild(locationTab(loc.name, loc.id, view.selectedLocationId === loc.id, () => cb.onSelectLocation(loc.id)))
   }
@@ -145,7 +195,30 @@ function buildAddForm(view: InventoryView, cb: InventoryPageCallbacks): HTMLElem
   addBtn.textContent = '+ Lisää'
 
   row.append(nameInput, qtyInput, addBtn)
+
+  // 'all' = vain näyttö → lisättäessä pitää valita paikka (oletus Kärry). Paikka-tabissa konteksti riittää.
+  const inAll = view.selectedLocationId === 'all'
+  let locSelect: HTMLSelectElement | null = null
+  if (inAll && view.locations.length > 0) {
+    locSelect = buildLocationSelect(view.locations, defaultLocationId(view.locations), false)
+    locSelect.classList.add('inv-add-location')
+    const locRow = document.createElement('label')
+    locRow.className = 'inv-field'
+    const lbl = document.createElement('span')
+    lbl.className = 'inv-field-label'
+    lbl.textContent = 'Paikka'
+    locRow.append(lbl, locSelect)
+    form.appendChild(locRow)
+  }
+
   form.appendChild(row)
+
+  if (inAll && view.locations.length === 0) {
+    const hint = document.createElement('p')
+    hint.className = 'inv-add-hint'
+    hint.textContent = 'Luo paikka ensin (+ Paikka), sitten lisää tavaraa.'
+    form.appendChild(hint)
+  }
 
   // T246: "+ Merkki" -nappi (näkyy vain jos onAddSign kytketty)
   if (cb.onAddSign) {
@@ -154,7 +227,9 @@ function buildAddForm(view: InventoryView, cb: InventoryPageCallbacks): HTMLElem
     signBtn.className = 'inv-btn inv-btn-sign'
     signBtn.id = 'inv-add-sign-btn'
     signBtn.textContent = '+ Merkki kirjastosta'
-    signBtn.addEventListener('click', () => cb.onAddSign!(locationIdFromSelection(view.selectedLocationId)))
+    signBtn.addEventListener('click', () =>
+      cb.onAddSign!(inAll ? locSelect?.value || null : locationIdFromSelection(view.selectedLocationId)),
+    )
     form.appendChild(signBtn)
   }
 
@@ -166,10 +241,21 @@ function buildAddForm(view: InventoryView, cb: InventoryPageCallbacks): HTMLElem
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault()
+    // 'all': paikka pakko (locSelect); paikka-tabi: konteksti; 'none': null.
+    let locationId: string | null
+    if (inAll) {
+      locationId = locSelect?.value || null
+      if (!locationId) {
+        showError(err, 'location_required')
+        return
+      }
+    } else {
+      locationId = locationIdFromSelection(view.selectedLocationId)
+    }
     const res = validateInventoryItem({
       name: nameInput.value,
       qty: qtyInput.value.trim() === '' ? undefined : Number(qtyInput.value),
-      locationId: locationIdFromSelection(view.selectedLocationId),
+      locationId,
     })
     if (!res.ok) {
       showError(err, res.error)
@@ -183,6 +269,27 @@ function buildAddForm(view: InventoryView, cb: InventoryPageCallbacks): HTMLElem
   return form
 }
 
+/** Paikka-<select>: option per paikka; withNone lisää "Ei paikkaa" (tyhjä value). */
+function buildLocationSelect(locations: InventoryLocation[], selectedId: string | null, withNone: boolean): HTMLSelectElement {
+  const sel = document.createElement('select')
+  sel.className = 'inv-location-select'
+  if (withNone) {
+    const opt = document.createElement('option')
+    opt.value = ''
+    opt.textContent = 'Ei paikkaa'
+    if (!selectedId) opt.selected = true
+    sel.appendChild(opt)
+  }
+  for (const loc of locations) {
+    const opt = document.createElement('option')
+    opt.value = loc.id
+    opt.textContent = loc.name // V164 textContent
+    if (loc.id === selectedId) opt.selected = true
+    sel.appendChild(opt)
+  }
+  return sel
+}
+
 // ── Tavarakortti: nimi + määräsäädin + meta + toiminnot ──────────────────────
 
 function buildCard(item: InventoryItem, view: InventoryView, cb: InventoryPageCallbacks): HTMLElement {
@@ -193,11 +300,42 @@ function buildCard(item: InventoryItem, view: InventoryView, cb: InventoryPageCa
   const head = document.createElement('div')
   head.className = 'inv-card-head'
 
-  const nameEl = document.createElement('span')
-  nameEl.className = 'inv-card-name'
-  nameEl.textContent = resolveItemName(item, view.templates) // V164 textContent, V165 elävä label
-  if (item.templateId) nameEl.classList.add('inv-card-name-sign')
+  // Merkki-rivi: kyltin visuaali nimen vieressä (V167, buildMarkerVisual-reuse). Zoomable → lightbox iso kuva.
+  const tpl = item.templateId ? view.templates.get(item.templateId) : undefined
+  if (tpl) {
+    head.appendChild(buildMarkerVisual(
+      { type: tpl.id, iconId: tpl.iconId, label: tpl.label, parts: tpl.parts, color: tpl.color },
+      { size: 40, zoomable: true },
+    ))
+  }
+
+  // Merkki-rivin nimi = klikattava (avaa SignTemplateModal, T247); tarvike = span.
+  const nameText = resolveItemName(item, view.templates) // V164 textContent, V165 elävä label
+  let nameEl: HTMLElement
+  if (item.templateId && cb.onOpenSign) {
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.className = 'inv-card-name inv-card-name-sign inv-card-name-btn'
+    btn.textContent = nameText
+    const tid = item.templateId
+    btn.addEventListener('click', () => cb.onOpenSign!(tid))
+    nameEl = btn
+  } else {
+    const span = document.createElement('span')
+    span.className = 'inv-card-name'
+    span.textContent = nameText
+    if (item.templateId) span.classList.add('inv-card-name-sign')
+    nameEl = span
+  }
   head.appendChild(nameEl)
+
+  // Yksikkö erillisenä stepperin VASEMMALLA → stepper pysyy samalla x:llä (T247)
+  if (item.unit) {
+    const unitEl = document.createElement('span')
+    unitEl.className = 'inv-card-unit'
+    unitEl.textContent = item.unit // V164
+    head.appendChild(unitEl)
+  }
 
   head.appendChild(buildStepper(item, cb))
   card.appendChild(head)
@@ -212,7 +350,7 @@ function buildCard(item: InventoryItem, view: InventoryView, cb: InventoryPageCa
   detailsBtn.type = 'button'
   detailsBtn.className = 'inv-btn inv-btn-details'
   detailsBtn.textContent = '✎ Tiedot'
-  detailsBtn.addEventListener('click', () => toggleDetailsEditor(card, item, cb))
+  detailsBtn.addEventListener('click', () => toggleDetailsEditor(card, item, view, cb))
   actions.appendChild(detailsBtn)
 
   const delBtn = document.createElement('button')
@@ -242,12 +380,6 @@ function buildStepper(item: InventoryItem, cb: InventoryPageCallbacks): HTMLElem
   qtyBtn.addEventListener('click', () => openExactQty(qtyBtn, item, cb))
 
   stepper.append(minus, qtyBtn, plus)
-  if (item.unit) {
-    const u = document.createElement('span')
-    u.className = 'inv-step-unit'
-    u.textContent = item.unit
-    stepper.appendChild(u)
-  }
   return stepper
 }
 
@@ -294,7 +426,7 @@ function metaLine(item: InventoryItem): HTMLElement | null {
   return meta
 }
 
-function toggleDetailsEditor(card: HTMLElement, item: InventoryItem, cb: InventoryPageCallbacks): void {
+function toggleDetailsEditor(card: HTMLElement, item: InventoryItem, view: InventoryView, cb: InventoryPageCallbacks): void {
   const existing = card.querySelector('.inv-details-editor')
   if (existing) { existing.remove(); return }
 
@@ -305,12 +437,28 @@ function toggleDetailsEditor(card: HTMLElement, item: InventoryItem, cb: Invento
   const note = labeledInput('Kommentti', 'inv-d-note', item.note ?? '')
   editor.append(unit.wrap, note.wrap)
 
+  // Siirto: paikka-<select> (T247) — nykyinen esivalittuna, "Ei paikkaa" mukana.
+  let locSelect: HTMLSelectElement | null = null
+  if (view.locations.length > 0) {
+    locSelect = buildLocationSelect(view.locations, item.locationId ?? null, true)
+    locSelect.classList.add('inv-d-location')
+    const locWrap = document.createElement('label')
+    locWrap.className = 'inv-field'
+    const lbl = document.createElement('span')
+    lbl.className = 'inv-field-label'
+    lbl.textContent = 'Paikka (siirrä)'
+    locWrap.append(lbl, locSelect)
+    editor.appendChild(locWrap)
+  }
+
   const save = document.createElement('button')
   save.type = 'button'
   save.className = 'inv-btn inv-btn-primary'
   save.textContent = 'Tallenna'
   save.addEventListener('click', async () => {
-    await cb.onEditItem(item.id, fieldsOf(item, { unit: strOrNull(unit.input.value), note: strOrNull(note.input.value) }))
+    const overrides: Partial<InventoryFields> = { unit: strOrNull(unit.input.value), note: strOrNull(note.input.value) }
+    if (locSelect) overrides.locationId = locSelect.value || null
+    await cb.onEditItem(item.id, fieldsOf(item, overrides))
   })
   editor.appendChild(save)
 
@@ -338,7 +486,7 @@ function inputAsInput(item: InventoryItem): Record<string, unknown> {
 }
 
 function locationIdFromSelection(sel: LocationSelection): string | null {
-  return sel === 'none' ? null : sel
+  return sel === 'none' || sel === 'all' ? null : sel
 }
 
 function strOrNull(x: string): string | null {
