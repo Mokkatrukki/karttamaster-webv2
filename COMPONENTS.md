@@ -94,6 +94,7 @@ server/       ← Hono + Bun + SQLite
 | SegmentView | `src/ui/segment-view.ts` | ✓ T228, T218 (dynaaminen keräyslista), T234 (562r koordinaattori; hero irrotettu) | tests/t14-segment-view.test.ts, tests/t224-segment-view.test.ts, tests/t218-collection-list.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | SegmentHero | `src/ui/segment-hero.ts` | ✓ T234 (seuraava-merkki-hero + ◀▶-nav + selectedNavId V159, irrotettu SegmentViewsta) | tests/t232-segment-view-hero.test.ts | [ui.md](docs/components/ui.md) |
 | EquipmentModal | `src/ui/equipment-modal.ts` | ✓ T224/C (talkoolaisen varustelista tilavana modaalina) | tests/t224-equipment-modal.test.ts | [ui.md](docs/components/ui.md) |
+| SegmentEquipment | `src/ui/segment-equipment.ts` | ✓ T262/V182 (KOTI-inline-varustelista + varustarkastus-checkoff; hero kartta-only; "Muokkaa"→EquipmentModal) | tests/t262-segment-equipment.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | PhaseSwitcher | `src/ui/phase-switcher.ts` | ✓ T148,T180 (stopPropagation, B80) | e2e/t180-phase-switcher-menu.spec.ts | [ui.md](docs/components/ui.md) |
 | AuthScreen | `src/ui/auth-screen.ts` | ✓ T51 | — | [ui.md](docs/components/ui.md) |
 | SnapshotPanel | `src/ui/snapshot-panel.ts` | ✓ T164 (lataa/palauta tiedostosta) | — | [ui.md](docs/components/ui.md) |

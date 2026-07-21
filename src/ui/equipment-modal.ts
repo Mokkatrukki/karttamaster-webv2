@@ -1,6 +1,6 @@
 import { registerEscClose, createBackdrop } from './modal-helpers'
 import { SIGN_TYPES } from '../logic/sign-picker'
-import { loadChecked, setChecked, checkProgress } from '../logic/varustarkastus'
+import { loadChecked, setChecked, checkProgress, checkKeyForType, checkKeyForItem } from '../logic/varustarkastus'
 import type { Segment, EquipmentItem } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
 
@@ -30,9 +30,9 @@ export class EquipmentModal {
 
   constructor(private readonly onSave: (equipment: EquipmentItem[]) => void) {}
 
-  // T258/R2: label-avaimet checkoffille. Auto = merkkityyppi, manuaali = nimi (ei-tyhjä).
-  private autoKey(type: string): string { return 'sign:' + type }
-  private manualKey(name: string): string { return 'item:' + name.trim() }
+  // T258/R2: label-avaimet checkoffille (T262/V182: jaettu SegmentEquipmentin kanssa).
+  private autoKey(type: string): string { return checkKeyForType(type) }
+  private manualKey(name: string): string { return checkKeyForItem(name) }
 
   // Kaikki checkattavat labelit edistymän laskentaan (auto-merkit + ei-tyhjät manuaalirivit).
   private allLabels(): string[] {

@@ -9,6 +9,16 @@ function storageKey(segId: string): string {
   return KEY_PREFIX + segId
 }
 
+// T262/V182: jaettu checkoff-label-avainmuoto. Inline-varustelista (SegmentEquipment) JA
+// EquipmentModal käyttävät SAMOJA avaimia → varustarkastus-tila täsmää kummastakin näkymästä.
+// Auto = merkkityyppi (`sign:<type>`), manuaali = ei-tyhjä nimi (`item:<nimi>`).
+export function checkKeyForType(type: string): string {
+  return 'sign:' + type
+}
+export function checkKeyForItem(name: string): string {
+  return 'item:' + name.trim()
+}
+
 // Lataa checkatut label-avaimet pätkälle. Virhe/puuttuva → tyhjä (turvallinen oletus, V14-henki).
 export function loadChecked(segId: string): Set<string> {
   try {

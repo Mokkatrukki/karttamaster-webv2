@@ -5,6 +5,7 @@ import type { Segment, EquipmentItem } from '../logic/segments'
 import { buildMarkerVisual } from './marker-visual-row'
 import { EquipmentModal } from './equipment-modal'
 import { SegmentHero, markerLabel } from './segment-hero'
+import { SegmentEquipment } from './segment-equipment'
 import { CommentThread, type CommentThreadApi } from './comment-thread'
 import type { SignMarker } from '../logic/types'
 
@@ -77,6 +78,10 @@ export class SegmentView {
   // T234: "Seuraava merkki" -hero eristetty omaan luokkaansa (SegmentHero). SegmentView on
   // koordinaattori; hero omistaa selectedNavId-tilan ja ◀▶-selailun (V159).
   private readonly hero: SegmentHero
+  // T262/V182: KOTI-moodin inline-varustelista (varustarkastus-checkoff). Eristetty omaan
+  // luokkaansa (SegmentView on koordinaattori); kartta-moodissa CSS piilottaa (vain hero näkyy).
+  private readonly equipment: SegmentEquipment
+  private readonly equipmentEl: HTMLElement
 
   constructor(
     container: HTMLElement,
@@ -90,6 +95,7 @@ export class SegmentView {
     this.progressEl = b.progressEl
     this.gpsBtn = b.gpsBtn
     this.nextEl = b.nextEl
+    this.equipmentEl = b.equipmentEl
     this.collectionEl = b.collectionEl
     this.bulkBtn = b.bulkBtn
     this.inspectSection = b.inspectSection
@@ -120,11 +126,18 @@ export class SegmentView {
       actions: this.actions,
       setCollapsed: (collapsed) => this.setCollapsed(collapsed),
     })
+    // T262/V182: KOTI-inline-varustelista. "Muokkaa" → sama EquipmentModal kuin yläpalkin 🎒.
+    this.equipment = new SegmentEquipment(this.equipmentEl, {
+      getSegment: () => this.segment,
+      getMarkers: () => this.currentMarkers,
+      onEdit: () => this.openEquipment(),
+    })
     this.renderGpsBtn()
     this.renderInspectSection()
     this.renderCompleteSection()
     this.renderProgress()
     this.hero.render()
+    this.equipment.render()
     this.renderCollectionList()
     this.renderBoundsSection()
     this.renderMoreSection()
@@ -141,6 +154,7 @@ export class SegmentView {
     this.currentMarkers = markers
     this.renderProgress()
     this.hero.render()
+    this.equipment.render()
     this.renderCollectionList()
     this.updateBulkBtn(markers)
     this.renderInspectSection()
@@ -309,6 +323,7 @@ export class SegmentView {
     nextEl: HTMLElement
     collectionEl: HTMLElement
     bulkBtn: HTMLButtonElement
+    equipmentEl: HTMLElement
     inspectSection: HTMLElement
     inspectBtn: HTMLButtonElement
     inspectNoteInput: HTMLTextAreaElement
@@ -392,6 +407,11 @@ export class SegmentView {
     collectionEl.className = 'segment-view-collect'
     collectionEl.hidden = true
     panel.appendChild(collectionEl)
+
+    // T262/V182: KOTI-moodin inline-varustelista (varustarkastus). Kartta-moodissa CSS piilottaa.
+    const equipmentEl = document.createElement('div')
+    equipmentEl.className = 'segment-view-equipment'
+    panel.appendChild(equipmentEl)
 
     // T228: EI inline-merkkilistaa — "Kaikki merkit" -modaali (yläpalkki) on ainoa per-merkki-lista
     // (bulk + rivi→MarkerDetailModal). Inline-lista duplikoi sen ja söi kartan tilan → poistettu.
@@ -487,7 +507,7 @@ export class SegmentView {
     panel.appendChild(moreSection)
 
     return {
-      panel, progressEl, gpsBtn, nextEl, collectionEl, bulkBtn,
+      panel, progressEl, gpsBtn, nextEl, equipmentEl, collectionEl, bulkBtn,
       inspectSection, inspectBtn, inspectNoteInput, inspectStatus,
       moreSection, boundsSection,
       completeSection, completeBtn, completeStatus, commentEl,

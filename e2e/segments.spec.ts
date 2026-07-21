@@ -74,6 +74,8 @@ test.describe('T25 — SegmentPanel', () => {
     await page.goto('/s/TEST01')
     await page.waitForTimeout(1500)
 
+    // T262/V182: hero on kartta-moodin ohjaus (koti näyttää varustelistan) → siirry kartalle.
+    await page.click('#btn-to-map')
     await page.click('.segment-view-next-more')
     const addItem = page.locator('.segment-view-next-add')
     await expect(addItem).toBeVisible()
@@ -108,6 +110,45 @@ test.describe('T25 — SegmentPanel', () => {
     await page.click('#btn-home-view')
     await expect(app).toHaveAttribute('data-view-mode', 'koti')
     await expect(page.locator('#map')).toBeHidden()
+  })
+
+  test('T262 — KOTI: varustelista näkyy + ei seuraava-merkki-heroa; KARTTA: päinvastoin', async ({ page }) => {
+    // R3b/V182: koti-moodi näyttää inline-varustelistan JA piilottaa heron (.segment-view-next);
+    // kartta-moodi näyttää heron alapalkkina JA piilottaa varustelistan.
+    await mockAuthAsTalkoolainen(page)
+    await mockTalkoolainenSegment(page, { withMarker: true })
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/s/TEST01')
+    await page.waitForTimeout(1500)
+
+    const app = page.locator('#app')
+    // KOTI: varustelista näkyy, seuraava-merkki-hero piilossa.
+    await expect(app).toHaveAttribute('data-view-mode', 'koti')
+    await expect(page.locator('.segment-view-equipment')).toBeVisible()
+    await expect(page.locator('.segment-view-equipment-title')).toContainText('Varustelista')
+    await expect(page.locator('.segment-view-next')).toBeHidden()
+
+    // KARTTA: hero näkyy alapalkkina, varustelista piilossa.
+    await page.click('#btn-to-map')
+    await expect(app).toHaveAttribute('data-view-mode', 'kartta')
+    await expect(page.locator('.segment-view-next')).toBeVisible()
+    await expect(page.locator('.segment-view-equipment')).toBeHidden()
+  })
+
+  test('T262 — varustarkastus-checkoff persistoi reloadin yli (koti)', async ({ page }) => {
+    await mockAuthAsTalkoolainen(page)
+    await mockTalkoolainenSegment(page, { withMarker: true })
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/s/TEST01')
+    await page.waitForTimeout(1500)
+
+    const firstCheck = page.locator('.segment-view-equipment .equipment-check-box').first()
+    await firstCheck.check()
+    await expect(page.locator('.segment-view-equipment-progress')).toContainText('otettu')
+
+    await page.reload()
+    await page.waitForTimeout(1500)
+    await expect(page.locator('.segment-view-equipment .equipment-check-box').first()).toBeChecked()
   })
 
   test('T232 — järjestäjällä ei talkoolais-heroa (+Merkki sivupalkin kirjastosta)', async ({ page }) => {
@@ -404,6 +445,9 @@ test.describe('T25 — SegmentPanel', () => {
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/s/ASET01')
     await page.waitForTimeout(1500)
+
+    // T262/V182: hero on kartta-moodin ohjaus (koti näyttää varustelistan) → siirry kartalle.
+    await page.click('#btn-to-map')
 
     // Hero näkyy ja osoittaa ensimmäiseen merkkiin (early, 3.0 km)
     await expect(page.locator('.segment-view-next')).toBeVisible()

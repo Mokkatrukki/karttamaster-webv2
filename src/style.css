@@ -1501,6 +1501,9 @@ button {
 /* Koti-moodi (V175): kartta piilossa, pätkänäkymä koko korkeus (ei 38vh-rajaa). */
 #app[data-view-mode="koti"] #map { display: none; }
 #app[data-view-mode="koti"] #segment-view { max-height: none; }
+/* T262/V182: seuraava-merkki-hero on VAIN kartta-moodin ohjaus → piilossa kodissa.
+   Koti näyttää varustelistan (.segment-view-equipment) heron tilalla. */
+#app[data-view-mode="koti"] .segment-view-next { display: none; }
 
 /* Kartta-moodi (T255/V177, R5): kartta ~täysi (80%+), hero KELLUU alareunassa alapalkkina.
    Segment-view irrotetaan flow'sta (absolute) → #map flex:1 täyttää koko #map-area. Vain
@@ -1532,6 +1535,7 @@ body[data-role="talkoolainen"] .segment-view-gps-btn { display: none; }
 #app[data-view-mode="kartta"] .segment-view-gps-btn,
 #app[data-view-mode="kartta"] .segment-view-desc,
 #app[data-view-mode="kartta"] .segment-view-varuste-btn,
+#app[data-view-mode="kartta"] .segment-view-equipment,
 #app[data-view-mode="kartta"] .segment-view-more,
 #app[data-view-mode="kartta"] .segment-view-comments,
 #app[data-view-mode="kartta"] .segment-view-inspect {
@@ -2908,6 +2912,35 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   background: var(--confirm);
 }
 .equipment-auto-item { list-style: none; }
+
+/* T262/V182: KOTI-inline-varustelista (SegmentEquipment). Checkoff-rivit jakavat
+   .equipment-check-tyylit yllä; tässä vain säiliö + otsikko + "Muokkaa"-nappi. */
+.segment-view-equipment {
+  margin: 8px 0 4px;
+  padding: 10px 12px;
+  background: var(--surface-2, var(--field-tint));
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+.segment-view-equipment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.segment-view-equipment-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-body);
+}
+.segment-view-equipment-edit { flex-shrink: 0; }
+.segment-view-equipment-empty {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 .equipment-check {
   display: flex;
   align-items: center;
