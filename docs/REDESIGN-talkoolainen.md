@@ -1,0 +1,127 @@
+# REDESIGN — Talkoolaisen näkymä (2026-07-21)
+
+> Lähde: käyttäjän visiodumppi 2026-07-21. Tavoite: lukita IA + polut ENNEN buildia.
+> "Menty monta kertaa harhaan" → tämä brief = yksi totuus talkoolaisen flowsta.
+> Kun avoimet päätökset (❓) lukittu → `/karttamaster-spec` pilkkoo §T-taskeiksi.
+
+## Ydinperiaate
+
+**Karttanäkymä = tosi yksinkertainen. 80% ruudusta karttaa. Merkki näkyy hyvin.**
+Kaikki muu (GPS, varusteet, data, toiminnot) → valikoihin. Ei chromea kartan päälle.
+
+---
+
+## Kaksi näkymää
+
+### Näkymä 1 — Pätkänäkymä (EI karttaa) = "koti"
+
+Talkoolainen saa oman pätkänsä. Tämä on landing / lähtökohta.
+
+- **Varustarkastus ensin:** varustelista näkyvissä. Ota kaikki merkit + kyltit + tavarat mukaan.
+  Merkitse "otin nämä" (check-off per rivi). → lähtövalmis.
+- **Kaikki merkit -lista** (siirtyy tänne yläpalkista)
+- **Varustemodal-sisältö** (siirtyy tänne)
+- **Koko pätkän kommentit** ("elä laita tähän etusivulle sekavasti" — omana selkeänä osiona/valikosta)
+- **Merkitse pätkä/reitti tehdyksi** (mahd. tänne)
+- **Muokkaa pätkän rajoja**
+- → siirry **karttanäkymään**
+
+### Näkymä 2 — Karttanäkymä (~current, 80% kartta)
+
+- **Alapalkki:** "seuraava merkki" -palikka — kuva mistä merkistä on kyse; kartalla näkyy mitä tarkoitetaan.
+- **Kartalla korostus:** ~~rengas~~ → korosta ITSE IKONI huomiovärein (näkyvämpi kuin rengas).
+- **Merkin tap →** kommentti ("laitettiin se puuhun") + siirrä merkkiä + `⋯` "elä laita".
+- **Yläpalkin `⋯`-valikko:** reitti tehdyksi / lisää merkki / muokkaa pätkää / GPS.
+
+---
+
+## Toolbar (yläpalkki) -remontti — "vähän köpö"
+
+Kaikki pienemmäksi. Sinne kaikki data + tarvikkeet + asetukset.
+
+| Ongelma | Korjaus |
+|---------|---------|
+| 🐛 Teema "Kaamos-tumma" ei aktivoidu (jää vaaleaksi) | **BUGI** — theme.ts/setTheme ei applyaa |
+| Teemanimet pitkät, epäsymmetriset (tumma-fontti pienempi) | Nimet → **"Tumma" / "Vaalea"** tai pelkät ikonit |
+| Karttatyyli = outo nappi, ei kerro mikä käytössä | Näytä **aktiivinen tyyli** (label) tai **radiobutton** |
+| "Kirjaudu ulos" iso | Pienemmäksi |
+| GPS erillään | GPS → **valikkoon** |
+| Yleisesti kaikki isoa | Tiivistä; kaikki data valikkoon |
+
+---
+
+## Poista sekaannus
+
+**"En ymmärrä mikä toi kommenttti juttu on tässä etusivulla."**
+→ Nykyinen `.segment-view-comments` (pätkänäkymän kommenttilanka "etusivulla") on sekava.
+Kommentit kuuluvat **kahteen paikkaan:**
+1. **Merkkimodaali** — per-merkki kommentit ("laitettiin se puuhun")
+2. **Koko pätkän kommentit** — pätkänäkymässä, saavutettavissa valikosta (ei liimattuna etusivulle)
+
+---
+
+## Lukitut päätökset (2026-07-21)
+
+1. ✅ **Navigointi:** Pätkänäkymä = LANDING (avautuu ensin). Iso **"Kartalle →"** -nappi → karttanäkymä.
+   Kartalta paluu **yläpalkin napista** (🏠/⋯). Ei tab-toggle, ei kartta-landing.
+2. ✅ **Varustarkastus:** VAPAAEHTOINEN — ei gatea. Pätkänäkymä näyttää varusteet, mutta kartalle
+   pääsee heti. Talkoolainen tietää mitä tekee.
+3. ✅ **"Reitti tehdyksi" = OMA PÄTKÄ** (yksi pätkä, `Segment.completed`). "Reitti" oli löysä sana.
+   EI erillistä koko-reitti-toimintoa.
+4. ✅ **Valikot karttanäkymässä:** YKSI yläpalkin **⋯** = kaikki (reitti tehdyksi, lisää merkki,
+   muokkaa pätkää, GPS, → pätkänäkymä, tili/teema/karttatyyli/logout). Merkin tap = **oma pieni
+   toimintovalikko** (kommentti / siirrä / elä laita). Kaksi eri valikkoa OK (eri konteksti).
+
+---
+
+## Talkoolaisen journey (käyttäjän 2026-07-21 kuvaama flow + VISION.md r34–57)
+
+```
+Assignment          Kuka menee mille pätkälle → saa /s/<koodi> (WhatsApp/QR)
+   ↓
+KOTI (pätkänäkymä)  Katso tavarat mukana → varustarkastus (checkoff "otin nämä")
+   ↓  [ Kartalle → ]
+KARTTA (merkkaus)   Mene pätkän alkuun → aseta merkkejä:
+                      • kuittaa "aseta" (asetin sen)
+                      • lisää merkki jos maasto vaatii
+                      • siirrä suunniteltu merkki toisaalle
+                      • "elä laita" (ei tarpeen)
+                      • kommentoi merkkiä ("laitettiin puuhun")
+   ↓  [ 🏠 koti / ⋯ ]
+KOTI (yhteenveto)   Kuittaa "kaikki tehty" → yhteenveto: onko tehty,
+                    lisätyt merkit näkyvät hyvin
+```
+
+## Kolme momenttia (2 näkymää, koti tuplaroolissa)
+
+### Pätkänäkymä = KOTI (landing + yhteenveto, sama näkymä kaksi tilaa)
+- **Header:** pätkän nimi + pituus + edistymispalkki (aina).
+- **Ennen (varustarkastus):** varustelista + checkoff. Vapaaehtoinen (ei gate).
+- **Aina:** Kaikki merkit -lista, koko-pätkän kommentit (valikosta/omana osiona), muokkaa rajoja.
+- **Yhteenveto-tila (completed):** "✓ Pätkä valmis" + **lisätyt/muutetut merkit korostettuna** (talkoolainen näkee mitä sai aikaan).
+- **Iso primary:** `Kartalle →`.
+- Filosofia: koti = konteksti + raportointi, EI kartta. Kartta on erillinen työkalu.
+
+### Karttanäkymä = TYÖ (80% karttaa)
+- **Kartta 80%.** Ei chromea päällä.
+- **Alapalkki:** seuraava merkki -palikka (kuva) — kartalla ikoni korostuu huomiovärein (ei rengasta).
+- **Yläpalkki:** `🏠 koti` (paluu) + `⋯` (kaikki: reitti tehdyksi, lisää merkki, muokkaa pätkää, GPS, tili/teema/karttatyyli/logout).
+- **Merkki-tap:** oma pieni valikko (kommentti / siirrä / elä laita).
+- Filosofia: yksi asia kerrallaan — seuraava merkki. Max 2 nappia näkyvissä.
+
+## Bugit (pilkotaan §B:hen, viilataan JÄLKEENPÄIN — ei blokkaa redesignia)
+
+- **B(theme):** teema-toggle "Kaamos-tumma" ei aktivoidu, jää vaaleaksi.
+- **B(label-kontrasti):** kartan "Pätkä 1" -label tumma tummalla kartalla → ei erotu. Kaipaa kontrastia (tausta/varjo/väri).
+- **B(pätkän pituus kartalla):** ❓ kartan pätkän pituus "ei tarpeeksi pitkä" — selvitä: reittiviiva liian lyhyt vai visuaali ei kata koko pätkää?
+- ✅ **B105 (korjattu):** comment-form 0 CSS → tokenit + 44px touch + "Ikoni ja nimi" -label + "Lisää ⋯" napiksi.
+
+## Toteutuksen eteneminen (§T)
+
+- ✅ **R1 = T254** (2026-07-21): kaksi-moodi-kehys koti↔kartta. `src/app/talkoolainen-mode.ts` + `[data-view-mode]` CSS + 🏠/Kartalle→ napit. Vitest 6/6 + e2e "T254" + Playwright kriittinen polku PASS. Toolbar ahtautuu karttamoodissa → R9 korjaa.
+- ⏭️ Seuraava: R5 (karttanäkymä minimal 80% + alapalkki seuraava-merkki) tai R2 (varustarkastus koti). R9 (toolbar) korjaa myös ahtauden.
+
+## Jo tehty tällä kierroksella
+
+- Comment-form styling + label + "Lisää ⋯" (B105). HUOM: näiden PAIKKA muuttuu redesignissa,
+  mutta CSS-tokenointi + touch pysyy validina.

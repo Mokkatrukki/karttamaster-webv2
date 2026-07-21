@@ -11,6 +11,7 @@ import { wireAreas } from './app/areas-wiring'
 import { wireSegments } from './app/segments-wiring'
 import { wireMarkers } from './app/markers-wiring'
 import { wireAuth } from './app/role-view'
+import { initTalkoolainenMode } from './app/talkoolainen-mode'
 import { initTheme } from './logic/theme'
 
 // V132/T202: palauta käyttäjän valitsema teema ennen renderiä (estää välkkeen).
@@ -118,6 +119,17 @@ async function init(talkoolainenCode?: string) {
     if (e.key === 'ArrowRight') { e.preventDefault(); driveMode.next() }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); driveMode.prev() }
   })
+
+  // T254/V174 (R1 keystone): talkoolaiselle kaksi moodia (koti↔kartta). Oletus = koti
+  // (pätkänäkymä, kartta piilossa). "Kartalle →" → kartta + invalidateSize (V176, kartta
+  // oli display:none). "🏠" → koti. Vain talkoolaiselle — järjestäjän layout ennallaan.
+  if (talkoolainenCode) {
+    initTalkoolainenMode({
+      btnToMap: document.getElementById('btn-to-map'),
+      btnHome: document.getElementById('btn-home-view'),
+      onEnterKartta: () => map.invalidateSize(),
+    })
+  }
 }
 
 if (import.meta.env.DEV) {

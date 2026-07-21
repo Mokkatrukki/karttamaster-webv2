@@ -1442,16 +1442,121 @@ button {
 .segment-view-more {
   margin-top: 4px;
 }
+/* B105: "Lisää ⋯" oli himmeä keskitetty teksti (btn--ghost) → ei näyttänyt napilta.
+   field-tint + reuna + radius = luettava sekundäärikontrolli (kuten .btn--secondary). */
 .segment-view-more-toggle {
   width: 100%;
   justify-content: center;
   color: var(--text-muted);
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+}
+.segment-view-more-toggle:hover {
+  background: var(--hover);
+  color: var(--text-body);
 }
 .segment-view-more-body {
   display: flex;
   flex-direction: column;
   gap: 10px;
   margin-top: 8px;
+}
+
+/* === Talkoolaisen kaksi moodia (T254/V174–176, R1 keystone) ===================
+   Moodi = #app[data-view-mode="koti"|"kartta"], asettaa src/app/talkoolainen-mode.ts.
+   Koskee VAIN talkoolaista (järjestäjän #app ei saa data-view-modea). */
+
+/* "Kartalle →" — iso confirm-primary, näkyy vain koti-moodissa (talkoolainen). */
+#btn-to-map { display: none; }
+#app[data-view-mode="koti"] #btn-to-map {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  margin: 8px 12px 12px;
+  font-size: 15px;
+  font-weight: 700;
+  background: var(--confirm);
+  color: var(--confirm-text);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+#app[data-view-mode="koti"] #btn-to-map:hover { background: var(--confirm-hover); }
+
+/* Koti-moodi (V175): kartta piilossa, pätkänäkymä koko korkeus (ei 38vh-rajaa). */
+#app[data-view-mode="koti"] #map { display: none; }
+#app[data-view-mode="koti"] #segment-view { max-height: none; }
+
+/* 🏠 paluunappi: 44×44 (§R), näkyy vain talkoolainen + karttamoodi (V175). */
+#btn-home-view {
+  display: none;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0;
+  width: 44px;
+  min-height: 44px;
+  font-size: 18px;
+  cursor: pointer;
+}
+#btn-home-view:hover { color: var(--text-body); }
+body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* === CommentThread (src/ui/comment-thread.ts) — B105 =========================
+   Aiemmin 0 CSS-riviä → lomake nojasi selaimen defaultteihin (kapea monospace
+   textarea, 19px natiivi select/input « 44px touch). Talkoolainen mobiili/hanskat
+   vaatii §R 44px + DESIGN-tokenit. Käytössä segment-view + marker/segment-modaalit. */
+.comment-thread-form {
+  margin-top: 8px;
+}
+.comment-thread-input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 16px; /* >=16px estää iOS-zoomin fokusoinnissa */
+  color: var(--text-body);
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  resize: vertical;
+}
+.comment-thread-input::placeholder,
+.comment-thread-name::placeholder {
+  color: var(--text-muted);
+}
+/* Selittävä mini-label kontrolliriville — "Ei ikonia" oli aiemmin orpo (mihin liittyy?). */
+.comment-thread-controls-label {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.comment-thread-icon-select,
+.comment-thread-name {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 0 10px;
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--text-body);
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+}
+.comment-thread-send {
+  width: 100%;
 }
 
 /* T233/V155: Varustelista-nappi siirtyi yläpalkkiin (#btn-varuste) — ei enää panelissa. */

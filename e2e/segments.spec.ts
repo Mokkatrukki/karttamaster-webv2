@@ -81,6 +81,35 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(page.locator('#floating-picker')).toHaveClass(/open/)
   })
 
+  test('T254 — talkoolaisen kaksi moodia: koti (ei karttaa) ⇄ kartta (🏠)', async ({ page }) => {
+    // R1 keystone (V174–176): /s/koodi → KOTI-landing (kartta piilossa) → "Kartalle →" →
+    // KARTTA (kartta näkyvä + 🏠) → "🏠" → KOTI.
+    await mockAuthAsTalkoolainen(page)
+    await mockTalkoolainenSegment(page, { withMarker: true })
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/s/TEST01')
+    await page.waitForTimeout(1500)
+
+    const app = page.locator('#app')
+    // KOTI-landing (V174): oletusmoodi koti, kartta piilossa, "Kartalle →" näkyvä
+    await expect(app).toHaveAttribute('data-view-mode', 'koti')
+    await expect(page.locator('#map')).toBeHidden()
+    await expect(page.locator('#btn-to-map')).toBeVisible()
+    await expect(page.locator('#btn-home-view')).toBeHidden()
+
+    // "Kartalle →" → KARTTA (V175): kartta näkyvä, 🏠 näkyvä, "Kartalle →" piilossa
+    await page.click('#btn-to-map')
+    await expect(app).toHaveAttribute('data-view-mode', 'kartta')
+    await expect(page.locator('#map')).toBeVisible()
+    await expect(page.locator('#btn-home-view')).toBeVisible()
+    await expect(page.locator('#btn-to-map')).toBeHidden()
+
+    // "🏠" → KOTI (paluu)
+    await page.click('#btn-home-view')
+    await expect(app).toHaveAttribute('data-view-mode', 'koti')
+    await expect(page.locator('#map')).toBeHidden()
+  })
+
   test('T232 — järjestäjällä ei talkoolais-heroa (+Merkki sivupalkin kirjastosta)', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })

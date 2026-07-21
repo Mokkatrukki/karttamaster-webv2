@@ -78,6 +78,13 @@ export class CommentThread {
     input.placeholder = 'Kirjoita kommentti...'
     form.appendChild(input)
 
+    // B105: selittävä mini-label — ilman tätä "Ei ikonia" -valitsin oli orpo (käyttäjä ei
+    // ymmärtänyt mihin liittyy). Kertoo että ikoni + nimi ovat valinnaisia kommentin lisukkeita.
+    const controlsLabel = document.createElement('span')
+    controlsLabel.className = 'comment-thread-controls-label'
+    controlsLabel.textContent = 'Ikoni ja nimi (valinnainen)'
+    form.appendChild(controlsLabel)
+
     const controls = document.createElement('div')
     controls.className = 'comment-thread-controls'
     controls.style.display = 'flex'
