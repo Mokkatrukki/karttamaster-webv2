@@ -3780,11 +3780,16 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 .inv-field input {
   min-height: 44px;
   padding: 8px 10px;
-  background: var(--field-bg, var(--bg-raised));
+  background: var(--surface-app);
   color: var(--text-body);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
+  font-family: inherit;
   font-size: 16px; /* >=16px estää iOS-zoomin fokusoinnissa */
+}
+.inv-field input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .inv-error {

@@ -541,6 +541,18 @@ CSS-luokat:
 - Tila-pilli (`.admin-user-status`): käyttää olemassa olevia status-värejä (§C) — `active` = `#4ade80`/`rgba(74,222,128,0.10)` (sama kuin status-asetettu), `inactive` = `danger-text`/`danger-soft`. **Ei uutta `--confirm`-tekstiväriä tummalla taustalla** — kontrasti alle AA:n (3.1:1), käytä aina kirkkaampaa status-tokenia.
 - Toimintonapit (`.admin-toggle-active-btn`, `.admin-copy-invite-btn`): `min-height:44px`, `field-tint` tausta
 
+### InventoryPage (`inventory.html` + `src/inventory.ts` + `src/ui/inventory-page.ts`, T242)
+- Erillinen entrypoint /admin-mallin mukaan — vain järjestäjä/admin (V163, talkoolainen → `.inv-forbidden`). Ei jaa `#app`-runkoa.
+- `#inventory-app`: `max-width:720px;margin:0 auto;padding:16px` — kapeampi kuin admin (960px), koska mobiili-primääri (järjestäjä puhelimella kärryllä).
+- Header (`#inventory-header`): otsikko "Inventaario" + "← Kartta" (`#btn-inventory-back`) + "Kirjaudu ulos" — molemmat `min-height:44px`, `field-tint`/`border-strong`.
+- Lisäyslomake (`.inv-add-form`, ylhäällä): `surface-raised` kortti. Kentät pystyssä (`.inv-fields` flex-column): Nimi/Määrä/Yksikkö/Sijainti/Kommentti. Inputit `.inv-field input` **`font-size:16px`** (iOS-zoom-esto fokusoinnissa), `min-height:44px`, `surface-app` tausta, `accent`-focus-outline (auth-malli). "+ Lisää" (`.inv-btn-primary`): `width:100%`, `accent`-tausta.
+- Virheteksti (`.inv-error`): `danger-soft`/`danger-text` — client-validointi (T241) ennen POSTia.
+- Tavarakortit (`.inv-card`, alla): `surface-raised`, per rivi. Päärivi (`.inv-card-main`): nimi (`.inv-card-name` 15px/600, `word-break`) + määrä+yksikkö (`.inv-card-qty` `accent`, `white-space:nowrap`). Meta (`.inv-card-meta` 12px `text-muted`): 📍 sijainti · kommentti. Napit `.inv-btn-edit`/`.inv-btn-delete` (`danger-text`), `min-height:44px`.
+- Muokkaus = inline (`.inv-card.editing`): kortti korvautuu samalla kenttäjoukolla + Tallenna/Peruuta. Ei erillistä modaalia.
+- **XSS (V164):** kaikki user-teksti (name/unit/location/note) `textContent`illä — ⊥ `innerHTML`-interpolaatiota. Malli admin-page.ts.
+- LeftPanel-linkki (`.left-panel-link`, `#btn-inventory-link` "📦 Inventaario", `href="/inventaario"`): asuu `#left-panel-content`issa → automaattisesti piilossa talkoolaiselta (LeftPanel `display:none` talkoolaiselle, T229). `min-height:44px`, `field-tint`.
+- Ei uusia väritokeneja — reuse §C (accent/field-tint/border/danger/surface).
+
 ### SegmentOverlay (Leaflet-layer, `src/map/segment-overlay.ts`)
 - **T152/V96: kaksi visuaalista kanavaa erikseen** — väri = *tunniste* (kuka), viivatyyli = *status* (missä vaiheessa). Järjestäjä lukee molemmat yhdellä silmäyksellä (VISION UX-testi).
 - **Väri = tunniste, stabiili per `segment.id`**: `colorForSegment(id)` (`src/logic/segments.ts`) hashaa id → SEGMENT_COLORS-indeksi. EI lista-indeksi — pätkän poisto ei saa vaihtaa muiden värejä. Törmäys (sama hue) ok, tooltip-nimi erottaa.
