@@ -116,10 +116,20 @@ KOTI (yhteenveto)   Kuittaa "kaikki tehty" → yhteenveto: onko tehty,
 - **B(pätkän pituus kartalla):** ❓ kartan pätkän pituus "ei tarpeeksi pitkä" — selvitä: reittiviiva liian lyhyt vai visuaali ei kata koko pätkää?
 - ✅ **B105 (korjattu):** comment-form 0 CSS → tokenit + 44px touch + "Ikoni ja nimi" -label + "Lisää ⋯" napiksi.
 
-## Toteutuksen eteneminen (§T)
+## Toteutuksen eteneminen (§T) — VALMIS 2026-07-21 (autonominen sessio)
 
-- ✅ **R1 = T254** (2026-07-21): kaksi-moodi-kehys koti↔kartta. `src/app/talkoolainen-mode.ts` + `[data-view-mode]` CSS + 🏠/Kartalle→ napit. Vitest 6/6 + e2e "T254" + Playwright kriittinen polku PASS. Toolbar ahtautuu karttamoodissa → R9 korjaa.
-- ⏭️ Seuraava: R5 (karttanäkymä minimal 80% + alapalkki seuraava-merkki) tai R2 (varustarkastus koti). R9 (toolbar) korjaa myös ahtauden.
+- ✅ **R1 = T254**: kaksi-moodi-kehys koti↔kartta. `src/app/talkoolainen-mode.ts` + `[data-view-mode]` CSS + 🏠/Kartalle→. Vitest 6/6 + e2e + kriittinen polku.
+- ✅ **R5 = T255**: karttanäkymä minimal — kartta ~80% + hero alapalkkina (segment-view absolute bottom). CSS-vain. Playwright.
+- ✅ **R6 = T256**: seuraava-merkki-korostus rengas → ikoni-hehku (`setNextHighlight` + drop-shadow glow). Marker-vitest 135 + Playwright.
+- ✅ **R8 = T257**: yläpalkin ⋯ = GPS + Lisää merkki + Merkitse valmiiksi (GPS pois herosta). Playwright.
+- ✅ **R2 = T258**: varustarkastus "otin nämä" checkoff (client-only, `varustarkastus.ts`). Vitest-pure 7/7 + Playwright.
+- ✅ **R9 = T259**: toolbar/tilivalikko — teemat "☀️ Vaalea"/"🌙 Tumma" (aktiivinen ✓; toggle TOIMII — ei bugi), karttatyyli näyttää aktiivisen, logout kevyeksi, kartta-toolbar declutter. Playwright.
+- ✅ **R4 = T260**: pätkän kommentit koti-etusivulta "Lisää ⋯"-valikkoon (poisti sekaannuksen). Vitest t232 + Playwright.
+- ✅ **B106**: kartan pätkä-label luettavaksi vaaleassa teemassa (color #fff, oli var(--text-body) fixed-tummalla pillillä).
+- ✅ **R7**: KATETTU olemassa olevalla — merkki-tap → MarkerDetailModal jo sisältää kommentti (locationNote) + "Ei tarpeen" (elä laita) + status + raahaus (siirrä). Erillinen mini-menu = duplikaatti, ei rakennettu.
+- ⏭️ **Ei tehty (matala prio):** R3 (Kaikki merkit -lista koti-näkymään — osin katettu R9-declutterilla), B(kartan pätkän pituus "liian lyhyt" — vaatii selvityksen reittidatasta).
+
+Kaikki paikallista (ei tuotantoon). Täysregressio vihreä joka incrementin jälkeen.
 
 ## Jo tehty tällä kierroksella
 
