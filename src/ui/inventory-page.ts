@@ -295,11 +295,23 @@ function openAddLocationModal(cb: InventoryPageCallbacks): void {
   actions.append(save, cancel)
   footer.appendChild(actions)
 
+  let submitting = false // async POST → estä tuplasubmit (Enter-toisto / tuplatäppä) → yksi paikka per ele
   form.addEventListener('submit', async (e) => {
     e.preventDefault()
+    if (submitting) return
     const name = input.value.trim()
     if (!name) { input.focus(); return }
-    const ok = await cb.onAddLocation(name)
+    submitting = true
+    save.disabled = true
+    save.textContent = 'Luodaan…'
+    let ok = false
+    try {
+      ok = await cb.onAddLocation(name)
+    } finally {
+      submitting = false
+      save.disabled = false
+      save.textContent = 'Luo'
+    }
     if (ok) close()
     else { err.textContent = 'Tallennus epäonnistui.'; err.hidden = false }
   })
@@ -442,8 +454,13 @@ function buildAddForm(view: InventoryView, cb: InventoryPageCallbacks, draft?: A
   err.hidden = true
   form.appendChild(err)
 
+  // Lisäys-POST on async (verkko) → ilman lukkoa toistopainallus (hidas mobiiliverkko, ei
+  // näkyvää palautetta) lähettää saman rivin monta kertaa. Yksi POST per ele: lukko + disable +
+  // "Lisätään…"-palaute → tuplasubmit rakenteellisesti mahdoton ja käyttäjä näkee että toimii.
+  let submitting = false
   form.addEventListener('submit', async (e) => {
     e.preventDefault()
+    if (submitting) return
     const res = validateInventoryItem({
       name: nameInput.value,
       qty: qtyInput.value.trim() === '' ? undefined : Number(qtyInput.value),
@@ -458,7 +475,19 @@ function buildAddForm(view: InventoryView, cb: InventoryPageCallbacks, draft?: A
     // (ei palauta juuri lisättyä nimeä). Epäonnistuessa (ei reloadia) palauta syöte.
     const savedName = nameInput.value, savedQty = qtyInput.value
     nameInput.value = ''; qtyInput.value = ''
-    const ok = await cb.onAddItem(res.value)
+    submitting = true
+    addBtn.disabled = true
+    addBtn.textContent = 'Lisätään…'
+    let ok = false
+    try {
+      ok = await cb.onAddItem(res.value)
+    } finally {
+      // Onnistuessa load() on re-renderöinyt tämän lomakkeen pois → nappi on detached (setterit
+      // harmittomia). Epäonnistuessa palauta syöte + nappi käyttökuntoon uutta yritystä varten.
+      submitting = false
+      addBtn.disabled = false
+      addBtn.textContent = '+ Lisää'
+    }
     if (!ok) { nameInput.value = savedName; qtyInput.value = savedQty; showError(err, 'save_failed') }
   })
 
@@ -663,14 +692,43 @@ function toggleDetailsEditor(card: HTMLElement, item: InventoryItem, view: Inven
     editor.appendChild(locWrap)
   }
 
+  // V17x: kiinnitystapa RIVILLÄ (vain merkkirivi) — täppä pois = irto → nimeen " - irto".
+  // Sama kylttipinta (tunnus) voi olla kepillä TAI irto, ei kahta erillistä mallia.
+  let keppiCheckbox: HTMLInputElement | null = null
+  if (item.templateId) {
+    const keppiWrap = document.createElement('label')
+    keppiWrap.className = 'inv-field inv-field-keppi'
+    keppiCheckbox = document.createElement('input')
+    keppiCheckbox.type = 'checkbox'
+    keppiCheckbox.className = 'inv-d-keppi'
+    keppiCheckbox.checked = item.keppi !== false // null/true = keppi (oletus), false = irto
+    const lbl = document.createElement('span')
+    lbl.className = 'inv-field-label'
+    lbl.textContent = 'Keppi (pois = irto)'
+    keppiWrap.append(keppiCheckbox, lbl)
+    editor.appendChild(keppiWrap)
+  }
+
   const save = document.createElement('button')
   save.type = 'button'
   save.className = 'inv-btn inv-btn-primary'
   save.textContent = 'Tallenna'
+  let saving = false // async PUT → estä tuplaklikkaus lennossa (onnistuessa load() re-renderöi editorin pois)
   save.addEventListener('click', async () => {
+    if (saving) return
     const overrides: Partial<InventoryFields> = { unit: strOrNull(unit.input.value), note: strOrNull(note.input.value) }
     if (locSelect) overrides.locationId = locSelect.value || null
-    await cb.onEditItem(item.id, fieldsOf(item, overrides))
+    if (keppiCheckbox) overrides.keppi = keppiCheckbox.checked ? true : false
+    saving = true
+    save.disabled = true
+    save.textContent = 'Tallennetaan…'
+    try {
+      await cb.onEditItem(item.id, fieldsOf(item, overrides))
+    } finally {
+      saving = false
+      save.disabled = false
+      save.textContent = 'Tallenna'
+    }
   })
   editor.appendChild(save)
 
@@ -700,12 +758,13 @@ function fieldsOf(item: InventoryItem, overrides: Partial<InventoryFields>): Inv
     note: item.note,
     locationId: item.locationId ?? null,
     templateId: item.templateId ?? null,
+    keppi: item.keppi ?? null,
     ...overrides,
   }
 }
 
 function inputAsInput(item: InventoryItem): Record<string, unknown> {
-  return { name: item.name, unit: item.unit, note: item.note, locationId: item.locationId ?? undefined, templateId: item.templateId ?? undefined }
+  return { name: item.name, unit: item.unit, note: item.note, locationId: item.locationId ?? undefined, templateId: item.templateId ?? undefined, keppi: item.keppi ?? undefined }
 }
 
 function locationIdFromSelection(sel: LocationSelection): string | null {

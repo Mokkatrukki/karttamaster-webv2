@@ -371,3 +371,48 @@ describe('T243: merkkikytkös (template_id, V161/V165)', () => {
     expect(tpl).not.toBeNull() // template säilyy kirjastossa
   })
 })
+
+// ── V17x/T25x: keppi (kiinnitystapa) RIVILLÄ — sama tunnus kepillä TAI irto ─────
+describe('V17x: keppi inventaariorivillä', () => {
+  let db: Database
+  let app: ReturnType<typeof makeApp>
+  beforeEach(() => { db = createDb(':memory:'); seedTestUsers(db); app = makeApp(db) })
+  afterEach(() => db.close())
+  const jh = () => jsonHeaders(authHeaders(db, 'järjestäjä'))
+
+  test('POST merkkirivi keppi=false → tallentuu 0 (irto)', async () => {
+    seedTemplate(db, 'oik', 'Oikealle')
+    const r = await app.request('/api/inventory', { method: 'POST', headers: jh(), body: JSON.stringify({ template_id: 'oik', qty: 1, keppi: false }) })
+    expect(r.status).toBe(201)
+    expect(((await r.json()) as { keppi: number | null }).keppi).toBe(0)
+  })
+
+  test('POST ilman keppiä → NULL (keppi/oletus, ei suffixia)', async () => {
+    seedTemplate(db, 'oik', 'Oikealle')
+    const r = await app.request('/api/inventory', { method: 'POST', headers: jh(), body: JSON.stringify({ template_id: 'oik', qty: 1 }) })
+    expect(((await r.json()) as { keppi: number | null }).keppi).toBeNull()
+  })
+
+  test('sama tunnus kahdella rivillä: yksi keppi (NULL), yksi irto (0)', async () => {
+    seedTemplate(db, 'oik', 'Oikealle')
+    const a = (await (await app.request('/api/inventory', { method: 'POST', headers: jh(), body: JSON.stringify({ template_id: 'oik', qty: 4 }) })).json()) as { template_id: string; keppi: number | null }
+    const b = (await (await app.request('/api/inventory', { method: 'POST', headers: jh(), body: JSON.stringify({ template_id: 'oik', qty: 2, keppi: false }) })).json()) as { template_id: string; keppi: number | null }
+    expect(a.template_id).toBe('oik')
+    expect(b.template_id).toBe('oik') // sama malli/tunnus
+    expect(a.keppi).toBeNull()
+    expect(b.keppi).toBe(0)
+  })
+
+  test('PUT vaihtaa kepin irroksi olemassa olevalla rivillä', async () => {
+    seedTemplate(db, 'oik', 'Oikealle')
+    const item = (await (await app.request('/api/inventory', { method: 'POST', headers: jh(), body: JSON.stringify({ template_id: 'oik', qty: 1 }) })).json()) as InventoryItem & { keppi: number | null }
+    const r = await app.request(`/api/inventory/${item.id}`, { method: 'PUT', headers: jh(), body: JSON.stringify({ template_id: 'oik', qty: 1, keppi: false }) })
+    expect(r.status).toBe(200)
+    expect(((await r.json()) as { keppi: number | null }).keppi).toBe(0)
+  })
+
+  test('tarvike (ei template_id) → keppi aina NULL vaikka annettu', async () => {
+    const r = await app.request('/api/inventory', { method: 'POST', headers: jh(), body: JSON.stringify({ name: 'Nauharulla', qty: 1, keppi: false }) })
+    expect(((await r.json()) as { keppi: number | null }).keppi).toBeNull()
+  })
+})

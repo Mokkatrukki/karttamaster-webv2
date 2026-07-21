@@ -8,7 +8,7 @@ function item(over: Partial<InventoryItem> = {}): InventoryItem {
   return { id: 'i1', name: '20km kyltti irto', qty: 4, unit: null, location: null, note: null, locationId: 'l1', templateId: null, ...over }
 }
 function loc(): InventoryLocation { return { id: 'l1', name: 'Kärry', sortOrder: 0 } }
-function tpl(): SignTemplate { return { id: 't1', label: 'Oikealle', color: '#10b981', description: '', favorite: false, keppi: true } }
+function tpl(): SignTemplate { return { id: 't1', label: 'Oikealle', color: '#10b981', description: '', favorite: false } }
 function view(items: InventoryItem[], templates = new Map<string, SignTemplate>()): InventoryView {
   return { locations: [loc()], items, selectedLocationId: 'l1', templates, viewMode: 'edit' }
 }

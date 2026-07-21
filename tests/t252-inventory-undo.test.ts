@@ -14,8 +14,8 @@ const item = (over: Partial<InventoryItem> = {}): InventoryItem => ({
   ...over,
 })
 
-const templates = new Map<string, { label: string; keppi?: boolean }>([
-  ['t1', { label: '20km kyltti', keppi: true }],
+const templates = new Map<string, { label: string }>([
+  ['t1', { label: '20km kyltti' }],
 ])
 
 describe('describeUndo — toast-teksti per kind (T252, V172)', () => {

@@ -60,7 +60,7 @@ describe('T251 read-mode piilottaa mutaatiot (V169)', () => {
   })
 
   it('read: kyltin nimi säilyy klikattavana (SignTemplateModal sallittu read-modessa)', () => {
-    const templates = new Map([['t1', { id: 't1', label: 'Oikealle', color: '#10b981', description: '', favorite: false, keppi: true }]])
+    const templates = new Map([['t1', { id: 't1', label: 'Oikealle', color: '#10b981', description: '', favorite: false }]])
     renderInventory(container, view('read', { items: [item({ templateId: 't1' })], templates }), makeCb({ onOpenSign: vi.fn() }))
     expect(container.querySelector('.inv-card-name-btn')).not.toBeNull()
   })

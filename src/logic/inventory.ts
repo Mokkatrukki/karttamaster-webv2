@@ -13,6 +13,9 @@ export interface InventoryItem {
   // v2 (T244): valinnaiset — additiivinen, ei riko v1-käyttöä
   locationId?: string | null
   templateId?: string | null
+  // V17x/T25x: kiinnitystapa RIVILLÄ (ei mallissa) — false=irto → ' - irto' -suffix, true/null=keppi.
+  // Merkityksellinen vain merkkirivillä (templateId); tarvikkeella null.
+  keppi?: boolean | null
 }
 
 /** Paikka (säiliö): Kärry, Varasto… (T243 inventory_locations). */
@@ -31,6 +34,7 @@ export interface InventoryInput {
   note?: unknown
   locationId?: unknown
   templateId?: unknown
+  keppi?: unknown
 }
 
 /** Normalisoidut kentät (ilman id:tä) validoinnin jälkeen. */
@@ -42,6 +46,7 @@ export interface InventoryFields {
   note: string | null
   locationId: string | null
   templateId: string | null
+  keppi: boolean | null
 }
 
 export type InventoryError = 'name_required' | 'invalid_qty'
@@ -54,6 +59,11 @@ function strOrNull(x: unknown): string | null {
   if (typeof x !== 'string') return null
   const t = x.trim()
   return t.length ? t : null
+}
+
+/** keppi (kiinnitystapa): vain boolean tunnistetaan; muu → null (= keppi/oletus, ei suffixia). */
+function boolOrNull(x: unknown): boolean | null {
+  return typeof x === 'boolean' ? x : null
 }
 
 /**
@@ -84,6 +94,8 @@ export function validateInventoryItem(input: InventoryInput): ValidationResult {
       note: strOrNull(input.note),
       locationId: strOrNull(input.locationId),
       templateId,
+      // keppi vain merkkirivillä (templateId) — tarvikkeella aina null.
+      keppi: templateId ? boolOrNull(input.keppi) : null,
     },
   }
 }
@@ -91,15 +103,16 @@ export function validateInventoryItem(input: InventoryInput): ValidationResult {
 /**
  * Näyttönimi (V165): merkkirivi (templateId) → elävä template.label templatesista;
  * template puuttuu → fallback item.name ?? '(poistettu merkki)'. Tarvike → item.name.
+ * V17x: ' - irto' -suffix tulee RIVIN keppistä (item.keppi), ei mallista.
  */
 export function resolveItemName(
-  item: { name: string | null; templateId?: string | null },
-  // Rakenteellinen — käy Map<string,{label,keppi?}> JA Map<string,SignTemplate> (T247, invarianssin ohitus).
-  templates: { get(id: string): { label: string; keppi?: boolean } | undefined },
+  item: { name: string | null; templateId?: string | null; keppi?: boolean | null },
+  // Rakenteellinen — käy Map<string,{label}> JA Map<string,SignTemplate> (T247, invarianssin ohitus).
+  templates: { get(id: string): { label: string } | undefined },
 ): string {
   if (item.templateId) {
     const tpl = templates.get(item.templateId)
-    return tpl ? signDisplayLabel(tpl) : (item.name ?? '(poistettu merkki)') // V168 ' - irto' -suffix
+    return tpl ? signDisplayLabel(tpl.label, item.keppi) : (item.name ?? '(poistettu merkki)')
   }
   return item.name ?? ''
 }
