@@ -19,7 +19,8 @@ export interface InventoryPageCallbacks {
   onAddItem: (fields: InventoryFields) => Promise<boolean> | boolean
   onEditItem: (id: string, fields: InventoryFields) => Promise<boolean> | boolean
   onDeleteItem: (item: InventoryItem) => void
-  onDeleteLocation?: (loc: InventoryLocation) => void
+  onRenameLocation?: (id: string, name: string) => Promise<boolean> | boolean // T248
+  onDeleteLocation?: (loc: InventoryLocation) => void // T248
   onAddSign?: (locationId: string | null) => void // T246
   onOpenSign?: (templateId: string) => void // T247: avaa SignTemplateModal (muokkaus)
 }
@@ -130,7 +131,58 @@ function buildLocationBar(view: InventoryView, cb: InventoryPageCallbacks): HTML
   addBtn.addEventListener('click', () => promptAddLocation(bar, cb))
   bar.appendChild(addBtn)
 
+  // T248: paikkojen muokkaus-mode (rename/poista) — vain jos paikkoja on
+  if (view.locations.length > 0 && (cb.onRenameLocation || cb.onDeleteLocation)) {
+    const editBtn = document.createElement('button')
+    editBtn.type = 'button'
+    editBtn.className = 'inv-loc-edit-toggle'
+    editBtn.id = 'inv-loc-edit-toggle'
+    editBtn.textContent = '✎ Muokkaa'
+    editBtn.addEventListener('click', () => toggleLocationEditor(bar, view, cb))
+    bar.appendChild(editBtn)
+  }
+
   return bar
+}
+
+/** T248: paikkojen muokkaus-paneeli — rename (input) + poisto per paikka. */
+function toggleLocationEditor(bar: HTMLElement, view: InventoryView, cb: InventoryPageCallbacks): void {
+  const existing = bar.querySelector('.inv-loc-editor')
+  if (existing) { existing.remove(); return }
+
+  const panel = document.createElement('div')
+  panel.className = 'inv-loc-editor'
+
+  for (const loc of view.locations) {
+    const row = document.createElement('div')
+    row.className = 'inv-loc-edit-row'
+
+    const input = document.createElement('input')
+    input.type = 'text'
+    input.className = 'inv-loc-edit-input'
+    input.value = loc.name
+    input.setAttribute('aria-label', `Paikan nimi: ${loc.name}`)
+    const rename = (): void => {
+      const name = input.value.trim()
+      if (name && name !== loc.name) void cb.onRenameLocation?.(loc.id, name)
+    }
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); rename() }
+    })
+    input.addEventListener('blur', rename)
+
+    const del = document.createElement('button')
+    del.type = 'button'
+    del.className = 'inv-btn inv-btn-delete inv-loc-edit-del'
+    del.textContent = 'Poista'
+    del.addEventListener('click', () => cb.onDeleteLocation?.(loc))
+
+    row.append(input, del)
+    panel.appendChild(row)
+  }
+
+  bar.appendChild(panel)
+  panel.querySelector('input')?.focus()
 }
 
 function locationTab(label: string, id: string, active: boolean, onClick: () => void): HTMLButtonElement {

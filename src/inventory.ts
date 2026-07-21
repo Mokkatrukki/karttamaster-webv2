@@ -87,6 +87,20 @@ async function load(): Promise<void> {
         }
         return r.ok
       },
+      onRenameLocation: async (id, name) => {
+        const r = await fetch(`/api/inventory/locations/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+        })
+        if (r.ok) await load()
+        return r.ok
+      },
+      onDeleteLocation: async (loc) => {
+        if (!window.confirm(`Poista paikka "${loc.name}"? Tavarat siirtyvät "Ei paikkaa" -kohtaan.`)) return
+        const r = await fetch(`/api/inventory/locations/${loc.id}`, { method: 'DELETE' })
+        if (r.ok) await load()
+      },
       onAddItem: async (fields) => {
         const r = await fetch('/api/inventory', {
           method: 'POST',

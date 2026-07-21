@@ -128,7 +128,7 @@ server/       ← Hono + Bun + SQLite
 | MapStateAPI | `server/routes/admin.ts` | ⚠️ dead T48 — approval poistettu (V22/B46/V79), poisto T211 | — | [backend.md](docs/components/backend.md) |
 | OfflineManager | `public/sw.js` *(ei vielä)* | ○ T18 | — | [backend.md](docs/components/backend.md) |
 | AdminPage | `admin.html` + `src/admin.ts` + `src/ui/admin-page.ts` | ✓ T122 | — | [ui.md](docs/components/ui.md) |
-| InventoryPage | `inventory.html` + `src/inventory.ts` + `src/ui/inventory-page.ts` | ✓ T247 (v2: Kaikki-kokooma+väliotsikot, merkki-visuaali+zoom V167, nimi-klikkaus→SignTemplateModal, siirto/paikka-select, stepper-tasaus; picker+SignTemplateModal-reuse V165; V163/V164) | — | [ui.md](docs/components/ui.md) |
+| InventoryPage | `inventory.html` + `src/inventory.ts` + `src/ui/inventory-page.ts` | ✓ T248 (v2: paikkatabit+Kaikki-koonti, paikkojen muokkaus-mode rename/poista V166, merkki-visuaali+zoom V167, nimi→SignTemplateModal, siirto; picker-reuse V165; V163/V164) | — | [ui.md](docs/components/ui.md) |
 
 **Tila:** ✓ = valmis (+ viimeisin T-id) | ○ T-id = tulossa | ⚠️ pilkko = pilkkolippu
 

@@ -3887,6 +3887,42 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   font-size: 16px;
 }
 
+/* T248: paikkojen muokkaus-mode */
+.inv-loc-edit-toggle {
+  min-height: 44px;
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.inv-loc-editor {
+  width: 100%;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+.inv-loc-edit-row { display: flex; gap: 6px; align-items: center; }
+.inv-loc-edit-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 10px;
+  background: var(--surface-app);
+  color: var(--text-body);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+}
+.inv-loc-edit-del { flex-shrink: 0; margin-top: 0; }
+
 .inv-add-row { display: flex; gap: 8px; }
 .inv-add-row .inv-f-name {
   flex: 1;
