@@ -1,31 +1,24 @@
-// T224 (D) — "tässä on sun pätkä": latauksessa kartta fitataan OMAAN pätkään, ei koko karttaan.
-// Puhdas logiikka: päätä mihin etäisyysväliin kartta zoomataan. Jos pätkä on lyhyt → fittaa koko
-// pätkä (mode 'fit'). Jos pätkä on niin pitkä ettei sitä saa "riittävän lähelle" ilman että merkit
-// jäävät pikkuruisiksi → aloita pätkän ALKUPÄÄSTÄ (mode 'anchor'): fittaa vain ikkuna
-// [startDist, startDist+maxFitLengthM]. Näin talkoolaiselle tulee fiilis että hän tekee tätä pätkää.
+// T224 (D) / T265 (B107) — "tässä on sun pätkä": latauksessa kartta fitataan OMAAN pätkään, ei koko
+// karttaan. Fittaa AINA KOKO pätkä [startDist,endDist] (käyttäjäpäätös 2026-07-21, V185: pätkän oikea
+// pituus > merkkien koko). Aiempi anchor-clamp (pitkä pätkä → vain alkupää) poistettu — näytti pätkän
+// "liian lyhyenä" (B107).
 //
 // Leaflet-vapaa ∴ Vitest-pure. Map-glue (markers-wiring) muuntaa etäisyysvälin latlng-boundeiksi.
 
 export interface SegmentZoomPlan {
-  // 'fit' = koko pätkä mahtuu käyttökelpoiselle zoomille; 'anchor' = liian pitkä, aloita alkupäästä
-  mode: 'fit' | 'anchor'
-  // etäisyysväli (metreinä) johon kartta fitataan
+  // T265/V185: aina 'fit' — koko pätkä. (Kenttä säilyy API-vakioina; kutsuja lukee start/endDistin.)
+  mode: 'fit'
+  // etäisyysväli (metreinä) johon kartta fitataan = koko pätkä
   startDist: number
   endDist: number
 }
 
-export interface SegmentZoomOpts {
-  // pisin pätkä (m) jonka vielä fittaa kokonaan; pidemmät ankkuroidaan alkupäähän. Default 4000 m.
-  maxFitLengthM?: number
-}
-
-// Palauttaa etäisyysvälin johon kartta zoomataan pätkän latauksessa.
+// Palauttaa koko pätkän etäisyysvälin johon kartta zoomataan latauksessa (aina fit, V185).
+// null jos rajat puuttuvat/epäkelpo (reititön tehtävä tms.) → kutsuja fallback markkereihin.
 export function planSegmentZoom(
   startDist: number | undefined,
   endDist: number | undefined,
-  opts: SegmentZoomOpts = {},
 ): SegmentZoomPlan | null {
-  // Reititön tehtävä tms. → ei etäisyysväliä → ei zoom-suunnitelmaa (kutsuja fallback markkereihin).
   if (
     startDist === undefined ||
     endDist === undefined ||
@@ -35,13 +28,5 @@ export function planSegmentZoom(
   ) {
     return null
   }
-
-  const maxFit = opts.maxFitLengthM ?? 4000
-  const length = endDist - startDist
-
-  if (length <= maxFit) {
-    return { mode: 'fit', startDist, endDist }
-  }
-  // Liian pitkä → ankkuroi alkupäähän: näytä ensimmäinen maxFit-metrinen ikkuna.
-  return { mode: 'anchor', startDist, endDist: startDist + maxFit }
+  return { mode: 'fit', startDist, endDist }
 }
