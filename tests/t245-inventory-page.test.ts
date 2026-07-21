@@ -52,10 +52,10 @@ beforeEach(() => {
 })
 
 describe('T245 paikkanavigointi', () => {
-  it('renderöi tabin per paikka + "Kaikki" + "Ei paikkaa"', () => {
+  it('tab-järjestys: paikat, "Ei paikkaa", sitten "Kaikki" (ei ensimmäisenä)', () => {
     renderInventory(container, view({ locations: [loc(), loc({ id: 'loc-varasto', name: 'Varasto' })] }), makeCb())
     const tabs = [...container.querySelectorAll('.inv-loc-tab')].map((t) => t.textContent)
-    expect(tabs).toEqual(['Kaikki', 'Kärry', 'Varasto', 'Ei paikkaa'])
+    expect(tabs).toEqual(['Kärry', 'Varasto', 'Ei paikkaa', 'Kaikki'])
   })
 
   it('valittu paikka saa .active', () => {
@@ -67,7 +67,8 @@ describe('T245 paikkanavigointi', () => {
   it('tabin klikkaus → onSelectLocation', () => {
     const cb = makeCb()
     renderInventory(container, view(), cb)
-    container.querySelectorAll<HTMLButtonElement>('.inv-loc-tab')[2].click() // Kaikki=0, Kärry=1, Ei paikkaa=2
+    const eiPaikkaa = [...container.querySelectorAll<HTMLButtonElement>('.inv-loc-tab')].find((t) => t.textContent === 'Ei paikkaa')!
+    eiPaikkaa.click()
     expect(cb.onSelectLocation).toHaveBeenCalledWith('none')
   })
 

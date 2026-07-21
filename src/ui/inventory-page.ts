@@ -27,12 +27,16 @@ export interface InventoryPageCallbacks {
 const ERR_TEXT: Record<string, string> = {
   name_required: 'Nimi on pakollinen.',
   invalid_qty: 'Määrä = numero, 0 tai suurempi.',
-  location_required: 'Valitse paikka.',
 }
 
-/** Oletuspaikka lisäykseen: "Kärry" nimen mukaan, muuten ensimmäinen paikka. */
-function defaultLocationId(locations: InventoryLocation[]): string | null {
+/** Oletuspaikka: "Kärry" nimen mukaan, muuten ensimmäinen paikka (entry käyttää oletusvalintaan). */
+export function defaultLocationId(locations: InventoryLocation[]): string | null {
   return locations.find((l) => l.name.trim().toLowerCase() === 'kärry')?.id ?? locations[0]?.id ?? null
+}
+
+/** Oletusvalinta avattaessa: Kärry/ensimmäinen paikka, muuten "Ei paikkaa" (EI 'all'). */
+export function defaultSelection(locations: InventoryLocation[]): LocationSelection {
+  return defaultLocationId(locations) ?? 'none'
 }
 
 export function renderInventory(container: HTMLElement, view: InventoryView, cb: InventoryPageCallbacks): void {
@@ -111,12 +115,12 @@ function buildLocationBar(view: InventoryView, cb: InventoryPageCallbacks): HTML
   bar.className = 'inv-location-bar'
   bar.id = 'inv-location-bar'
 
-  bar.appendChild(locationTab('Kaikki', 'all', view.selectedLocationId === 'all', () => cb.onSelectLocation('all')))
+  // Paikat ensin (ensisijainen), sitten "Ei paikkaa", sitten "Kaikki"-koonti (ei ensimmäisenä, EI oletus).
   for (const loc of view.locations) {
     bar.appendChild(locationTab(loc.name, loc.id, view.selectedLocationId === loc.id, () => cb.onSelectLocation(loc.id)))
   }
-  // "Ei paikkaa" -orvot aina valittavissa
   bar.appendChild(locationTab('Ei paikkaa', 'none', view.selectedLocationId === 'none', () => cb.onSelectLocation('none')))
+  bar.appendChild(locationTab('Kaikki', 'all', view.selectedLocationId === 'all', () => cb.onSelectLocation('all')))
 
   const addBtn = document.createElement('button')
   addBtn.type = 'button'
@@ -170,6 +174,16 @@ function buildAddForm(view: InventoryView, cb: InventoryPageCallbacks): HTMLElem
   form.className = 'inv-add-form'
   form.id = 'inv-add-form'
 
+  // 'Kaikki' = vain koontinäkymä → ei lisäystä. Ohje ohjaa valitsemaan paikan (yksi paikka-totuus = tabit).
+  if (view.selectedLocationId === 'all') {
+    const hint = document.createElement('p')
+    hint.className = 'inv-add-hint'
+    hint.textContent = 'Valitse paikka yltä lisätäksesi tavaraa.'
+    form.appendChild(hint)
+    return form
+  }
+
+  // Paikka-tabi (Kärry/Varasto/Ei paikkaa): lisäys menee valittuun paikkaan (konteksti tabista, ei selectiä).
   const row = document.createElement('div')
   row.className = 'inv-add-row'
 
@@ -195,30 +209,7 @@ function buildAddForm(view: InventoryView, cb: InventoryPageCallbacks): HTMLElem
   addBtn.textContent = '+ Lisää'
 
   row.append(nameInput, qtyInput, addBtn)
-
-  // 'all' = vain näyttö → lisättäessä pitää valita paikka (oletus Kärry). Paikka-tabissa konteksti riittää.
-  const inAll = view.selectedLocationId === 'all'
-  let locSelect: HTMLSelectElement | null = null
-  if (inAll && view.locations.length > 0) {
-    locSelect = buildLocationSelect(view.locations, defaultLocationId(view.locations), false)
-    locSelect.classList.add('inv-add-location')
-    const locRow = document.createElement('label')
-    locRow.className = 'inv-field'
-    const lbl = document.createElement('span')
-    lbl.className = 'inv-field-label'
-    lbl.textContent = 'Paikka'
-    locRow.append(lbl, locSelect)
-    form.appendChild(locRow)
-  }
-
   form.appendChild(row)
-
-  if (inAll && view.locations.length === 0) {
-    const hint = document.createElement('p')
-    hint.className = 'inv-add-hint'
-    hint.textContent = 'Luo paikka ensin (+ Paikka), sitten lisää tavaraa.'
-    form.appendChild(hint)
-  }
 
   // T246: "+ Merkki" -nappi (näkyy vain jos onAddSign kytketty)
   if (cb.onAddSign) {
@@ -227,9 +218,7 @@ function buildAddForm(view: InventoryView, cb: InventoryPageCallbacks): HTMLElem
     signBtn.className = 'inv-btn inv-btn-sign'
     signBtn.id = 'inv-add-sign-btn'
     signBtn.textContent = '+ Merkki kirjastosta'
-    signBtn.addEventListener('click', () =>
-      cb.onAddSign!(inAll ? locSelect?.value || null : locationIdFromSelection(view.selectedLocationId)),
-    )
+    signBtn.addEventListener('click', () => cb.onAddSign!(locationIdFromSelection(view.selectedLocationId)))
     form.appendChild(signBtn)
   }
 
@@ -241,21 +230,10 @@ function buildAddForm(view: InventoryView, cb: InventoryPageCallbacks): HTMLElem
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault()
-    // 'all': paikka pakko (locSelect); paikka-tabi: konteksti; 'none': null.
-    let locationId: string | null
-    if (inAll) {
-      locationId = locSelect?.value || null
-      if (!locationId) {
-        showError(err, 'location_required')
-        return
-      }
-    } else {
-      locationId = locationIdFromSelection(view.selectedLocationId)
-    }
     const res = validateInventoryItem({
       name: nameInput.value,
       qty: qtyInput.value.trim() === '' ? undefined : Number(qtyInput.value),
-      locationId,
+      locationId: locationIdFromSelection(view.selectedLocationId),
     })
     if (!res.ok) {
       showError(err, res.error)

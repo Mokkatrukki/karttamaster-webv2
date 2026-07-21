@@ -77,11 +77,13 @@ describe('T247 "Kaikki"-kokooma väliotsikoin', () => {
     templates: new Map(),
   })
 
-  it('paikkapalkissa "Kaikki"-tabi ensimmäisenä + aktiivinen', () => {
+  it('"Kaikki"-tabi EI ensimmäisenä (viimeisenä), aktiivinen all-valinnalla', () => {
     renderInventory(container, allView(), makeCb())
-    const tabs = container.querySelectorAll('.inv-loc-tab')
-    expect(tabs[0].textContent).toBe('Kaikki')
-    expect(tabs[0].classList.contains('active')).toBe(true)
+    const tabs = [...container.querySelectorAll('.inv-loc-tab')]
+    expect(tabs[0].textContent).not.toBe('Kaikki') // ei ensimmäinen valinta
+    expect(tabs[tabs.length - 1].textContent).toBe('Kaikki') // viimeinen
+    const kaikki = tabs.find((t) => t.textContent === 'Kaikki')!
+    expect(kaikki.classList.contains('active')).toBe(true)
   })
 
   it('väliotsikot per paikka + "Ei paikkaa"', () => {
@@ -108,7 +110,8 @@ describe('T247 "Kaikki"-kokooma väliotsikoin', () => {
   it('"Kaikki"-tabin klikkaus → onSelectLocation("all")', () => {
     const cb = makeCb()
     renderInventory(container, view({ selectedLocationId: 'loc-karry' }), cb)
-    container.querySelectorAll<HTMLButtonElement>('.inv-loc-tab')[0].click() // Kaikki
+    const kaikki = [...container.querySelectorAll<HTMLButtonElement>('.inv-loc-tab')].find((t) => t.textContent === 'Kaikki')!
+    kaikki.click()
     expect(cb.onSelectLocation).toHaveBeenCalledWith('all')
   })
 })
@@ -130,7 +133,7 @@ describe('T247 nimi-klikkaus → onOpenSign (SignTemplateModal)', () => {
   })
 })
 
-describe('T247 lisäys "Kaikki"-tilassa vaatii paikan', () => {
+describe('T247 "Kaikki" = vain katselu (ei lisäystä)', () => {
   const allLocs = (): InventoryView => ({
     locations: [loc('loc-karry', 'Kärry'), loc('loc-varasto', 'Varasto')],
     items: [],
@@ -138,32 +141,22 @@ describe('T247 lisäys "Kaikki"-tilassa vaatii paikan', () => {
     templates: new Map(),
   })
 
-  it('paikka-select näkyy, oletus Kärry', () => {
+  it('Kaikki-tilassa: ohje näkyy, EI add-kenttiä eikä add-selectiä', () => {
     renderInventory(container, allLocs(), makeCb())
-    const sel = container.querySelector<HTMLSelectElement>('.inv-add-location')!
-    expect(sel).not.toBeNull()
-    expect(sel.value).toBe('loc-karry') // oletus Kärry
+    expect(container.querySelector('.inv-add-hint')!.textContent).toContain('Valitse paikka')
+    expect(container.querySelector('.inv-f-name')).toBeNull() // ei nimikenttää
+    expect(container.querySelector('.inv-add-location')).toBeNull() // erillinen add-select poistettu
+    expect(container.querySelector('#inv-add-sign-btn')).toBeNull() // ei merkki-lisäystä koonnista
   })
 
-  it('lisäys → onAddItem valitulla paikalla', async () => {
+  it('paikkatabissa lisäys menee kontekstin paikkaan (ei selectiä)', async () => {
     const cb = makeCb()
-    renderInventory(container, allLocs(), cb)
-    ;(container.querySelector<HTMLInputElement>('.inv-f-name')!).value = 'kepit'
-    ;(container.querySelector<HTMLSelectElement>('.inv-add-location')!).value = 'loc-varasto'
-    container.querySelector<HTMLFormElement>('#inv-add-form')!.dispatchEvent(new Event('submit', { cancelable: true }))
-    await flush()
-    expect(cb.onAddItem).toHaveBeenCalledWith(expect.objectContaining({ name: 'kepit', locationId: 'loc-varasto' }))
-  })
-
-  it('ei paikkoja → hint + lisäys estetty', async () => {
-    const cb = makeCb()
-    renderInventory(container, { locations: [], items: [], selectedLocationId: 'all', templates: new Map() }, cb)
-    expect(container.querySelector('.inv-add-hint')).not.toBeNull()
+    renderInventory(container, view({ selectedLocationId: 'loc-karry', items: [] }), cb)
+    expect(container.querySelector('.inv-add-location')).toBeNull() // ei add-selectiä paikkatabissakaan
     ;(container.querySelector<HTMLInputElement>('.inv-f-name')!).value = 'kepit'
     container.querySelector<HTMLFormElement>('#inv-add-form')!.dispatchEvent(new Event('submit', { cancelable: true }))
     await flush()
-    expect(cb.onAddItem).not.toHaveBeenCalled()
-    expect(container.querySelector<HTMLElement>('#inv-add-error')!.hidden).toBe(false)
+    expect(cb.onAddItem).toHaveBeenCalledWith(expect.objectContaining({ name: 'kepit', locationId: 'loc-karry' }))
   })
 })
 

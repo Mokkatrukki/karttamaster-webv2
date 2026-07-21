@@ -1,6 +1,6 @@
 import './style.css'
 import { AuthScreen } from './ui/auth-screen'
-import { renderInventory, renderForbidden, renderSignPicker, type LocationSelection } from './ui/inventory-page'
+import { renderInventory, renderForbidden, renderSignPicker, defaultSelection, type LocationSelection } from './ui/inventory-page'
 import { SignTemplateModal } from './ui/sign-template-modal'
 import { fetchTemplates, createTemplateRemote, updateTemplateRemote, deleteTemplateRemote } from './logic/template-sync'
 import { createLibrary } from './logic/sign-library'
@@ -15,7 +15,8 @@ logoutBtn.addEventListener('click', async () => {
   window.location.href = '/'
 })
 
-let selected: LocationSelection = 'all'
+let selected: LocationSelection = 'none'
+let initialized = false // ensimmäisellä latauksella oletus = Kärry/paikka, EI 'all'
 
 // Server palauttaa snake_case — normalisoi camelCase-logiikkatyyppiin (resolveItemName lukee templateId).
 type ServerItem = InventoryItem & { location_id: string | null; template_id: string | null }
@@ -47,9 +48,12 @@ async function load(): Promise<void> {
   }
   const locations = ((await locRes.json()) as ServerLocation[]).map(normLoc)
 
-  // Poistetun paikan valinta → takaisin 'all'. 'all'/'none' aina valideja.
-  if (selected !== 'all' && selected !== 'none' && !locations.some((l) => l.id === selected)) {
-    selected = 'all'
+  // Oletusvalinta avattaessa = Kärry/paikka (ei 'all'). Poistetun paikan valinta → sama oletus.
+  if (!initialized) {
+    selected = defaultSelection(locations)
+    initialized = true
+  } else if (selected !== 'all' && selected !== 'none' && !locations.some((l) => l.id === selected)) {
+    selected = defaultSelection(locations)
   }
 
   // 'all' → kaikki itemit (page ryhmittää); 'none' → orvot; muuten paikan itemit.
