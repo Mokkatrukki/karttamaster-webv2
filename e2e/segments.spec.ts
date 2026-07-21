@@ -151,6 +151,29 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(page.locator('.segment-view-equipment .equipment-check-box').first()).toBeChecked()
   })
 
+  test('T263 — KOTI: "Kaikki merkit" -lista näkyy + rivi avaa modaalin; KARTTA: piilossa', async ({ page }) => {
+    // R3/V183: oman pätkän merkkilista inline koti-landingissa (koti-only).
+    await mockAuthAsTalkoolainen(page)
+    await mockTalkoolainenSegment(page, { withMarker: true })
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/s/TEST01')
+    await page.waitForTimeout(1500)
+
+    // KOTI: lista näkyy + otsikko + 1 rivi.
+    await expect(page.locator('.segment-view-markers')).toBeVisible()
+    await expect(page.locator('.segment-view-markers-header')).toContainText('Kaikki merkit')
+    await expect(page.locator('.segment-view-markers-row')).toHaveCount(1)
+
+    // Rivi → MarkerDetailModal (jaettu yläpalkin modaalin kanssa).
+    await page.locator('.segment-view-markers-row').first().click()
+    await expect(page.locator('.marker-detail-modal')).toBeVisible()
+    await page.keyboard.press('Escape')
+
+    // KARTTA: lista piilossa.
+    await page.click('#btn-to-map')
+    await expect(page.locator('.segment-view-markers')).toBeHidden()
+  })
+
   test('T232 — järjestäjällä ei talkoolais-heroa (+Merkki sivupalkin kirjastosta)', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })

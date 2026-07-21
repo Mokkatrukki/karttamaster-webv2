@@ -6,6 +6,7 @@ import { buildMarkerVisual } from './marker-visual-row'
 import { EquipmentModal } from './equipment-modal'
 import { SegmentHero, markerLabel } from './segment-hero'
 import { SegmentEquipment } from './segment-equipment'
+import { SegmentMarkerList } from './segment-marker-list'
 import { CommentThread, type CommentThreadApi } from './comment-thread'
 import type { SignMarker } from '../logic/types'
 
@@ -82,6 +83,9 @@ export class SegmentView {
   // luokkaansa (SegmentView on koordinaattori); kartta-moodissa CSS piilottaa (vain hero näkyy).
   private readonly equipment: SegmentEquipment
   private readonly equipmentEl: HTMLElement
+  // T263/V183: KOTI-moodin inline "Kaikki merkit" -lista (koti-only; kartta piilottaa CSS:llä).
+  private readonly markerList: SegmentMarkerList
+  private readonly markerListEl: HTMLElement
 
   constructor(
     container: HTMLElement,
@@ -96,6 +100,7 @@ export class SegmentView {
     this.gpsBtn = b.gpsBtn
     this.nextEl = b.nextEl
     this.equipmentEl = b.equipmentEl
+    this.markerListEl = b.markerListEl
     this.collectionEl = b.collectionEl
     this.bulkBtn = b.bulkBtn
     this.inspectSection = b.inspectSection
@@ -132,12 +137,18 @@ export class SegmentView {
       getMarkers: () => this.currentMarkers,
       onEdit: () => this.openEquipment(),
     })
+    // T263/V183: KOTI-inline "Kaikki merkit" -lista. Rivi → onFocusMarker (= MarkerDetailModal).
+    this.markerList = new SegmentMarkerList(this.markerListEl, {
+      getMarkers: () => this.currentMarkers,
+      onOpenDetail: (id) => this.actions.onFocusMarker?.(id),
+    })
     this.renderGpsBtn()
     this.renderInspectSection()
     this.renderCompleteSection()
     this.renderProgress()
     this.hero.render()
     this.equipment.render()
+    this.markerList.render()
     this.renderCollectionList()
     this.renderBoundsSection()
     this.renderMoreSection()
@@ -155,6 +166,7 @@ export class SegmentView {
     this.renderProgress()
     this.hero.render()
     this.equipment.render()
+    this.markerList.render()
     this.renderCollectionList()
     this.updateBulkBtn(markers)
     this.renderInspectSection()
@@ -324,6 +336,7 @@ export class SegmentView {
     collectionEl: HTMLElement
     bulkBtn: HTMLButtonElement
     equipmentEl: HTMLElement
+    markerListEl: HTMLElement
     inspectSection: HTMLElement
     inspectBtn: HTMLButtonElement
     inspectNoteInput: HTMLTextAreaElement
@@ -412,6 +425,11 @@ export class SegmentView {
     const equipmentEl = document.createElement('div')
     equipmentEl.className = 'segment-view-equipment'
     panel.appendChild(equipmentEl)
+
+    // T263/V183: KOTI-moodin inline "Kaikki merkit" -lista. Kartta-moodissa CSS piilottaa.
+    const markerListEl = document.createElement('div')
+    markerListEl.className = 'segment-view-markers'
+    panel.appendChild(markerListEl)
 
     // T228: EI inline-merkkilistaa — "Kaikki merkit" -modaali (yläpalkki) on ainoa per-merkki-lista
     // (bulk + rivi→MarkerDetailModal). Inline-lista duplikoi sen ja söi kartan tilan → poistettu.
@@ -507,7 +525,7 @@ export class SegmentView {
     panel.appendChild(moreSection)
 
     return {
-      panel, progressEl, gpsBtn, nextEl, equipmentEl, collectionEl, bulkBtn,
+      panel, progressEl, gpsBtn, nextEl, equipmentEl, markerListEl, collectionEl, bulkBtn,
       inspectSection, inspectBtn, inspectNoteInput, inspectStatus,
       moreSection, boundsSection,
       completeSection, completeBtn, completeStatus, commentEl,

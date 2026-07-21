@@ -1536,6 +1536,7 @@ body[data-role="talkoolainen"] .segment-view-gps-btn { display: none; }
 #app[data-view-mode="kartta"] .segment-view-desc,
 #app[data-view-mode="kartta"] .segment-view-varuste-btn,
 #app[data-view-mode="kartta"] .segment-view-equipment,
+#app[data-view-mode="kartta"] .segment-view-markers,
 #app[data-view-mode="kartta"] .segment-view-more,
 #app[data-view-mode="kartta"] .segment-view-comments,
 #app[data-view-mode="kartta"] .segment-view-inspect {
@@ -2940,6 +2941,45 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   font-size: 12px;
   color: var(--text-muted);
 }
+
+/* T263/V183: KOTI-inline "Kaikki merkit" -lista (SegmentMarkerList). Koti-only. */
+.segment-view-markers { margin: 8px 0 4px; }
+.segment-view-markers-header {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-body);
+  margin-bottom: 6px;
+}
+.segment-view-markers-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.segment-view-markers-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.segment-view-markers-item + .segment-view-markers-item { border-top: 1px solid var(--border-default); }
+.segment-view-markers-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-body);
+}
+.segment-view-markers-row:hover { background: var(--field-tint); }
+.segment-view-markers-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.segment-view-markers-name { font-size: 14px; font-weight: 600; }
+.segment-view-markers-meta { font-size: 12px; color: var(--text-muted); }
 
 .equipment-check {
   display: flex;
