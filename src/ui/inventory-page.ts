@@ -1,10 +1,24 @@
-import { validateInventoryItem } from '../logic/inventory'
-import type { InventoryItem, InventoryFields, InventoryInput } from '../logic/inventory'
+import { validateInventoryItem, resolveItemName, adjustQty } from '../logic/inventory'
+import type { InventoryItem, InventoryLocation, InventoryFields } from '../logic/inventory'
+
+/** Valittu paikka: joko location.id tai 'none' (paikattomat orvot, V166). */
+export type LocationSelection = string | 'none'
+
+export interface InventoryView {
+  locations: InventoryLocation[]
+  items: InventoryItem[] // valitun paikan tavarat (server-suodatettu)
+  selectedLocationId: LocationSelection
+  templates: Map<string, { label: string }>
+}
 
 export interface InventoryPageCallbacks {
-  onAdd: (fields: InventoryFields) => Promise<boolean> | boolean
-  onEdit: (id: string, fields: InventoryFields) => Promise<boolean> | boolean
-  onDelete: (item: InventoryItem) => void
+  onSelectLocation: (sel: LocationSelection) => void
+  onAddLocation: (name: string) => Promise<boolean> | boolean
+  onAddItem: (fields: InventoryFields) => Promise<boolean> | boolean
+  onEditItem: (id: string, fields: InventoryFields) => Promise<boolean> | boolean
+  onDeleteItem: (item: InventoryItem) => void
+  onDeleteLocation?: (loc: InventoryLocation) => void
+  onAddSign?: (locationId: string | null) => void // T246
 }
 
 const ERR_TEXT: Record<string, string> = {
@@ -12,22 +26,21 @@ const ERR_TEXT: Record<string, string> = {
   invalid_qty: 'Määrä = numero, 0 tai suurempi.',
 }
 
-/** Renderöi inventaariosivu: lisäyslomake + tavaralistaus. Kaikki user-teksti textContentillä (V164). */
-export function renderInventory(container: HTMLElement, items: InventoryItem[], cb: InventoryPageCallbacks): void {
+export function renderInventory(container: HTMLElement, view: InventoryView, cb: InventoryPageCallbacks): void {
   container.innerHTML = ''
-  container.appendChild(buildAddForm(cb))
+  container.appendChild(buildLocationBar(view, cb))
+  container.appendChild(buildAddForm(view, cb))
 
   const list = document.createElement('div')
   list.className = 'inv-list'
   list.id = 'inv-list'
-
-  if (items.length === 0) {
+  if (view.items.length === 0) {
     const empty = document.createElement('p')
     empty.className = 'inv-empty'
-    empty.textContent = 'Ei tavaroita vielä — lisää ensimmäinen ylhäältä.'
+    empty.textContent = 'Ei tavaroita täällä — lisää ylhäältä.'
     list.appendChild(empty)
   } else {
-    for (const item of items) list.appendChild(buildCard(item, cb))
+    for (const item of view.items) list.appendChild(buildCard(item, view, cb))
   }
   container.appendChild(list)
 }
@@ -42,52 +55,108 @@ export function renderForbidden(container: HTMLElement): void {
   container.appendChild(wrap)
 }
 
-// ── Lomake-kentät (jaettu lisäys + muokkaus) ─────────────────────────────────
+// ── Paikkapalkki: tabit + lisää paikka ───────────────────────────────────────
 
-interface FieldSet {
-  root: HTMLElement
-  read: () => InventoryInput
-  focusName: () => void
-}
+function buildLocationBar(view: InventoryView, cb: InventoryPageCallbacks): HTMLElement {
+  const bar = document.createElement('div')
+  bar.className = 'inv-location-bar'
+  bar.id = 'inv-location-bar'
 
-function buildFieldSet(prefill?: InventoryItem): FieldSet {
-  const root = document.createElement('div')
-  root.className = 'inv-fields'
-
-  const name = textInput('inv-f-name', 'Nimi', prefill?.name ?? '')
-  const qty = numberInput('inv-f-qty', 'Määrä', prefill ? String(prefill.qty) : '')
-  const unit = textInput('inv-f-unit', 'Yksikkö', prefill?.unit ?? '')
-  const location = textInput('inv-f-location', 'Sijainti', prefill?.location ?? '')
-  const note = textInput('inv-f-note', 'Kommentti', prefill?.note ?? '')
-
-  root.append(name.wrap, qty.wrap, unit.wrap, location.wrap, note.wrap)
-
-  return {
-    root,
-    read: () => ({
-      name: name.input.value,
-      // tyhjä määrä → undefined → validointi käyttää oletusta 0 (V162)
-      qty: qty.input.value.trim() === '' ? undefined : Number(qty.input.value),
-      unit: unit.input.value,
-      location: location.input.value,
-      note: note.input.value,
-    }),
-    focusName: () => name.input.focus(),
+  for (const loc of view.locations) {
+    bar.appendChild(locationTab(loc.name, loc.id, view.selectedLocationId === loc.id, () => cb.onSelectLocation(loc.id)))
   }
+  // "Ei paikkaa" -orvot aina valittavissa
+  bar.appendChild(locationTab('Ei paikkaa', 'none', view.selectedLocationId === 'none', () => cb.onSelectLocation('none')))
+
+  const addBtn = document.createElement('button')
+  addBtn.type = 'button'
+  addBtn.className = 'inv-loc-add'
+  addBtn.id = 'inv-loc-add'
+  addBtn.textContent = '+ Paikka'
+  addBtn.addEventListener('click', () => promptAddLocation(bar, cb))
+  bar.appendChild(addBtn)
+
+  return bar
 }
 
-function buildAddForm(cb: InventoryPageCallbacks): HTMLElement {
+function locationTab(label: string, id: string, active: boolean, onClick: () => void): HTMLButtonElement {
+  const tab = document.createElement('button')
+  tab.type = 'button'
+  tab.className = 'inv-loc-tab' + (active ? ' active' : '')
+  tab.dataset.locationId = id
+  tab.textContent = label
+  tab.addEventListener('click', onClick)
+  return tab
+}
+
+function promptAddLocation(bar: HTMLElement, cb: InventoryPageCallbacks): void {
+  const existing = bar.querySelector('.inv-loc-add-form')
+  if (existing) return
+  const form = document.createElement('form')
+  form.className = 'inv-loc-add-form'
+  const input = document.createElement('input')
+  input.type = 'text'
+  input.className = 'inv-loc-add-input'
+  input.placeholder = 'Paikan nimi (esim. Kärry)'
+  const save = document.createElement('button')
+  save.type = 'submit'
+  save.className = 'inv-btn inv-btn-primary'
+  save.textContent = 'Luo'
+  form.append(input, save)
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const name = input.value.trim()
+    if (!name) return
+    await cb.onAddLocation(name)
+  })
+  bar.appendChild(form)
+  input.focus()
+}
+
+// ── Lisäyslomake (minimaalinen: nimi + määrä) ────────────────────────────────
+
+function buildAddForm(view: InventoryView, cb: InventoryPageCallbacks): HTMLElement {
   const form = document.createElement('form')
   form.className = 'inv-add-form'
   form.id = 'inv-add-form'
 
-  const heading = document.createElement('h2')
-  heading.className = 'inv-add-heading'
-  heading.textContent = 'Lisää tavara'
-  form.appendChild(heading)
+  const row = document.createElement('div')
+  row.className = 'inv-add-row'
 
-  const fields = buildFieldSet()
-  form.appendChild(fields.root)
+  const nameInput = document.createElement('input')
+  nameInput.type = 'text'
+  nameInput.className = 'inv-f-name'
+  nameInput.placeholder = 'Tavaran nimi'
+  nameInput.setAttribute('aria-label', 'Tavaran nimi')
+
+  const qtyInput = document.createElement('input')
+  qtyInput.type = 'number'
+  qtyInput.className = 'inv-f-qty'
+  qtyInput.min = '0'
+  qtyInput.step = 'any'
+  qtyInput.inputMode = 'decimal'
+  qtyInput.placeholder = 'Määrä'
+  qtyInput.setAttribute('aria-label', 'Määrä')
+
+  const addBtn = document.createElement('button')
+  addBtn.type = 'submit'
+  addBtn.className = 'inv-btn inv-btn-primary'
+  addBtn.id = 'inv-add-btn'
+  addBtn.textContent = '+ Lisää'
+
+  row.append(nameInput, qtyInput, addBtn)
+  form.appendChild(row)
+
+  // T246: "+ Merkki" -nappi (näkyy vain jos onAddSign kytketty)
+  if (cb.onAddSign) {
+    const signBtn = document.createElement('button')
+    signBtn.type = 'button'
+    signBtn.className = 'inv-btn inv-btn-sign'
+    signBtn.id = 'inv-add-sign-btn'
+    signBtn.textContent = '+ Merkki kirjastosta'
+    signBtn.addEventListener('click', () => cb.onAddSign!(locationIdFromSelection(view.selectedLocationId)))
+    form.appendChild(signBtn)
+  }
 
   const err = document.createElement('p')
   err.className = 'inv-error'
@@ -95,56 +164,43 @@ function buildAddForm(cb: InventoryPageCallbacks): HTMLElement {
   err.hidden = true
   form.appendChild(err)
 
-  const addBtn = document.createElement('button')
-  addBtn.type = 'submit'
-  addBtn.className = 'inv-btn inv-btn-primary'
-  addBtn.id = 'inv-add-btn'
-  addBtn.textContent = '+ Lisää'
-  form.appendChild(addBtn)
-
   form.addEventListener('submit', async (e) => {
     e.preventDefault()
-    const res = validateInventoryItem(fields.read())
+    const res = validateInventoryItem({
+      name: nameInput.value,
+      qty: qtyInput.value.trim() === '' ? undefined : Number(qtyInput.value),
+      locationId: locationIdFromSelection(view.selectedLocationId),
+    })
     if (!res.ok) {
       showError(err, res.error)
       return
     }
     err.hidden = true
-    const ok = await cb.onAdd(res.value)
+    const ok = await cb.onAddItem(res.value)
     if (!ok) showError(err, 'save_failed')
   })
 
   return form
 }
 
-// ── Tavarakortti (näyttö + inline-muokkaus) ──────────────────────────────────
+// ── Tavarakortti: nimi + määräsäädin + meta + toiminnot ──────────────────────
 
-function buildCard(item: InventoryItem, cb: InventoryPageCallbacks): HTMLElement {
+function buildCard(item: InventoryItem, view: InventoryView, cb: InventoryPageCallbacks): HTMLElement {
   const card = document.createElement('div')
   card.className = 'inv-card'
   card.dataset.itemId = item.id
-  renderCardView(card, item, cb)
-  return card
-}
 
-function renderCardView(card: HTMLElement, item: InventoryItem, cb: InventoryPageCallbacks): void {
-  card.innerHTML = ''
-  card.classList.remove('editing')
-
-  const main = document.createElement('div')
-  main.className = 'inv-card-main'
+  const head = document.createElement('div')
+  head.className = 'inv-card-head'
 
   const nameEl = document.createElement('span')
   nameEl.className = 'inv-card-name'
-  nameEl.textContent = item.name // V164: textContent, ei innerHTML
-  main.appendChild(nameEl)
+  nameEl.textContent = resolveItemName(item, view.templates) // V164 textContent, V165 elävä label
+  if (item.templateId) nameEl.classList.add('inv-card-name-sign')
+  head.appendChild(nameEl)
 
-  const qtyEl = document.createElement('span')
-  qtyEl.className = 'inv-card-qty'
-  qtyEl.textContent = item.unit ? `${item.qty} ${item.unit}` : String(item.qty)
-  main.appendChild(qtyEl)
-
-  card.appendChild(main)
+  head.appendChild(buildStepper(item, cb))
+  card.appendChild(head)
 
   const meta = metaLine(item)
   if (meta) card.appendChild(meta)
@@ -152,121 +208,159 @@ function renderCardView(card: HTMLElement, item: InventoryItem, cb: InventoryPag
   const actions = document.createElement('div')
   actions.className = 'inv-card-actions'
 
-  const editBtn = document.createElement('button')
-  editBtn.type = 'button'
-  editBtn.className = 'inv-btn inv-btn-edit'
-  editBtn.textContent = 'Muokkaa'
-  editBtn.addEventListener('click', () => renderCardEdit(card, item, cb))
-  actions.appendChild(editBtn)
+  const detailsBtn = document.createElement('button')
+  detailsBtn.type = 'button'
+  detailsBtn.className = 'inv-btn inv-btn-details'
+  detailsBtn.textContent = '✎ Tiedot'
+  detailsBtn.addEventListener('click', () => toggleDetailsEditor(card, item, cb))
+  actions.appendChild(detailsBtn)
 
   const delBtn = document.createElement('button')
   delBtn.type = 'button'
   delBtn.className = 'inv-btn inv-btn-delete'
   delBtn.textContent = 'Poista'
-  delBtn.addEventListener('click', () => cb.onDelete(item))
+  delBtn.addEventListener('click', () => cb.onDeleteItem(item))
   actions.appendChild(delBtn)
 
   card.appendChild(actions)
+  return card
 }
 
+function buildStepper(item: InventoryItem, cb: InventoryPageCallbacks): HTMLElement {
+  const stepper = document.createElement('div')
+  stepper.className = 'inv-stepper'
+
+  const minus = stepBtn('−', 'inv-step-minus', () => cb.onEditItem(item.id, fieldsOf(item, { qty: adjustQty(item.qty, -1) })))
+  const plus = stepBtn('+', 'inv-step-plus', () => cb.onEditItem(item.id, fieldsOf(item, { qty: adjustQty(item.qty, 1) })))
+
+  // Määrä = nappi → tap avaa tarkka-syötön
+  const qtyBtn = document.createElement('button')
+  qtyBtn.type = 'button'
+  qtyBtn.className = 'inv-step-qty'
+  qtyBtn.textContent = String(item.qty)
+  qtyBtn.setAttribute('aria-label', 'Aseta tarkka määrä')
+  qtyBtn.addEventListener('click', () => openExactQty(qtyBtn, item, cb))
+
+  stepper.append(minus, qtyBtn, plus)
+  if (item.unit) {
+    const u = document.createElement('span')
+    u.className = 'inv-step-unit'
+    u.textContent = item.unit
+    stepper.appendChild(u)
+  }
+  return stepper
+}
+
+function stepBtn(label: string, cls: string, onClick: () => void): HTMLButtonElement {
+  const b = document.createElement('button')
+  b.type = 'button'
+  b.className = `inv-btn inv-step ${cls}`
+  b.textContent = label
+  b.addEventListener('click', onClick)
+  return b
+}
+
+function openExactQty(qtyBtn: HTMLElement, item: InventoryItem, cb: InventoryPageCallbacks): void {
+  const input = document.createElement('input')
+  input.type = 'number'
+  input.min = '0'
+  input.step = 'any'
+  input.inputMode = 'decimal'
+  input.className = 'inv-step-qty-input'
+  input.value = String(item.qty)
+  const commit = async (): Promise<void> => {
+    const res = validateInventoryItem({ ...inputAsInput(item), qty: input.value.trim() === '' ? 0 : Number(input.value) })
+    if (res.ok) await cb.onEditItem(item.id, res.value)
+  }
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); void commit() }
+    if (e.key === 'Escape') qtyBtn.replaceWith(qtyBtn)
+  })
+  input.addEventListener('blur', () => void commit())
+  qtyBtn.replaceWith(input)
+  input.focus()
+  input.select()
+}
+
+// ── Meta + tiedot-editori (yksikkö + kommentti, sekundäärinen) ───────────────
+
 function metaLine(item: InventoryItem): HTMLElement | null {
-  const parts: string[] = []
-  if (item.location) parts.push(`📍 ${item.location}`)
-  if (item.note) parts.push(item.note)
-  if (parts.length === 0) return null
+  if (!item.note) return null
   const meta = document.createElement('div')
   meta.className = 'inv-card-meta'
-  // Yksi span per osa → textContent (V164), ei mergeä innerHTML:ään.
-  parts.forEach((p, i) => {
-    if (i > 0) {
-      const sep = document.createElement('span')
-      sep.className = 'inv-meta-sep'
-      sep.textContent = ' · '
-      meta.appendChild(sep)
-    }
-    const span = document.createElement('span')
-    span.textContent = p
-    meta.appendChild(span)
-  })
+  const span = document.createElement('span')
+  span.textContent = item.note // V164 textContent
+  meta.appendChild(span)
   return meta
 }
 
-function renderCardEdit(card: HTMLElement, item: InventoryItem, cb: InventoryPageCallbacks): void {
-  card.innerHTML = ''
-  card.classList.add('editing')
+function toggleDetailsEditor(card: HTMLElement, item: InventoryItem, cb: InventoryPageCallbacks): void {
+  const existing = card.querySelector('.inv-details-editor')
+  if (existing) { existing.remove(); return }
 
-  const fields = buildFieldSet(item)
-  card.appendChild(fields.root)
+  const editor = document.createElement('div')
+  editor.className = 'inv-details-editor'
 
-  const err = document.createElement('p')
-  err.className = 'inv-error'
-  err.hidden = true
-  card.appendChild(err)
+  const unit = labeledInput('Yksikkö', 'inv-d-unit', item.unit ?? '')
+  const note = labeledInput('Kommentti', 'inv-d-note', item.note ?? '')
+  editor.append(unit.wrap, note.wrap)
 
-  const actions = document.createElement('div')
-  actions.className = 'inv-card-actions'
-
-  const saveBtn = document.createElement('button')
-  saveBtn.type = 'button'
-  saveBtn.className = 'inv-btn inv-btn-primary'
-  saveBtn.textContent = 'Tallenna'
-  saveBtn.addEventListener('click', async () => {
-    const res = validateInventoryItem(fields.read())
-    if (!res.ok) {
-      showError(err, res.error)
-      return
-    }
-    const ok = await cb.onEdit(item.id, res.value)
-    if (!ok) showError(err, 'save_failed')
-    // onnistuessa load() re-renderöi koko listan → ei tarvitse palauttaa view-tilaa käsin
+  const save = document.createElement('button')
+  save.type = 'button'
+  save.className = 'inv-btn inv-btn-primary'
+  save.textContent = 'Tallenna'
+  save.addEventListener('click', async () => {
+    await cb.onEditItem(item.id, fieldsOf(item, { unit: strOrNull(unit.input.value), note: strOrNull(note.input.value) }))
   })
-  actions.appendChild(saveBtn)
+  editor.appendChild(save)
 
-  const cancelBtn = document.createElement('button')
-  cancelBtn.type = 'button'
-  cancelBtn.className = 'inv-btn'
-  cancelBtn.textContent = 'Peruuta'
-  cancelBtn.addEventListener('click', () => renderCardView(card, item, cb))
-  actions.appendChild(cancelBtn)
-
-  card.appendChild(actions)
-  fields.focusName()
+  card.appendChild(editor)
+  unit.input.focus()
 }
 
 // ── Apurit ───────────────────────────────────────────────────────────────────
+
+function fieldsOf(item: InventoryItem, overrides: Partial<InventoryFields>): InventoryFields {
+  return {
+    name: item.name,
+    qty: item.qty,
+    unit: item.unit,
+    location: item.location,
+    note: item.note,
+    locationId: item.locationId ?? null,
+    templateId: item.templateId ?? null,
+    ...overrides,
+  }
+}
+
+function inputAsInput(item: InventoryItem): Record<string, unknown> {
+  return { name: item.name, unit: item.unit, note: item.note, locationId: item.locationId ?? undefined, templateId: item.templateId ?? undefined }
+}
+
+function locationIdFromSelection(sel: LocationSelection): string | null {
+  return sel === 'none' ? null : sel
+}
+
+function strOrNull(x: string): string | null {
+  const t = x.trim()
+  return t.length ? t : null
+}
 
 function showError(el: HTMLElement, code: string): void {
   el.textContent = ERR_TEXT[code] ?? 'Tallennus epäonnistui.'
   el.hidden = false
 }
 
-function textInput(cls: string, placeholder: string, value: string): { wrap: HTMLElement; input: HTMLInputElement } {
-  return makeInput('text', cls, placeholder, value)
-}
-
-function numberInput(cls: string, placeholder: string, value: string): { wrap: HTMLElement; input: HTMLInputElement } {
-  const f = makeInput('number', cls, placeholder, value)
-  f.input.min = '0'
-  f.input.step = 'any'
-  f.input.inputMode = 'decimal'
-  return f
-}
-
-function makeInput(type: string, cls: string, placeholder: string, value: string): { wrap: HTMLElement; input: HTMLInputElement } {
+function labeledInput(label: string, cls: string, value: string): { wrap: HTMLElement; input: HTMLInputElement } {
   const wrap = document.createElement('label')
   wrap.className = 'inv-field'
-
   const span = document.createElement('span')
   span.className = 'inv-field-label'
-  span.textContent = placeholder
-  wrap.appendChild(span)
-
+  span.textContent = label
   const input = document.createElement('input')
-  input.type = type
+  input.type = 'text'
   input.className = cls
-  input.placeholder = placeholder
   input.value = value
-  wrap.appendChild(input)
-
+  wrap.append(span, input)
   return { wrap, input }
 }

@@ -3840,6 +3840,131 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 
 .inv-forbidden { padding: 32px 16px; text-align: center; color: var(--text-muted); }
 
+/* T245: inventaario v2 — paikkanavigointi + määräsäädin */
+.inv-location-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-default);
+}
+.inv-loc-tab {
+  min-height: 44px;
+  padding: 6px 14px;
+  background: var(--field-tint);
+  color: var(--text-body);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+.inv-loc-tab.active {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+.inv-loc-add {
+  min-height: 44px;
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-strong);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.inv-loc-add-form { display: flex; gap: 6px; width: 100%; margin-top: 8px; }
+.inv-loc-add-input {
+  flex: 1;
+  min-height: 44px;
+  padding: 8px 10px;
+  background: var(--surface-app);
+  color: var(--text-body);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+}
+
+.inv-add-row { display: flex; gap: 8px; }
+.inv-add-row .inv-f-name {
+  flex: 1;
+  min-height: 44px;
+  padding: 8px 10px;
+  background: var(--surface-app);
+  color: var(--text-body);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+}
+.inv-add-row .inv-f-qty {
+  width: 80px;
+  min-height: 44px;
+  padding: 8px 10px;
+  background: var(--surface-app);
+  color: var(--text-body);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+}
+.inv-add-row .inv-btn-primary { width: auto; margin-top: 0; white-space: nowrap; }
+.inv-btn-sign {
+  margin-top: 10px;
+  width: 100%;
+  border-style: dashed;
+  color: var(--text-body);
+}
+
+.inv-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.inv-card-name-sign { color: var(--accent); }
+
+.inv-stepper { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.inv-step {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.inv-step-qty {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-body);
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.inv-step-qty-input {
+  width: 60px;
+  min-height: 44px;
+  padding: 4px 6px;
+  text-align: center;
+  background: var(--surface-app);
+  color: var(--text-body);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+}
+.inv-step-unit { color: var(--text-muted); font-size: 13px; margin-left: 2px; }
+.inv-btn-details { color: var(--text-muted); }
+
+.inv-details-editor {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 /* T102: Merkkilista-haku + tyyppifiltteri (järjestäjä). Modaalin yläosa. */
 .marker-filter-bar {
   display: flex;
