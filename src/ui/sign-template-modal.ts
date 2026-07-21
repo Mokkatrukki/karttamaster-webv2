@@ -9,6 +9,7 @@ import {
   type SignPart,
 } from '../logic/sign-library'
 import { CURATED_ICONS, getIconById, renderIconSvg } from '../logic/icon-set'
+import { slugify } from '../logic/sign-id-slug'
 import { signImageIds, signImageSrc } from '../logic/sign-images'
 import { registerEscClose, createBackdrop, signPreviewHtml } from './modal-helpers'
 
@@ -123,6 +124,20 @@ export class SignTemplateModal {
       modal.appendChild(preview)
     }
 
+    // T239: Nimi (label) ENSIN — ennen Tunnusta. Ajaa auto-slugin Tunnukselle.
+    const labelSectionLabel = document.createElement('div')
+    labelSectionLabel.style.cssText = 'font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em'
+    labelSectionLabel.textContent = 'Nimi'
+    modal.appendChild(labelSectionLabel)
+
+    const labelInput = document.createElement('input')
+    labelInput.className = 'sign-lib-label-input'
+    labelInput.type = 'text'
+    labelInput.placeholder = 'Esim. Huoltopiste 25km'
+    labelInput.value = template?.label ?? ''
+    labelInput.style.cssText = 'padding:8px 10px;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-body);font-size:13px;width:100%;box-sizing:border-box'
+    modal.appendChild(labelInput)
+
     // V97: id-kenttä — vain luonnissa (id on muuttumaton avain, editissä lukittu)
     let idInput: HTMLInputElement | null = null
     let idError: HTMLElement | null = null
@@ -144,6 +159,15 @@ export class SignTemplateModal {
       idError.style.cssText = 'font-size:12px;color:var(--danger-text);min-height:0;display:none'
       idError.setAttribute('role', 'alert')
       modal.appendChild(idError)
+
+      // T239: auto-slug — Nimi täyttää Tunnuksen reaaliaikaisesti kunnes käyttäjä
+      // koskee Tunnusta käsin (idTouched) → sen jälkeen ei ylikirjoiteta.
+      let idTouched = false
+      const id = idInput
+      labelInput.addEventListener('input', () => {
+        if (!idTouched) id.value = slugify(labelInput.value)
+      })
+      id.addEventListener('input', () => { idTouched = true })
     }
 
     // Visual-osio label + tabit (T176): Ikoni vs Kuva — vaihtoehtoiset, kumpi tahansa
@@ -538,20 +562,6 @@ export class SignTemplateModal {
       syncTopFromPart0()
       renderPartsList()
     })
-
-    // Label
-    const labelSectionLabel = document.createElement('div')
-    labelSectionLabel.style.cssText = 'font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em'
-    labelSectionLabel.textContent = 'Nimi'
-    modal.appendChild(labelSectionLabel)
-
-    const labelInput = document.createElement('input')
-    labelInput.className = 'sign-lib-label-input'
-    labelInput.type = 'text'
-    labelInput.placeholder = 'Esim. Huoltopiste 25km'
-    labelInput.value = template?.label ?? ''
-    labelInput.style.cssText = 'padding:8px 10px;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-body);font-size:13px;width:100%;box-sizing:border-box'
-    modal.appendChild(labelInput)
 
     // V99/T160: ei erillistä lyhenne-kenttää — kartta-teksti johdetaan labelista (compactLabel).
     // Color-rivi (vain custom-malleille; oletusmalleilla väri lukittu).

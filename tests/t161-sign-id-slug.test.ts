@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { signIdFromFilename, isValidSignId } from '../src/logic/sign-id-slug'
+import { signIdFromFilename, isValidSignId, slugify } from '../src/logic/sign-id-slug'
 
 describe('T161 signIdFromFilename — slug-johto tiedostonimestä', () => {
   it('pudottaa printtiprefixin ja slugifioi lopun', () => {
@@ -47,6 +47,20 @@ describe('T161 signIdFromFilename — slug-johto tiedostonimestä', () => {
     for (const n of names) {
       expect(isValidSignId(signIdFromFilename(n))).toBe(true)
     }
+  })
+
+  it('T239: slugify Nimestä — perusesimerkit (auto-slug tunnukselle)', () => {
+    expect(slugify('Oikea')).toBe('oikea')
+    expect(slugify('Varo oikealta')).toBe('varo-oikealta')
+    expect(slugify('Määränpää')).toBe('maaranpaa')
+    expect(slugify('Töyssy')).toBe('toyssy')
+  })
+
+  it('T239: slugify poistaa @-merkin ja kelvottomat, kutistaa viivat', () => {
+    expect(slugify('a@b')).toBe('ab')
+    expect(slugify('Huoltopiste 25km')).toBe('huoltopiste-25km')
+    expect(slugify('  reuna  välit  ')).toBe('reuna-valit')
+    expect(slugify('---')).toBe('')
   })
 
   it('törmäys havaittavissa: kaksi eri tiedostoa → sama id', () => {

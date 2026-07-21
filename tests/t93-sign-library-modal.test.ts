@@ -159,6 +159,56 @@ describe('T93 — Merkkikirjasto modal + iconId (V10, V50)', () => {
     })
   })
 
+  describe('T239 — Nimi-first + auto-slug', () => {
+    function openNew() {
+      const container = setup()
+      const lib = createSignLibrary()
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
+      container.querySelector<HTMLButtonElement>('.sign-lib-add-btn')!.click()
+      return lib
+    }
+
+    it('Nimi-kenttä on DOM:issa ENNEN Tunnus-kenttää', () => {
+      openNew()
+      const label = document.body.querySelector('.sign-lib-label-input')!
+      const id = document.body.querySelector('.sign-lib-id-input')!
+      // compareDocumentPosition: FOLLOWING (4) = id tulee labelin jälkeen
+      expect(label.compareDocumentPosition(id) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('Nimeen kirjoittaminen täyttää Tunnuksen slugilla', () => {
+      openNew()
+      const label = document.body.querySelector<HTMLInputElement>('.sign-lib-label-input')!
+      const id = document.body.querySelector<HTMLInputElement>('.sign-lib-id-input')!
+      label.value = 'Varo oikealta'
+      label.dispatchEvent(new Event('input', { bubbles: true }))
+      expect(id.value).toBe('varo-oikealta')
+    })
+
+    it('manuaalinen Tunnus-muokkaus lukitsee auto-fillin', () => {
+      openNew()
+      const label = document.body.querySelector<HTMLInputElement>('.sign-lib-label-input')!
+      const id = document.body.querySelector<HTMLInputElement>('.sign-lib-id-input')!
+      // käyttäjä koskee Tunnusta käsin
+      id.value = 'oma-tunnus'
+      id.dispatchEvent(new Event('input', { bubbles: true }))
+      // sitten kirjoittaa Nimen → EI saa ylikirjoittaa
+      label.value = 'Määränpää'
+      label.dispatchEvent(new Event('input', { bubbles: true }))
+      expect(id.value).toBe('oma-tunnus')
+    })
+
+    it('muokkaustilassa Tunnus-kenttää ei renderöidä (id lukittu V97)', () => {
+      const container = setup()
+      const lib = createSignLibrary()
+      const t = createTemplate(lib, { label: 'Olemassa', color: '#000', description: '', favorite: false }, 'olemassa')
+      new SignLibraryPanel(container, lib, vi.fn(), vi.fn())
+      container.querySelector<HTMLButtonElement>(`.sign-lib-dots-btn[data-id="${t.id}"]`)!.click()
+      expect(document.body.querySelector('.sign-lib-id-input')).toBeNull()
+      expect(document.body.querySelector('.sign-lib-label-input')).toBeTruthy()
+    })
+  })
+
   describe('icon-set', () => {
     it('CURATED_ICONS sisältää vähintään 20 ikonia', () => {
       expect(CURATED_ICONS.length).toBeGreaterThanOrEqual(20)

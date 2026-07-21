@@ -21,7 +21,7 @@ function translitFi(s: string): string {
 
 // Slugifioi mielivaltainen merkkijono ID_RE-kelvolliseksi: lower, fi-translit,
 // välit → '-', kelvottomat pois, '-'-runsaus kutistetaan, reunaviivat trimmataan.
-function slugify(s: string): string {
+export function slugify(s: string): string {
   return translitFi(s.toLowerCase())
     .replace(/\s+/g, '-')      // välilyönnit → viiva
     .replace(/[^a-z0-9_-]/g, '') // kaikki muu pois (säilyttää _ ja -)
