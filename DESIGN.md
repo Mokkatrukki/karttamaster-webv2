@@ -550,7 +550,7 @@ CSS-luokat:
 - Tavarakortit (`.inv-card`, alla): `surface-raised`, per rivi. Päärivi (`.inv-card-main`): nimi (`.inv-card-name` 15px/600, `word-break`) + määrä+yksikkö (`.inv-card-qty` `accent`, `white-space:nowrap`). Meta (`.inv-card-meta` 12px `text-muted`): 📍 sijainti · kommentti. Napit `.inv-btn-edit`/`.inv-btn-delete` (`danger-text`), `min-height:44px`.
 - Muokkaus = inline (`.inv-card.editing`): kortti korvautuu samalla kenttäjoukolla + Tallenna/Peruuta. Ei erillistä modaalia.
 - **XSS (V164):** kaikki user-teksti (name/unit/location/note) `textContent`illä — ⊥ `innerHTML`-interpolaatiota. Malli admin-page.ts.
-- LeftPanel-linkki (`.left-panel-link`, `#btn-inventory-link` "📦 Inventaario", `href="/inventaario"`): asuu `#left-panel-content`issa → automaattisesti piilossa talkoolaiselta (LeftPanel `display:none` talkoolaiselle, T229). `min-height:44px`, `field-tint`.
+- LeftPanel-linkki (`.left-panel-link`, `#btn-inventory-link` "📦 Inventaario", `href="/inventory.html"` — toimii sekä vite-dev että nginx-prod; `/inventaario` on vain nginx-alias prodissa, vite-dev SPA-fallback serveeraisi sille index.html:n). Asuu `#left-panel-content`issa → automaattisesti piilossa talkoolaiselta (LeftPanel `display:none` talkoolaiselle, T229). `min-height:44px`, `field-tint`.
 - Ei uusia väritokeneja — reuse §C (accent/field-tint/border/danger/surface).
 
 ### SegmentOverlay (Leaflet-layer, `src/map/segment-overlay.ts`)
