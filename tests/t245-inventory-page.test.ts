@@ -134,6 +134,27 @@ describe('T245 lista + lisäys', () => {
     expect(cb.onAddItem).toHaveBeenCalledWith(expect.objectContaining({ name: 'Nauha', qty: 3, locationId: 'loc-karry' }))
   })
 
+  it('tuplasubmit lennossa (Leo-bugi) → onAddItem kutsutaan vain kerran', async () => {
+    // POST kesken → toistopainallus (hidas verkko / autofill palauttaa nimen) ei saa lähettää
+    // samaa riviä uudestaan. Lukko + disable → yksi POST per ele.
+    let resolveAdd: (v: boolean) => void = () => {}
+    const onAddItem = vi.fn(() => new Promise<boolean>((r) => { resolveAdd = r }))
+    const cb = makeCb({ onAddItem })
+    renderInventory(container, view({ selectedLocationId: 'loc-karry' }), cb)
+    setVal(container, 'inv-f-name', 'Keppi')
+    const form = container.querySelector<HTMLFormElement>('#inv-add-form')!
+    form.dispatchEvent(new Event('submit', { cancelable: true }))
+    await flush()
+    expect(container.querySelector<HTMLButtonElement>('#inv-add-btn')!.disabled).toBe(true)
+    // Autofill palauttaa nimen tyhjennettyyn kenttään → toinen submit lennossa. Lukko estää.
+    setVal(container, 'inv-f-name', 'Keppi')
+    form.dispatchEvent(new Event('submit', { cancelable: true }))
+    await flush()
+    resolveAdd(true)
+    await flush()
+    expect(onAddItem).toHaveBeenCalledTimes(1)
+  })
+
   it('lisäys "Ei paikkaa"-valinnalla → locationId null', async () => {
     const cb = makeCb()
     renderInventory(container, view({ selectedLocationId: 'none' }), cb)

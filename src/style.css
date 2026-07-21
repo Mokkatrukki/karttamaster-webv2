@@ -3925,6 +3925,7 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   font-size: 13px;
 }
 .inv-btn:hover { background: var(--hover); }
+.inv-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .inv-btn-primary {
   width: 100%;
   margin-top: 12px;

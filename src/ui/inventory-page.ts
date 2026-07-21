@@ -442,8 +442,13 @@ function buildAddForm(view: InventoryView, cb: InventoryPageCallbacks, draft?: A
   err.hidden = true
   form.appendChild(err)
 
+  // Lisäys-POST on async (verkko) → ilman lukkoa toistopainallus (hidas mobiiliverkko, ei
+  // näkyvää palautetta) lähettää saman rivin monta kertaa. Yksi POST per ele: lukko + disable +
+  // "Lisätään…"-palaute → tuplasubmit rakenteellisesti mahdoton ja käyttäjä näkee että toimii.
+  let submitting = false
   form.addEventListener('submit', async (e) => {
     e.preventDefault()
+    if (submitting) return
     const res = validateInventoryItem({
       name: nameInput.value,
       qty: qtyInput.value.trim() === '' ? undefined : Number(qtyInput.value),
@@ -458,7 +463,19 @@ function buildAddForm(view: InventoryView, cb: InventoryPageCallbacks, draft?: A
     // (ei palauta juuri lisättyä nimeä). Epäonnistuessa (ei reloadia) palauta syöte.
     const savedName = nameInput.value, savedQty = qtyInput.value
     nameInput.value = ''; qtyInput.value = ''
-    const ok = await cb.onAddItem(res.value)
+    submitting = true
+    addBtn.disabled = true
+    addBtn.textContent = 'Lisätään…'
+    let ok = false
+    try {
+      ok = await cb.onAddItem(res.value)
+    } finally {
+      // Onnistuessa load() on re-renderöinyt tämän lomakkeen pois → nappi on detached (setterit
+      // harmittomia). Epäonnistuessa palauta syöte + nappi käyttökuntoon uutta yritystä varten.
+      submitting = false
+      addBtn.disabled = false
+      addBtn.textContent = '+ Lisää'
+    }
     if (!ok) { nameInput.value = savedName; qtyInput.value = savedQty; showError(err, 'save_failed') }
   })
 
