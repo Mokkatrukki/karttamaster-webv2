@@ -11,6 +11,8 @@ Stack: `src/logic/` (puhdas logiikka) → `src/map/` (Leaflet) → `src/ui/` (DO
 - `VISION.md` — product vision + käyttäjäroolit + arkkitehtuuriperiaatteet.
 - `COMPONENTS.md` — komponentti-indeksi (lyhyt). Yksityiskohdat: `docs/components/`.
 - `DESIGN.md` — design-sopimukset: värit, spacing, komponentit, CSS custom properties.
+- `docs/PM-NOTES.md` — avoimet PM-päätökset + toteutus-riippuvuudet + ratkaistujen arkisto (ei SPECissä).
+- `docs/E2E-NOTES.md` — Playwright-flakyn juurisyyt (tutki ennen kuin syytät headlessiä).
 
 ## Kehitysflow
 
