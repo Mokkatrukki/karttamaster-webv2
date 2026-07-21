@@ -85,6 +85,24 @@ describe('T245 paikkanavigointi', () => {
     expect(cb.onAddLocation).toHaveBeenCalledWith('Peräkärry')
   })
 
+  it('+ Paikka: tuplasubmit lennossa → onAddLocation vain kerran', async () => {
+    let resolveAdd: (v: boolean) => void = () => {}
+    const onAddLocation = vi.fn(() => new Promise<boolean>((r) => { resolveAdd = r }))
+    const cb = makeCb({ onAddLocation })
+    renderInventory(container, view(), cb)
+    container.querySelector<HTMLButtonElement>('#inv-loc-add')!.click()
+    const input = document.querySelector<HTMLInputElement>('.inv-modal-form input')!
+    input.value = 'Peräkärry'
+    const form = document.querySelector<HTMLFormElement>('.inv-modal-form')!
+    form.dispatchEvent(new Event('submit', { cancelable: true }))
+    await flush()
+    form.dispatchEvent(new Event('submit', { cancelable: true }))
+    await flush()
+    resolveAdd(true)
+    await flush()
+    expect(onAddLocation).toHaveBeenCalledTimes(1)
+  })
+
   it('B: keskeneräinen lisäysnimi säilyy re-renderin yli (stepper-reload)', () => {
     renderInventory(container, view(), makeCb())
     setVal(container, 'inv-f-name', 'Nippuside')
@@ -220,6 +238,24 @@ describe('T245 tiedot-editori + poisto', () => {
     ;[...card.querySelectorAll('button')].find((b) => b.textContent === 'Tallenna')!.click()
     await flush()
     expect(cb.onEditItem).toHaveBeenCalledWith('i1', expect.objectContaining({ unit: 'rullaa', note: 'iso pino' }))
+  })
+
+  it('Tiedot-editori: tuplaklikkaus Tallenna lennossa → onEditItem vain kerran', async () => {
+    let resolveEdit: (v: boolean) => void = () => {}
+    const onEditItem = vi.fn(() => new Promise<boolean>((r) => { resolveEdit = r }))
+    const cb = makeCb({ onEditItem })
+    renderInventory(container, view({ items: [item()] }), cb)
+    const card = container.querySelector<HTMLElement>('.inv-card')!
+    ;[...card.querySelectorAll('button')].find((b) => b.textContent === '✎ Tiedot')!.click()
+    const save = [...card.querySelectorAll('button')].find((b) => b.textContent === 'Tallenna') as HTMLButtonElement
+    save.click()
+    await flush()
+    expect(save.disabled).toBe(true)
+    save.click()
+    await flush()
+    resolveEdit(true)
+    await flush()
+    expect(onEditItem).toHaveBeenCalledTimes(1)
   })
 
   it('Poista → onDeleteItem', () => {

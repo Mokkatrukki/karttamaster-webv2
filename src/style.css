@@ -3373,6 +3373,7 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 .modal-btn-primary:hover {
   background: var(--confirm-hover);
 }
+.modal-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .modal-btn-secondary {
   min-height: 44px;

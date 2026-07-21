@@ -295,11 +295,23 @@ function openAddLocationModal(cb: InventoryPageCallbacks): void {
   actions.append(save, cancel)
   footer.appendChild(actions)
 
+  let submitting = false // async POST → estä tuplasubmit (Enter-toisto / tuplatäppä) → yksi paikka per ele
   form.addEventListener('submit', async (e) => {
     e.preventDefault()
+    if (submitting) return
     const name = input.value.trim()
     if (!name) { input.focus(); return }
-    const ok = await cb.onAddLocation(name)
+    submitting = true
+    save.disabled = true
+    save.textContent = 'Luodaan…'
+    let ok = false
+    try {
+      ok = await cb.onAddLocation(name)
+    } finally {
+      submitting = false
+      save.disabled = false
+      save.textContent = 'Luo'
+    }
     if (ok) close()
     else { err.textContent = 'Tallennus epäonnistui.'; err.hidden = false }
   })
@@ -701,11 +713,22 @@ function toggleDetailsEditor(card: HTMLElement, item: InventoryItem, view: Inven
   save.type = 'button'
   save.className = 'inv-btn inv-btn-primary'
   save.textContent = 'Tallenna'
+  let saving = false // async PUT → estä tuplaklikkaus lennossa (onnistuessa load() re-renderöi editorin pois)
   save.addEventListener('click', async () => {
+    if (saving) return
     const overrides: Partial<InventoryFields> = { unit: strOrNull(unit.input.value), note: strOrNull(note.input.value) }
     if (locSelect) overrides.locationId = locSelect.value || null
     if (keppiCheckbox) overrides.keppi = keppiCheckbox.checked ? true : false
-    await cb.onEditItem(item.id, fieldsOf(item, overrides))
+    saving = true
+    save.disabled = true
+    save.textContent = 'Tallennetaan…'
+    try {
+      await cb.onEditItem(item.id, fieldsOf(item, overrides))
+    } finally {
+      saving = false
+      save.disabled = false
+      save.textContent = 'Tallenna'
+    }
   })
   editor.appendChild(save)
 
