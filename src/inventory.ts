@@ -6,6 +6,8 @@ import { fetchTemplates, createTemplateRemote, updateTemplateRemote, deleteTempl
 import { createLibrary, signDisplayLabel } from './logic/sign-library'
 import type { SignTemplate, SignLibrary } from './logic/sign-library'
 import type { InventoryItem, InventoryLocation, InventoryFields } from './logic/inventory'
+import { showToast } from './ui/toast'
+import { describeUndo, type UndoAction } from './logic/inventory-undo'
 
 const content = document.getElementById('inventory-content')!
 const logoutBtn = document.getElementById('btn-inventory-logout')!
@@ -34,6 +36,21 @@ function normLoc(r: ServerLocation): InventoryLocation {
 /** camelCase-kentät → snake_case API-body. */
 function toBody(f: InventoryFields): Record<string, unknown> {
   return { name: f.name, qty: f.qty, unit: f.unit, note: f.note, location_id: f.locationId, template_id: f.templateId }
+}
+
+const JSON_HEADERS = { 'Content-Type': 'application/json' }
+
+/** Kokonais-item → InventoryFields (undo-revert PUT/POST tarvitsee koko kenttäsetin, V173). */
+function fieldsOf(i: InventoryItem): InventoryFields {
+  return {
+    name: i.name,
+    qty: i.qty,
+    unit: i.unit,
+    location: i.location,
+    note: i.note,
+    locationId: i.locationId ?? null,
+    templateId: i.templateId ?? null,
+  }
 }
 
 async function fetchTemplateMap(): Promise<Map<string, SignTemplate>> {
@@ -67,6 +84,13 @@ async function load(): Promise<void> {
         : `/api/inventory?location_id=${encodeURIComponent(selected)}`
   const [itemsRes, templates] = await Promise.all([fetch(itemsUrl), fetchTemplateMap()])
   const items = ((await itemsRes.json()) as ServerItem[]).map(normItem)
+
+  // V172: näytä "Kumoa"-toast viimeisimmästä mutaatiosta (vain edit-moodissa; mutaatiot
+  // eivät muutenkaan aukea read-moodissa V169). Uusi mutaatio korvaa edellisen (showToast).
+  const showUndo = (action: UndoAction, revert: () => Promise<void>): void => {
+    if (viewMode !== 'edit') return
+    showToast(describeUndo(action, templates), { actionLabel: 'Kumoa', onAction: () => void revert() })
+  }
 
   renderInventory(
     content,
@@ -104,8 +128,33 @@ async function load(): Promise<void> {
       },
       onDeleteLocation: async (loc) => {
         if (!window.confirm(`Poista paikka "${loc.name}"? Tavarat siirtyvät "Ei paikkaa" -kohtaan.`)) return
+        // V173c: snapshot affektoidut itemit ENNEN DELETEä — V166 nullaa location_id peruuttamattomasti.
+        const affRes = await fetch(`/api/inventory?location_id=${encodeURIComponent(loc.id)}`)
+        const affected: InventoryItem[] = affRes.ok ? ((await affRes.json()) as ServerItem[]).map(normItem) : []
         const r = await fetch(`/api/inventory/locations/${loc.id}`, { method: 'DELETE' })
-        if (r.ok) await load()
+        if (!r.ok) return
+        await load()
+        showUndo(
+          { kind: 'delete-location', locationName: loc.name, affectedItemIds: affected.map((i) => i.id) },
+          async () => {
+            // POST paikka uudelleen (uusi id) + PUT itemit uuteen location_id:hen (V173c).
+            const cr = await fetch('/api/inventory/locations', {
+              method: 'POST',
+              headers: JSON_HEADERS,
+              body: JSON.stringify({ name: loc.name }),
+            })
+            if (!cr.ok) return
+            const newLoc = (await cr.json()) as ServerLocation
+            for (const it of affected) {
+              await fetch(`/api/inventory/${it.id}`, {
+                method: 'PUT',
+                headers: JSON_HEADERS,
+                body: JSON.stringify(toBody({ ...fieldsOf(it), locationId: newLoc.id })),
+              })
+            }
+            await load()
+          },
+        )
       },
       onAddItem: async (fields) => {
         const r = await fetch('/api/inventory', {
@@ -117,18 +166,46 @@ async function load(): Promise<void> {
         return r.ok
       },
       onEditItem: async (id, fields) => {
+        const before = items.find((i) => i.id === id) // ENNEN-tila undo-reverttiin (V173b)
         const r = await fetch(`/api/inventory/${id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: JSON_HEADERS,
           body: JSON.stringify(toBody(fields)),
         })
-        if (r.ok) await load()
-        return r.ok
+        if (!r.ok) return false
+        await load()
+        if (before) {
+          // Kind: paikka vaihtui → siirto; muuten qty vaihtui → määrä. Muut kenttäeditit (nimi/note)
+          // ovat tarkoituksellisia → ei toastia (undo on "oho painoin" -turvaverkko steppeille/siirrolle).
+          const moved = (before.locationId ?? null) !== (fields.locationId ?? null)
+          const kind = moved ? 'move' : before.qty !== fields.qty ? 'qty' : null
+          if (kind) {
+            showUndo({ kind, item: before }, async () => {
+              await fetch(`/api/inventory/${id}`, {
+                method: 'PUT',
+                headers: JSON_HEADERS,
+                body: JSON.stringify(toBody(fieldsOf(before))),
+              })
+              await load()
+            })
+          }
+        }
+        return true
       },
       onDeleteItem: async (item) => {
         if (!window.confirm(`Poista "${item.name}"?`)) return
         const r = await fetch(`/api/inventory/${item.id}`, { method: 'DELETE' })
-        if (r.ok) await load()
+        if (!r.ok) return
+        await load()
+        showUndo({ kind: 'delete-item', item }, async () => {
+          // V173a: POST uudelleen (uusi id — rivi funktionaalisesti sama).
+          await fetch('/api/inventory', {
+            method: 'POST',
+            headers: JSON_HEADERS,
+            body: JSON.stringify(toBody(fieldsOf(item))),
+          })
+          await load()
+        })
       },
       onAddSign: (locationId) => void openSignFlow(locationId, templates),
       onOpenSign: (templateId) => {

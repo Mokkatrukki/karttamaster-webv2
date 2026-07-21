@@ -4219,3 +4219,57 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 .marker-item.marker-item--filtered-out {
   display: none;
 }
+
+/* ── Toast (T253): kelluva "Kumoa"-ilmoitus alareunaan ── */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 5000; /* modaalien (4000) yläpuolella */
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(92vw, 420px);
+  padding: 10px 12px 10px 16px;
+  background: var(--text-body);        /* tumma "snackbar" — kontrasti taustaan */
+  color: var(--surface-card);
+  border-radius: var(--radius-md);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
+  font-size: 14px;
+  animation: toast-in 160ms ease-out;
+}
+.toast-msg {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.toast-action {
+  flex-shrink: 0;
+  min-height: 44px;                    /* §R touch-target */
+  min-width: 44px;
+  padding: 0 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+.toast-action:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.toast-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+}

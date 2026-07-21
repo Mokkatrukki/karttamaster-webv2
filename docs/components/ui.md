@@ -408,3 +408,16 @@ DOM-komponentit ilman Leafletia. **Testattavuus: Vitest-jsdom.**
 
 ### Käyttäjätarkistus
 > Admin: käyttäjälista + toiminnot yhdellä sivulla, ei ylimääräistä navigointia — täyttää VISION.md:n "alle minuutissa, kolmella klikkauksella" -kriteerin invite-flow'lle.
+
+## Toast — T253 ✓
+
+`src/ui/toast.ts` — jaettu kelluva ilmoitus (`showToast(message, {actionLabel, onAction, duration})` + `dismissToast()`).
+
+### Ominaisuudet
+- Yksi toast kerrallaan: uusi `showToast` korvaa edellisen + resetoi auto-dismiss-timerin (V172).
+- Auto-dismiss oletus 5000 ms; action-nappi (esim. "Kumoa") → `onAction` + sulje.
+- `role=status` / `aria-live=polite`; user-teksti `textContent` (V164); action-nappi 44px (§R).
+- Ensimmäinen käyttäjä: inventaarion client-only undo (`src/inventory.ts` — poisto/qty/siirto/paikan poisto → toast, revert olemassa oleviin `/api/inventory`-reitteihin, V173). CLIENT-ONLY: ei persistointia, reload → undo katoaa. Pysyvä `inventory_audit` PARKISSA.
+
+### Käyttäjätarkistus
+> Järjestäjä/admin: "oho vahingossa painoin" -turvaverkko edit-moodissa — yksi klikkaus peruu viimeisimmän. Toast näkyy vain `viewMode='edit'`.

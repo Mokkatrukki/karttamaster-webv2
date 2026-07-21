@@ -44,6 +44,7 @@ server/       ← Hono + Bun + SQLite
 | SegmentManager | `src/logic/segments.ts` | ✓ T153 | — | [logic.md](docs/components/logic.md) |
 | TaskMarkers | `src/logic/task-markers.ts` | ✓ T214 | — | [logic.md](docs/components/logic.md) |
 | InventoryLogic | `src/logic/inventory.ts` | ✓ T244 (v2: ehdollinen name V161 + resolveItemName V165 + adjustQty + InventoryLocation; T241 validate/build) | — | [logic.md](docs/components/logic.md) |
+| InventoryUndoLogic | `src/logic/inventory-undo.ts` | ✓ T252 (UndoAction-tyyppi + describeUndo toast-teksti, client-only V172) | — | [logic.md](docs/components/logic.md) |
 | PhaseView | `src/logic/phase-view.ts` | ✓ T148 | — | [logic.md](docs/components/logic.md) |
 | RoleController | `src/logic/role.ts` | ✓ T12 (V80: rooli backendistä, toggle dead code) | critical-paths: "Rooli backendistä" | [logic.md](docs/components/logic.md) |
 | SituationLogic | `src/logic/situation.ts` *(ei vielä)* | ○ T15 | — | [logic.md](docs/components/logic.md) |
@@ -98,6 +99,7 @@ server/       ← Hono + Bun + SQLite
 | StatusPanel | `src/ui/status-panel.ts` | ✓ T28 | sprint-features: "T28" | [ui.md](docs/components/ui.md) |
 | ModalHelpers | `src/ui/modal-helpers.ts` | ✓ T172 | — | [ui.md](docs/components/ui.md) |
 | MarkerVisualRow | `src/ui/marker-visual-row.ts` | ✓ T198 | tests/t198-marker-visual-row.test.ts | [ui.md](docs/components/ui.md) |
+| Toast | `src/ui/toast.ts` | ✓ T253 (jaettu "Kumoa"-toast, client-only undo V172; auto-dismiss, yksi kerrallaan, 44px §R) | tests/t253-toast.test.ts | [ui.md](docs/components/ui.md) |
 | AreaDetailsModal | `src/ui/area-details-modal.ts` | ✓ | — | [ui.md](docs/components/ui.md) |
 | AreaPanel | `src/ui/area-panel.ts` | ✓ | area-interaction | [ui.md](docs/components/ui.md) |
 | AreaView | `src/ui/area-view.ts` | ✓ | — | [ui.md](docs/components/ui.md) |
@@ -128,7 +130,7 @@ server/       ← Hono + Bun + SQLite
 | MapStateAPI | `server/routes/admin.ts` | ⚠️ dead T48 — approval poistettu (V22/B46/V79), poisto T211 | — | [backend.md](docs/components/backend.md) |
 | OfflineManager | `public/sw.js` *(ei vielä)* | ○ T18 | — | [backend.md](docs/components/backend.md) |
 | AdminPage | `admin.html` + `src/admin.ts` + `src/ui/admin-page.ts` | ✓ T122 | — | [ui.md](docs/components/ui.md) |
-| InventoryPage | `inventory.html` + `src/inventory.ts` + `src/ui/inventory-page.ts` | ✓ T251 (v2.3: read/edit-viewMode — oletus read tiivis katselu, edit paljastaa mutaatiot, sessiokohtainen reload→read, V169-V171; v2: paikkatabit+Kaikki-koonti, muokkaus-mode V166, merkki-visuaali+zoom V167, nimi→SignTemplateModal, siirto; picker-reuse V165; V163/V164) | — | [ui.md](docs/components/ui.md) |
+| InventoryPage | `inventory.html` + `src/inventory.ts` + `src/ui/inventory-page.ts` | ✓ T253 (client-only "Kumoa"-undo: poisto/qty/siirto/paikan poisto → toast, revert olemassa oleviin reitteihin V172/V173), T251 (v2.3: read/edit-viewMode — oletus read tiivis katselu, edit paljastaa mutaatiot, sessiokohtainen reload→read, V169-V171; v2: paikkatabit+Kaikki-koonti, muokkaus-mode V166, merkki-visuaali+zoom V167, nimi→SignTemplateModal, siirto; picker-reuse V165; V163/V164) | — | [ui.md](docs/components/ui.md) |
 
 **Tila:** ✓ = valmis (+ viimeisin T-id) | ○ T-id = tulossa | ⚠️ pilkko = pilkkolippu
 
