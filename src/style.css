@@ -3044,7 +3044,9 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
 .segment-label {
   background: rgba(15, 23, 42, 0.85);
   border: 1px solid rgba(255,255,255,0.15);
-  color: var(--text-body);
+  /* B106: tausta on AINA tumma (fixed navy) → tekstin oltava AINA vaalea. Aiemmin var(--text-body)
+     → vaaleassa teemassa tumma teksti tummalla pillillä = lukukelvoton ("Pätkä 1 ei näy"). */
+  color: #fff;
   font-size: 11px;
   font-weight: 700;
   font-family: var(--font-ui);
