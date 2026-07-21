@@ -13,6 +13,7 @@ import { gpkgRoutes } from './routes/gpkg'
 import { cronRoutes } from './routes/cron'
 import { commentsRoutes } from './routes/comments'
 import { auditRoutes } from './routes/audit'
+import { inventoryRoutes } from './routes/inventory'
 import { scheduleNightlySnapshot } from './snapshot-scheduler'
 
 const db = createDb(process.env.DB_PATH)
@@ -59,6 +60,7 @@ app.route('/api/gpkg', gpkgRoutes)
 app.route('/api/cron', cronRoutes)
 app.route('/api/comments', commentsRoutes)
 app.route('/api/audit', auditRoutes)
+app.route('/api/inventory', inventoryRoutes)
 
 export default {
   port: Number(process.env.PORT ?? 3001),

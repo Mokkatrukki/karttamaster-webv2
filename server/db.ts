@@ -191,6 +191,21 @@ function initSchema(db: Database): void {
       created_at TEXT NOT NULL,
       payload_json TEXT
     );
+
+    -- T240: inventaario (varastotavara, järjestäjä). qty REAL = koneellinen (→ v2-dekrementointi
+    -- ilman migraatiota). created_by = kirjaaja (session.display_name). EI uniikkius-constraintia
+    -- — duplikaatit sallittu tarkoituksella (grill 2026-07-21, kirjanpito ei vedenpitävä).
+    CREATE TABLE IF NOT EXISTS inventory_items (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      qty REAL NOT NULL DEFAULT 0,
+      unit TEXT,
+      location TEXT,
+      note TEXT,
+      created_by TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
   `)
 
   // Migraatiot — idempotent ALTER TABLE (epäonnistuu hiljaa jos kolumni jo on)
