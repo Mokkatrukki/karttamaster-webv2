@@ -32,9 +32,19 @@ export interface SignTemplate {
   color: string       // hex color for icon and swatch
   description: string // free text, e.g. "Käänny oikealle"
   favorite: boolean
+  keppi?: boolean     // V168/T249: kiinnitystapa — true (oletus, yleisin) = keppi; false = irto → näyttönimeen ' - irto'
   iconId?: string     // V50: optional Lucide icon name; if set, shown instead of compactLabel in circle
   imageId?: string    // V99/T158: optional template image key (convention = template.id); resolves src/assets/signs/<id>.webp
   parts?: SignPart[]  // V107: yhdistelmämerkki — pystypino kepissä, parts[0] ylin, max 4 osaa (ylimenevät typistetään)
+}
+
+/**
+ * Näyttönimi (V168): keppi=false → 'label - irto', muuten pelkkä label. Yksi totuus koko appille
+ * (inventaario, merkkikirjasto, picker, karttamerkin label/tooltip). Puhdas, ei DOM.
+ * HUOM: kartan compactLabel-lyhenne johdetaan RAAKALABELISTA (tpl.label), ei tästä.
+ */
+export function signDisplayLabel(tpl: { label: string; keppi?: boolean }): string {
+  return tpl.keppi === false ? `${tpl.label} - irto` : tpl.label
 }
 
 const MAX_PARTS = 4

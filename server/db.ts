@@ -240,6 +240,9 @@ function initSchema(db: Database): void {
   try { db.exec('ALTER TABLE markers ADD COLUMN image_id TEXT') } catch { /* already exists */ }
   // T215/V143: templateId denormalisoitu markerille — dynaamisen markerTypeFilter-osuman vakaa viite
   try { db.exec('ALTER TABLE markers ADD COLUMN template_id TEXT') } catch { /* already exists */ }
+  // T249/V168: merkin kiinnitystapa — keppi=1 (oletus, yleisin), keppi=0 → label + ' - irto'.
+  // Olemassa olevat merkit → keppi=1 (DEFAULT 1). keppi=0 vain inventaarion "Muuta merkiksi" -flow (T250).
+  try { db.exec('ALTER TABLE templates ADD COLUMN keppi INTEGER NOT NULL DEFAULT 1') } catch { /* already exists */ }
   // T226/V151: created_by erottaa talkoolaisen itse-lisäämän merkin (kova DELETE sallittu) vs
   // järjestäjän suunnitteleman (vain soft ei_tarpeen). Talkoolainen_code ensisijainen tunniste
   // (display_name törmää nimikaimoilla). Olemassa olevat merkit → NULL (= suunniteltu, ei poistettavissa).

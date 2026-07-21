@@ -1,5 +1,5 @@
 import { positionPicker } from '../logic/sign-picker'
-import { listFavorites, type SignLibrary, type SignTemplate } from '../logic/sign-library'
+import { listFavorites, signDisplayLabel, type SignLibrary, type SignTemplate } from '../logic/sign-library'
 import { signImageTag } from '../logic/sign-images'
 import { compactLabel } from '../logic/sign-visual'
 import { getIconById, renderIconSvg } from '../logic/icon-set'
@@ -57,7 +57,7 @@ export class PlaceMode {
       return `
       <button class="sign-type-btn" data-type="${escapeHtml(t.id)}" data-color="${escapeHtml(t.color)}" data-label="${escapeHtml(t.label)}" data-icon="${escapeHtml(t.iconId ?? '')}" data-image="${escapeHtml(t.imageId ?? '')}" data-parts="${escapeHtml(t.parts ? JSON.stringify(t.parts) : '')}">
         <span class="sign-swatch" style="background:${escapeHtml(t.color)};position:relative;overflow:hidden">${swatchInner}${signImageTag(t.imageId ?? t.id, 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff')}</span>
-        ${escapeHtml(t.label)}
+        ${escapeHtml(signDisplayLabel(t))}
       </button>`
     }).join('')
     this.floatingPicker.classList.add('open')

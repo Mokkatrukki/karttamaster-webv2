@@ -1,4 +1,5 @@
 import { genId } from './uid'
+import { signDisplayLabel } from './sign-library'
 
 /** Inventaariorivi (varastotavara, järjestäjä). v2: kuuluu paikkaan (locationId) ja voi olla
  *  merkki (templateId → merkkikirjaston malli, elävä V165). qty koneellinen. */
@@ -93,11 +94,12 @@ export function validateInventoryItem(input: InventoryInput): ValidationResult {
  */
 export function resolveItemName(
   item: { name: string | null; templateId?: string | null },
-  // Rakenteellinen — käy Map<string,{label}> JA Map<string,SignTemplate> (T247, invarianssin ohitus).
-  templates: { get(id: string): { label: string } | undefined },
+  // Rakenteellinen — käy Map<string,{label,keppi?}> JA Map<string,SignTemplate> (T247, invarianssin ohitus).
+  templates: { get(id: string): { label: string; keppi?: boolean } | undefined },
 ): string {
   if (item.templateId) {
-    return templates.get(item.templateId)?.label ?? item.name ?? '(poistettu merkki)'
+    const tpl = templates.get(item.templateId)
+    return tpl ? signDisplayLabel(tpl) : (item.name ?? '(poistettu merkki)') // V168 ' - irto' -suffix
   }
   return item.name ?? ''
 }

@@ -3,7 +3,7 @@ import { AuthScreen } from './ui/auth-screen'
 import { renderInventory, renderForbidden, renderSignPicker, defaultSelection, type LocationSelection } from './ui/inventory-page'
 import { SignTemplateModal } from './ui/sign-template-modal'
 import { fetchTemplates, createTemplateRemote, updateTemplateRemote, deleteTemplateRemote } from './logic/template-sync'
-import { createLibrary } from './logic/sign-library'
+import { createLibrary, signDisplayLabel } from './logic/sign-library'
 import type { SignTemplate, SignLibrary } from './logic/sign-library'
 import type { InventoryItem, InventoryLocation, InventoryFields } from './logic/inventory'
 
@@ -144,8 +144,35 @@ async function load(): Promise<void> {
         })
         modal.open(tpl) // muokkaustila
       },
+      // T250: tekstirivi → merkki. Avaa uuden mallin, nimi esitäytetty rivin nimestä; käyttäjä
+      // poistaa "irto"-sanan + valitsee kuvan. Inventaario-default: keppi=false + favorite=false (V168).
+      onConvertToSign: (item) => {
+        const library: SignLibrary = createLibrary()
+        for (const [id, t] of templates) library.set(id, t)
+        const modal = new SignTemplateModal(library, {
+          onChanged: () => { /* linkitys tapahtuu onSaveTemplaten kautta */ },
+          onSaveTemplate: async (tpl, isNew) => {
+            if (isNew) await createTemplateRemote(tpl)
+            else await updateTemplateRemote(tpl)
+            await linkItemToTemplate(item, tpl.id) // PUT olemassa olevaan riviin (EI uutta riviä)
+          },
+        })
+        modal.open(null, { label: item.name, keppi: false, favorite: false })
+      },
     },
   )
+}
+
+/** T250: linkitä olemassa oleva inventaariorivi merkkiin (template_id) — säilyttää qty/paikka/note. */
+async function linkItemToTemplate(item: InventoryItem, templateId: string): Promise<void> {
+  const r = await fetch(`/api/inventory/${item.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(
+      toBody({ name: item.name, qty: item.qty, unit: item.unit, location: item.location, note: item.note, locationId: item.locationId ?? null, templateId }),
+    ),
+  })
+  if (r.ok) await load()
 }
 
 /** Luo inventaariorivi joka linkittyy merkkikirjaston malliin (template_id, V165). qty oletus 1. */
@@ -163,7 +190,7 @@ async function openSignFlow(locationId: string | null, knownTemplates: Map<strin
   const result = await fetchTemplates()
   const templates: SignTemplate[] = result.ok ? result.templates : []
   const list = templates.length
-    ? templates.map((t) => ({ id: t.id, label: t.label }))
+    ? templates.map((t) => ({ id: t.id, label: signDisplayLabel(t) })) // V168 ' - irto' -suffix pickerissä
     : [...knownTemplates].map(([id, t]) => ({ id, label: t.label }))
   const library: SignLibrary = createLibrary()
   for (const t of templates) library.set(t.id, t)

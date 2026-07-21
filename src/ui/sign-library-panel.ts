@@ -2,6 +2,7 @@ import {
   createLibrary,
   listTemplates,
   loadLibrary,
+  signDisplayLabel,
   type SignLibrary,
   type SignTemplate,
 } from '../logic/sign-library'
@@ -152,7 +153,7 @@ export class SignLibraryPanel {
       ? `<span class="sign-lib-desc" style="font-size:11px;color:var(--text-muted);line-height:1.3;white-space:normal">${escapeHtml(t.description)}</span>`
       : ''
     const labelBlock = `<span style="display:flex;flex-direction:column;gap:1px;min-width:0">
-             <span style="white-space:normal">${escapeHtml(t.label)}</span>
+             <span style="white-space:normal">${escapeHtml(signDisplayLabel(t))}</span>
              ${descHtml}
            </span>`
 

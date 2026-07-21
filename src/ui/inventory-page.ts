@@ -24,6 +24,7 @@ export interface InventoryPageCallbacks {
   onDeleteLocation?: (loc: InventoryLocation) => void // T248
   onAddSign?: (locationId: string | null) => void // T246
   onOpenSign?: (templateId: string) => void // T247: avaa SignTemplateModal (muokkaus)
+  onConvertToSign?: (item: InventoryItem) => void // T250: tekstirivi → merkki (uusi malli esitäytetyllä nimellä)
 }
 
 const ERR_TEXT: Record<string, string> = {
@@ -582,6 +583,17 @@ function toggleDetailsEditor(card: HTMLElement, item: InventoryItem, view: Inven
     await cb.onEditItem(item.id, fieldsOf(item, overrides))
   })
   editor.appendChild(save)
+
+  // T250: "Muuta merkiksi" — VAIN tarvike-/tekstirivi (ei template_id). Avaa uuden mallin
+  // esitäytetyllä nimellä; käyttäjä poistaa "irto"-sanan + valitsee kuvan → rivi linkittyy merkkiin.
+  if (!item.templateId && cb.onConvertToSign) {
+    const convert = document.createElement('button')
+    convert.type = 'button'
+    convert.className = 'inv-btn inv-btn-convert'
+    convert.textContent = 'Muuta merkiksi'
+    convert.addEventListener('click', () => cb.onConvertToSign!(item))
+    editor.appendChild(convert)
+  }
 
   card.appendChild(editor)
   unit.input.focus()

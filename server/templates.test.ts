@@ -19,6 +19,7 @@ interface TemplateJson {
   color: string
   description: string
   favorite: boolean
+  keppi: boolean
   iconId?: string
   imageId?: string
   parts?: { iconId?: string; imageId?: string }[]
@@ -281,3 +282,35 @@ describe('T192: Templates REST API', () => {
 function makeUploadFile(): File {
   return new File([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], 'kuva.jpg', { type: 'image/jpeg' })
 }
+
+// ── T249/V168: keppi (kiinnitystapa) ─────────────────────────────────────────
+describe('T249: keppi (kiinnitystapa)', () => {
+  let db: Database
+  beforeEach(() => { db = createDb(':memory:'); seedTestUsers(db) })
+  afterEach(() => db.close())
+  const jh = () => ({ ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' })
+
+  test('POST ilman keppiä → oletus true (yleisin)', async () => {
+    const res = await makeApp(db).request('/api/templates', { method: 'POST', headers: jh(), body: JSON.stringify(TEMPLATE_BODY) })
+    expect(((await res.json()) as TemplateJson).keppi).toBe(true)
+  })
+
+  test('POST keppi=false → false (inventaario-convert)', async () => {
+    const res = await makeApp(db).request('/api/templates', { method: 'POST', headers: jh(), body: JSON.stringify({ ...TEMPLATE_BODY, id: 'irto1', keppi: false }) })
+    expect(((await res.json()) as TemplateJson).keppi).toBe(false)
+  })
+
+  test('PUT päivittää keppin', async () => {
+    await seedTemplate(db, { ...TEMPLATE_BODY, id: 'k1', keppi: false })
+    const res = await makeApp(db).request('/api/templates/k1', { method: 'PUT', headers: jh(), body: JSON.stringify({ ...TEMPLATE_BODY, id: 'k1', keppi: true }) })
+    expect(((await res.json()) as TemplateJson).keppi).toBe(true)
+  })
+
+  test('migraatio: DEFAULT 1 → GET palauttaa keppi=true olemassa oleville', async () => {
+    // Simuloi vanha rivi ilman keppi-arvoa: INSERT ilman keppi-saraketta → DEFAULT 1
+    db.run("INSERT INTO templates (id, label, color, favorite, updated_at) VALUES ('vanha', 'Vanha', '#000', 0, '2020-01-01')")
+    const res = await makeApp(db).request('/api/templates', { headers: authHeaders(db, 'järjestäjä') })
+    const list = (await res.json()) as TemplateJson[]
+    expect(list.find((t) => t.id === 'vanha')!.keppi).toBe(true)
+  })
+})

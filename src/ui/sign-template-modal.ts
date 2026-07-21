@@ -47,7 +47,9 @@ export class SignTemplateModal {
     private readonly callbacks: SignTemplateModalCallbacks,
   ) {}
 
-  open(template: SignTemplate | null): void {
+  // prefill (T250): luontitilassa (template=null) esitäyttö — nimi + keppi-oletus. Inventaarion
+  // "Muuta merkiksi" antaa { label: rivin nimi, keppi: false } (irto-default inventaariossa, V168).
+  open(template: SignTemplate | null, prefill?: { label?: string; keppi?: boolean; favorite?: boolean }): void {
     this.closeModal()
 
     // T178-jälkeinen korjaus (B-löydös): pää-visuali (yllä) ja "Osat"-lista (alla) olivat kaksi
@@ -134,7 +136,7 @@ export class SignTemplateModal {
     labelInput.className = 'sign-lib-label-input'
     labelInput.type = 'text'
     labelInput.placeholder = 'Esim. Huoltopiste 25km'
-    labelInput.value = template?.label ?? ''
+    labelInput.value = template?.label ?? prefill?.label ?? ''
     labelInput.style.cssText = 'padding:8px 10px;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-body);font-size:13px;width:100%;box-sizing:border-box'
     modal.appendChild(labelInput)
 
@@ -593,11 +595,23 @@ export class SignTemplateModal {
     const favCheckbox = document.createElement('input')
     favCheckbox.type = 'checkbox'
     favCheckbox.className = 'sign-lib-fav-checkbox'
-    favCheckbox.checked = template?.favorite ?? true
+    favCheckbox.checked = template?.favorite ?? prefill?.favorite ?? true
     favCheckbox.style.cssText = 'width:18px;height:18px;cursor:pointer'
     favLabel.appendChild(favCheckbox)
     favLabel.appendChild(document.createTextNode('Näytä suosikit-pickissä'))
     modal.appendChild(favLabel)
+
+    // Keppi-toggle (T249/V168): keppi (oletus, yleisin) = ei suffixia; pois → näyttönimeen ' - irto'.
+    const keppiLabel = document.createElement('label')
+    keppiLabel.style.cssText = 'display:flex;align-items:center;gap:8px;min-height:44px;cursor:pointer;font-size:13px;color:var(--text-body)'
+    const keppiCheckbox = document.createElement('input')
+    keppiCheckbox.type = 'checkbox'
+    keppiCheckbox.className = 'sign-lib-keppi-checkbox'
+    keppiCheckbox.checked = template?.keppi ?? prefill?.keppi ?? true // uusi = keppi; convert antaa false
+    keppiCheckbox.style.cssText = 'width:18px;height:18px;cursor:pointer'
+    keppiLabel.appendChild(keppiCheckbox)
+    keppiLabel.appendChild(document.createTextNode('Keppi (pois = irto → nimeen "- irto")'))
+    modal.appendChild(keppiLabel)
 
     // Save / Cancel
     const btnRow = document.createElement('div')
@@ -623,6 +637,7 @@ export class SignTemplateModal {
       const iconId = selectedIconId ?? undefined
       const imageId = selectedImageId ?? undefined
       const favorite = favCheckbox.checked
+      const keppi = keppiCheckbox.checked
       const parts = selectedParts.length > 0 ? selectedParts : undefined
 
       if (!template) {
@@ -637,10 +652,10 @@ export class SignTemplateModal {
           return
         }
         const color = colorInput?.value ?? '#f59e0b'
-        const created = createTemplate(this.library, { label, color, description, favorite, iconId, imageId, parts }, id)
+        const created = createTemplate(this.library, { label, color, description, favorite, keppi, iconId, imageId, parts }, id)
         this.callbacks.onSaveTemplate?.(created, true)
       } else {
-        const patch: Partial<Omit<SignTemplate, 'id'>> = { label, description, iconId, imageId, favorite, parts }
+        const patch: Partial<Omit<SignTemplate, 'id'>> = { label, description, iconId, imageId, favorite, keppi, parts }
         if (colorInput) patch.color = colorInput.value
         const updated = updateTemplate(this.library, template.id, patch)
         if (updated) this.callbacks.onSaveTemplate?.(updated, false)

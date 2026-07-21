@@ -13,6 +13,7 @@ interface TemplateRow {
   color: string
   description: string | null
   favorite: number
+  keppi: number
   icon_id: string | null
   image_id: string | null
   parts_json: string | null
@@ -34,6 +35,7 @@ function rowToTemplate(row: TemplateRow) {
     color: row.color,
     description: row.description ?? '',
     favorite: row.favorite === 1,
+    keppi: row.keppi === 1, // V168: kiinnitystapa (true=keppi/oletus, false=irto → ' - irto' -suffix)
     iconId: row.icon_id ?? undefined,
     imageId: row.image_id ?? undefined,
     parts: row.parts_json ? (JSON.parse(row.parts_json) as SignPart[]) : undefined,
@@ -46,9 +48,15 @@ interface TemplateBody {
   color?: string
   description?: string | null
   favorite?: boolean
+  keppi?: boolean
   iconId?: string | null
   imageId?: string | null
   parts?: SignPart[] | null
+}
+
+// V168: keppi puuttuu → oletus true (1). Vain eksplisiittinen false → 0 (inventaario-convert, T250).
+function keppiToInt(keppi: boolean | undefined): number {
+  return keppi === false ? 0 : 1
 }
 
 // GET /api/templates — V123: kaikki autentikoidut käyttäjät näkevät koko kirjaston (kuten V18 merkeille)
@@ -71,13 +79,14 @@ templatesRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), 
   const id = body.id ?? randomUUID()
   const now = new Date().toISOString()
   db.run(
-    'INSERT INTO templates (id, label, color, description, favorite, icon_id, image_id, parts_json, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO templates (id, label, color, description, favorite, keppi, icon_id, image_id, parts_json, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       id,
       body.label,
       body.color,
       body.description ?? null,
       body.favorite ? 1 : 0,
+      keppiToInt(body.keppi),
       body.iconId ?? null,
       body.imageId ?? null,
       body.parts ? JSON.stringify(body.parts) : null,
@@ -105,12 +114,13 @@ templatesRoutes.put('/:id', requireAuth(), requireRole('admin', 'järjestäjä')
   }
 
   db.run(
-    'UPDATE templates SET label = ?, color = ?, description = ?, favorite = ?, icon_id = ?, image_id = ?, parts_json = ?, updated_at = ?, updated_by = ? WHERE id = ?',
+    'UPDATE templates SET label = ?, color = ?, description = ?, favorite = ?, keppi = ?, icon_id = ?, image_id = ?, parts_json = ?, updated_at = ?, updated_by = ? WHERE id = ?',
     [
       body.label,
       body.color,
       body.description ?? null,
       body.favorite ? 1 : 0,
+      keppiToInt(body.keppi),
       body.iconId ?? null,
       body.imageId ?? null,
       body.parts ? JSON.stringify(body.parts) : null,

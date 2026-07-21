@@ -509,6 +509,7 @@ CSS-luokat:
   - Lyhenne+väri rivi: `display:flex;gap:6px` — lyhenne-input `flex:1;min-width:0`, color-input `width:44px;height:44px` ilman tekstilabelia (§R: color-picker on itsessään selvä)
   - Tallenna-nappi: `confirm` tausta, `confirm-text`, `min-height:44px`, `flex:1`
   - Peruuta-nappi: `field-tint` tausta, `border-default`, `min-height:44px`
+  - **Keppi-checkbox (T249/V168, `.sign-lib-keppi-checkbox`):** favorite-toggle-mallin alla, `min-height:44px`. Checked = keppi (oletus, yleisin) → näyttönimi sellaisenaan; unchecked = irto → näyttönimeen ' - irto' KAIKKIALLA (`signDisplayLabel(tpl)`, src/logic/sign-library.ts — kirjasto, picker, inventaario). Uusi malli: checked. Inventaarion "Muuta merkiksi" (T250) avaa `prefill.keppi=false` + `favorite=false` (irto-default inventaariossa). HUOM: kartan compactLabel-lyhenne johdetaan raakalabelista, EI saa suffixia.
 
 ### ImageGalleryPicker (`.sign-image-gallery`, edit-modaalin sisällä T93-ikoni-gridin vieressä)
 - **Sijainti:** SignLibraryPanel edit-modaalin visual-valinnassa kaksi tabia: `[Ikoni] [Kuva]` (`.sign-visual-tab`, `min-height:44px`, aktiivi = `accent`-alaviiva, ei-aktiivi = `text-muted`). Kuva-tabi näyttää `ImageGalleryPicker`-gridin, Ikoni-tabi nykyisen T93-ikoni-gridin. Precedence (V99) ei riipu tabista — kumpi tahansa asetettu viimeksi voittaa tallennuksessa, toinen kenttä nollataan (kuva ja ikoni eivät ole molemmat samaan aikaan aktiivisia samalle templatelle).
