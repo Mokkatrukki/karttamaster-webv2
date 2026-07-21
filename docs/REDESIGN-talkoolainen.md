@@ -127,7 +127,9 @@ KOTI (yhteenveto)   Kuittaa "kaikki tehty" → yhteenveto: onko tehty,
 - ✅ **R4 = T260**: pätkän kommentit koti-etusivulta "Lisää ⋯"-valikkoon (poisti sekaannuksen). Vitest t232 + Playwright.
 - ✅ **B106**: kartan pätkä-label luettavaksi vaaleassa teemassa (color #fff, oli var(--text-body) fixed-tummalla pillillä).
 - ✅ **R7**: KATETTU olemassa olevalla — merkki-tap → MarkerDetailModal jo sisältää kommentti (locationNote) + "Ei tarpeen" (elä laita) + status + raahaus (siirrä). Erillinen mini-menu = duplikaatti, ei rakennettu.
-- ⏭️ **Ei tehty (matala prio):** R3 (Kaikki merkit -lista koti-näkymään — osin katettu R9-declutterilla), B(kartan pätkän pituus "liian lyhyt" — vaatii selvityksen reittidatasta).
+- ✅ **T262/V182 (2026-07-21, iteraatio 2):** KOTI-swap — varustelista+varustarkastus INLINE (`src/ui/segment-equipment.ts`) heron tilalle; "seuraava merkki" -hero piilotettu kodista (jää kartan alapalkiksi). Checkoff jakaa client-only-tilan + label-avaimet EquipmentModalin kanssa (`varustarkastus.ts`). Käyttäjän lukittu päätös (AskUserQuestion): varuste→KOTI, hero→kartta-only. Vitest 7 + Playwright 3, täysregressio vihreä.
+- ✅ **T263/V183 (2026-07-21, iteraatio 2):** R3 — "Kaikki merkit" -lista INLINE koti-näkymään (`src/ui/segment-marker-list.ts`, koti-only; rivi→MarkerDetailModal). Käyttäjän lukittu päätös: kyllä, inline kotiin (koti = ei karttaa → T228:n tilaperuste ei päde). Vitest 5 + Playwright 1.
+- ⏭️ **AVOIN — B(kartan pätkän pituus "liian lyhyt"):** JUURISYY LÖYTYI — `planSegmentZoom` (`src/logic/segment-zoom.ts`) `maxFitLengthM=4000` ankkuroi >4km pätkän VAIN ensimmäiseen 4km:iin (tahallinen T224/D anchor). Käyttäjä 2026-07-21: "en osaa vielä sanoa" → korjaus (fit-koko vs nosta raja) odottaa konkreettista toistettavaa pätkää (pituus+reitti). EI muuteta arvaamalla.
 
 Kaikki paikallista (ei tuotantoon). Täysregressio vihreä joka incrementin jälkeen.
 
