@@ -1,5 +1,6 @@
 import type { SignMarker, MarkerStatus } from './types'
 import { resolveTaskMarkers } from './task-markers'
+import { genId } from './uid'
 
 export interface EquipmentItem {
   name: string
@@ -50,7 +51,7 @@ export function createSegment(
   id?: string,
 ): Segment {
   validateRouteFields(data)
-  const segment: Segment = { id: id ?? crypto.randomUUID(), ...data }
+  const segment: Segment = { id: id ?? genId(), ...data }
   store.set(segment.id, segment)
   return segment
 }

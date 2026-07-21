@@ -2,6 +2,7 @@ import { createAreaMarker, addFeature } from '../logic/area-types'
 import type { AreaMarker, AreaFeature } from '../logic/area-types'
 import { AreaDetailsModal } from './area-details-modal'
 import { openFeatureColorPicker } from './feature-color-picker'
+import { genId } from '../logic/uid'
 
 const FEATURE_COLORS_FIRST = '#4ade80'
 
@@ -336,7 +337,7 @@ export class AreaPanel {
     if (!this.callbacks.onEnterDrawMode) return
     this.callbacks.onEnterDrawMode((rect) => {
       const feat: AreaFeature = {
-        id: crypto.randomUUID(),
+        id: genId(),
         name: undefined,
         centerLat: rect.centerLat,
         centerLng: rect.centerLng,
@@ -357,7 +358,7 @@ export class AreaPanel {
         const name = window.prompt('Alueen nimi:')
         if (!name?.trim()) return
         const area = createAreaMarker({
-          id: crypto.randomUUID(),
+          id: genId(),
           name: name.trim(),
           centerLat: rect.centerLat,
           centerLng: rect.centerLng,
@@ -365,7 +366,7 @@ export class AreaPanel {
           heightM: rect.heightM,
           rotation: 0,
           markdownDescription: '',
-          hashCode: crypto.randomUUID() + crypto.randomUUID(),
+          hashCode: genId() + genId(),
         })
         this.areas.push(area)
         this.render()
@@ -377,7 +378,7 @@ export class AreaPanel {
       this.callbacks.onEnterMapMode?.((lat, lng) => {
         this.callbacks.onExitMapMode?.()
         const area = createAreaMarker({
-          id: crypto.randomUUID(),
+          id: genId(),
           name: name.trim(),
           centerLat: lat,
           centerLng: lng,
@@ -385,7 +386,7 @@ export class AreaPanel {
           heightM: 40,
           rotation: 0,
           markdownDescription: '',
-          hashCode: crypto.randomUUID() + crypto.randomUUID(),
+          hashCode: genId() + genId(),
         })
         this.areas.push(area)
         this.render()

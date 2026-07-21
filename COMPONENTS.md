@@ -38,6 +38,7 @@ server/       ← Hono + Bun + SQLite
 | SignIdSlug | `src/logic/sign-id-slug.ts` | ✓ T161 | — | [logic.md](docs/components/logic.md) |
 | TileLayers | `src/logic/tile-layers.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | Types | `src/logic/types.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
+| Uid | `src/logic/uid.ts` | ✓ T238 (turva-genId, guard+insecure-fallback B103) | — | [logic.md](docs/components/logic.md) |
 | SignLibrary | `src/logic/sign-library.ts` | ✓ T171 | — | [logic.md](docs/components/logic.md) |
 | MarkerStatus | `src/logic/marker-status.ts` | ✓ T10 | — | [logic.md](docs/components/logic.md) |
 | SegmentManager | `src/logic/segments.ts` | ✓ T153 | — | [logic.md](docs/components/logic.md) |

@@ -4,6 +4,8 @@
 // kirjoitusta — jono ladataan käynnistyksessä ja retrytään (startup / 'online' / backoff).
 // Ei koskaan hiljainen kato (V115/V116, B82).
 
+import { genId } from './uid'
+
 export type OutboxMethod = 'POST' | 'PUT' | 'DELETE'
 
 export interface OutboxEntry {
@@ -51,10 +53,8 @@ export interface WriteOutboxOptions {
 const DEFAULT_KEY = 'karttamaster-outbox'
 
 function makeId(): string {
-  // crypto.randomUUID kun saatavilla, muuten riittävän uniikki fallback.
-  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto
-  if (c?.randomUUID) return c.randomUUID()
-  return `ob-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+  // T238/B103: yhteinen turva-apuri (guard + insecure-fallback). Ks. src/logic/uid.ts.
+  return genId()
 }
 
 export class WriteOutbox {

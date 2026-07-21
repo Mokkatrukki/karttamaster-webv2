@@ -4,6 +4,7 @@ import { nearestPointIndex, haversineDistance } from '../logic/bearing'
 import { createSignIcon } from './icons'
 import { signImageSrc } from '../logic/sign-images'
 import { compactLabel, signVisualParts } from '../logic/sign-visual'
+import { genId } from '../logic/uid'
 import type { SignPart } from '../logic/sign-library'
 import { assignRoutesToMarker } from '../logic/multi-route'
 import { ensureRouteIds, FAR_FROM_ROUTE_M } from '../logic/marker-assign'
@@ -178,7 +179,7 @@ export class MarkerManager {
     const { routeIds, distanceFromStart } = this.nearestRouteAssignment(lat, lon)
 
     const marker: SignMarker = {
-      id: crypto.randomUUID(),
+      id: genId(),
       type, lat, lon,
       distanceFromStart,
       routeIds,
