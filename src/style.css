@@ -3868,8 +3868,8 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   font-weight: 600;
   color: var(--accent);
 }
-/* edit-moodin kevyt aksentti: ohut vasen väripalkki koko sisällölle */
-.inv-edit-mode { border-left: 3px solid var(--accent); padding-left: 12px; }
+/* edit-moodin kevyt aksentti: inset vasen väripalkki (marker--pending-idiomi, EI reflowta) */
+.inv-edit-mode { box-shadow: inset 3px 0 0 var(--accent); }
 /* read-moodin tiivis yksirivi: pienempi pystypadding, määrä tekstinä oikealla */
 .inv-card--read { padding: 8px 12px; }
 .inv-card--read .inv-card-head { gap: 8px; }
