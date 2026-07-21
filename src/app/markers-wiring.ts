@@ -161,6 +161,24 @@ export function wireMarkers(
   if (talkoolainenCode) {
     const seg = getSegmentForCode(segmentStore, talkoolainenCode)
     if (seg) {
+      // T230/V93 + T257/R8: pätkän valmiiksi-merkintä. Jaettu SegmentView-heron (onComplete)
+      // ja yläpalkin ⋯-toiminnon (R8) välillä — sama tallennuspolku (store + backend + refresh).
+      const applyComplete = (completed: boolean) => {
+        const updatedSeg = updateSegment(segmentStore, seg.id, { completed })
+        const flagErr = () => showWarning('⚠ Pätkän valmiiksi-merkinnän tallennus epäonnistui — yritä uudelleen', 5000)
+        updateSegmentRemote(seg.id, { completed })
+          .then(ok => { if (!ok) flagErr() })
+          .catch(() => flagErr())
+        if (updatedSeg) {
+          renderSegmentOverlay()
+          segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
+        }
+      }
+      // T232/E + T257/R8: "Lisää merkki" — sign-picker kartan keskelle (POST omalle pätkälle V149).
+      const openAddMarkerPicker = () => {
+        const c = map.getCenter()
+        placeMode.openPicker(c.lat, c.lng, window.innerWidth / 2, window.innerHeight / 2)
+      }
       segmentView = new SegmentView(
         document.getElementById('segment-view-container')!,
         seg,
@@ -223,20 +241,10 @@ export function wireMarkers(
               .catch(() => flagErr())
             if (updatedSeg) segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
           },
-          // T230/V93: talkoolainen merkitsee pätkän valmiiksi (asettaminen/purku). Sama tallennuspolku.
-          onComplete: (completed) => {
-            const updatedSeg = updateSegment(segmentStore, seg.id, { completed })
-            const flagErr = () => showWarning('⚠ Pätkän valmiiksi-merkinnän tallennus epäonnistui — yritä uudelleen', 5000)
-            updateSegmentRemote(seg.id, { completed })
-              .then(ok => { if (!ok) flagErr() })
-              .catch(() => flagErr())
-            if (updatedSeg) {
-              renderSegmentOverlay()
-              segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
-            }
-          },
-          // T232 (B)/V156: GPS-toggle herosta (siirretty yläpalkista). Ohjaa GpsNavigatoria (T30,
-          // oma sijainti) — ERILLINEN driveModesta. Palauttaa uuden aktiivitilan napin ilmeeseen.
+          // T230/V93: talkoolainen merkitsee pätkän valmiiksi (asettaminen/purku). Jaettu applyComplete (R8).
+          onComplete: applyComplete,
+          // T232 (B)/V156: GPS-toggle. Ohjaa GpsNavigatoria (T30, oma sijainti) — ERILLINEN
+          // driveModesta. Palauttaa uuden aktiivitilan napin ilmeeseen. R8: GPS myös yläpalkin ⋯:ssä.
           onToggleGps: () => {
             if (gpsNavigator.isActive()) { gpsNavigator.stop(); return false }
             gpsNavigator.start(); return true
@@ -249,12 +257,9 @@ export function wireMarkers(
             // R6/V178: ikoni-hehku seuraa hero:n valintaa (◀▶). null = ei korostusta.
             markerManager.setNextHighlight(id ?? null)
           },
-          // T232 (E)/T229: "+ Merkki" hero-overflowsta → sign-picker kartan keskelle (POST omalle
-          // pätkälle V149). Sama polku kuin yläpalkin #btn-add-marker (poistuu T233).
-          onAddMarker: () => {
-            const c = map.getCenter()
-            placeMode.openPicker(c.lat, c.lng, window.innerWidth / 2, window.innerHeight / 2)
-          },
+          // T232 (E)/T229 + R8: "+ Merkki" hero-overflowsta / yläpalkin ⋯:stä → sign-picker kartan
+          // keskelle (POST omalle pätkälle V149). Jaettu openAddMarkerPicker.
+          onAddMarker: openAddMarkerPicker,
           // T218/V143 (skenaario 2): keräyslistan "Haettu"-kuittaus. Suora status-asetus (EI 'kerää'-
           // action, joka heittää suunniteltu-tilaisille — sama syy kuin bulkCollect yllä). Kuka tahansa
           // autentikoitu, ei ownership-gatea; kerätty ↔ suunniteltu. bulkSetStatus persistoi + onUpdate.
@@ -269,6 +274,32 @@ export function wireMarkers(
       updateNextHighlight(seg, segMarkers0)
       // T222/V150: vain oman pätkän merkit raahattavia — vieraita ei voi siirtää (backend 403).
       markerManager.setDraggablePredicate(m => currentSegmentMarkerIds()?.has(m.id) ?? false)
+
+      // T257/R8/V179: talkoolaisen yläpalkin ⋯-toiminnot (VISION "GPS ym ylävalikkoon").
+      // Karttamoodissa hero-chrome minimaali (T255) → GPS/Lisää merkki/Merkitse valmiiksi ⋯:ssä.
+      // Sama polku kuin hero (gpsNavigator, openAddMarkerPicker, applyComplete).
+      const btnTkGps = document.getElementById('btn-tk-gps')
+      const syncGpsLabel = () => { if (btnTkGps) btnTkGps.textContent = gpsNavigator.isActive() ? '📍 GPS päällä' : '📍 GPS' }
+      btnTkGps?.addEventListener('click', () => {
+        if (gpsNavigator.isActive()) gpsNavigator.stop(); else gpsNavigator.start()
+        syncGpsLabel()
+      })
+      syncGpsLabel()
+
+      document.getElementById('btn-tk-add-marker')?.addEventListener('click', openAddMarkerPicker)
+
+      const btnTkComplete = document.getElementById('btn-tk-complete')
+      const syncCompleteLabel = () => {
+        const cur = getSegmentForCode(segmentStore, talkoolainenCode)
+        if (btnTkComplete) btnTkComplete.textContent = (cur?.completed ?? false)
+          ? '↩ Merkitse keskeneräiseksi' : '✓ Merkitse pätkä valmiiksi'
+      }
+      btnTkComplete?.addEventListener('click', () => {
+        const cur = getSegmentForCode(segmentStore, talkoolainenCode)
+        applyComplete(!(cur?.completed ?? false))
+        syncCompleteLabel()
+      })
+      syncCompleteLabel()
     }
   }
 

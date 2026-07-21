@@ -146,7 +146,8 @@ metsässä, hanskat kädessä.
 - `position: fixed; top: 56px; right: 8px` — avautuu toolbarin alta oikeasta reunasta
 - `surface-card`, `border-default`, `border-radius-md`, `box-shadow`, `z-index: 2001`
 - Toggle: `.open`-class (`#btn-menu`-klikki), sulkee document-click
-- Sisältö ylhäältä: **tilivalikko** (`#account-menu-section`, AccountMenu) → `Karttatyyli #btn-layer` (talkoolainen T233/V155 — siirretty toolbarista valikkoon) → phase-switcher (järjestäjä) → Varmuuskopiot → Vie/Tuo kartta-aineisto (gpkg)
+- Sisältö ylhäältä: **tilivalikko** (`#account-menu-section`, AccountMenu) → **talkoolaisen pätkä-toiminnot** (`#tk-menu-actions`, T257/R8, `data-role-hide=järjestäjä`: `📍 GPS #btn-tk-gps` label-sync + `➕ Lisää merkki #btn-tk-add-marker` + `✓ Merkitse pätkä valmiiksi #btn-tk-complete` label-sync) → `Karttatyyli #btn-layer` (talkoolainen T233/V155 — siirretty toolbarista valikkoon) → phase-switcher (järjestäjä) → Varmuuskopiot → Vie/Tuo kartta-aineisto (gpkg)
+- **T257/R8:** GPS asuu VAIN tässä valikossa talkoolaiselle (hero-GPS-nappi CSS-piilotettu) — VISION "GPS ym ylävalikkoon". Karttamoodin (T255) minimaali hero → core-toiminnot ⋯:ssä.
 
 ### AccountMenu (`src/ui/account-menu.ts`, T203/V133)
 - Renderöi `#account-menu-section`iin: `display_name` (`/api/auth/me`, `.account-menu-name` bold) + teemavalitsin + Kirjaudu ulos

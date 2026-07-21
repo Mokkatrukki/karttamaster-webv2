@@ -1510,6 +1510,10 @@ button {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
   pointer-events: auto;
 }
+/* T257/R8: GPS siirtyi yläpalkin ⋯-valikkoon (#btn-tk-gps) → hero-GPS-nappi pois
+   talkoolaiselta molemmissa moodeissa ("GPS ym ylävalikkoon"). */
+body[data-role="talkoolainen"] .segment-view-gps-btn { display: none; }
+
 /* Minimaali: piilota ei-hero-osat karttamoodissa. GPS→ylävalikko (R8); tässä pois. */
 #app[data-view-mode="kartta"] .segment-view-header,
 #app[data-view-mode="kartta"] .segment-view-progress,
