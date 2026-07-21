@@ -43,6 +43,10 @@ test.describe('inventaario mobiili', () => {
 
     await noOverflow('perustila')
 
+    // T251: mutaationapit (+ Paikka, stepper, tiedot, merkki) vain edit-modessa (V169) → vaihda.
+    await page.click('#inv-mode-toggle'); await page.waitForTimeout(150)
+    await noOverflow('edit-perustila')
+
     await page.click('.inv-loc-tab[data-location-id="all"]'); await page.waitForTimeout(150)
     await noOverflow('kaikki-kokooma')
 
@@ -78,6 +82,8 @@ test.describe('inventaario mobiili', () => {
     await page.route(/\/api\/inventory(\?.*)?$/, r => r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
 
     await page.goto('/inventory.html')
+    await page.waitForSelector('#inv-mode-toggle'); await page.waitForTimeout(150)
+    await page.click('#inv-mode-toggle'); await page.waitForTimeout(150) // T251: paikkanapit vain edit-modessa (V169)
     await page.waitForSelector('#inv-loc-add'); await page.waitForTimeout(200)
 
     // "+ Paikka" → modaali → kirjoita → Peruuta → EI POSTia
@@ -116,6 +122,7 @@ test.describe('inventaario mobiili', () => {
 
     await page.goto('/inventory.html')
     await page.waitForSelector('.inv-card', { timeout: 10000 }); await page.waitForTimeout(150)
+    await page.click('#inv-mode-toggle'); await page.waitForTimeout(150) // T251: add-form + stepper vain edit-modessa (V169)
 
     await page.fill('.inv-f-name', 'Teippirulla')       // kirjoita uusi nimi, ÄLÄ paina Lisää
     await page.click('.inv-card:first-child .inv-step-plus') // säädä rivin määrää → reload

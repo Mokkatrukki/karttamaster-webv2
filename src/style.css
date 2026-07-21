@@ -3748,13 +3748,15 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap; /* T253-fix: mobiili 375px — 3 nappia (✎ Muokkaa/← Kartta/Kirjaudu ulos) + otsikko
+                      ei mahdu yhdelle riville → actions rivittyy otsikon alle, ei vaakavuotoa. */
   gap: 10px;
   padding-bottom: 12px;
   margin-bottom: 16px;
   border-bottom: 1px solid var(--border-default);
 }
 #inventory-header h1 { font-size: 18px; font-weight: 600; margin: 0; }
-.inventory-header-actions { display: flex; align-items: center; gap: 8px; }
+.inventory-header-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 
 #btn-inventory-back,
 #btn-inventory-logout {

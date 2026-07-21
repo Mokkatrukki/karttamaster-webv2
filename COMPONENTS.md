@@ -130,7 +130,7 @@ server/       ← Hono + Bun + SQLite
 | MapStateAPI | `server/routes/admin.ts` | ⚠️ dead T48 — approval poistettu (V22/B46/V79), poisto T211 | — | [backend.md](docs/components/backend.md) |
 | OfflineManager | `public/sw.js` *(ei vielä)* | ○ T18 | — | [backend.md](docs/components/backend.md) |
 | AdminPage | `admin.html` + `src/admin.ts` + `src/ui/admin-page.ts` | ✓ T122 | — | [ui.md](docs/components/ui.md) |
-| InventoryPage | `inventory.html` + `src/inventory.ts` + `src/ui/inventory-page.ts` | ✓ T253 (client-only "Kumoa"-undo: poisto/qty/siirto/paikan poisto → toast, revert olemassa oleviin reitteihin V172/V173), T251 (v2.3: read/edit-viewMode — oletus read tiivis katselu, edit paljastaa mutaatiot, sessiokohtainen reload→read, V169-V171; v2: paikkatabit+Kaikki-koonti, muokkaus-mode V166, merkki-visuaali+zoom V167, nimi→SignTemplateModal, siirto; picker-reuse V165; V163/V164) | — | [ui.md](docs/components/ui.md) |
+| InventoryPage | `inventory.html` + `src/inventory.ts` + `src/ui/inventory-page.ts` | ✓ T253 (client-only "Kumoa"-undo: poisto/qty/siirto/paikan poisto → toast, revert olemassa oleviin reitteihin V172/V173), T251 (v2.3: read/edit-viewMode — oletus read tiivis katselu, edit paljastaa mutaatiot, sessiokohtainen reload→read, V169-V171; v2: paikkatabit+Kaikki-koonti, muokkaus-mode V166, merkki-visuaali+zoom V167, nimi→SignTemplateModal, siirto; picker-reuse V165; V163/V164) | e2e/inv-undo.spec.ts (undo-revert V173a/b/c), e2e/inv-mobile.spec.ts | [ui.md](docs/components/ui.md) |
 
 **Tila:** ✓ = valmis (+ viimeisin T-id) | ○ T-id = tulossa | ⚠️ pilkko = pilkkolippu
 
