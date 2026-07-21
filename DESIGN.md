@@ -498,7 +498,8 @@ CSS-luokat:
 
 ### EquipmentModal (`.equipment-modal`, `src/ui/equipment-modal.ts`) — talkoolaisen varustelista (T224/C)
 - Avautuu SegmentViewn `🎒 Varustelista` -napista. Tilava keskitetty modaali (`width:min(480px,94vw)`, `max-height:85vh`), backdrop + Esc/✕/backdrop-sulku (`registerEscClose`/`createBackdrop`).
-- **Auto-laskuri (readonly):** merkit pätkällä tyypeittäin (`.equipment-modal-auto-list`, ihmisluettava tyyppilabel).
+- **Varustarkastus-checkoff (T258/R2, "otin nämä"):** jokaisella rivillä (auto + ei-tyhjä manuaali) checkbox (`.equipment-check-box`/`.equipment-manual-check`, `22px`, `accent-color:confirm`). Checkattu → yliviivaus (`--done`). Edistymä `.equipment-modal-progress` "Varustarkastus: N/M otettu" (täysi → `--confirm`-vihreä). Client-only per pätkä (V180, localStorage) — henkilökohtainen valmisteluapu, EI backend.
+- **Auto-laskuri (readonly-laskuri):** merkit pätkällä tyypeittäin (`.equipment-modal-auto-list`, ihmisluettava tyyppilabel) — otsikko "Merkit pätkällä (ota mukaan)".
 - **Omat varusteet (muokattava):** rivit `count`-input + nimi-input + `✕`-poisto (`.equipment-modal-count/-name/-remove`, `44px`), `+ Lisää varuste`. Muokkaa `draft`-kopiota.
 - **Footer:** `Tallenna` (`.btn--confirm`, commit → `onEquipmentChange` + sulje, tyhjänimiset karsitaan) + `Peruuta` (hylkää). Tallennus → `updateSegment` + `PUT /api/segments/:id` (V38/V93, server sallii talkoolaisen equipment omalle pätkälle).
 

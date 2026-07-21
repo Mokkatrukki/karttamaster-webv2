@@ -1,5 +1,6 @@
 import { registerEscClose, createBackdrop } from './modal-helpers'
 import { SIGN_TYPES } from '../logic/sign-picker'
+import { loadChecked, setChecked, checkProgress } from '../logic/varustarkastus'
 import type { Segment, EquipmentItem } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
 
@@ -23,8 +24,51 @@ export class EquipmentModal {
   private escDispose: (() => void) | null = null
   private draft: EquipmentItem[] = []
   private autoCounts: [string, number][] = []
+  // T258/R2: varustarkastus-checkoff ("otin nämä") — client-only per pätkä.
+  private segId = ''
+  private checked = new Set<string>()
 
   constructor(private readonly onSave: (equipment: EquipmentItem[]) => void) {}
+
+  // T258/R2: label-avaimet checkoffille. Auto = merkkityyppi, manuaali = nimi (ei-tyhjä).
+  private autoKey(type: string): string { return 'sign:' + type }
+  private manualKey(name: string): string { return 'item:' + name.trim() }
+
+  // Kaikki checkattavat labelit edistymän laskentaan (auto-merkit + ei-tyhjät manuaalirivit).
+  private allLabels(): string[] {
+    return [
+      ...this.autoCounts.map(([type]) => this.autoKey(type)),
+      ...this.draft.filter(i => i.name.trim() !== '').map(i => this.manualKey(i.name)),
+    ]
+  }
+
+  // T258/R2: checkoff-label (checkbox + teksti). Toggle persistoi client-only + päivittää edistymän.
+  private buildCheckbox(key: string, text: string, progressEl: HTMLElement): HTMLElement {
+    const label = document.createElement('label')
+    label.className = 'equipment-check'
+    const cb = document.createElement('input')
+    cb.type = 'checkbox'
+    cb.className = 'equipment-check-box'
+    cb.checked = this.checked.has(key)
+    cb.addEventListener('change', () => {
+      this.checked = setChecked(this.segId, key, cb.checked)
+      label.classList.toggle('equipment-check--done', cb.checked)
+      this.updateProgress(progressEl)
+    })
+    const span = document.createElement('span')
+    span.className = 'equipment-check-label'
+    span.textContent = text
+    label.classList.toggle('equipment-check--done', cb.checked)
+    label.appendChild(cb)
+    label.appendChild(span)
+    return label
+  }
+
+  private updateProgress(el: HTMLElement): void {
+    const { done, total } = checkProgress(this.checked, this.allLabels())
+    el.textContent = total === 0 ? 'Ei varusteita listalla vielä' : `Varustarkastus: ${done}/${total} otettu`
+    el.classList.toggle('equipment-modal-progress--done', total > 0 && done === total)
+  }
 
   isOpen(): boolean {
     return this.root !== null
@@ -36,6 +80,9 @@ export class EquipmentModal {
     const counts = new Map<string, number>()
     for (const m of markers) counts.set(m.type, (counts.get(m.type) ?? 0) + 1)
     this.autoCounts = [...counts.entries()]
+    // T258/R2: lataa varustarkastus-checkoffit tälle pätkälle.
+    this.segId = segment.id
+    this.checked = loadChecked(segment.id)
 
     this.backdrop = createBackdrop('equipment-modal-backdrop', () => this.close())
     document.body.appendChild(this.backdrop)
@@ -86,18 +133,24 @@ export class EquipmentModal {
     const body = document.createElement('div')
     body.className = 'equipment-modal-body'
 
-    // Auto-laskuri (readonly) — merkkityypeittäin pätkällä.
+    // T258/R2: varustarkastus-edistymä ("otin nämä"). Päivittyy checkoff-klikkauksesta.
+    const progress = document.createElement('p')
+    progress.className = 'equipment-modal-progress'
+    body.appendChild(progress)
+    this.updateProgress(progress)
+
+    // Auto-laskuri (readonly-laskuri) — merkkityypeittäin pätkällä + varustarkastus-checkoff (R2).
     if (this.autoCounts.length > 0) {
       const autoTitle = document.createElement('p')
       autoTitle.className = 'equipment-modal-section-title'
-      autoTitle.textContent = 'Merkit pätkällä (automaattinen)'
+      autoTitle.textContent = 'Merkit pätkällä (ota mukaan)'
       body.appendChild(autoTitle)
       const autoList = document.createElement('ul')
       autoList.className = 'equipment-modal-auto-list'
       for (const [type, count] of this.autoCounts) {
         const li = document.createElement('li')
         li.className = 'equipment-auto-item'
-        li.textContent = `${count}× ${typeLabel(type)}`
+        li.appendChild(this.buildCheckbox(this.autoKey(type), `${count}× ${typeLabel(type)}`, progress))
         autoList.appendChild(li)
       }
       body.appendChild(autoList)
@@ -122,6 +175,22 @@ export class EquipmentModal {
     this.draft.forEach((item, i) => {
       const row = document.createElement('div')
       row.className = 'equipment-modal-row equipment-manual-item'
+
+      // T258/R2: varustarkastus-checkoff (vain ei-tyhjä nimi — uutta riviä ei voi vielä checkata).
+      if (item.name.trim() !== '') {
+        const cb = document.createElement('input')
+        cb.type = 'checkbox'
+        cb.className = 'equipment-manual-check'
+        cb.setAttribute('aria-label', 'Otettu mukaan')
+        cb.checked = this.checked.has(this.manualKey(item.name))
+        cb.addEventListener('change', () => {
+          this.checked = setChecked(this.segId, this.manualKey(item.name), cb.checked)
+          row.classList.toggle('equipment-manual-item--done', cb.checked)
+          this.updateProgress(progress)
+        })
+        row.classList.toggle('equipment-manual-item--done', cb.checked)
+        row.appendChild(cb)
+      }
 
       const countInput = document.createElement('input')
       countInput.type = 'number'
