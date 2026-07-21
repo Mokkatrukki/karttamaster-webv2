@@ -72,14 +72,48 @@ describe('T245 paikkanavigointi', () => {
     expect(cb.onSelectLocation).toHaveBeenCalledWith('none')
   })
 
-  it('+ Paikka → lomake → onAddLocation', async () => {
+  it('+ Paikka → peruttava modaali → Luo → onAddLocation', async () => {
     const cb = makeCb()
     renderInventory(container, view(), cb)
     container.querySelector<HTMLButtonElement>('#inv-loc-add')!.click()
-    setVal(container, 'inv-loc-add-input', 'Peräkärry')
-    container.querySelector<HTMLFormElement>('.inv-loc-add-form')!.dispatchEvent(new Event('submit', { cancelable: true }))
+    // Modaali renderöityy document.bodyyn (Modal footer -pattern)
+    const input = document.querySelector<HTMLInputElement>('.inv-modal-form input')!
+    input.value = 'Peräkärry'
+    document.querySelector<HTMLFormElement>('.inv-modal-form')!.dispatchEvent(new Event('submit', { cancelable: true }))
     await flush()
     expect(cb.onAddLocation).toHaveBeenCalledWith('Peräkärry')
+  })
+
+  it('B: keskeneräinen lisäysnimi säilyy re-renderin yli (stepper-reload)', () => {
+    renderInventory(container, view(), makeCb())
+    setVal(container, 'inv-f-name', 'Nippuside')
+    setVal(container, 'inv-f-qty', '250')
+    // Simuloi stepper +/- → onEditItem → load() → renderInventory samaan containeriin
+    renderInventory(container, view(), makeCb())
+    expect(container.querySelector<HTMLInputElement>('.inv-f-name')!.value).toBe('Nippuside')
+    expect(container.querySelector<HTMLInputElement>('.inv-f-qty')!.value).toBe('250')
+  })
+
+  it('onnistunut lisäys tyhjentää nimen (ei jää draftina seuraavaan renderiin)', async () => {
+    const cb = makeCb({ onAddItem: vi.fn(() => true) })
+    renderInventory(container, view(), cb)
+    setVal(container, 'inv-f-name', 'Kertakäyttö')
+    container.querySelector<HTMLFormElement>('#inv-add-form')!.dispatchEvent(new Event('submit', { cancelable: true }))
+    await flush()
+    // Lomake tyhjennettiin submitissa → re-render lukee tyhjän draftin
+    renderInventory(container, view(), cb)
+    expect(container.querySelector<HTMLInputElement>('.inv-f-name')!.value).toBe('')
+  })
+
+  it('+ Paikka → Peruuta → ei onAddLocation, modaali sulkeutuu', () => {
+    const cb = makeCb()
+    renderInventory(container, view(), cb)
+    container.querySelector<HTMLButtonElement>('#inv-loc-add')!.click()
+    const input = document.querySelector<HTMLInputElement>('.inv-modal-form input')!
+    input.value = 'Peräkärry'
+    document.querySelector<HTMLButtonElement>('.modal-btn-secondary')!.click()
+    expect(cb.onAddLocation).not.toHaveBeenCalled()
+    expect(document.querySelector('.inv-sign-picker[role="dialog"]')).toBeNull()
   })
 })
 

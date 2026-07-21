@@ -2,6 +2,7 @@ import { validateInventoryItem, resolveItemName, adjustQty } from '../logic/inve
 import type { InventoryItem, InventoryLocation, InventoryFields } from '../logic/inventory'
 import type { SignTemplate } from '../logic/sign-library'
 import { buildMarkerVisual } from './marker-visual-row'
+import { createBackdrop, registerEscClose } from './modal-helpers'
 
 /** Valittu paikka: 'all' (kokooma), 'none' (orvot V166) tai location.id. */
 export type LocationSelection = string | 'all' | 'none'
@@ -40,10 +41,24 @@ export function defaultSelection(locations: InventoryLocation[]): LocationSelect
   return defaultLocationId(locations) ?? 'none'
 }
 
+/** Lisäyslomakkeen keskeneräinen syöte (nimi+määrä) jota ei ole vielä painettu "Lisää". */
+interface AddDraft { name: string; qty: string }
+
+/** Lue add-formin nykyinen syöte ENNEN re-renderiä → säilytä stepper/edit-reloadien yli (B). */
+function readAddDraft(container: HTMLElement): AddDraft | undefined {
+  const name = container.querySelector<HTMLInputElement>('.inv-f-name')
+  const qty = container.querySelector<HTMLInputElement>('.inv-f-qty')
+  if (!name && !qty) return undefined
+  return { name: name?.value ?? '', qty: qty?.value ?? '' }
+}
+
 export function renderInventory(container: HTMLElement, view: InventoryView, cb: InventoryPageCallbacks): void {
+  // B: jokainen stepper/edit-toiminto reloadaa → koko sivu re-renderöityy. Ilman tätä
+  // keskeneräinen lisäysnimi katosi kun käyttäjä säätää jonkun rivin määrää. Säilytä draft.
+  const draft = readAddDraft(container)
   container.innerHTML = ''
   container.appendChild(buildLocationBar(view, cb))
-  container.appendChild(buildAddForm(view, cb))
+  container.appendChild(buildAddForm(view, cb, draft))
 
   const list = document.createElement('div')
   list.className = 'inv-list'
@@ -128,61 +143,151 @@ function buildLocationBar(view: InventoryView, cb: InventoryPageCallbacks): HTML
   addBtn.className = 'inv-loc-add'
   addBtn.id = 'inv-loc-add'
   addBtn.textContent = '+ Paikka'
-  addBtn.addEventListener('click', () => promptAddLocation(bar, cb))
+  addBtn.addEventListener('click', () => openAddLocationModal(cb)) // peruttava modaali (Modal footer -pattern)
   bar.appendChild(addBtn)
 
-  // T248: paikkojen muokkaus-mode (rename/poista) — vain jos paikkoja on
+  // T248: paikkojen muokkaus (rename/poista) — peruttava modaali, vain jos paikkoja on
   if (view.locations.length > 0 && (cb.onRenameLocation || cb.onDeleteLocation)) {
     const editBtn = document.createElement('button')
     editBtn.type = 'button'
     editBtn.className = 'inv-loc-edit-toggle'
     editBtn.id = 'inv-loc-edit-toggle'
     editBtn.textContent = '✎ Muokkaa'
-    editBtn.addEventListener('click', () => toggleLocationEditor(bar, view, cb))
+    editBtn.addEventListener('click', () => openManageLocationsModal(view, cb))
     bar.appendChild(editBtn)
   }
 
   return bar
 }
 
-/** T248: paikkojen muokkaus-paneeli — rename (input) + poisto per paikka. */
-function toggleLocationEditor(bar: HTMLElement, view: InventoryView, cb: InventoryPageCallbacks): void {
-  const existing = bar.querySelector('.inv-loc-editor')
-  if (existing) { existing.remove(); return }
+// ── Paikkamodaalit (Modal footer -pattern, peruttava: backdrop + Esc + Peruuta) ──
 
-  const panel = document.createElement('div')
-  panel.className = 'inv-loc-editor'
+/** Jaettu modaalikuori: backdrop (klikki sulkee) + kortti + Esc-sulku. Kutsuja täyttää modalin. */
+function openInvModal(titleText: string): { modal: HTMLElement; close: () => void } {
+  const close = (): void => { backdrop.remove(); unregEsc() }
+  const backdrop = createBackdrop('inv-sign-picker-backdrop', close)
+  const modal = document.createElement('div')
+  modal.className = 'inv-sign-picker'
+  modal.setAttribute('role', 'dialog')
+  modal.setAttribute('aria-modal', 'true')
+  modal.addEventListener('click', (e) => e.stopPropagation())
+
+  const title = document.createElement('h2')
+  title.className = 'inv-sign-picker-title'
+  title.textContent = titleText
+  modal.appendChild(title)
+
+  backdrop.appendChild(modal)
+  document.body.appendChild(backdrop)
+  const unregEsc = registerEscClose(close)
+  return { modal, close }
+}
+
+/** "+ Paikka" → peruttava luonti-modaali (title + nimi-input + [Luo][Peruuta]). */
+function openAddLocationModal(cb: InventoryPageCallbacks): void {
+  const { modal, close } = openInvModal('Uusi paikka')
+
+  const form = document.createElement('form')
+  form.className = 'inv-modal-form'
+
+  const input = document.createElement('input')
+  input.type = 'text'
+  input.className = 'inv-sign-search' // reuse: surface-app, 44px, 16px (iOS-zoom-esto)
+  input.placeholder = 'Paikan nimi (esim. Kärry)'
+  input.setAttribute('aria-label', 'Paikan nimi')
+
+  const err = document.createElement('p')
+  err.className = 'inv-error'
+  err.hidden = true
+
+  const footer = document.createElement('div')
+  footer.className = 'modal-footer'
+  const actions = document.createElement('div')
+  actions.className = 'modal-footer-actions'
+  const save = document.createElement('button')
+  save.type = 'submit'
+  save.className = 'modal-btn-primary'
+  save.id = 'inv-loc-modal-save'
+  save.textContent = 'Luo'
+  const cancel = document.createElement('button')
+  cancel.type = 'button'
+  cancel.className = 'modal-btn-secondary'
+  cancel.textContent = 'Peruuta'
+  cancel.addEventListener('click', close)
+  actions.append(save, cancel)
+  footer.appendChild(actions)
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const name = input.value.trim()
+    if (!name) { input.focus(); return }
+    const ok = await cb.onAddLocation(name)
+    if (ok) close()
+    else { err.textContent = 'Tallennus epäonnistui.'; err.hidden = false }
+  })
+
+  form.append(input, err, footer)
+  modal.appendChild(form)
+  input.focus()
+}
+
+/** "✎ Muokkaa" → peruttava hallinta-modaali: nimi-input + Poista per paikka, [Tallenna][Peruuta]. */
+function openManageLocationsModal(view: InventoryView, cb: InventoryPageCallbacks): void {
+  const { modal, close } = openInvModal('Muokkaa paikkoja')
+
+  const list = document.createElement('div')
+  list.className = 'inv-manage-list'
+  const rows: Array<{ id: string; original: string; input: HTMLInputElement }> = []
 
   for (const loc of view.locations) {
     const row = document.createElement('div')
-    row.className = 'inv-loc-edit-row'
+    row.className = 'inv-manage-row'
 
     const input = document.createElement('input')
     input.type = 'text'
-    input.className = 'inv-loc-edit-input'
+    input.className = 'inv-manage-input'
     input.value = loc.name
     input.setAttribute('aria-label', `Paikan nimi: ${loc.name}`)
-    const rename = (): void => {
-      const name = input.value.trim()
-      if (name && name !== loc.name) void cb.onRenameLocation?.(loc.id, name)
-    }
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); rename() }
-    })
-    input.addEventListener('blur', rename)
+    rows.push({ id: loc.id, original: loc.name, input })
 
     const del = document.createElement('button')
     del.type = 'button'
-    del.className = 'inv-btn inv-btn-delete inv-loc-edit-del'
+    del.className = 'modal-btn-destructive inv-manage-del'
     del.textContent = 'Poista'
-    del.addEventListener('click', () => cb.onDeleteLocation?.(loc))
+    del.addEventListener('click', () => {
+      close() // sulje ensin — onDeleteLocation reloadaa sivun (V166: tavarat → "Ei paikkaa")
+      cb.onDeleteLocation?.(loc)
+    })
 
     row.append(input, del)
-    panel.appendChild(row)
+    list.appendChild(row)
   }
+  modal.appendChild(list)
 
-  bar.appendChild(panel)
-  panel.querySelector('input')?.focus()
+  const footer = document.createElement('div')
+  footer.className = 'modal-footer'
+  const actions = document.createElement('div')
+  actions.className = 'modal-footer-actions'
+  const save = document.createElement('button')
+  save.type = 'button'
+  save.className = 'modal-btn-primary'
+  save.textContent = 'Tallenna'
+  save.addEventListener('click', async () => {
+    // Vain muuttuneet nimet → rename PUT. Peruuta hylkää kaiken (ei kirjoituksia).
+    const changed = rows.filter((r) => r.input.value.trim() && r.input.value.trim() !== r.original)
+    close()
+    for (const r of changed) await cb.onRenameLocation?.(r.id, r.input.value.trim())
+  })
+  const cancel = document.createElement('button')
+  cancel.type = 'button'
+  cancel.className = 'modal-btn-secondary'
+  cancel.textContent = 'Peruuta'
+  cancel.addEventListener('click', close)
+  actions.append(save, cancel)
+  footer.appendChild(actions)
+  modal.appendChild(footer)
+
+  rows[0]?.input.focus()
 }
 
 function locationTab(label: string, id: string, active: boolean, onClick: () => void): HTMLButtonElement {
@@ -195,33 +300,9 @@ function locationTab(label: string, id: string, active: boolean, onClick: () => 
   return tab
 }
 
-function promptAddLocation(bar: HTMLElement, cb: InventoryPageCallbacks): void {
-  const existing = bar.querySelector('.inv-loc-add-form')
-  if (existing) return
-  const form = document.createElement('form')
-  form.className = 'inv-loc-add-form'
-  const input = document.createElement('input')
-  input.type = 'text'
-  input.className = 'inv-loc-add-input'
-  input.placeholder = 'Paikan nimi (esim. Kärry)'
-  const save = document.createElement('button')
-  save.type = 'submit'
-  save.className = 'inv-btn inv-btn-primary'
-  save.textContent = 'Luo'
-  form.append(input, save)
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault()
-    const name = input.value.trim()
-    if (!name) return
-    await cb.onAddLocation(name)
-  })
-  bar.appendChild(form)
-  input.focus()
-}
-
 // ── Lisäyslomake (minimaalinen: nimi + määrä) ────────────────────────────────
 
-function buildAddForm(view: InventoryView, cb: InventoryPageCallbacks): HTMLElement {
+function buildAddForm(view: InventoryView, cb: InventoryPageCallbacks, draft?: AddDraft): HTMLElement {
   const form = document.createElement('form')
   form.className = 'inv-add-form'
   form.id = 'inv-add-form'
@@ -253,6 +334,9 @@ function buildAddForm(view: InventoryView, cb: InventoryPageCallbacks): HTMLElem
   qtyInput.inputMode = 'decimal'
   qtyInput.placeholder = 'Määrä'
   qtyInput.setAttribute('aria-label', 'Määrä')
+
+  // Säilytä keskeneräinen syöte re-renderin yli (stepper/edit ei saa hukata nimeä).
+  if (draft) { nameInput.value = draft.name; qtyInput.value = draft.qty }
 
   const addBtn = document.createElement('button')
   addBtn.type = 'submit'
@@ -292,8 +376,12 @@ function buildAddForm(view: InventoryView, cb: InventoryPageCallbacks): HTMLElem
       return
     }
     err.hidden = true
+    // Tyhjennä ENNEN onAddItemia: onnistuessa se reloadaa → readAddDraft lukee tyhjän
+    // (ei palauta juuri lisättyä nimeä). Epäonnistuessa (ei reloadia) palauta syöte.
+    const savedName = nameInput.value, savedQty = qtyInput.value
+    nameInput.value = ''; qtyInput.value = ''
     const ok = await cb.onAddItem(res.value)
-    if (!ok) showError(err, 'save_failed')
+    if (!ok) { nameInput.value = savedName; qtyInput.value = savedQty; showError(err, 'save_failed') }
   })
 
   return form

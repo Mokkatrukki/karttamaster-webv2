@@ -38,7 +38,12 @@ beforeEach(() => {
   document.body.appendChild(container)
 })
 
-describe('T248 paikkojen muokkaus-mode', () => {
+// Modaali renderöityy document.bodyyn (ei containeriin) — hae sieltä.
+function modal(): HTMLElement | null {
+  return document.querySelector<HTMLElement>('.inv-sign-picker[role="dialog"]')
+}
+
+describe('T248 paikkojen muokkaus-modaali', () => {
   it('"✎ Muokkaa" näkyy kun paikkoja on', () => {
     renderInventory(container, view(), makeCb())
     expect(container.querySelector('#inv-loc-edit-toggle')).not.toBeNull()
@@ -49,50 +54,58 @@ describe('T248 paikkojen muokkaus-mode', () => {
     expect(container.querySelector('#inv-loc-edit-toggle')).toBeNull()
   })
 
-  it('✎ avaa editori-paneelin (rivi per paikka), uudelleen sulkee', () => {
+  it('✎ avaa peruttavan hallinta-modaalin (rivi per paikka)', () => {
     renderInventory(container, view(), makeCb())
-    const toggle = container.querySelector<HTMLButtonElement>('#inv-loc-edit-toggle')!
-    toggle.click()
-    expect(container.querySelector('.inv-loc-editor')).not.toBeNull()
-    expect(container.querySelectorAll('.inv-loc-edit-row')).toHaveLength(2) // Kärry, Varasto
-    toggle.click()
-    expect(container.querySelector('.inv-loc-editor')).toBeNull()
+    container.querySelector<HTMLButtonElement>('#inv-loc-edit-toggle')!.click()
+    expect(modal()).not.toBeNull()
+    expect(document.querySelectorAll('.inv-manage-row')).toHaveLength(2) // Kärry, Varasto
   })
 
-  it('nimen muutos + Enter → onRenameLocation(id, uusinimi)', () => {
+  it('Peruuta sulkee modaalin kirjoittamatta (ei renamea)', () => {
     const cb = makeCb()
     renderInventory(container, view(), cb)
     container.querySelector<HTMLButtonElement>('#inv-loc-edit-toggle')!.click()
-    const input = container.querySelector<HTMLInputElement>('.inv-loc-edit-input')! // eka = Kärry
+    const input = document.querySelector<HTMLInputElement>('.inv-manage-input')!
     input.value = 'Peräkärry'
-    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }))
+    document.querySelector<HTMLButtonElement>('.modal-btn-secondary')!.click()
+    expect(cb.onRenameLocation).not.toHaveBeenCalled()
+    expect(modal()).toBeNull()
+  })
+
+  it('nimen muutos + Tallenna → onRenameLocation(id, uusinimi)', () => {
+    const cb = makeCb()
+    renderInventory(container, view(), cb)
+    container.querySelector<HTMLButtonElement>('#inv-loc-edit-toggle')!.click()
+    const input = document.querySelector<HTMLInputElement>('.inv-manage-input')! // eka = Kärry
+    input.value = 'Peräkärry'
+    document.querySelector<HTMLButtonElement>('.modal-btn-primary')!.click()
     expect(cb.onRenameLocation).toHaveBeenCalledWith('loc-karry', 'Peräkärry')
   })
 
-  it('muuttumaton nimi → ei renamea', () => {
+  it('muuttumaton nimi + Tallenna → ei renamea', () => {
     const cb = makeCb()
     renderInventory(container, view(), cb)
     container.querySelector<HTMLButtonElement>('#inv-loc-edit-toggle')!.click()
-    const input = container.querySelector<HTMLInputElement>('.inv-loc-edit-input')!
-    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true })) // sama arvo
+    document.querySelector<HTMLButtonElement>('.modal-btn-primary')!.click() // ei muutoksia
     expect(cb.onRenameLocation).not.toHaveBeenCalled()
   })
 
-  it('tyhjä nimi → ei renamea', () => {
+  it('tyhjä nimi + Tallenna → ei renamea', () => {
     const cb = makeCb()
     renderInventory(container, view(), cb)
     container.querySelector<HTMLButtonElement>('#inv-loc-edit-toggle')!.click()
-    const input = container.querySelector<HTMLInputElement>('.inv-loc-edit-input')!
+    const input = document.querySelector<HTMLInputElement>('.inv-manage-input')!
     input.value = '   '
-    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }))
+    document.querySelector<HTMLButtonElement>('.modal-btn-primary')!.click()
     expect(cb.onRenameLocation).not.toHaveBeenCalled()
   })
 
-  it('Poista → onDeleteLocation(loc)', () => {
+  it('Poista → sulkee modaalin + onDeleteLocation(loc)', () => {
     const cb = makeCb()
     renderInventory(container, view(), cb)
     container.querySelector<HTMLButtonElement>('#inv-loc-edit-toggle')!.click()
-    container.querySelector<HTMLButtonElement>('.inv-loc-edit-del')!.click() // eka = Kärry
+    document.querySelector<HTMLButtonElement>('.inv-manage-del')!.click() // eka = Kärry
     expect(cb.onDeleteLocation).toHaveBeenCalledWith(expect.objectContaining({ id: 'loc-karry', name: 'Kärry' }))
+    expect(modal()).toBeNull()
   })
 })

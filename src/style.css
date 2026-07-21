@@ -3875,21 +3875,7 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   cursor: pointer;
   font-size: 13px;
 }
-.inv-loc-add-form { display: flex; gap: 6px; width: 100%; margin-top: 8px; }
-.inv-loc-add-form .inv-btn-primary { width: auto; margin-top: 0; white-space: nowrap; flex-shrink: 0; }
-.inv-loc-add-input {
-  flex: 1;
-  min-width: 0;
-  min-height: 44px;
-  padding: 8px 10px;
-  background: var(--surface-app);
-  color: var(--text-body);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  font-size: 16px;
-}
-
-/* T248: paikkojen muokkaus-mode */
+/* T248: "✎ Muokkaa" -toggle (avaa peruttavan hallinta-modaalin) */
 .inv-loc-edit-toggle {
   min-height: 44px;
   padding: 6px 12px;
@@ -3900,19 +3886,12 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   cursor: pointer;
   font-size: 13px;
 }
-.inv-loc-editor {
-  width: 100%;
-  margin-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-}
-.inv-loc-edit-row { display: flex; gap: 6px; align-items: center; }
-.inv-loc-edit-input {
+
+/* Paikkamodaalit (Modal footer -pattern): luonti + hallinta. Kuori = .inv-sign-picker. */
+.inv-modal-form { display: flex; flex-direction: column; gap: 12px; }
+.inv-manage-list { display: flex; flex-direction: column; gap: 8px; }
+.inv-manage-row { display: flex; gap: 8px; align-items: center; }
+.inv-manage-input {
   flex: 1;
   min-width: 0;
   min-height: 44px;
@@ -3923,7 +3902,7 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   border-radius: var(--radius-sm);
   font-size: 16px;
 }
-.inv-loc-edit-del { flex-shrink: 0; margin-top: 0; }
+.inv-manage-del { flex-shrink: 0; }
 
 .inv-add-row { display: flex; gap: 8px; }
 .inv-add-row .inv-f-name {
