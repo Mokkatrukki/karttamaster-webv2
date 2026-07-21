@@ -1490,6 +1490,38 @@ button {
 #app[data-view-mode="koti"] #map { display: none; }
 #app[data-view-mode="koti"] #segment-view { max-height: none; }
 
+/* Kartta-moodi (T255/V177, R5): kartta ~täysi (80%+), hero KELLUU alareunassa alapalkkina.
+   Segment-view irrotetaan flow'sta (absolute) → #map flex:1 täyttää koko #map-area. Vain
+   seuraava-merkki-hero (+ keräyslista/done) näkyy; header/progress/gps/varuste/lisää/kommentit/
+   inspect piilossa (minimaali kartta = VISION "80% karttaa"). */
+#app[data-view-mode="kartta"] #segment-view-container {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  pointer-events: none; /* container läpäisee kartalle; #segment-view re-enable */
+}
+#app[data-view-mode="kartta"] #segment-view {
+  max-height: 46vh;
+  margin: 0 8px 8px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+  pointer-events: auto;
+}
+/* Minimaali: piilota ei-hero-osat karttamoodissa. GPS→ylävalikko (R8); tässä pois. */
+#app[data-view-mode="kartta"] .segment-view-header,
+#app[data-view-mode="kartta"] .segment-view-progress,
+#app[data-view-mode="kartta"] .segment-view-gps-btn,
+#app[data-view-mode="kartta"] .segment-view-desc,
+#app[data-view-mode="kartta"] .segment-view-varuste-btn,
+#app[data-view-mode="kartta"] .segment-view-more,
+#app[data-view-mode="kartta"] .segment-view-comments,
+#app[data-view-mode="kartta"] .segment-view-inspect {
+  display: none;
+}
+
 /* 🏠 paluunappi: 44×44 (§R), näkyy vain talkoolainen + karttamoodi (V175). */
 #btn-home-view {
   display: none;

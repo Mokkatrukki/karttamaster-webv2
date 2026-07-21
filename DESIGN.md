@@ -490,7 +490,7 @@ CSS-luokat:
 ### Talkoolaisen moodit (koti/kartta) — T254/V174–176 (R1 keystone)
 - **Moodi = `#app[data-view-mode="koti"|"kartta"]`**, asettaa `src/app/talkoolainen-mode.ts`. Koskee VAIN talkoolaista (järjestäjän `#app` ei saa attribuuttia).
 - **KOTI (oletus, V174):** pätkänäkymä ILMAN karttaa. `#map { display:none }`, `#segment-view { max-height:none }` (koko korkeus). Landing kun `/s/<koodi>` avataan.
-- **KARTTA (V175):** `#map` näkyvä. Segment-chrome nykyisellään (R5 tiivistää myöhemmin alapalkiksi).
+- **KARTTA (V175/V177, R5):** `#map` täyttää `#map-area`:n (≥~80%, VISION "yksinkertainen kartta"). `#segment-view-container` `position:absolute;bottom` (pointer-events:none), `#segment-view` = kelluva alakortti (`radius-lg` + varjo, `pointer-events:auto`, `max-height:46vh`). Näyttää VAIN seuraava-merkki-heron (+ keräyslista/done); header/progress/gps/varuste/lisää/kommentit/inspect piilossa. GPS → ylävalikko R8:ssa.
 - **"Kartalle →" (`#btn-to-map`):** iso confirm-primary (`min-height:52px`, `--confirm`-täyttö, `radius-md`), näkyy vain `[data-view-mode="koti"]`. Sijainti `#map-area`:ssa `#segment-view-container`:n jälkeen.
 - **"🏠 koti" (`#btn-home-view`):** toolbar-nappi 44×44 (`#btn-menu`-tyyli: transparent + `border-strong`), näkyy vain `body[data-role="talkoolainen"]` + `[data-view-mode="kartta"]`. Paluu kotiin.
 - **Vaihto (V176):** pelkkä näkyvyyskytkin — ei nollaa segment-/marker-tilaa, ei verkkokutsuja. Karttamoodiin siirtyessä Leaflet `invalidateSize()` (kartta oli piilossa). ⚠️ Toolbar ahtautuu karttamoodissa (🏠 + Kaikki merkit + Varustelista + ⋯ ≤390px) → R9 (toolbar-remontti) siirtää osan ⋯-valikkoon.
