@@ -5,7 +5,7 @@
  *           must click "Tallenna" to actually create the segment.
  */
 import { test, expect } from 'playwright/test'
-import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTalkoolainenSegment } from './helpers/auth'
+import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTalkoolainenSegment, mockSegmentWrites } from './helpers/auth'
 
 /** Helper: create a segment via 2-click modal flow + Tallenna */
 async function createSegmentViaModal(page: import('playwright/test').Page) {
@@ -263,13 +263,12 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(page.locator('.segment-details-modal-backdrop')).not.toBeVisible()
   })
 
-  // KARANTEENI (2026-07-10): avaa details-modaalin synteettisellä dispatchEvent-klikillä
-  // Leaflet-polylineen, jota headless-chromium ei rekisteröi luotettavasti (auth-screen-overlay
-  // kaappaa klikin). Vahvistettu pre-existing (fail myös mainilla b672a64), ei regressio.
-  // Poisto-logiikka katettu Vitest-purella (tests/segments.test.ts). Ks. muisti flaky-e2e-tests.
-  // TODO: robustoitavissa DOM-polulla jos SegmentPanel saa klikattavan listarivin details-modaaliin.
-  test.fixme('pätkän voi poistaa listasta', async ({ page }) => {
+  // T77/T199: poisto elää SegmentDetailsModalissa, joka avataan pätkärivin ···-napista
+  // (.btn-segment-details-open, segment-panel.ts:319). Robustoitu deterministiseksi DOM-polulla —
+  // ei enää synteettistä dispatchEvent-klikkiä Leaflet-polylineen (headless-flaky). Ks. muisti flaky-e2e-tests.
+  test('pätkän voi poistaa listasta', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
+    await mockSegmentWrites(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -278,16 +277,11 @@ test.describe('T25 — SegmentPanel', () => {
 
     await expect(page.locator('.segment-item')).toHaveCount(1)
 
-    // Poisto siirretty SegmentDetailsModaliin (T77) — avaa se ja hyväksy confirm()
+    // Poisto siirretty SegmentDetailsModaliin (T77) — avaa se rivin ···-napista ja hyväksy confirm()
     page.once('dialog', dialog => dialog.accept())
-    await page.evaluate(() => {
-      const paths = document.querySelectorAll<SVGPathElement>('.leaflet-overlay-pane path')
-      const last = paths[paths.length - 1]
-      if (last) last.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
-    })
-    await page.waitForTimeout(400)
+    await page.click('.segment-item .btn-segment-details-open')
+    await expect(page.locator('.segment-details-modal')).toBeVisible()
     await page.click('.btn-segment-delete-modal')
-    await page.waitForTimeout(300)
 
     await expect(page.locator('.segment-empty')).toBeVisible()
   })

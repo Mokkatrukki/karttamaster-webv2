@@ -59,6 +59,17 @@ export async function mockMarkers(page: Page, markers: unknown[]): Promise<void>
   })
 }
 
+// E2E mockaa vain client-puolen /api/auth/me:n — oikeaa sessiota ei ole, joten kirjoitukset
+// (POST/PUT/DELETE /api/segments) saavat oikealta e2e-backendiltä 401 → outbox-reauth avaa
+// auth-screenin uudelleen ja se kaappaa myöhemmät klikit (juurisyy vanhaan headless-flakyyn).
+// Mockaa kirjoitukset onnistumaan; GET jää oikealle backendille (tyhjä e2e-db).
+export async function mockSegmentWrites(page: Page): Promise<void> {
+  await page.route(/\/api\/segments(\/[^/]+)?$/, route => {
+    if (route.request().method() === 'GET') return route.continue()
+    return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
+  })
+}
+
 export async function mockTemplates(page: Page): Promise<void> {
   await page.route('/api/templates', route => {
     if (route.request().method() === 'GET') {

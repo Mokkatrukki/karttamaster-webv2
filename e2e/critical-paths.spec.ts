@@ -6,7 +6,7 @@
  *   3. Rooli (backendistä) muuttaa toolbaria
  */
 import { test, expect } from 'playwright/test'
-import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTemplates, mockTalkoolainenSegment } from './helpers/auth'
+import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTemplates, mockTalkoolainenSegment, mockMarkers } from './helpers/auth'
 
 // Dev-server pyörii ulkopuolella (bun run dev) — playwright.config.ts baseURL
 
@@ -187,36 +187,27 @@ test.describe('Tilivalikko + Kirjaudu ulos (T203/V133)', () => {
 })
 
 test.describe('Drag-to-move — T37', () => {
-  // KARANTEENI (2026-07-10): headless-chromium ei rekisteröi synteettistä hiirivetoa
-  // (page.mouse.down/move/up) luotettavasti Leaflet-markeriin. Vahvistettu pre-existing
-  // (fail myös mainilla b672a64), ei regressio. routeIds-uudelleenlasku-logiikka katettu
-  // Vitest-purella (tests/navigation.test.ts). Ks. muisti flaky-e2e-tests.
-  test.fixme('merkki voidaan siirtää drag&drop — routeIds päivittyy', async ({ page }) => {
+  // Robustoitu 2026-07-10: merkki seedataan /api/markers-mockilla (ei enää flaky dblclick→picker-
+  // luontia). Aito drag (page.mouse.down/move/up) Leaflet-markeriin toimii tässä setupissa —
+  // sama page.mouse-polku kuin area-dblclick/segment-mapclick. Testaa V15 (siirtyy ruudulla) +
+  // V82/B54/T135 (drag ei avaa modaalia). routeIds-uudelleenlasku katettu Vitest-purella. Ks. flaky-e2e-tests.
+  const draggableMarker = {
+    id: 'mk-drag', type: 'right', lat: 65.62, lon: 27.62, distance_from_start: 5000,
+    route_ids: ['35km'], status: 'suunniteltu', location_note: null, color: null,
+    label: null, icon_id: null, image_id: null, template_id: null, parts_json: null,
+    description: null, images: [], created_by: null,
+  }
+  test('merkki voidaan siirtää drag&drop — sijainti muuttuu, ei avaa modaalia', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await mockTemplates(page)
+    await mockMarkers(page, [draggableMarker])
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
-    await page.waitForTimeout(1500)
+    await expect(page.locator('#auth-screen')).not.toHaveClass(/open/)
 
-    // Lisää merkki reitille (T85: dblclick → floating picker → tyyppi)
-    const routePath = page.locator('.leaflet-overlay-pane path').first()
-    const routeBox = await routePath.boundingBox()
-    expect(routeBox).not.toBeNull()
-    const mapBox = await page.locator('#map').boundingBox()
-    expect(mapBox).not.toBeNull()
-    const clickX = Math.round(routeBox!.x + routeBox!.width * 0.15 - mapBox!.x)
-    const clickY = Math.round(routeBox!.y + routeBox!.height * 0.5 - mapBox!.y)
-    await page.dblclick('#map', { position: { x: clickX, y: clickY }, timeout: 10000 })
-    await page.waitForTimeout(500)
-    await expect(page.locator('#floating-picker')).toHaveClass(/open/)
-    await page.click('#floating-picker .sign-type-btn[data-type="right"]')
-    await page.waitForTimeout(800)
-
-    // Merkit persistoituvat backendiin fire-and-forget-POSTilla (src/map/markers.ts apiPost,
-    // .catch(() => {})) — E2E mockaa vain client-puolen /api/auth/me:n, ei oikeaa sessiota,
-    // joten GET /api/markers ei ole luotettava tarkistustapa täällä. Todennus tehdään
-    // Leaflet-markerin ruutukoordinaattien kautta (draggable: true, ks. markers.ts:254).
+    // Seedattu merkki renderöi draggable Leaflet-markerin (järjestäjä, markers.ts:367)
     const markerEl = page.locator('.leaflet-marker-pane .leaflet-marker-icon').first()
+    await markerEl.waitFor({ state: 'visible' })
     const boxBefore = await markerEl.boundingBox()
     expect(boxBefore).not.toBeNull()
 

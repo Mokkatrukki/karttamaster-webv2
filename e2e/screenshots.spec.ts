@@ -1,6 +1,6 @@
-import { test } from 'playwright/test'
+import { test, expect } from 'playwright/test'
 import type { Page } from 'playwright/test'
-import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen } from './helpers/auth'
+import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTemplates } from './helpers/auth'
 import { snap } from './helpers/snap'
 
 const DESKTOP = { width: 1280, height: 800 }
@@ -82,17 +82,20 @@ test('admin_desktop_left-panel-closed', async ({ page }) => {
   await snap(page, 'admin_desktop_left-panel-closed')
 })
 
-// KARANTEENI (2026-07-10): visuaalinen snapshot-testi jonka `.sign-lib-dots-btn`-klikki
-// jää timeoutiin headless-chromiumissa (timing/render). Vahvistettu pre-existing (fail myös
-// mainilla b672a64), ei regressio. Ks. muisti flaky-e2e-tests.
-test.fixme('admin_desktop_sign-library-edit-modal', async ({ page }) => {
+test('admin_desktop_sign-library-edit-modal', async ({ page }) => {
   await mockAuthAsJarjestaja(page)
+  // T195/V125: kirjasto seedaa TYHJÄNÄ backendistä. Mockaa /api/templates jotta rivejä on
+  // olemassa klikattavaksi (muuten .sign-lib-dots-btn ei koskaan renderöi).
+  await mockTemplates(page)
   await page.setViewportSize(DESKTOP)
   await page.goto('/')
   await page.waitForTimeout(LOAD)
-  // Merkkikirjasto on auki oletuksena — klikkaa ··· ensimmäisellä rivillä
-  await page.locator('.sign-lib-dots-btn').first().click()
-  await page.waitForTimeout(400)
+  // Merkkikirjasto on auki oletuksena — klikkaa ··· ensimmäisellä rivillä.
+  // Odota rivi näkyviin ennen klikkiä (deterministinen, ei kiinteä timeout-race).
+  const dotsBtn = page.locator('.sign-lib-dots-btn').first()
+  await dotsBtn.waitFor({ state: 'visible' })
+  await dotsBtn.click()
+  await expect(page.locator('.sign-lib-modal')).toBeVisible()
   await snap(page, 'admin_desktop_sign-library-edit-modal')
 })
 

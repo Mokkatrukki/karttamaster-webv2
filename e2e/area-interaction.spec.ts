@@ -77,10 +77,7 @@ test.describe('T117 — V69: MapRectEditor edit exit + polygon guard', () => {
     await page.mouse.dblclick(box.x + 4, box.y + 4)
   }
 
-  // KARANTEENI (2026-07-10): synteettinen karttaklikki edit-tilan poistoon, jota headless-chromium
-  // ei rekisteröi luotettavasti Leaflet-kartalle. Vahvistettu pre-existing (fail myös mainilla
-  // b672a64), ei regressio. MapRectEditor-logiikka katettu Vitest-purella. Ks. muisti flaky-e2e-tests.
-  test.fixme('edit-tilassa karttaklikki → handleit katoavat (V69)', async ({ page }) => {
+  test('edit-tilassa karttaklikki → handleit katoavat (V69)', async ({ page }) => {
     await setupMocks(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
@@ -94,10 +91,15 @@ test.describe('T117 — V69: MapRectEditor edit exit + polygon guard', () => {
     await page.waitForTimeout(500)
     await expect(page.locator('.area-corner-handle')).toHaveCount(4)
 
-    // Klikkaa kartan oikeaan laitaan — kaukana polygonista, varmasti map-containerissa
+    // Klikkaa tyhjää kohtaa polygonin yläpuolella — page.click('#map', {position}) rekisteröityy
+    // Leafletin map-clickinä (toisin kuin raaka page.mouse.click nurkkaan, joka osui kontrolliin/paneeliin).
+    // Vältetään zoom-kontrolli (oikea ylänurkka T191) ja polygoni: klikataan vasenta ylälaitaa.
     const mapBox = await page.locator('#map').boundingBox()
-    if (!mapBox) throw new Error('map element not found')
-    await page.mouse.click(mapBox.x + mapBox.width - 50, mapBox.y + mapBox.height - 50)
+    const polyBox = await poly.boundingBox()
+    if (!mapBox || !polyBox) throw new Error('map or polygon element not found')
+    const clickX = 40 // vasen laita, kaukana zoom-kontrollista ja polygonin keskeltä
+    const clickY = Math.max(40, Math.round(polyBox.y - mapBox.y - 40)) // polygonin yläpuolella
+    await page.click('#map', { position: { x: clickX, y: clickY } })
     await page.waitForTimeout(500)
 
     // Handleit poistuvat
