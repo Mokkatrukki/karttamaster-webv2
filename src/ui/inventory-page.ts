@@ -7,11 +7,15 @@ import { createBackdrop, registerEscClose } from './modal-helpers'
 /** Valittu paikka: 'all' (kokooma), 'none' (orvot V166) tai location.id. */
 export type LocationSelection = string | 'all' | 'none'
 
+/** T251: read = tiivis katselu (mutaatiot piilossa), edit = muokkaus (napit näkyvissä). */
+export type InventoryViewMode = 'read' | 'edit'
+
 export interface InventoryView {
   locations: InventoryLocation[]
   items: InventoryItem[] // valitun paikan tavarat; 'all'-tilassa KAIKKI itemit (page ryhmittää)
   selectedLocationId: LocationSelection
   templates: Map<string, SignTemplate>
+  viewMode: InventoryViewMode // T251: oletus 'read' (V169); sessiokohtainen entryssä (V170)
 }
 
 export interface InventoryPageCallbacks {
@@ -25,6 +29,7 @@ export interface InventoryPageCallbacks {
   onAddSign?: (locationId: string | null) => void // T246
   onOpenSign?: (templateId: string) => void // T247: avaa SignTemplateModal (muokkaus)
   onConvertToSign?: (item: InventoryItem) => void // T250: tekstirivi → merkki (uusi malli esitäytetyllä nimellä)
+  onToggleViewMode?: () => void // T251: read ↔ edit (state entryssä, sessiokohtainen V170)
 }
 
 const ERR_TEXT: Record<string, string> = {
@@ -54,25 +59,55 @@ function readAddDraft(container: HTMLElement): AddDraft | undefined {
 }
 
 export function renderInventory(container: HTMLElement, view: InventoryView, cb: InventoryPageCallbacks): void {
+  const editable = view.viewMode === 'edit' // T251: mutaationapit näkyvät vain edit-modessa (V169)
+  container.classList.toggle('inv-edit-mode', editable) // kevyt yläpalkki-aksentti + tiivis rivi read-modessa
   // B: jokainen stepper/edit-toiminto reloadaa → koko sivu re-renderöityy. Ilman tätä
   // keskeneräinen lisäysnimi katosi kun käyttäjä säätää jonkun rivin määrää. Säilytä draft.
-  const draft = readAddDraft(container)
+  // (add-form on olemassa vain edit-modessa, joten draftia luetaan vain silloin.)
+  const draft = editable ? readAddDraft(container) : undefined
   container.innerHTML = ''
-  container.appendChild(buildLocationBar(view, cb))
-  container.appendChild(buildAddForm(view, cb, draft))
+  container.appendChild(buildTopBar(view, cb)) // T251: moodi-toggle yläpalkkiin
+  container.appendChild(buildLocationBar(view, cb, editable))
+  if (editable) container.appendChild(buildAddForm(view, cb, draft)) // read-modessa ei lisäystä (V169)
 
   const list = document.createElement('div')
   list.className = 'inv-list'
   list.id = 'inv-list'
 
   if (view.selectedLocationId === 'all') {
-    renderGrouped(list, view, cb)
+    renderGrouped(list, view, cb, editable)
   } else if (view.items.length === 0) {
     list.appendChild(emptyHint())
   } else {
-    for (const item of view.items) list.appendChild(buildCard(item, view, cb))
+    for (const item of view.items) list.appendChild(buildCard(item, view, cb, editable))
   }
   container.appendChild(list)
+}
+
+/** T251: yläpalkki jossa moodi-toggle "✎ Muokkaa" ↔ "✓ Valmis" (+ "Muokkaustila"-merkki editissä). */
+function buildTopBar(view: InventoryView, cb: InventoryPageCallbacks): HTMLElement {
+  const bar = document.createElement('div')
+  bar.className = 'inv-topbar'
+  bar.id = 'inv-topbar'
+
+  const editable = view.viewMode === 'edit'
+  const toggle = document.createElement('button')
+  toggle.type = 'button'
+  toggle.className = 'inv-btn inv-mode-toggle' + (editable ? ' active' : '')
+  toggle.id = 'inv-mode-toggle'
+  toggle.textContent = editable ? '✓ Valmis' : '✎ Muokkaa'
+  toggle.setAttribute('aria-pressed', editable ? 'true' : 'false')
+  toggle.addEventListener('click', () => cb.onToggleViewMode?.())
+  bar.appendChild(toggle)
+
+  if (editable) {
+    const badge = document.createElement('span')
+    badge.className = 'inv-mode-badge'
+    badge.textContent = 'Muokkaustila'
+    bar.appendChild(badge)
+  }
+
+  return bar
 }
 
 function emptyHint(): HTMLElement {
@@ -83,7 +118,7 @@ function emptyHint(): HTMLElement {
 }
 
 /** 'Kaikki'-kokooma: itemit ryhmiteltynä paikoittain väliotsikoin (+ "Ei paikkaa" orvoille). */
-function renderGrouped(list: HTMLElement, view: InventoryView, cb: InventoryPageCallbacks): void {
+function renderGrouped(list: HTMLElement, view: InventoryView, cb: InventoryPageCallbacks, editable: boolean): void {
   if (view.items.length === 0) {
     list.appendChild(emptyHint())
     return
@@ -98,20 +133,20 @@ function renderGrouped(list: HTMLElement, view: InventoryView, cb: InventoryPage
   // Paikat järjestyksessä, sitten "Ei paikkaa"
   for (const loc of view.locations) {
     const items = byLoc.get(loc.id)
-    if (items && items.length) list.appendChild(buildSection(loc.name, items, view, cb))
+    if (items && items.length) list.appendChild(buildSection(loc.name, items, view, cb, editable))
   }
   const orphans = byLoc.get(null)
-  if (orphans && orphans.length) list.appendChild(buildSection('Ei paikkaa', orphans, view, cb))
+  if (orphans && orphans.length) list.appendChild(buildSection('Ei paikkaa', orphans, view, cb, editable))
 }
 
-function buildSection(title: string, items: InventoryItem[], view: InventoryView, cb: InventoryPageCallbacks): HTMLElement {
+function buildSection(title: string, items: InventoryItem[], view: InventoryView, cb: InventoryPageCallbacks, editable: boolean): HTMLElement {
   const section = document.createElement('div')
   section.className = 'inv-section'
   const head = document.createElement('h3')
   head.className = 'inv-section-title'
   head.textContent = title // V164 textContent
   section.appendChild(head)
-  for (const item of items) section.appendChild(buildCard(item, view, cb))
+  for (const item of items) section.appendChild(buildCard(item, view, cb, editable))
   return section
 }
 
@@ -127,17 +162,21 @@ export function renderForbidden(container: HTMLElement): void {
 
 // ── Paikkapalkki: tabit + lisää paikka ───────────────────────────────────────
 
-function buildLocationBar(view: InventoryView, cb: InventoryPageCallbacks): HTMLElement {
+function buildLocationBar(view: InventoryView, cb: InventoryPageCallbacks, editable: boolean): HTMLElement {
   const bar = document.createElement('div')
   bar.className = 'inv-location-bar'
   bar.id = 'inv-location-bar'
 
   // Paikat ensin (ensisijainen), sitten "Ei paikkaa", sitten "Kaikki"-koonti (ei ensimmäisenä, EI oletus).
+  // Tabit näkyvät MOLEMMISSA moodeissa — read-modessa selailu säilyy (V169).
   for (const loc of view.locations) {
     bar.appendChild(locationTab(loc.name, loc.id, view.selectedLocationId === loc.id, () => cb.onSelectLocation(loc.id)))
   }
   bar.appendChild(locationTab('Ei paikkaa', 'none', view.selectedLocationId === 'none', () => cb.onSelectLocation('none')))
   bar.appendChild(locationTab('Kaikki', 'all', view.selectedLocationId === 'all', () => cb.onSelectLocation('all')))
+
+  // Paikkojen mutaationapit (+ Paikka, ✎ Muokkaa) VAIN edit-modessa (V169).
+  if (!editable) return bar
 
   const addBtn = document.createElement('button')
   addBtn.type = 'button'
@@ -411,9 +450,9 @@ function buildLocationSelect(locations: InventoryLocation[], selectedId: string 
 
 // ── Tavarakortti: nimi + määräsäädin + meta + toiminnot ──────────────────────
 
-function buildCard(item: InventoryItem, view: InventoryView, cb: InventoryPageCallbacks): HTMLElement {
+function buildCard(item: InventoryItem, view: InventoryView, cb: InventoryPageCallbacks, editable: boolean): HTMLElement {
   const card = document.createElement('div')
-  card.className = 'inv-card'
+  card.className = 'inv-card' + (editable ? '' : ' inv-card--read') // read = tiivis yksirivi (V169)
   card.dataset.itemId = item.id
 
   const head = document.createElement('div')
@@ -459,11 +498,22 @@ function buildCard(item: InventoryItem, view: InventoryView, cb: InventoryPageCa
     head.appendChild(unitEl)
   }
 
-  head.appendChild(buildStepper(item, cb))
+  // Read = määrä pelkkänä tekstinä (tiivis, ei mutaatiota V169); edit = säädettävä stepper.
+  if (editable) {
+    head.appendChild(buildStepper(item, cb))
+  } else {
+    const qtyEl = document.createElement('span')
+    qtyEl.className = 'inv-card-qty'
+    qtyEl.textContent = String(item.qty) // V164 textContent
+    head.appendChild(qtyEl)
+  }
   card.appendChild(head)
 
   const meta = metaLine(item)
   if (meta) card.appendChild(meta)
+
+  // Toimintonapit (✎ Tiedot, Poista) VAIN edit-modessa (V169).
+  if (!editable) return card
 
   const actions = document.createElement('div')
   actions.className = 'inv-card-actions'

@@ -3840,6 +3840,41 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 
 .inv-forbidden { padding: 32px 16px; text-align: center; color: var(--text-muted); }
 
+/* T251: read/edit-moodi — yläpalkin toggle + tiivis read-rivi + edit-aksentti */
+.inv-topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.inv-mode-toggle {
+  min-height: 44px;
+  padding: 6px 16px;
+  background: var(--field-tint);
+  color: var(--text-body);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+.inv-mode-toggle.active {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+.inv-mode-badge {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+/* edit-moodin kevyt aksentti: ohut vasen väripalkki koko sisällölle */
+.inv-edit-mode { border-left: 3px solid var(--accent); padding-left: 12px; }
+/* read-moodin tiivis yksirivi: pienempi pystypadding, määrä tekstinä oikealla */
+.inv-card--read { padding: 8px 12px; }
+.inv-card--read .inv-card-head { gap: 8px; }
+.inv-card--read .inv-card-qty { margin-left: auto; }
+
 /* T245: inventaario v2 — paikkanavigointi + määräsäädin */
 .inv-location-bar {
   display: flex;

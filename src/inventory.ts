@@ -1,6 +1,6 @@
 import './style.css'
 import { AuthScreen } from './ui/auth-screen'
-import { renderInventory, renderForbidden, renderSignPicker, defaultSelection, type LocationSelection } from './ui/inventory-page'
+import { renderInventory, renderForbidden, renderSignPicker, defaultSelection, type LocationSelection, type InventoryViewMode } from './ui/inventory-page'
 import { SignTemplateModal } from './ui/sign-template-modal'
 import { fetchTemplates, createTemplateRemote, updateTemplateRemote, deleteTemplateRemote } from './logic/template-sync'
 import { createLibrary, signDisplayLabel } from './logic/sign-library'
@@ -17,6 +17,8 @@ logoutBtn.addEventListener('click', async () => {
 
 let selected: LocationSelection = 'none'
 let initialized = false // ensimmäisellä latauksella oletus = Kärry/paikka, EI 'all'
+// T251: moodi sessiokohtainen — module-scope, EI localStorage → reload palauttaa aina 'read' (V170).
+let viewMode: InventoryViewMode = 'read'
 
 // Server palauttaa snake_case — normalisoi camelCase-logiikkatyyppiin (resolveItemName lukee templateId).
 type ServerItem = InventoryItem & { location_id: string | null; template_id: string | null }
@@ -68,10 +70,14 @@ async function load(): Promise<void> {
 
   renderInventory(
     content,
-    { locations, items, selectedLocationId: selected, templates },
+    { locations, items, selectedLocationId: selected, templates, viewMode },
     {
       onSelectLocation: (sel) => {
         selected = sel
+        void load() // tabin vaihto säilyttää moodin (viewMode ei nollaudu, V170)
+      },
+      onToggleViewMode: () => {
+        viewMode = viewMode === 'read' ? 'edit' : 'read'
         void load()
       },
       onAddLocation: async (name) => {

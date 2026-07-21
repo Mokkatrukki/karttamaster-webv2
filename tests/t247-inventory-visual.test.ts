@@ -14,7 +14,7 @@ function loc(id: string, name: string): InventoryLocation {
   return { id, name, sortOrder: 0 }
 }
 function view(over: Partial<InventoryView> = {}): InventoryView {
-  return { locations: [loc('loc-karry', 'Kärry')], items: [item()], selectedLocationId: 'loc-karry', templates: new Map(), ...over }
+  return { locations: [loc('loc-karry', 'Kärry')], items: [item()], selectedLocationId: 'loc-karry', templates: new Map(), viewMode: 'edit', ...over }
 }
 function makeCb(over: Partial<InventoryPageCallbacks> = {}): InventoryPageCallbacks {
   return { onSelectLocation: vi.fn(), onAddLocation: vi.fn(() => true), onAddItem: vi.fn(() => true), onEditItem: vi.fn(() => true), onDeleteItem: vi.fn(), ...over }
@@ -75,6 +75,7 @@ describe('T247 "Kaikki"-kokooma väliotsikoin', () => {
     ],
     selectedLocationId: 'all',
     templates: new Map(),
+    viewMode: 'edit',
   })
 
   it('"Kaikki"-tabi EI ensimmäisenä (viimeisenä), aktiivinen all-valinnalla', () => {
@@ -139,6 +140,7 @@ describe('T247 "Kaikki" = vain katselu (ei lisäystä)', () => {
     items: [],
     selectedLocationId: 'all',
     templates: new Map(),
+    viewMode: 'edit',
   })
 
   it('Kaikki-tilassa: ohje näkyy, EI add-kenttiä eikä add-selectiä', () => {
@@ -173,6 +175,7 @@ describe('T247 siirto toiseen paikkaan (tiedot-editori)', () => {
       items: [item({ locationId: 'loc-karry' })],
       selectedLocationId: 'loc-karry',
       templates: new Map(),
+      viewMode: 'edit',
     }
     renderInventory(container, v, cb)
     const card = container.querySelector<HTMLElement>('.inv-card')!

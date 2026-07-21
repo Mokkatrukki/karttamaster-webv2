@@ -21,6 +21,7 @@ function view(over: Partial<InventoryView> = {}): InventoryView {
     items: [item()],
     selectedLocationId: 'loc-karry',
     templates: new Map(),
+    viewMode: 'edit',
     ...over,
   }
 }

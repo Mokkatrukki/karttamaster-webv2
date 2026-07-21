@@ -35,7 +35,7 @@ function item(over: Partial<InventoryItem> = {}): InventoryItem {
 }
 function loc(): InventoryLocation { return { id: 'l1', name: 'Kärry', sortOrder: 0 } }
 function view(templates: Map<string, SignTemplate>, over: Partial<InventoryView> = {}): InventoryView {
-  return { locations: [loc()], items: [item()], selectedLocationId: 'l1', templates, ...over }
+  return { locations: [loc()], items: [item()], selectedLocationId: 'l1', templates, viewMode: 'edit', ...over }
 }
 function makeCb(over: Partial<InventoryPageCallbacks> = {}): InventoryPageCallbacks {
   return { onSelectLocation: vi.fn(), onAddLocation: vi.fn(() => true), onAddItem: vi.fn(() => true), onEditItem: vi.fn(() => true), onDeleteItem: vi.fn(), ...over }

@@ -10,7 +10,7 @@ function item(over: Partial<InventoryItem> = {}): InventoryItem {
 function loc(): InventoryLocation { return { id: 'l1', name: 'Kärry', sortOrder: 0 } }
 function tpl(): SignTemplate { return { id: 't1', label: 'Oikealle', color: '#10b981', description: '', favorite: false, keppi: true } }
 function view(items: InventoryItem[], templates = new Map<string, SignTemplate>()): InventoryView {
-  return { locations: [loc()], items, selectedLocationId: 'l1', templates }
+  return { locations: [loc()], items, selectedLocationId: 'l1', templates, viewMode: 'edit' }
 }
 function makeCb(over: Partial<InventoryPageCallbacks> = {}): InventoryPageCallbacks {
   return { onSelectLocation: vi.fn(), onAddLocation: vi.fn(() => true), onAddItem: vi.fn(() => true), onEditItem: vi.fn(() => true), onDeleteItem: vi.fn(), onConvertToSign: vi.fn(), ...over }
