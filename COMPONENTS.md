@@ -114,7 +114,8 @@ server/       ← Hono + Bun + SQLite
 | BackendServer | `server/index.ts` | ✓ T41 | — | [backend.md](docs/components/backend.md) |
 | DatabaseLayer | `server/db.ts` | ✓ | — | [backend.md](docs/components/backend.md) |
 | SegmentsAPI | `server/routes/segments.ts` | ✓ T149 | — | [backend.md](docs/components/backend.md) |
-| AuthRoutes | `server/routes/auth.ts` | ✓ T36 | — | [backend.md](docs/components/backend.md) |
+| AuthRoutes | `server/routes/auth.ts` | ✓ T36, T267 (talkoo-login + rate-limit, Model B V188) | — | [backend.md](docs/components/backend.md) |
+| Settings | `server/settings.ts` | ✓ T267 (settings-taulu key-value: talkoo_password_hash + faq_markdown; getSetting/setSetting) | — | [backend.md](docs/components/backend.md) |
 | AdminRoutes | `server/routes/admin.ts` | ✓ T121 | — | [backend.md](docs/components/backend.md) |
 | MarkersAPI | `server/routes/markers.ts` | ✓ T226 (kanoninen ownership + audit-kirjaus + created_by) | — | [backend.md](docs/components/backend.md) |
 | MarkerAudit | `server/marker-audit.ts` | ✓ T226 (ownSegments + markerInOwnSegment-unioni V154 + logMarkerAudit) | — | [backend.md](docs/components/backend.md) |

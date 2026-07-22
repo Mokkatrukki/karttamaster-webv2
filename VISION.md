@@ -25,7 +25,7 @@ Työkalu SyöteMTB 2026 -tapahtuman reittimerkintöjen suunnitteluun, toteutukse
 
 **Mitä järjestäjä tarvitsee:** selkeys ja hallinta. Kaikki reitit näkyvissä yhtä aikaa. Muutokset nopeasti. Delegointi selkeästi. Tilannekuva ilman numeropaneeleja — kartalta näkee.
 
-**Näkymä:** Täysin oma näkymä ja flow. Ei rooli-togglea. Järjestäjä ei näe talkoolaisen UI:ta eikä toisinpäin — eri URL, eri autentikaatio, eri layout.
+**Näkymä:** Oma näkymä ja flow — eri layout, eri autentikaatio. Järjestäjä ei näe talkoolaisen työkaluja talkoo-layoutissa eikä toisinpäin. **Poikkeus (T274, 2026-07-22):** järjestäjä (täydet oikeudet) VOI vaihtaa valikosta talkoo-layoutiin ja takaisin tehdäkseen itse pätkiään — sama sessio, ei uutta kirjautumista (SPEC §V13-amend). Talkoolaiselle ei ole tätä togglea.
 
 **Mitä järjestäjä EI tarvitse:** valmiusprosenttimittareita, drive mode (nice-to-have), talkoolaisen kuittaus-UI.
 
@@ -203,6 +203,18 @@ Jos feature on teknisesti oikein mutta ei läpäise käyttäjätestiä, se on ke
 - **Noutopiste / pudotuspiste** = custom karttamerkki joka kertoo mistä tullaan hakemaan / mihin pudotetaan tarvikkeet. Näkyy kartalla omana symbolinaan.
 - Tulevaisuudessa: huoltoalue jaettavissa huoltohenkilöille omana näkymänä.
 
+### Järjestäjä tekee pätkiä itselleen (talkoolais-crossover)
+
+- **Järjestäjä on usein itse reitintekijä.** Hän tekee pätkät ja tarvitsee mennä itse tekemään ne — asettaa merkit maastossa niinkuin talkoolainen. Sama henkilö suunnittelee JA toteuttaa, ei vain "delegoi kaikki muille".
+- Siksi järjestäjä pääsee valikosta vaihtamaan **talkoo-layoutiin** (tehdäkseen pätkän merkit) ja takaisin **järjestäjä-näkymään**. Sama tili, sama sessio — ei uutta kirjautumista (client-view-flip, ks. SPEC §V13/V189, T274).
+- Talkoolaisen oma flow pysyy silti kapeana: talkoolainen ei näe järjestäjä-työkaluja.
+
+### Talkoolais-hub — /patkat
+
+- Yksi admin-asettama **yleissalasana** on portti (SPEC §V188, Model B). Talkoolainen kirjautuu → `/patkat`-sivu.
+- Hub: "Tervetuloa talkoilemaan" + FAQ (aikataulut/ruokailut/sijainnit, admin muokkaa) + lista kaikista pätkistä (nimi + kuka tekee + status + linkki) + "Kartalle →".
+- Deep-link `/s/<slug>` (ihmisluettava, reitin nimi) vie suoraan pätkälle, mutta vaatii yleissalasana-session ensin. Turva tulee salasanasta, ei URL:n arvaamattomuudesta (SPEC §V42-amend).
+
 ### Pätkäjako kartalla
 
 - Jokainen pätkä omalla värillä kartalla — kokonaiskuva silmäiltävissä yhdellä vilkaisulla.
@@ -213,7 +225,7 @@ Jos feature on teknisesti oikein mutta ei läpäise käyttäjätestiä, se on ke
 
 ### Näkymäfilosofia — ero nykytilaan
 
-- **Järjestäjä ja talkoolainen ovat täysin erilliset näkymät ja flow.** Eri URL, eri autentikaatio, eri layout. Ei rooli-togglea. Järjestäjä ei näe talkoolaisen UI:ta lainkaan.
+- **Järjestäjä ja talkoolainen ovat erilliset näkymät ja flow.** Eri layout, eri autentikaatio. Talkoolaisella ei ole rooli-togglea. **Poikkeus (T274):** järjestäjä voi vaihtaa talkoo-layoutiin ja takaisin valikosta (tekee usein itse pätkänsä) — sama sessio, client-view-flip. Talkoolainen ei näe järjestäjä-työkaluja.
 - Tilannekuva luetaan kartalta pätkien värien ja statusten kautta — ei numeromittareita.
 - Reaaliaikainen sync: talkoolaisen muutokset näkyvät järjestäjälle kartalla heti.
 
@@ -312,7 +324,7 @@ Jokaisella tehtävällä (reitillisellä tai reitittömällä) on **merkkijoukko
 1. **Ikonilähde**: Lucide — selvitetty (T9 ✓)
 2. **Auth-flow**: hash-URL talkoolaiselle (V27 ✓), invite-flow järjestäjälle (T36 ✓). Admin UI käyttäjähallintaan: T121–T123.
 3. **GPX-päivitys**: mitä tapahtuu olemassa oleville merkeille kun GPX korvataan? (T34, auki)
-4. **Impromptu-pätkäjako:** ~~miten talkoolainen ottaa alueen ilman järjestäjää?~~ **RATKAISTU 2026-07-08: ei self-assignia.** Vain järjestäjä luo ja jakaa pätkät/tehtävät hash-URL:lla. Talkoolainen vastaanottaa, ei ota omia.
+4. **Impromptu-pätkäjako:** ~~miten talkoolainen ottaa alueen ilman järjestäjää?~~ **RATKAISTU 2026-07-08: ei self-assignia.** Vain järjestäjä luo ja jakaa pätkät/tehtävät. Talkoolainen vastaanottaa, ei ota omia. **AMEND 2026-07-22 (T267–T276, Talkoolais-hub):** talkoolainen pääsee `/patkat`-hubiin yleissalasanalla ja voi AVATA minkä tahansa pätkän (nähdä + tehdä) — mutta self-select "ota tämä pätkä itselleni" (assign) on yhä PARKISSA, tehdään myöhemmin. Järjestäjä jakaa/nimeää pätkät kuten ennenkin. Deep-linkki muuttui hash→ihmisluettava slug (V42-amend), portti = yleissalasana (V188), ei enää per-pätkä-hash-credentiaali.
 5. **Kasa-kuittaus:** ~~kuka voi merkata kasan otetuksi?~~ **RATKAISTU 2026-07-08:** kasa = talkoolaisen droppaama SignMarker (tyyppi esim. "keräyskasa"). Autoporukan tehtävä = dynaaminen tyyppisuodatin (kaikki keräyskasa-merkit, elävä lista). Kuka tahansa autentikoitu kuittaa "haettu". Osa tehtävämallia (ks. §Tehtävämalli).
 6. **Kommentti-systeemi:** yleiskäyttöinen (merkki + pätkä + vapaa piste), ikoni valinnaisesti, nimi valinnaisesti. Suunnitellaan ennen toteutusta — vaikuttaa tietomalliin laajasti.
 7. **Karttamerkki-järjestelmä (POI/este/kasa):** custom karttamerkkien tyypit ja tietomalli suunnittelematta. Eri asia kuin reittimerkki (SignMarker).

@@ -214,6 +214,12 @@ function initSchema(db: Database): void {
       sort_order INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
+
+    -- T267/V188: yleiskäyttöinen key-value-asetustaulu (talkoo-salasanan hash, FAQ-markdown T269).
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `)
 
   // T243/V165: inventaariorivi voi olla merkki (template_id → templates.id, elävä) tai kuulua paikkaan.

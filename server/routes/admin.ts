@@ -5,8 +5,25 @@ import type { AuthEnv } from '../middleware/auth'
 import { requireAuth, requireRole } from '../middleware/auth'
 import type { User, SessionData } from '../types'
 import { createSnapshot, serializeDataset, restoreDataset, insertRows, type DatasetV1 } from '../snapshot-data'
+import { getSetting, setSetting, SETTING_TALKOO_PASSWORD_HASH } from '../settings'
 
 export const adminRoutes = new Hono<AuthEnv>()
+
+// T267/V188: talkoolaisten yleissalasanan hallinta. GET ei vuoda hashia — vain onko asetettu.
+adminRoutes.get('/settings', requireAuth(), requireRole('admin'), (c) => {
+  const db: Database = c.get('db')
+  return c.json({ talkooPasswordSet: getSetting(db, SETTING_TALKOO_PASSWORD_HASH) !== null })
+})
+
+adminRoutes.put('/settings/talkoo-password', requireAuth(), requireRole('admin'), async (c) => {
+  const db: Database = c.get('db')
+  const body = await c.req.json<{ password?: string }>().catch(() => ({}) as { password?: string })
+  const password = body.password?.trim()
+  if (!password || password.length < 4) return c.json({ error: 'invalid_password' }, 400)
+  const hash = await Bun.password.hash(password)
+  setSetting(db, SETTING_TALKOO_PASSWORD_HASH, hash)
+  return c.json({ ok: true })
+})
 
 adminRoutes.get('/users', requireAuth(), requireRole('admin'), (c) => {
   const db: Database = c.get('db')
