@@ -11,3 +11,6 @@ screenshots/
 *.db-shm
 *.db-wal
 backups/
+
+# Tuotannosta vedetyt backupit — ei repoon
+tuotanto-back/
