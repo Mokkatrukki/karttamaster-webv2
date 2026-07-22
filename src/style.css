@@ -2441,7 +2441,8 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   gap: 6px;
 }
 
-.segment-assign-modal-form .input-assign-code {
+.segment-assign-modal-form .input-assign-code,
+.segment-assign-modal-form .input-assign-name {
   flex: 1;
   min-width: 0;
 }

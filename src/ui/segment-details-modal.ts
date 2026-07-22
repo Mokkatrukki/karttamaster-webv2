@@ -1,4 +1,4 @@
-import { updateSegment, deleteSegment, getMarkersForSegment, cloneSegmentToNextPhase, NEXT_PHASE } from '../logic/segments'
+import { updateSegment, deleteSegment, getMarkersForSegment, cloneSegmentToNextPhase, NEXT_PHASE, generateSegmentSlug } from '../logic/segments'
 import { updateSegmentRemote, deleteSegmentRemote, pushSegment } from '../logic/segment-sync'
 import type { Segment, SegmentStore, EquipmentItem } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
@@ -407,7 +407,8 @@ export class SegmentDetailsModal {
           if (!resp.ok) throw new Error('delete_failed')
           updateSegment(this.store, seg.id, { assignedCode: undefined })
           updateSegmentRemote(seg.id, { assignedCode: null as unknown as string }).catch(() => {})
-          this.close()
+          seg.assignedCode = undefined // V192: pidä paikallinen seg synkassa uudelleenrenderiä varten
+          section.replaceWith(this.buildAssignSection(seg)) // V192: EI sulje modalia — näytä lomake
           this.onRender()
         } catch {
           errorEl.textContent = 'Virhe poistettaessa — yritä uudelleen'
@@ -417,31 +418,43 @@ export class SegmentDetailsModal {
       row.appendChild(editBtn)
       section.appendChild(row)
     } else {
+      // T273/V191: järjestäjä syöttää VAIN näyttönimen → slug auto-generoidaan (ei käsin koodia).
       const form = document.createElement('div')
       form.className = 'segment-assign-modal-form'
 
-      const codeInput = document.createElement('input')
-      codeInput.className = 'input-assign-code'
-      codeInput.placeholder = 'Koodi'
-      codeInput.setAttribute('aria-label', 'Talkoolaisen koodi')
+      const nameInput = document.createElement('input')
+      nameInput.className = 'input-assign-name'
+      nameInput.placeholder = 'Näyttönimi (esim. Pätkä 1 — Varikko)'
+      nameInput.setAttribute('aria-label', 'Talkoolaisen pätkän näyttönimi')
+      nameInput.value = seg.displayName ?? ''
 
       const saveBtn = document.createElement('button')
       saveBtn.className = 'btn-assign-save'
-      saveBtn.textContent = 'Tallenna linkki'
+      saveBtn.textContent = 'Luo linkki'
       saveBtn.addEventListener('click', async () => {
-        const code = codeInput.value.trim()
-        if (!code) return
+        const name = nameInput.value.trim() || seg.displayName?.trim() || ''
+        if (!name) {
+          errorEl.textContent = 'Anna näyttönimi ensin'
+          errorEl.hidden = false
+          return
+        }
         errorEl.hidden = true
+        const existing = Array.from(this.store.values())
+          .map(s => s.assignedCode)
+          .filter((c): c is string => !!c)
+        const slug = generateSegmentSlug(name, existing)
         try {
           const resp = await fetch('/api/admin/codes', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code, display_name: seg.displayName ?? code, segment_id: seg.id }),
+            body: JSON.stringify({ code: slug, display_name: name, segment_id: seg.id }),
           })
           if (!resp.ok) throw new Error('save_failed')
-          updateSegment(this.store, seg.id, { assignedCode: code })
-          updateSegmentRemote(seg.id, { assignedCode: code }).catch(() => {})
-          this.close()
+          updateSegment(this.store, seg.id, { assignedCode: slug, displayName: name })
+          updateSegmentRemote(seg.id, { assignedCode: slug, displayName: name }).catch(() => {})
+          seg.assignedCode = slug // V192: pidä paikallinen seg synkassa
+          seg.displayName = name
+          section.replaceWith(this.buildAssignSection(seg)) // V192: EI sulje — näytä luotu linkki + Kopioi
           this.onRender()
           this.onUpdate()
         } catch {
@@ -450,7 +463,7 @@ export class SegmentDetailsModal {
         }
       })
 
-      form.appendChild(codeInput)
+      form.appendChild(nameInput)
       form.appendChild(saveBtn)
       section.appendChild(form)
     }

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import {
   createSegmentStore,
   createSegment,
+  generateSegmentSlug,
   updateSegment,
   deleteSegment,
   getSegmentsForPhase,
@@ -501,5 +502,23 @@ describe('segments', () => {
     it('tarkastus inspected=true → valmis', () => {
       expect(segmentLineState({ kind: 'boolean', done: true, label: 'tarkastettu' })).toBe('valmis')
     })
+  })
+})
+
+describe('T273/V191 — generateSegmentSlug', () => {
+  it('ääkköset normalisoidaan, [a-z0-9-]', () => {
+    expect(generateSegmentSlug('Pätkä 1 — Varikko', [])).toBe('patka-1-varikko')
+    expect(generateSegmentSlug('Ölkky/Ähtäri', [])).toBe('olkky-ahtari')
+  })
+  it('törmäys → suffiksi', () => {
+    expect(generateSegmentSlug('Varikko', ['varikko'])).toBe('varikko-2')
+    expect(generateSegmentSlug('Varikko', ['varikko', 'varikko-2'])).toBe('varikko-3')
+  })
+  it('case-insensitive uniikkius', () => {
+    expect(generateSegmentSlug('Varikko', ['VARIKKO'])).toBe('varikko-2')
+  })
+  it('tyhjä/erikoismerkki-nimi → fallback patka', () => {
+    expect(generateSegmentSlug('', [])).toBe('patka')
+    expect(generateSegmentSlug('!!!', [])).toBe('patka')
   })
 })

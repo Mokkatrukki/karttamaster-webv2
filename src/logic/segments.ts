@@ -73,6 +73,26 @@ export function deleteSegment(store: SegmentStore, id: string): boolean {
   return store.delete(id)
 }
 
+// T273/V191: ihmisluettava, uniikki slug pätkän nimestä (Model B — koodin ei tarvitse olla
+// arvaamaton, salasana suojaa V188/V42). Ääkköset normalisoidaan, [a-z0-9-], törmäys → suffiksi.
+function slugifyName(name: string): string {
+  const s = name
+    .toLowerCase()
+    .replace(/ä/g, 'a').replace(/ö/g, 'o').replace(/å/g, 'a')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return s || 'patka'
+}
+
+export function generateSegmentSlug(name: string, existing: string[]): string {
+  const base = slugifyName(name)
+  const taken = new Set(existing.map(s => s.toLowerCase()))
+  if (!taken.has(base)) return base
+  let n = 2
+  while (taken.has(`${base}-${n}`)) n++
+  return `${base}-${n}`
+}
+
 // T146/V91: lookup, ei if-ketju — uusi phase helppo lisätä. purku→asettaminen kiertää ympäri
 // (järjestäjä voi kloonata takaisin seuraavan tapahtuman asetusvaihetta varten).
 export const NEXT_PHASE: Record<Segment['phase'], Segment['phase']> = {
