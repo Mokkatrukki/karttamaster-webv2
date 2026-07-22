@@ -103,12 +103,15 @@ describe('T51 — AuthScreen', () => {
       expect(document.querySelector('#auth-form-talkoolainen.active')).toBeNull()
     })
 
-    it('toggle to talkoolainen shows code field', () => {
+    it('toggle to talkoolainen shows yleissalasana field (Model B, T272)', () => {
       const tab = document.querySelector('[data-tab="talkoolainen"]') as HTMLElement
       tab.click()
       expect(document.querySelector('#auth-form-talkoolainen.active')).not.toBeNull()
       expect(document.querySelector('#auth-form-jarjestaja.active')).toBeNull()
-      expect(document.getElementById('auth-code')).not.toBeNull()
+      expect(document.getElementById('auth-code')).toBeNull() // vanha koodikenttä poistettu
+      const pw = document.getElementById('auth-talkoo-password') as HTMLInputElement
+      expect(pw).not.toBeNull()
+      expect(pw.type).toBe('password')
     })
 
     it('toggle back to järjestäjä restores form', () => {
@@ -199,30 +202,38 @@ describe('T51 — AuthScreen', () => {
       tab.click()
     })
 
-    it('valid code → onAuthenticated with talkoolainen', async () => {
+    it('valid yleissalasana → talkoo-login → onAuthenticated (T272)', async () => {
       vi.stubGlobal('fetch', mockFetchMe(200, { role: 'talkoolainen', display_name: 'Talkoolainen 1' }))
-      ;(document.querySelector('#auth-code') as HTMLInputElement).value = 'ABC123'
+      ;(document.querySelector('#auth-talkoo-password') as HTMLInputElement).value = 'syote2026'
       const form = document.querySelector('#auth-form-talkoolainen') as HTMLFormElement
       form.dispatchEvent(new Event('submit', { cancelable: true }))
       await new Promise(r => setTimeout(r, 10))
-      expect(onAuthenticated).toHaveBeenCalledWith({ role: 'talkoolainen', displayName: 'Talkoolainen 1', code: 'ABC123' })
+      expect(onAuthenticated).toHaveBeenCalledWith({ role: 'talkoolainen', displayName: 'Talkoolainen 1', code: undefined })
     })
 
-    it('invalid code → error message', async () => {
-      vi.stubGlobal('fetch', mockFetchMe(401, { error: 'invalid_code' }))
-      ;(document.querySelector('#auth-code') as HTMLInputElement).value = 'WRONG'
+    it('väärä salasana → virheviesti (T272)', async () => {
+      vi.stubGlobal('fetch', mockFetchMe(401, { error: 'invalid_password' }))
+      ;(document.querySelector('#auth-talkoo-password') as HTMLInputElement).value = 'väärä'
       const form = document.querySelector('#auth-form-talkoolainen') as HTMLFormElement
       form.dispatchEvent(new Event('submit', { cancelable: true }))
       await new Promise(r => setTimeout(r, 10))
       expect(onAuthenticated).not.toHaveBeenCalled()
-      const error = document.getElementById('auth-error')?.textContent
-      expect(error).toContain('Väärä koodi')
+      expect(document.getElementById('auth-error')?.textContent).toContain('Väärä salasana')
     })
 
-    it('empty code → no fetch', async () => {
+    it('rate-limit 429 → virheviesti (T272)', async () => {
+      vi.stubGlobal('fetch', mockFetchMe(429, { error: 'rate_limited' }))
+      ;(document.querySelector('#auth-talkoo-password') as HTMLInputElement).value = 'x'
+      const form = document.querySelector('#auth-form-talkoolainen') as HTMLFormElement
+      form.dispatchEvent(new Event('submit', { cancelable: true }))
+      await new Promise(r => setTimeout(r, 10))
+      expect(document.getElementById('auth-error')?.textContent).toContain('Liikaa')
+    })
+
+    it('empty salasana → no fetch', async () => {
       const fetchMock = vi.fn()
       vi.stubGlobal('fetch', fetchMock)
-      ;(document.querySelector('#auth-code') as HTMLInputElement).value = ''
+      ;(document.querySelector('#auth-talkoo-password') as HTMLInputElement).value = ''
       const form = document.querySelector('#auth-form-talkoolainen') as HTMLFormElement
       form.dispatchEvent(new Event('submit', { cancelable: true }))
       await new Promise(r => setTimeout(r, 10))

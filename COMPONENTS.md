@@ -98,7 +98,7 @@ server/       ← Hono + Bun + SQLite
 | SegmentMarkerList | `src/ui/segment-marker-list.ts` | ✓ T263/V183, T264 (KOTI "Kaikki merkit" -tab, ryhmitelty asetetut/asettamatta/ei tarpeen; rivi→MarkerDetailModal) | tests/t263-segment-marker-list.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | SegmentKotiTabs | `src/ui/segment-koti-tabs.ts` | ✓ T264/V184 (koti-välilehdet: Varustelista·Kaikki merkit·Kommentit; korvaa "Lisää ⋯" -accordionin) | tests/t264-segment-koti-tabs.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | PhaseSwitcher | `src/ui/phase-switcher.ts` | ✓ T148,T180 (stopPropagation, B80) | e2e/t180-phase-switcher-menu.spec.ts | [ui.md](docs/components/ui.md) |
-| AuthScreen | `src/ui/auth-screen.ts` | ✓ T51 | — | [ui.md](docs/components/ui.md) |
+| AuthScreen | `src/ui/auth-screen.ts` | ✓ T51, T272 (Model B: talkoolainen=yleissalasana, deep-link pending→login→avaa pätkä) | critical-paths: "yleissalasana" | [ui.md](docs/components/ui.md) |
 | SnapshotPanel | `src/ui/snapshot-panel.ts` | ✓ T164 (lataa/palauta tiedostosta) | — | [ui.md](docs/components/ui.md) |
 | LeftPanel | `src/ui/left-panel.ts` | ✓ T73,T179 (onToggle callback),T181 (mobiili-drawer, default-collapsed ≤480px) | critical-paths: "Left panel"; e2e/t179-map-invalidate-size.spec.ts; e2e/t181-left-panel-mobile-drawer.spec.ts | [ui.md](docs/components/ui.md) |
 | StatusPanel | `src/ui/status-panel.ts` | ✓ T28 | sprint-features: "T28" | [ui.md](docs/components/ui.md) |

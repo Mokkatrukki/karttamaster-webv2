@@ -68,25 +68,31 @@ describe('T53 — AuthScreen URL-reititys', () => {
     vi.unstubAllGlobals()
   })
 
-  it('401 + /s/<koodi> → kytkee talkoolainen-tab ja täyttää koodin', async () => {
+  it('401 + /s/<koodi> → kytkee talkoolainen-tab + ohje, EI auto-loginia (Model B, T272)', async () => {
     vi.stubGlobal('location', { pathname: '/s/matti123' })
-    vi.stubGlobal('fetch', mockFetchCodeLogin())
+    vi.stubGlobal('fetch', mockFetch401())
 
     const screen = new AuthScreen(onAuthenticated)
     await screen.start()
     await new Promise(r => setTimeout(r, 20))
 
-    const codeInput = document.querySelector('#auth-code') as HTMLInputElement
-    expect(codeInput.value).toBe('MATTI123')
+    expect(document.querySelector('#auth-form-talkoolainen.active')).not.toBeNull()
+    expect(document.getElementById('auth-code')).toBeNull()
+    expect(document.getElementById('auth-error')?.textContent?.toLowerCase()).toContain('yleissalasana')
+    expect(onAuthenticated).not.toHaveBeenCalled()
   })
 
-  it('401 + /s/<koodi> → kutsuu code-login automaattisesti', async () => {
+  it('401 + /s/<koodi> → yleissalasana-login välittää pätkäkoodin onAuthenticatedille (T272)', async () => {
     vi.stubGlobal('location', { pathname: '/s/matti123' })
-    const fetchMock = mockFetchCodeLogin()
-    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('fetch', mockFetchCodeLogin()) // me→401, talkoo-login→200
 
     const screen = new AuthScreen(onAuthenticated)
     await screen.start()
+    await new Promise(r => setTimeout(r, 20))
+
+    ;(document.querySelector('#auth-talkoo-password') as HTMLInputElement).value = 'syote2026'
+    ;(document.querySelector('#auth-form-talkoolainen') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { cancelable: true }))
     await new Promise(r => setTimeout(r, 20))
 
     expect(onAuthenticated).toHaveBeenCalledWith({

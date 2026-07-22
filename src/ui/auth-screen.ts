@@ -23,6 +23,9 @@ export class AuthScreen {
   private readonly talkoolainenForm: HTMLFormElement
   private readonly inviteForm: HTMLFormElement
   private inviteToken: string | null = null
+  // T272/V188 (Model B): /s/<slug> deep-link = pätkävalitsin (ei credentiaali). Talletetaan
+  // kunnes yleissalasana-login onnistuu → välitetään onAuthenticatedille avaamaan oikea pätkä.
+  private pendingCode: string | null = null
   // T186/V119: kesken session vanhentunut sessio (401) → sama overlay uudelleen, mutta
   // onnistuminen EI käynnistä koko sovellusta uudelleen — vain jatketaan (outbox retry).
   private reauthCallback: (() => void) | null = null
@@ -58,10 +61,11 @@ export class AuthScreen {
       }
       if (resp.status === 401) {
         if (pathCode) {
+          // Model B: EI auto-kirjautumista koodilla. Talleta pätkävalitsin, näytä
+          // yleissalasana-lomake — käyttäjä kirjautuu salasanalla, sitten pätkä avautuu.
+          this.pendingCode = pathCode
           this.switchTab('talkoolainen')
-          const codeInput = this.overlay.querySelector('#auth-code') as HTMLInputElement
-          codeInput.value = pathCode
-          this.talkoolainenForm.dispatchEvent(new Event('submit', { cancelable: true }))
+          this.showError('Kirjaudu yleissalasanalla avataksesi pätkän')
           return
         }
         return
@@ -85,11 +89,7 @@ export class AuthScreen {
     // switchTab nollaa virhetekstin → aseta tab ensin, virheteksti vasta sen jälkeen.
     if (getRole() === 'talkoolainen') {
       this.switchTab('talkoolainen')
-      const pathCode = extractSegmentCode(window.location.pathname)
-      if (pathCode) {
-        const codeInput = this.overlay.querySelector('#auth-code') as HTMLInputElement
-        codeInput.value = pathCode
-      }
+      this.pendingCode = extractSegmentCode(window.location.pathname)
     } else {
       this.switchTab('järjestäjä')
     }
@@ -134,7 +134,7 @@ export class AuthScreen {
           <button type="submit">Kirjaudu</button>
         </form>
         <form id="auth-form-talkoolainen" class="auth-form">
-          <input type="text" id="auth-code" placeholder="Talkoolaiskoodi" autocomplete="off" />
+          <input type="password" id="auth-talkoo-password" placeholder="Yleissalasana" autocomplete="off" />
           <button type="submit">Kirjaudu</button>
         </form>
         <form id="auth-form-invite" class="auth-form">
@@ -216,18 +216,22 @@ export class AuthScreen {
     }
   }
 
-  private async loginTalkoolainen(code: string): Promise<void> {
+  // T272/V188 (Model B): talkoolainen kirjautuu yhdellä yleissalasanalla. pendingCode (jos
+  // /s/<slug>-deep-linkistä) välitetään eteenpäin → sovellus avaa kyseisen pätkän.
+  private async loginTalkoo(password: string): Promise<void> {
     try {
-      const resp = await fetch('/api/auth/code-login', {
+      const resp = await fetch('/api/auth/talkoo-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ password }),
       })
       if (resp.ok) {
         const data = await resp.json() as { role: Role; display_name: string }
-        this.finishAuth({ role: data.role, displayName: data.display_name, code })
+        this.finishAuth({ role: data.role, displayName: data.display_name, code: this.pendingCode ?? undefined })
+      } else if (resp.status === 429) {
+        this.showError('Liikaa yrityksiä — odota hetki ja yritä uudelleen')
       } else {
-        this.showError('Väärä koodi — tarkista koodi uudelleen')
+        this.showError('Väärä salasana')
       }
     } catch {
       this.showError('Yhteysvirhe — yritä uudelleen')
@@ -251,9 +255,9 @@ export class AuthScreen {
 
     this.talkoolainenForm.addEventListener('submit', async (e) => {
       e.preventDefault()
-      const code = (this.overlay.querySelector('#auth-code') as HTMLInputElement).value.trim()
-      if (!code) return
-      await this.loginTalkoolainen(code)
+      const password = (this.overlay.querySelector('#auth-talkoo-password') as HTMLInputElement).value
+      if (!password) return
+      await this.loginTalkoo(password)
     })
 
     this.inviteForm.addEventListener('submit', async (e) => {

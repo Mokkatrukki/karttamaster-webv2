@@ -299,12 +299,12 @@ test.describe('Auth screen — T51', () => {
     await expect(page.locator('#map')).toBeVisible()
   })
 
-  test('401 → talkoolainen-tab → talkoolaiskoodi → kirjautuminen', async ({ page }) => {
+  test('401 → talkoolainen-tab → yleissalasana → kirjautuminen (Model B, T272)', async ({ page }) => {
     await page.route('/api/auth/me', route =>
       route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'unauthorized' }) }),
     )
-    await page.route('/api/auth/code-login', route =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ role: 'talkoolainen', display_name: 'Talkoolainen 1' }) }),
+    await page.route('/api/auth/talkoo-login', route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ role: 'talkoolainen', display_name: 'Talkoolainen' }) }),
     )
 
     await page.setViewportSize({ width: 375, height: 812 })
@@ -315,8 +315,8 @@ test.describe('Auth screen — T51', () => {
     await page.click('[data-tab="talkoolainen"]')
     await expect(page.locator('#auth-form-talkoolainen')).toHaveClass(/active/)
 
-    // Syötä koodi ja kirjaudu
-    await page.fill('#auth-code', 'ABC123')
+    // Syötä yleissalasana ja kirjaudu
+    await page.fill('#auth-talkoo-password', 'syote2026')
     await page.click('#auth-form-talkoolainen button[type="submit"]')
     await page.waitForTimeout(500)
 
