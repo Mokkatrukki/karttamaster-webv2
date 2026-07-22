@@ -79,9 +79,9 @@ async function loadUsers(): Promise<void> {
 
 async function loadSettings(): Promise<void> {
   const res = await fetch('/api/admin/settings')
-  const talkooPasswordSet = res.ok ? ((await res.json()) as { talkooPasswordSet: boolean }).talkooPasswordSet : false
+  const talkooPassword = res.ok ? ((await res.json()) as { talkooPassword: string }).talkooPassword : ''
   renderAdminSettings(settingsEl, {
-    talkooPasswordSet,
+    talkooPassword,
     onSaveTalkooPassword: async (password) => {
       const r = await fetch('/api/admin/settings/talkoo-password', {
         method: 'PUT',

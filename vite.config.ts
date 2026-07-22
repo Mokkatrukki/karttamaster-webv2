@@ -2,6 +2,18 @@ import { defineConfig } from 'vite'
 import { resolve } from 'path'
 
 export default defineConfig({
+  // Dev: clean-URL-mappaus (nginx tekee tämän prodissa). /patkat → patkat.html.
+  plugins: [
+    {
+      name: 'clean-urls-dev',
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          if (req.url === '/patkat' || req.url === '/patkat/') req.url = '/patkat.html'
+          next()
+        })
+      },
+    },
+  ],
   server: {
     host: true,
     proxy: {

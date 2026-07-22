@@ -6,7 +6,7 @@ import type { Database } from 'bun:sqlite'
 import type { AuthEnv } from '../middleware/auth'
 import { requireAuth } from '../middleware/auth'
 import type { User, SessionData } from '../types'
-import { getSetting, SETTING_TALKOO_PASSWORD_HASH } from '../settings'
+import { getSetting, SETTING_TALKOO_PASSWORD } from '../settings'
 
 export const authRoutes = new Hono<AuthEnv>()
 
@@ -89,8 +89,9 @@ authRoutes.post('/talkoo-login', async (c) => {
 
   const body = await c.req.json<{ password?: string }>().catch(() => ({}) as { password?: string })
   const password = body.password
-  const hash = getSetting(db, SETTING_TALKOO_PASSWORD_HASH)
-  const valid = !!password && !!hash && (await Bun.password.verify(password, hash))
+  const stored = getSetting(db, SETTING_TALKOO_PASSWORD)
+  // Plaintext-vertailu (jaettu salasana). Rate-limit (yllä) hoitaa brute-forcen.
+  const valid = !!password && !!stored && password === stored
 
   if (!valid) {
     const cur = talkooFails.get(ip)

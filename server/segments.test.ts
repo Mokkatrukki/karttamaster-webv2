@@ -97,9 +97,19 @@ describe('T61: Segments API', () => {
     expect(list).toHaveLength(1)
   })
 
-  test('GET /api/segments — talkoolainen saa 403', async () => {
+  test('GET /api/segments — talkoolainen näkee kaikki (T271 hub, Model B)', async () => {
     const app = makeApp(db)
     const res = await app.request('/api/segments', { headers: authHeaders(db, 'talkoolainen') })
+    expect(res.status).toBe(200)
+  })
+
+  test('POST /api/segments — talkoolainen EI saa luoda (mutaatio järjestäjä+)', async () => {
+    const app = makeApp(db)
+    const res = await app.request('/api/segments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(db, 'talkoolainen') },
+      body: JSON.stringify({ routeIds: ['35km'], startDist: 0, endDist: 100, phase: 'asettaminen' }),
+    })
     expect(res.status).toBe(403)
   })
 

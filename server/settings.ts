@@ -1,9 +1,12 @@
 import type { Database } from 'bun:sqlite'
 
-// T267/V188: yleiskäyttöinen key-value-asetustaulu. Talkoolaisten yleissalasana (hash)
+// T267/V188: yleiskäyttöinen key-value-asetustaulu. Talkoolaisten yleissalasana
 // ja FAQ-markdown (T269) elävät tässä — ei omaa taulua kummallekaan.
+// HUOM (käyttäjäpäätös 2026-07-22): talkoo-salasana tallennetaan PLAINTEXTINÄ jotta admin
+// voi katsoa/näyttää sen ("mikäs se salasana oli"). Tietoinen valinta: jaettu vapaaehtois-
+// salasana, näkyy vain admin-sivulla, ei henkilökohtainen credentiaali. Ei bcryptiä.
 
-export const SETTING_TALKOO_PASSWORD_HASH = 'talkoo_password_hash'
+export const SETTING_TALKOO_PASSWORD = 'talkoo_password'
 export const SETTING_FAQ_MARKDOWN = 'faq_markdown'
 
 export function getSetting(db: Database, key: string): string | null {

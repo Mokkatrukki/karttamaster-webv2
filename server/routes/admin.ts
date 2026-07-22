@@ -5,14 +5,16 @@ import type { AuthEnv } from '../middleware/auth'
 import { requireAuth, requireRole } from '../middleware/auth'
 import type { User, SessionData } from '../types'
 import { createSnapshot, serializeDataset, restoreDataset, insertRows, type DatasetV1 } from '../snapshot-data'
-import { getSetting, setSetting, SETTING_TALKOO_PASSWORD_HASH, SETTING_FAQ_MARKDOWN } from '../settings'
+import { getSetting, setSetting, SETTING_TALKOO_PASSWORD, SETTING_FAQ_MARKDOWN } from '../settings'
 
 export const adminRoutes = new Hono<AuthEnv>()
 
-// T267/V188: talkoolaisten yleissalasanan hallinta. GET ei vuoda hashia — vain onko asetettu.
+// T267/V188: talkoolaisten yleissalasanan hallinta. Admin-only → palauttaa salasanan
+// näkyviin ("mikäs se salasana oli", käyttäjäpäätös 2026-07-22 — plaintext, jaettu salasana).
 adminRoutes.get('/settings', requireAuth(), requireRole('admin'), (c) => {
   const db: Database = c.get('db')
-  return c.json({ talkooPasswordSet: getSetting(db, SETTING_TALKOO_PASSWORD_HASH) !== null })
+  const pw = getSetting(db, SETTING_TALKOO_PASSWORD)
+  return c.json({ talkooPassword: pw ?? '', talkooPasswordSet: pw !== null && pw !== '' })
 })
 
 adminRoutes.put('/settings/talkoo-password', requireAuth(), requireRole('admin'), async (c) => {
@@ -20,8 +22,7 @@ adminRoutes.put('/settings/talkoo-password', requireAuth(), requireRole('admin')
   const body = await c.req.json<{ password?: string }>().catch(() => ({}) as { password?: string })
   const password = body.password?.trim()
   if (!password || password.length < 4) return c.json({ error: 'invalid_password' }, 400)
-  const hash = await Bun.password.hash(password)
-  setSetting(db, SETTING_TALKOO_PASSWORD_HASH, hash)
+  setSetting(db, SETTING_TALKOO_PASSWORD, password)
   return c.json({ ok: true })
 })
 

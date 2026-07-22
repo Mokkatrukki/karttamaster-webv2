@@ -9,18 +9,18 @@ describe('T268/V188 — admin talkoolais-salasana UI', () => {
   })
 
   it('näyttää "asetettu" kun salasana on', () => {
-    renderAdminSettings(c, { talkooPasswordSet: true, onSaveTalkooPassword: vi.fn() })
+    renderAdminSettings(c, { talkooPassword: 'syote26', onSaveTalkooPassword: vi.fn() })
     expect(c.querySelector('.admin-settings-status')?.textContent).toContain('asetettu')
   })
 
   it('näyttää "ei asetettu" kun salasanaa ei ole', () => {
-    renderAdminSettings(c, { talkooPasswordSet: false, onSaveTalkooPassword: vi.fn() })
+    renderAdminSettings(c, { talkooPassword: '', onSaveTalkooPassword: vi.fn() })
     expect(c.querySelector('.admin-settings-status')?.textContent?.toLowerCase()).toContain('ei asetettu')
   })
 
   it('Tallenna kutsuu callbackia salasanalla', () => {
     const onSave = vi.fn()
-    renderAdminSettings(c, { talkooPasswordSet: false, onSaveTalkooPassword: onSave })
+    renderAdminSettings(c, { talkooPassword: '', onSaveTalkooPassword: onSave })
     const input = c.querySelector('.admin-talkoo-password-input') as HTMLInputElement
     input.value = 'syote2026'
     ;(c.querySelector('.admin-talkoo-password-save') as HTMLButtonElement).click()
@@ -29,7 +29,7 @@ describe('T268/V188 — admin talkoolais-salasana UI', () => {
 
   it('liian lyhyt salasana → ei kutsu callbackia, näyttää virheen', () => {
     const onSave = vi.fn()
-    renderAdminSettings(c, { talkooPasswordSet: false, onSaveTalkooPassword: onSave })
+    renderAdminSettings(c, { talkooPassword: '', onSaveTalkooPassword: onSave })
     const input = c.querySelector('.admin-talkoo-password-input') as HTMLInputElement
     input.value = 'ab'
     ;(c.querySelector('.admin-talkoo-password-save') as HTMLButtonElement).click()
@@ -38,7 +38,7 @@ describe('T268/V188 — admin talkoolais-salasana UI', () => {
   })
 
   it('Näytä/Piilota-toggle vaihtaa input-tyypin', () => {
-    renderAdminSettings(c, { talkooPasswordSet: false, onSaveTalkooPassword: vi.fn() })
+    renderAdminSettings(c, { talkooPassword: '', onSaveTalkooPassword: vi.fn() })
     const input = c.querySelector('.admin-talkoo-password-input') as HTMLInputElement
     const toggle = c.querySelector('.admin-password-toggle') as HTMLButtonElement
     expect(input.type).toBe('password')
@@ -46,5 +46,13 @@ describe('T268/V188 — admin talkoolais-salasana UI', () => {
     expect(input.type).toBe('text')
     toggle.click()
     expect(input.type).toBe('password')
+  })
+  it('esitäyttää nykyisen salasanan (admin voi katsoa)', () => {
+    renderAdminSettings(c, { talkooPassword: 'syote2026', onSaveTalkooPassword: vi.fn() })
+    const input = c.querySelector('.admin-talkoo-password-input') as HTMLInputElement
+    expect(input.value).toBe('syote2026')
+    const toggle = c.querySelector('.admin-password-toggle') as HTMLButtonElement
+    toggle.click()
+    expect(input.type).toBe('text') // paljasta → näkyy
   })
 })

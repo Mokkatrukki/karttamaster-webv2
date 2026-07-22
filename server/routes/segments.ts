@@ -46,7 +46,10 @@ function rowToSegment(row: SegmentRow) {
 export const segmentRoutes = new Hono<AuthEnv>()
 
 // Järjestäjä: hae kaikki segmentit
-segmentRoutes.get('/', requireAuth(), requireRole('admin', 'järjestäjä'), (c) => {
+// T271/V188 (talkoolais-hub): talkoolainen näkee kaikki pätkät /patkat-hubissa (Model B,
+// VISION "kaikki näkevät kaikkien" — avoimuus tarkoituksellista). Luku ∀ autentikoitu;
+// mutaatiot (POST/PUT/DELETE alla) pysyvät järjestäjä+.
+segmentRoutes.get('/', requireAuth(), (c) => {
   const db: Database = c.get('db')
   const rows = db.query<SegmentRow, []>('SELECT * FROM segments ORDER BY start_dist ASC').all()
   return c.json(rows.map(rowToSegment))

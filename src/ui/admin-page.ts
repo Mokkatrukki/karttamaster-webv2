@@ -110,9 +110,10 @@ function buildUserRow(user: AdminUser, callbacks: AdminPageCallbacks): HTMLTable
   return tr
 }
 
-// T268/V188: talkoolaisten yleissalasanan asetus admin-sivulla.
+// T268/V188: talkoolaisten yleissalasanan asetus admin-sivulla. Näyttää NYKYISEN salasanan
+// (esitäytetty, katsottavissa toggle-napista) jotta admin voi tarkistaa "mikäs se salasana oli".
 export interface AdminSettingsOpts {
-  talkooPasswordSet: boolean
+  talkooPassword: string
   onSaveTalkooPassword: (password: string) => void
 }
 
@@ -129,7 +130,9 @@ export function renderAdminSettings(container: HTMLElement, opts: AdminSettingsO
 
   const status = document.createElement('p')
   status.className = 'admin-settings-status'
-  status.textContent = opts.talkooPasswordSet ? '✓ Salasana asetettu' : 'Ei asetettu — talkoolaiset eivät pääse sisään'
+  status.textContent = opts.talkooPassword
+    ? '✓ Salasana asetettu — jaa tämä talkoolaisille'
+    : 'Ei asetettu — talkoolaiset eivät pääse sisään'
   section.appendChild(status)
 
   const row = document.createElement('div')
@@ -138,7 +141,8 @@ export function renderAdminSettings(container: HTMLElement, opts: AdminSettingsO
   const input = document.createElement('input')
   input.type = 'password'
   input.className = 'admin-talkoo-password-input'
-  input.placeholder = 'Uusi yleissalasana'
+  input.placeholder = 'Yleissalasana'
+  input.value = opts.talkooPassword // esitäytetty → admin näkee nykyisen (toggle paljastaa)
   input.setAttribute('aria-label', 'Talkoolaisten yleissalasana')
 
   const toggleBtn = document.createElement('button')

@@ -5,7 +5,7 @@ import { dbMiddleware } from './middleware/auth'
 import { authRoutes, __resetTalkooRateLimit } from './routes/auth'
 import { adminRoutes } from './routes/admin'
 import { seedTestUsers, authHeaders } from './test-fixtures'
-import { setSetting, getSetting, SETTING_TALKOO_PASSWORD_HASH } from './settings'
+import { setSetting, SETTING_TALKOO_PASSWORD } from './settings'
 import type { Database } from 'bun:sqlite'
 
 function makeApp(db: Database) {
@@ -16,10 +16,10 @@ function makeApp(db: Database) {
   return app
 }
 
-// Nopea bcrypt-hash (cost 4) suoraan settingsiin — ei aja admin-PUT:n hidasta default-hashausta joka testissä.
+// Plaintext-salasana suoraan settingsiin (käyttäjäpäätös: admin voi katsoa salasanan).
 const PW = 'salaisuus26'
 function seedTalkooPassword(db: Database, pw = PW): void {
-  setSetting(db, SETTING_TALKOO_PASSWORD_HASH, Bun.password.hashSync(pw, { algorithm: 'bcrypt', cost: 4 }))
+  setSetting(db, SETTING_TALKOO_PASSWORD, pw)
 }
 
 describe('T267/V188: yleissalasana + Model B talkoo-auth', () => {
@@ -115,7 +115,9 @@ describe('T267/V188: yleissalasana + Model B talkoo-auth', () => {
 
     const get = await app.request('/api/admin/settings', { headers: authHeaders(db, 'admin') })
     expect(get.status).toBe(200)
-    expect((await get.json()) as { talkooPasswordSet: boolean }).toEqual({ talkooPasswordSet: true })
+    const gs = (await get.json()) as { talkooPassword: string; talkooPasswordSet: boolean }
+    expect(gs.talkooPasswordSet).toBe(true)
+    expect(gs.talkooPassword).toBe('uusisala')
 
     const login = await app.request('/api/auth/talkoo-login', {
       method: 'POST',
@@ -165,13 +167,12 @@ describe('T267/V188: yleissalasana + Model B talkoo-auth', () => {
     expect(res.status).toBe(400)
   })
 
-  test('GET /api/admin/settings EI vuoda hashia', async () => {
+  test('GET /api/admin/settings palauttaa salasanan adminille (katsottava)', async () => {
     seedTalkooPassword(db)
     const res = await makeApp(db).request('/api/admin/settings', { headers: authHeaders(db, 'admin') })
-    const body = (await res.json()) as Record<string, unknown>
-    expect(JSON.stringify(body)).not.toContain(getSetting(db, SETTING_TALKOO_PASSWORD_HASH))
-    expect('talkoo_password_hash' in body).toBe(false)
-    expect('hash' in body).toBe(false)
+    const body = (await res.json()) as { talkooPassword: string; talkooPasswordSet: boolean }
+    expect(body.talkooPassword).toBe(PW)
+    expect(body.talkooPasswordSet).toBe(true)
   })
 
   test('GET /api/admin/settings vaatii adminin → järjestäjä 403', async () => {

@@ -25,9 +25,13 @@ export function wireAuth(
   onAuthenticated: (code?: string) => void,
 ): AuthScreen {
   const authScreen: AuthScreen = new AuthScreen(({ role, code, displayName }) => {
-    setRole(role)
-    applyRoleView(role)
-    applyRoleHide(role)
+    // T274/V189 (crossover): /s/<koodi>-deep-link → TALKOO-näkymä riippumatta tilin roolista.
+    // Järjestäjä (usein itse reitintekijä) avaa pätkän talkoolais-layoutissa; sessio + oikeudet
+    // säilyvät (cookie), vain client-layout vaihtuu. Ilman koodia → tilin oma rooli.
+    const viewRole = code ? 'talkoolainen' : role
+    setRole(viewRole)
+    applyRoleView(viewRole)
+    applyRoleHide(viewRole)
     // T203/V133: tilivalikko (nimi + teema + Kirjaudu ulos) toolbar-menun yläosaan.
     const accountSection = document.getElementById('account-menu-section')
     if (accountSection) {

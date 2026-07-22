@@ -4692,3 +4692,9 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 /* T274: järjestäjä-crossover-linkki tilivalikossa */
 .account-menu-patkat { display: block; min-height: 44px; line-height: 44px; padding: 0 12px; color: var(--accent); text-decoration: none; border-radius: var(--radius-sm); }
 .account-menu-patkat:hover { background: var(--hover); }
+/* T271: /patkat inline-login (yleissalasana) */
+.patkat-login-card { max-width: 420px; margin: 40px auto; display: flex; flex-direction: column; gap: 14px; padding: 24px 20px; }
+.patkat-login-form { display: flex; gap: 8px; flex-wrap: wrap; }
+.patkat-login-input { flex: 1 1 180px; min-height: 48px; padding: 0 14px; background: var(--surface-card); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: var(--text-body); font-size: 1rem; }
+.patkat-login-btn { min-height: 48px; padding: 0 20px; }
+.patkat-login-error { color: var(--danger); min-height: 1.2em; margin: 0; }
