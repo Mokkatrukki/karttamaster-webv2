@@ -127,8 +127,18 @@ function buildSegmentRow(seg: Segment, markers: SignMarker[], role: string): HTM
     open.href = url
     open.textContent = 'Avaa →'
     actions.appendChild(open)
-    // T275 laajentaa: järjestäjälle koko linkki + Kopioi (data-hook alla).
     li.dataset.slug = seg.assignedCode
+    // T275: järjestäjä näkee kaikki linkit + Kopioi yhdessä näkymässä (korjaa "jokaiselle
+    // reitille hankala mennä" — ei tarvitse avata jokaista SegmentDetailsModalia erikseen).
+    if (role !== 'talkoolainen') {
+      const copyBtn = document.createElement('button')
+      copyBtn.className = 'patkat-row-copy'
+      copyBtn.textContent = '📋 Kopioi linkki'
+      copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(`${window.location.origin}${url}`).catch(() => {})
+      })
+      actions.appendChild(copyBtn)
+    }
   } else {
     const nolink = document.createElement('span')
     nolink.className = 'patkat-row-nolink'

@@ -93,4 +93,18 @@ describe('T271 — /patkat-hub renderöinti', () => {
     })
     expect(c.querySelector('.patkat-faq-body script')).toBeNull()
   })
+
+  it('T275: järjestäjä näkee Kopioi-napin jaetulla pätkällä', () => {
+    const s = seg({ displayName: 'Pätkä 1', assignedCode: 'patka-1' })
+    renderPatkatPage(c, { faqMarkdown: '', segments: [s], markers: [], role: 'järjestäjä' })
+    expect(c.querySelector('.patkat-row-copy')).not.toBeNull()
+    expect(c.querySelector('.patkat-row-open')).not.toBeNull()
+  })
+
+  it('T275: talkoolainen EI näe Kopioi-nappia (vain Avaa)', () => {
+    const s = seg({ displayName: 'Pätkä 1', assignedCode: 'patka-1' })
+    renderPatkatPage(c, { faqMarkdown: '', segments: [s], markers: [], role: 'talkoolainen' })
+    expect(c.querySelector('.patkat-row-copy')).toBeNull()
+    expect(c.querySelector('.patkat-row-open')).not.toBeNull()
+  })
 })
