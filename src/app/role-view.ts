@@ -33,6 +33,7 @@ export function wireAuth(
     if (accountSection) {
       new AccountMenu(accountSection, {
         displayName,
+        role,
         onLoggedOut: () => { void authScreen.start() },
       })
     }

@@ -4,6 +4,9 @@ export interface AccountMenuOptions {
   displayName: string
   // Kutsutaan onnistuneen uloskirjautumisen jälkeen — avaa AuthScreenin uudelleen (V133).
   onLoggedOut: () => void
+  // T274/V189: rooli crossover-linkkiä varten. Järjestäjä (⊃ talkoolainen) näkee "Pätkät-sivu"
+  // -linkin → /patkat-hub (sama sessio, ei uutta autentikaatiota). Talkoolaiselle ei näytetä.
+  role?: string
 }
 
 // T203/V133: tilivalikko toolbar-menun yläosassa — käyttäjänimi + teemavalitsin (V132) +
@@ -17,6 +20,16 @@ export class AccountMenu {
     name.className = 'account-menu-name'
     name.textContent = opts.displayName || 'Käyttäjä'
     container.appendChild(name)
+
+    // T274/V189: järjestäjä-crossover — pääsy /patkat-hubiin tehdäkseen itse pätkiä.
+    // Sama sessio (cookie säilyy), ei uutta autentikaatiota; hubista voi avata minkä pätkän tahansa.
+    if (opts.role && opts.role !== 'talkoolainen') {
+      const patkat = document.createElement('a')
+      patkat.className = 'account-menu-patkat'
+      patkat.href = '/patkat'
+      patkat.textContent = '🔧 Pätkät-sivu (tee pätkä)'
+      container.appendChild(patkat)
+    }
 
     container.appendChild(this.buildThemeSelector())
 

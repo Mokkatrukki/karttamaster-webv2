@@ -4689,3 +4689,6 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 .admin-faq-crepe { border: 1px solid var(--border-default); border-radius: var(--radius-sm); }
 .patkat-row-actions { display: flex; gap: 6px; align-items: center; }
 .patkat-row-copy { min-height: 44px; padding: 0 12px; font-size: 0.85rem; }
+/* T274: järjestäjä-crossover-linkki tilivalikossa */
+.account-menu-patkat { display: block; min-height: 44px; line-height: 44px; padding: 0 12px; color: var(--accent); text-decoration: none; border-radius: var(--radius-sm); }
+.account-menu-patkat:hover { background: var(--hover); }

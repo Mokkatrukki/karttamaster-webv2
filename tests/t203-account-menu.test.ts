@@ -86,3 +86,48 @@ describe('T203 — AccountMenu', () => {
     await vi.waitFor(() => expect(onLoggedOut).toHaveBeenCalled())
   })
 })
+
+describe('T274/V189 — järjestäjä-crossover linkki', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    document.body.innerHTML = ''
+    document.documentElement.removeAttribute('data-theme')
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('järjestäjä näkee "Pätkät-sivu"-linkin → /patkat', async () => {
+    mockLocalStorage()
+    const { AccountMenu } = await import('../src/ui/account-menu')
+    const c = document.createElement('div')
+    new AccountMenu(c, { displayName: 'Järkkäri', role: 'järjestäjä', onLoggedOut: vi.fn() })
+    const link = c.querySelector('.account-menu-patkat') as HTMLAnchorElement
+    expect(link).not.toBeNull()
+    expect(link.getAttribute('href')).toBe('/patkat')
+  })
+
+  it('admin näkee linkin (⊃ järjestäjä)', async () => {
+    mockLocalStorage()
+    const { AccountMenu } = await import('../src/ui/account-menu')
+    const c = document.createElement('div')
+    new AccountMenu(c, { displayName: 'Admin', role: 'admin', onLoggedOut: vi.fn() })
+    expect(c.querySelector('.account-menu-patkat')).not.toBeNull()
+  })
+
+  it('talkoolainen EI näe crossover-linkkiä', async () => {
+    mockLocalStorage()
+    const { AccountMenu } = await import('../src/ui/account-menu')
+    const c = document.createElement('div')
+    new AccountMenu(c, { displayName: 'Talkoolainen', role: 'talkoolainen', onLoggedOut: vi.fn() })
+    expect(c.querySelector('.account-menu-patkat')).toBeNull()
+  })
+
+  it('ilman roolia ei linkkiä (taaksepäin-yhteensopiva)', async () => {
+    mockLocalStorage()
+    const { AccountMenu } = await import('../src/ui/account-menu')
+    const c = document.createElement('div')
+    new AccountMenu(c, { displayName: 'X', onLoggedOut: vi.fn() })
+    expect(c.querySelector('.account-menu-patkat')).toBeNull()
+  })
+})
