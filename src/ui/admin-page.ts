@@ -110,6 +110,65 @@ function buildUserRow(user: AdminUser, callbacks: AdminPageCallbacks): HTMLTable
   return tr
 }
 
+// T268/V188: talkoolaisten yleissalasanan asetus admin-sivulla.
+export interface AdminSettingsOpts {
+  talkooPasswordSet: boolean
+  onSaveTalkooPassword: (password: string) => void
+}
+
+export function renderAdminSettings(container: HTMLElement, opts: AdminSettingsOpts): void {
+  container.innerHTML = ''
+
+  const section = document.createElement('section')
+  section.className = 'admin-settings-section'
+
+  const title = document.createElement('h2')
+  title.className = 'admin-settings-title'
+  title.textContent = 'Talkoolaisten salasana'
+  section.appendChild(title)
+
+  const status = document.createElement('p')
+  status.className = 'admin-settings-status'
+  status.textContent = opts.talkooPasswordSet ? '✓ Salasana asetettu' : 'Ei asetettu — talkoolaiset eivät pääse sisään'
+  section.appendChild(status)
+
+  const row = document.createElement('div')
+  row.className = 'admin-settings-row'
+
+  const input = document.createElement('input')
+  input.type = 'password'
+  input.className = 'admin-talkoo-password-input'
+  input.placeholder = 'Uusi yleissalasana'
+  input.setAttribute('aria-label', 'Talkoolaisten yleissalasana')
+
+  const toggleBtn = document.createElement('button')
+  toggleBtn.type = 'button'
+  toggleBtn.className = 'admin-password-toggle'
+  toggleBtn.textContent = 'Näytä'
+  toggleBtn.addEventListener('click', () => {
+    const show = input.type === 'password'
+    input.type = show ? 'text' : 'password'
+    toggleBtn.textContent = show ? 'Piilota' : 'Näytä'
+  })
+
+  const saveBtn = document.createElement('button')
+  saveBtn.className = 'admin-talkoo-password-save'
+  saveBtn.textContent = 'Tallenna'
+  saveBtn.addEventListener('click', () => {
+    const pw = input.value.trim()
+    if (pw.length < 4) {
+      status.textContent = 'Salasanan pitää olla vähintään 4 merkkiä'
+      return
+    }
+    opts.onSaveTalkooPassword(pw)
+    input.value = ''
+  })
+
+  row.append(input, toggleBtn, saveBtn)
+  section.appendChild(row)
+  container.appendChild(section)
+}
+
 export function renderForbidden(container: HTMLElement): void {
   container.innerHTML = ''
   const wrap = document.createElement('div')

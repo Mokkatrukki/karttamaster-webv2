@@ -1,9 +1,10 @@
 import './style.css'
 import { AuthScreen } from './ui/auth-screen'
-import { renderAdminUsers, renderForbidden } from './ui/admin-page'
+import { renderAdminUsers, renderAdminSettings, renderForbidden } from './ui/admin-page'
 import type { AdminUser } from './ui/admin-page'
 
 const content = document.getElementById('admin-content')!
+const settingsEl = document.getElementById('admin-settings')!
 const banner = document.getElementById('admin-invite-banner')!
 const logoutBtn = document.getElementById('btn-admin-logout')!
 
@@ -75,6 +76,22 @@ async function loadUsers(): Promise<void> {
   })
 }
 
+async function loadSettings(): Promise<void> {
+  const res = await fetch('/api/admin/settings')
+  const talkooPasswordSet = res.ok ? ((await res.json()) as { talkooPasswordSet: boolean }).talkooPasswordSet : false
+  renderAdminSettings(settingsEl, {
+    talkooPasswordSet,
+    onSaveTalkooPassword: async (password) => {
+      const r = await fetch('/api/admin/settings/talkoo-password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      })
+      if (r.ok) await loadSettings()
+    },
+  })
+}
+
 const auth = new AuthScreen((result) => {
   // AuthResult.role is typed as the client Role (järjestäjä|talkoolainen) but
   // /api/auth/me can also return 'admin' at runtime — widen for this check.
@@ -83,5 +100,6 @@ const auth = new AuthScreen((result) => {
     return
   }
   void loadUsers()
+  void loadSettings()
 })
 void auth.start()
