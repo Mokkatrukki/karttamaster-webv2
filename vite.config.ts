@@ -14,6 +14,7 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         admin: resolve(__dirname, 'admin.html'),
         inventory: resolve(__dirname, 'inventory.html'),
+        patkat: resolve(__dirname, 'patkat.html'),
       },
     },
   },
