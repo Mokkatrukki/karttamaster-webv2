@@ -169,6 +169,80 @@ export function renderAdminSettings(container: HTMLElement, opts: AdminSettingsO
   container.appendChild(section)
 }
 
+// T270/V190/§R: FAQ-editori adminissa. Baseline = textarea (toimii + testattava jsdomissa).
+// Selaimessa progressiivinen enhancement Milkdown Crepe -WYSIWYG:llä (§R: aito inline-formatointi,
+// "niinkun Word"). Lazy dynaaminen import → oma chunk, ei kuormita talkoolaisen bundlea. Epäonnistuu
+// turvallisesti textareaan. Testissä (MODE=test) Crepeä ei ladata → deterministinen textarea-polku.
+export interface AdminFaqOpts {
+  markdown: string
+  onSave: (markdown: string) => void
+}
+
+export function renderAdminFaq(container: HTMLElement, opts: AdminFaqOpts): void {
+  container.innerHTML = ''
+  const section = document.createElement('section')
+  section.className = 'admin-settings-section admin-faq-section'
+
+  const title = document.createElement('h2')
+  title.className = 'admin-settings-title'
+  title.textContent = 'FAQ — talkoolaisten info'
+  section.appendChild(title)
+
+  const hint = document.createElement('p')
+  hint.className = 'admin-settings-status'
+  hint.textContent = 'Aikataulut, ruokailut, sijainnit. Näkyy talkoolaisille /patkat-sivulla.'
+  section.appendChild(hint)
+
+  const mount = document.createElement('div')
+  mount.className = 'admin-faq-editor-mount'
+  const textarea = document.createElement('textarea')
+  textarea.className = 'admin-faq-textarea'
+  textarea.rows = 10
+  textarea.value = opts.markdown
+  mount.appendChild(textarea)
+  section.appendChild(mount)
+
+  let getValue = (): string => textarea.value
+
+  const saveBtn = document.createElement('button')
+  saveBtn.className = 'admin-faq-save'
+  saveBtn.textContent = 'Tallenna FAQ'
+  saveBtn.addEventListener('click', () => opts.onSave(getValue()))
+  section.appendChild(saveBtn)
+
+  container.appendChild(section)
+
+  const mode = (import.meta as unknown as { env?: { MODE?: string } }).env?.MODE
+  if (mode !== 'test') {
+    void enhanceFaqWithCrepe(mount, textarea, opts.markdown).then(fn => {
+      if (fn) getValue = fn
+    })
+  }
+}
+
+async function enhanceFaqWithCrepe(
+  mount: HTMLElement,
+  textarea: HTMLTextAreaElement,
+  markdown: string,
+): Promise<(() => string) | null> {
+  try {
+    // Literaali dynaaminen import → Vite code-splittaa Crepen omaan lazy-chunkkiin (ei osu
+    // talkoolaisen/pääbundleen). MODE-gate (kutsupaikka) estää lataamisen jsdom-testissä.
+    const { Crepe } = await import('@milkdown/crepe')
+    await import('@milkdown/crepe/theme/common/style.css')
+    await import('@milkdown/crepe/theme/frame.css')
+    const editorEl = document.createElement('div')
+    editorEl.className = 'admin-faq-crepe'
+    mount.insertBefore(editorEl, textarea)
+    textarea.style.display = 'none'
+    const crepe = new Crepe({ root: editorEl, defaultValue: markdown })
+    await crepe.create()
+    return () => crepe.getMarkdown()
+  } catch {
+    return null // WYSIWYG ei latautunut → textarea jää käyttöön
+  }
+}
+
 export function renderForbidden(container: HTMLElement): void {
   container.innerHTML = ''
   const wrap = document.createElement('div')

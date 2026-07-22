@@ -1,10 +1,11 @@
 import './style.css'
 import { AuthScreen } from './ui/auth-screen'
-import { renderAdminUsers, renderAdminSettings, renderForbidden } from './ui/admin-page'
+import { renderAdminUsers, renderAdminSettings, renderAdminFaq, renderForbidden } from './ui/admin-page'
 import type { AdminUser } from './ui/admin-page'
 
 const content = document.getElementById('admin-content')!
 const settingsEl = document.getElementById('admin-settings')!
+const faqEl = document.getElementById('admin-faq')!
 const banner = document.getElementById('admin-invite-banner')!
 const logoutBtn = document.getElementById('btn-admin-logout')!
 
@@ -101,5 +102,21 @@ const auth = new AuthScreen((result) => {
   }
   void loadUsers()
   void loadSettings()
+  void loadFaq()
 })
+
+async function loadFaq(): Promise<void> {
+  const res = await fetch('/api/faq')
+  const markdown = res.ok ? ((await res.json()) as { markdown: string }).markdown : ''
+  renderAdminFaq(faqEl, {
+    markdown,
+    onSave: async (md) => {
+      await fetch('/api/admin/faq', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markdown: md }),
+      })
+    },
+  })
+}
 void auth.start()

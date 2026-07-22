@@ -17,6 +17,8 @@
     "dev:e2e": "DB_PATH=./dev.e2e.db PORT=3099 bun run server & API_PROXY_TARGET=http://localhost:3099 vite --port 5180"
   },
   "dependencies": {
+    "@milkdown/crepe": "^7.21.3",
+    "@milkdown/kit": "^7.21.3",
     "hono": "^4.12.26",
     "leaflet": "^1.9.4",
     "marked": "^18.0.5"
