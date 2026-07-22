@@ -142,6 +142,17 @@ html, body {
   height: 100%;
   height: 100dvh;
   font-family: var(--font-ui);
+  /* B108/§R: kill pull-to-refresh + koko-sivun rubber-band kaikilla sivuilla.
+     Ei estä normaalia scrollia (inventaario/admin) — vain ketjutus-bouncen. */
+  overscroll-behavior: none;
+}
+
+/* B108/§R: kiinteä sovelluskuori VAIN karttasivulla (#app). Sivu itsessään EI
+   koskaan scrollaa → address-bar ei piiloudu kesken scrollin (100dvh-reflow-hyppy
+   pois) eikä koko näkymä "liiku". Inventaario/admin (#inventory-app/#admin-app)
+   ovat normaali-flow scrollaavia sivuja → EI overflow:hidden niille (rikkoisi). */
+html:has(#app), body:has(#app) {
+  overflow: hidden;
 }
 
 #app {
@@ -149,6 +160,27 @@ html, body {
   flex-direction: column;
   height: 100%;
   padding-bottom: 84px;
+}
+
+/* B108/§R: kaikki sisäiset scroll-alueet pysäyttävät scroll-chainingin — kun lista/
+   modaali/valikko scrollataan reunaan asti, liike EI valu taustan karttaan tai
+   toiseen paneeliin. overscroll-behavior tuettu kaikissa selaimissa 2022 lähtien. */
+#marker-modal-items,
+#toolbar-menu,
+#segment-view,
+#segment-panel,
+#left-panel-content,
+.equipment-modal-body,
+.snapshot-modal,
+.snapshot-list,
+.segment-list,
+.segment-details-modal-body,
+.segment-audit-items,
+.segment-creation-marker-checklist,
+.marker-detail-body,
+.inv-sign-picker {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ── Toolbar ── */
@@ -197,6 +229,11 @@ html, body {
   gap: 4px;
   min-width: 200px;
   z-index: 2001;
+  /* B108/§R: järjestäjän valikko (tili+teema+vaihe+varmuuskopiot+gpkg) kasvaa
+     pienellä ruudulla yli näytön → alimmat kohteet jäivät route-barin taakse eikä
+     valikkoa voinut scrollata. Cap korkeuteen + oma scroll (chaining estetty yllä). */
+  max-height: calc(100dvh - 56px - 12px);
+  overflow-y: auto;
 }
 #toolbar-menu.open { display: flex; }
 #toolbar-menu button,
@@ -674,6 +711,19 @@ button {
 }
 #marker-modal-backdrop.open { display: block; }
 
+/* B108/§R: modaalin backdrop nappaa kaikki kosketukset → drag backdropin päällä EI
+   panoroi alla olevaa karttaa. touch-action:none pysäyttää eleen backdropiin. */
+#marker-modal-backdrop,
+.snapshot-modal-backdrop,
+.segment-details-modal-backdrop,
+.segment-creation-modal-backdrop,
+.equipment-modal-backdrop,
+.marker-detail-backdrop,
+.inv-sign-picker-backdrop {
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
 #marker-modal {
   position: fixed;
   top: 50%;
@@ -702,9 +752,12 @@ button {
   background: var(--surface-raised);
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
+  /* B108/§R: 320px-modaalissa [checkbox]+[select]+[Aseta-nappi] ei mahtunut yhdelle
+     riville → "Aseta (0)" leikkautui reunan yli. Wrap = kahdelle riville pienellä. */
+  flex-wrap: wrap;
 }
 .bulk-status-select {
-  flex: 1;
+  flex: 1 1 140px;
   min-height: 44px;
   background: var(--field-tint);
   border: 1px solid var(--border-default);

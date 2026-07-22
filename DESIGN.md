@@ -128,6 +128,26 @@ pidettävä synkassa tämän taulukon kanssa (Leaflet-SVG ei peri CSS-tokeneja).
 **Sääntö:** `min-height: 44px` kaikille napeille. Tämä on erityisen kriittistä talkoolaiselle
 metsässä, hanskat kädessä.
 
+### Scroll ja overscroll (B108/V187 — mobiili "kaikki liikkuu" -korjaus)
+
+Pieni puhelinruutu + fixed karttakuori → oletusselain valuttaa scrollin. Kolme sääntöä:
+
+1. **Sisäiset scroll-alueet = `overscroll-behavior: contain`.** Jokainen `overflow-y:auto`-alue
+   (modaalilistat, `#toolbar-menu`, `#segment-view`, `#segment-panel`, `#left-panel-content`,
+   `.equipment-modal-body`, snapshot/segment-details/creation-modaalit, `.marker-detail-body`)
+   pysäyttää scroll-chainingin — reunaan asti scrollattu liike EI valu taustan karttaan.
+   Tuettu kaikissa selaimissa 2022 lähtien; CSS-only, ei JS-scroll-lockia.
+2. **Karttakuori ei scrollaa itse.** `html:has(#app), body:has(#app) { overflow: hidden }` +
+   globaali `overscroll-behavior: none` → ei pull-to-refresh, ei 100dvh-address-bar-hyppyä.
+   ⚠️ **VAIN `:has(#app)`-karttasivulle** — `#inventory-app`/`#admin-app` ovat normaali-flow
+   scrollaavia sivuja, joilta `overflow:hidden` leikkaisi sisällön.
+3. **Backdropit nappaavat eleet.** Modaalin backdrop `touch-action: none; overscroll-behavior: none`
+   → drag backdropin päällä ei panoroi alla olevaa Leaflet-karttaa.
+
+**Sääntö:** uusi `overflow-y:auto`-alue → lisää se §R-scroll-selektorilistaan (`overscroll-behavior:
+contain`). Fixed dropdown/valikko → `max-height` + `overflow-y:auto` (ei koskaan yli ruudun).
+Flex-toolbar joka voi ylittää kapean modaalin → `flex-wrap: wrap` (ei vaakaleikkausta).
+
 ---
 
 ## §K Komponentit
