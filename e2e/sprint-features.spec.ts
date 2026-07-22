@@ -88,7 +88,14 @@ test.describe('T38 — Merkin tyyppi vaihdettavissa', () => {
     await page.goto('/')
     await expect(page.locator('#auth-screen')).not.toHaveClass(/open/)
 
-    await page.click('#btn-list')
+    // T277/B110: `#auth-screen` menettää `open`-luokan (auth-screen.hide()) ENNEN kuin
+    // `init()` awaittaa fetchMarkers+loadGpx ja kiinnittää `#btn-list`-handlerin. Race →
+    // ensimmäinen klikki voi kadota ennen handleria/merkkien latausta ja `.marker-item`
+    // jää renderöimättä (flaky, 1/3). Retry avaus kunnes lista on auki — deterministinen.
+    await expect(async () => {
+      await page.click('#btn-list')
+      await expect(page.locator('.marker-item')).toHaveCount(1, { timeout: 1000 })
+    }).toPass({ timeout: 15000 })
     await page.click('.marker-item')
 
     // Type-select näkyy järjestäjälle
