@@ -37,6 +37,7 @@ server/       ← Hono + Bun + SQLite
 | SignTypes | `src/logic/sign-picker.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | SignIdSlug | `src/logic/sign-id-slug.ts` | ✓ T161 | — | [logic.md](docs/components/logic.md) |
 | TileLayers | `src/logic/tile-layers.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
+| BasemapDim | `src/logic/basemap-dim.ts` | ✓ T287 (pohjan näkyvyys: clamp 0–1 + persist + slider-map, V201) | tests/t287-basemap-dim.test.ts | [logic.md](docs/components/logic.md) |
 | Types | `src/logic/types.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | Uid | `src/logic/uid.ts` | ✓ T238 (turva-genId, guard+insecure-fallback B103) | — | [logic.md](docs/components/logic.md) |
 | SignLibrary | `src/logic/sign-library.ts` | ✓ T171 | — | [logic.md](docs/components/logic.md) |
@@ -70,6 +71,7 @@ server/       ← Hono + Bun + SQLite
 | DriveMode | `src/map/drive.ts` | ✓ | critical-paths: "Drive mode" | [map.md](docs/components/map.md) |
 | MarkerManager | `src/map/markers.ts` | ✓ T222 (setDraggablePredicate: vain oman pätkän merkit raahattavia talkoolaiselle, V150) | critical-paths: "Merkki kartalle", "Drag-to-move", "Merkin zoom-skaalaus", "tallennus epäonnistuu" | [map.md](docs/components/map.md) |
 | RouteBar | `src/map/route-bar.ts` | ✓ (T224: piilotettu talkoolaiselta, `#route-bar` hidden) | — | [map.md](docs/components/map.md) |
+| BasemapDimControl | `src/map/basemap-dim-control.ts` | ✓ T287 (pohjan näkyvyys-slider ⋯-valikossa, tilePane-opacity, V201) | — | [map.md](docs/components/map.md) |
 | ~~NextMarkerHighlight~~ | POISTETTU T256/R6 | accent-rengas → ikoni-hehku (`MarkerManager.setNextHighlight` + `.marker-next-highlight` CSS-glow, V178) | — | — |
 | GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30 | critical-paths: "GPS-paikannin" | [map.md](docs/components/map.md) |
 | AreaOverlay | `src/map/area-overlay.ts` | ✓ | area-interaction | [map.md](docs/components/map.md) |

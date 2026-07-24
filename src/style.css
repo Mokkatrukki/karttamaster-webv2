@@ -260,6 +260,30 @@ html:has(#app), body:has(#app) {
 #toolbar-menu button:hover,
 #toolbar-menu a:hover { background: var(--hover); }
 
+/* T287/V201: pohjakartan himmennys-slider — ⋯-valikon rivi #btn-layer vieressä */
+.basemap-dim {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+}
+.basemap-dim-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.basemap-dim-slider {
+  flex: 1;
+  min-width: 90px;
+  min-height: 44px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .menu-sep {
   height: 1px;
   background: var(--border-subtle);
@@ -470,6 +494,8 @@ button {
 /* ── Map ── */
 
 #map { flex: 1; min-height: 0; touch-action: manipulation; }
+/* T287/V201: valkoinen tausta tilePanen alla → himmennys paljastaa valkoisen (paperikarttamaster) */
+#map .leaflet-container { background: #fff; }
 #map.place-mode { cursor: crosshair !important; }
 #map.place-mode .leaflet-container { cursor: crosshair !important; }
 

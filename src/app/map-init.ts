@@ -2,6 +2,7 @@ import L from 'leaflet'
 import { TILE_LAYERS } from '../logic/tile-layers'
 import { LeftPanel } from '../ui/left-panel'
 import { GpsNavigator } from '../map/gps-navigator'
+import { BasemapDimControl } from '../map/basemap-dim-control'
 
 const LS_KEY = 'karttamaster-layer'
 
@@ -43,6 +44,10 @@ export function initMap(): MapInit {
       syncLayerLabel()
     })
   }
+
+  // T287/V201: pohjakartan himmennys-slider ⋯-valikkoon (#btn-layer vieressä) — näkyy molemmille.
+  const dimEl = document.getElementById('basemap-dim-container')
+  if (dimEl) new BasemapDimControl(map, dimEl)
 
   const toolbarMenu = document.getElementById('toolbar-menu')!
 

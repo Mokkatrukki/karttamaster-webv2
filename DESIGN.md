@@ -191,6 +191,13 @@ Flex-toolbar joka voi ylittää kapean modaalin → `flex-wrap: wrap` (ei vaakal
 - **Talkoolainen (T224/A/V148):** koko alapalkki `#route-bar` PIILOTETTU (`hidden`). Ei reittivalitsinta, ei km-scrubberia, ei ◀▶-nuolia — ne ohjasivat koko reittiä (ei pätkää) ja hämäsivät. Talkoolaisen navigointi = SegmentView-hero + kartta (seuraava-merkki korostettu, T224/b1) + yläpalkin "Kaikki merkit"/"Varustelista"-napit. `RouteBar` luodaan silti (driveMode-reitin + activeRouteProviderin vuoksi) mutta itse palkki on piilossa. `#gps-drive-panel` POISTETTU (T224/F/V148, komponentti `gps-drive-panel.ts` poistettu) — duplikoi hero-ohjauksen. Oikea GPS-paikannin elää `gps-navigator.ts`:ssä (ei osa route-baria).
 - **Järjestäjä** = kevyt reittivalitsin (`RouteVisibilityControl`, `src/map/route-visibility-control.ts`): pelkkä näytä/piilota per reitti pyöreinä pilleinä (`.route-vis-pill`, `border-radius:999px`, `min-height:44px`) kartan alakulmassa (`#route-bar[data-mode="visibility"]` → läpinäkyvä, `right:12px;bottom:12px`). EI drive-nuolia, EI km-scrubberia (V134). V6 säilyy: viimeistä näkyvää reittiä ei voi piilottaa (`disabled`).
 
+### Pohjakartan näkyvyys-slider (`BasemapDimControl`, T287/V201)
+- **Sijainti:** ⋯-toolbar-valikon rivi `#basemap-dim-container` heti `#btn-layer` (Karttatyyli) vieressä — muut karttakontrollit samassa valikossa. Menu jaettu ∴ näkyy **molemmille rooleille**.
+- **Rakenne:** `.basemap-dim` flex-rivi — `.basemap-dim-label` (himmennysikoni + "Pohjan näkyvyys", `text-muted 13px`) + `.basemap-dim-slider` (`<input type=range>` 0–100, `step 5`, `accent-color:var(--accent)`).
+- **Touch (§R):** slider `min-height:44px` — hit-area riittää hanskoin.
+- **Toiminta:** `tilePane.style.opacity = slider%/100`. Default 100 % (koko kartta). 0 % = pohja häviää (valkoinen jää), 50 % kuultaa läpi. Merkit/reitit koskemattomia (V51). Persistoituu localStorageen (`'karttamaster-basemap-opacity'`).
+- **Menu-vuorovaikutus:** container `stopPropagation` klikille → slider-raahaus ei sulje ⋯-valikkoa (document-klikki-sulkija).
+
 ### StatusPanel (`#status-panel`, järjestäjä) — T205/V132
 - Per-reitti-rollup (35/55km valmis-%) SÄILYY (PM-päätös 2026-07-04). Logiikka `src/ui/status-panel.ts` ennallaan.
 - Visuaali: hillitty **leijuva tilannekortti** kartan vasemmassa yläkulmassa (`position:absolute;top:8px;left:8px;z-index:500`, `surface-card` + `border-default` + `radius-md` + kevyt varjo). EI enää "päälle liimattua" täysleveää tummaa palkkia joka työntää karttaa. Näkyy vain `[data-role="järjestäjä"]`. Täyttö/% = `--confirm`-token.
