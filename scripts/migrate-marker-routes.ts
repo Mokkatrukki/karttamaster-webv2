@@ -14,7 +14,7 @@
 import { Database } from 'bun:sqlite'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { buildRoutePoints, nearestPointIndex } from '../src/logic/bearing'
+import { buildRoutePoints, nearestPointIndex, haversineDistance } from '../src/logic/bearing'
 import { assignRoutesToMarker, SHARED_THRESHOLD_M } from '../src/logic/multi-route'
 import type { RoutePoint } from '../src/logic/types'
 
@@ -57,8 +57,21 @@ const markers = db.query('SELECT id, lat, lon, route_ids, distance_from_start FR
   id: string; lat: number; lon: number; route_ids: string; distance_from_start: number
 }>
 
+// Lähin reitti (min etäisyys mihin tahansa reittipisteeseen) — fallback orvoille, jotta
+// mikään merkki ei jää piiloon. Merkki piirtyy oikeaan lat/lon-kohtaan; tägi ohjaa vain
+// näkyvyyttä → käyttäjä näkee sen paikallaan ja siirtää/uudelleentägää käsin.
+function nearestRoute(lat: number, lon: number): { id: string; dist: number } {
+  let best = { id: routes[0].id, dist: Infinity }
+  for (const r of routes) {
+    const idx = nearestPointIndex(r.routePoints, lat, lon)
+    const d = haversineDistance(r.routePoints[idx], { lat, lon })
+    if (d < best.dist) best = { id: r.id, dist: d }
+  }
+  return best
+}
+
 let reassigned = 0
-let orphaned = 0
+let nearestFallback = 0
 let unchanged = 0
 const now = new Date().toISOString()
 const update = db.prepare('UPDATE markers SET route_ids = ?, distance_from_start = ?, updated_at = ?, updated_by = ? WHERE id = ?')
@@ -67,12 +80,16 @@ console.log(`DB: ${dbPath}  merkkejä: ${markers.length}  ${apply ? '*** APPLY *
 
 for (const m of markers) {
   const oldIds: string[] = JSON.parse(m.route_ids)
-  const newIds = assignRoutesToMarker(m.lat, m.lon, routes, SHARED_THRESHOLD_M)
+  let newIds = assignRoutesToMarker(m.lat, m.lon, routes, SHARED_THRESHOLD_M)
+  let fallback = false
 
   if (newIds.length === 0) {
-    orphaned++
-    console.log(`ORPHAN  ${m.id}  ${JSON.stringify(oldIds)} → (ei mitään uutta reittiä <${SHARED_THRESHOLD_M}m) — jää piiloon`)
-    continue
+    // Ei mitään reittiä <100m → tägää lähimpään, ettei jää piiloon (käyttäjä siirtää käsin).
+    const near = nearestRoute(m.lat, m.lon)
+    newIds = [near.id]
+    fallback = true
+    nearestFallback++
+    console.log(`NEAREST ${m.id}  ${JSON.stringify(oldIds)} → ${JSON.stringify(newIds)} (lähin ${near.dist.toFixed(0)}m — siirrä käsin)`)
   }
 
   // distance_from_start ensimmäistä osuvaa reittiä vasten (ROUTE_DEFS-järjestys)
@@ -85,11 +102,13 @@ for (const m of markers) {
     unchanged++
     continue
   }
-  reassigned++
-  console.log(`REASSIGN ${m.id}  ${JSON.stringify(oldIds)} → ${JSON.stringify(newIds)}  dist ${m.distance_from_start.toFixed(0)}→${newDist.toFixed(0)}m`)
+  if (!fallback) {
+    reassigned++
+    console.log(`REASSIGN ${m.id}  ${JSON.stringify(oldIds)} → ${JSON.stringify(newIds)}  dist ${m.distance_from_start.toFixed(0)}→${newDist.toFixed(0)}m`)
+  }
   if (apply) update.run(JSON.stringify(newIds), newDist, now, 'migration-t286', m.id)
 }
 
-console.log(`\nYhteenveto: reassign=${reassigned}  orphan=${orphaned}  unchanged=${unchanged}`)
+console.log(`\nYhteenveto: reassign=${reassigned}  nearest-fallback=${nearestFallback}  unchanged=${unchanged}  (kaikki näkyvissä, 0 piilossa)`)
 if (!apply) console.log('Dry-run — mitään ei kirjoitettu. Aja --apply toteuttaaksesi.')
 db.close()
