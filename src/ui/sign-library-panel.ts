@@ -157,14 +157,15 @@ export class SignLibraryPanel {
            </span>`
 
     // T136/V83: kaikki mallit (myös custom) ovat suoraan sijoitettavissa kartalle — ei suosikkivaatimusta
-    const placeBtn = `<button class="sign-type-btn sign-lib-place-btn" data-id="${escapeHtml(t.id)}" aria-label="Aseta ${escapeHtml(t.label)} kartalle" style="flex:1;min-width:0;min-height:44px;display:flex;align-items:center;gap:8px;padding:6px 8px;background:none;border:none;color:var(--text-body);font-size:13px;cursor:pointer;text-align:left;border-radius:var(--radius-sm)">
+    // V197/WCAG 2.5.3: ei aria-labelia — saavutettava nimi tulee näkyvästä sisällöstä (label+kuvaus), muuten name-mismatch
+    const placeBtn = `<button class="sign-type-btn sign-lib-place-btn" data-id="${escapeHtml(t.id)}" title="Aseta ${escapeHtml(t.label)} kartalle" style="flex:1;min-width:0;min-height:44px;display:flex;align-items:center;gap:8px;padding:6px 8px;background:none;border:none;color:var(--text-body);font-size:13px;cursor:pointer;text-align:left;border-radius:var(--radius-sm)">
            <span class="sign-swatch sign-lib-swatch-slot" data-template-id="${escapeHtml(t.id)}" style="flex:none;width:22px;height:22px;position:relative"></span>
            ${labelBlock}
          </button>`
 
     return `<div class="sign-lib-row" data-label="${escapeHtml(t.label.toLowerCase())}" style="display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--border-card);padding:0">
       ${placeBtn}
-      <button class="sign-lib-dots-btn" data-id="${t.id}" aria-label="Muokkaa mallia" style="flex:none;min-width:44px;min-height:44px;background:none;border:none;border-radius:var(--radius-sm);color:var(--text-muted);font-size:14px;cursor:pointer;letter-spacing:0.05em">···</button>
+      <button class="sign-lib-dots-btn" data-id="${t.id}" aria-label="Muokkaa mallia" style="flex:none;min-width:44px;min-height:44px;background:none;border:none;border-radius:var(--radius-sm);color:var(--text-muted);font-size:14px;cursor:pointer;letter-spacing:0.05em"><span aria-hidden="true">···</span></button>
     </div>`
   }
 

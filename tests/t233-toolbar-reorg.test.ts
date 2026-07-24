@@ -14,7 +14,7 @@ describe('T233 — yläpalkin reorg + orpo-padding', () => {
   const css = read('src/style.css')
 
   const actions = html.match(/<div id="toolbar-actions">([\s\S]*?)<\/div>/)?.[1] ?? ''
-  const menu = html.match(/<div id="toolbar-menu">([\s\S]*?)<div id="app-main">/)?.[1] ?? ''
+  const menu = html.match(/<div id="toolbar-menu">([\s\S]*?)<main id="app-main">/)?.[1] ?? ''
 
   // ---- Yläpalkki = {Kaikki merkit, ⋯}. T264/V184: Varustelista-nappi (#btn-varuste) POISTETTU
   //      (varuste = koti-Varustelista-tab). #btn-list piilotetaan talkoolaiselta CSS:llä (koti-tab). ----

@@ -5,6 +5,10 @@
      [data-theme="dark"]   = Kaamos-tumma (lämmin hiilenmusta)
    Teemavaihto: <html data-theme="light|dark"> — src/logic/theme.ts, persistoituu localStorageen. */
 
+/* Leaflet CSS bundlattu paikallisesti (ei unpkg-CDN:ää) — V194: ei render-blocking
+   ulkoista CSS:ää, offline-toimiva, ei FOUC (B111). @import ennen sääntöjä. */
+@import 'leaflet/dist/leaflet.css';
+
 /* ── Tokens: Reittimerkki-vaalea (:root, oletus) ── */
 
 :root {

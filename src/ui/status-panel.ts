@@ -22,6 +22,7 @@ export class StatusPanel {
     const progress = document.createElement('div')
     progress.className = 'status-panel-bar'
     progress.setAttribute('role', 'progressbar')
+    progress.setAttribute('aria-label', `${s.routeId} edistyminen`)
     progress.setAttribute('aria-valuenow', String(s.completionPercent))
     progress.setAttribute('aria-valuemin', '0')
     progress.setAttribute('aria-valuemax', '100')

@@ -382,7 +382,9 @@ export class MarkerManager {
 
   private addLeafletMarker(m: SignMarker): void {
     const icon = createSignIcon(m.type, m.status, m.color, compactOf(m), m.iconId, signImageSrc(m.imageId ?? m.type), visualPartsOf(m))
-    const lm = L.marker([m.lat, m.lon], { icon, draggable: this.draggableFn(m) }).addTo(this.map)
+    // V197/aria-command-name: Leaflet-merkin role=button tarvitsee saavutettavan nimen (title+alt)
+    const accName = m.label ?? m.type
+    const lm = L.marker([m.lat, m.lon], { icon, draggable: this.draggableFn(m), title: accName, alt: accName }).addTo(this.map)
     this.leafletMarkers.set(m.id, lm)
 
     lm.on('dragend', () => {

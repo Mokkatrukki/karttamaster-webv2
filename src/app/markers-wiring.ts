@@ -334,7 +334,11 @@ export function wireMarkers(
     document.getElementById('route-track')?.setAttribute('hidden', '')
     document.getElementById('route-drive-controls')?.setAttribute('hidden', '')
     document.getElementById('route-km')?.setAttribute('hidden', '')
-    document.getElementById('route-bar')?.setAttribute('data-mode', 'visibility')
+    // V198/CLS: route-bar renderöidään suoraan lopullisessa visibility-moodissa (markup `hidden`),
+    // paljastetaan vasta kun moodi asetettu → ei full-bar→pilli-siirtymää latauksessa
+    const rb = document.getElementById('route-bar')
+    rb?.setAttribute('data-mode', 'visibility')
+    rb?.removeAttribute('hidden')
   }
 
   const activeRouteProvider = () => (routeBar ?? routeVis!).getActiveRoute()

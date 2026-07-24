@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="description" content="Karttamaster — SyöteMTB-reittimerkintöjen suunnittelu- ja kenttätyökalu. Järjestäjä suunnittelee opasteet kartalle, talkoolainen merkitsee ne maastossa." />
     <title>Karttamaster</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   </head>
   <body>
     <div id="app">
@@ -37,7 +37,7 @@
         <span id="gpkg-import-status" class="gpkg-import-status"></span>
       </div>
 
-      <div id="app-main">
+      <main id="app-main">
         <div id="left-panel">
           <div id="left-panel-header">
             <span class="left-panel-section-title">Suunnittelu</span>
@@ -65,10 +65,10 @@
           <button id="btn-to-map">Kartalle →</button>
           <div id="map"></div>
         </div>
-      </div>
+      </main>
     </div>
 
-    <div id="route-bar">
+    <div id="route-bar" hidden>
       <div id="route-bar-main">
         <div id="route-selector"></div>
         <div id="route-bar-top">
