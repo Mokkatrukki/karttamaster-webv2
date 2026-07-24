@@ -8,7 +8,7 @@ const MOBILE = { width: 390, height: 844 }
 const LOAD = 2500
 
 const MOCK_SEGMENT = {
-  id: 'seg-01', routeIds: ['35km'],
+  id: 'seg-01', routeIds: ['smtb-30'],
   startDist: 0, endDist: 12500,
   displayName: 'Pätkä 1', description: 'Testipätkä',
   assignedCode: undefined, equipment: [],
@@ -28,7 +28,7 @@ const MOCK_AREA = {
 // ServerMarker format — fromServer() maps snake_case → camelCase
 const MOCK_MARKER = {
   id: 'mk-01', type: 'right', lat: 65.627, lon: 27.628,
-  distance_from_start: 3200, route_ids: ['35km'],
+  distance_from_start: 3200, route_ids: ['smtb-30'],
   status: 'suunniteltu', location_note: null, color: null, label: null,
 }
 

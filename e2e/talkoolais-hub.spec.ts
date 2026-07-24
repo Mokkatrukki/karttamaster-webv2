@@ -23,7 +23,7 @@ test.describe('Talkoolais-hub', () => {
       r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ markdown: '# Info\n\nAamupala 9–10 hotellilla' }) }))
     await page.route(/\/api\/segments$/, r =>
       r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([
-        { id: 's1', routeIds: ['35km'], startDist: 0, endDist: 1000, assignedCode: 'PATKA-1', displayName: 'Pätkä 1', equipment: [], phase: 'asettaminen' },
+        { id: 's1', routeIds: ['smtb-30'], startDist: 0, endDist: 1000, assignedCode: 'PATKA-1', displayName: 'Pätkä 1', equipment: [], phase: 'asettaminen' },
       ]) }))
     await page.route(/\/api\/markers(\?|$)/, r => r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
 

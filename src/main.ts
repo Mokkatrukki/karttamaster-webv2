@@ -17,9 +17,14 @@ import { initTheme } from './logic/theme'
 // V132/T202: palauta käyttäjän valitsema teema ennen renderiä (estää välkkeen).
 initTheme()
 
+// Kaksi tapahtumaa erottuvat värisävyperheellä (SPEC §C, DESIGN §Reitti-/pätkävärit):
+// SyöteMTB = viileä/sininen, Syötekylä Gravel Fest = lämmin oranssi-puna.
 export const ROUTE_DEFS: Omit<RouteConfig, 'routePoints'>[] = [
-  { id: '35km', label: '35 km', color: '#2F6FB0', file: '/route-35km.gpx' },
-  { id: '55km', label: '55 km', color: '#B5476B', file: '/route-55km.gpx' },
+  { id: 'smtb-30',  label: '30 km',  color: '#4C97D6', file: '/smtb-2026-30km.gpx' },
+  { id: 'smtb-55',  label: '55 km',  color: '#2F6FB0', file: '/smtb-2026-55km.gpx' },
+  { id: 'sgf-62',   label: '62 km',  color: '#E9A13B', file: '/sgf-2026-62km.gpx' },
+  { id: 'sgf-125',  label: '125 km', color: '#E2662A', file: '/sgf-2026-125km.gpx' },
+  { id: 'sgf-175',  label: '175 km', color: '#C4384A', file: '/sgf-2026-175km.gpx' },
 ]
 
 const { map, toolbarMenu, gpsNavigator } = initMap()

@@ -25,7 +25,7 @@ describe('T204 — RouteVisibilityControl (järjestäjän kevyt reittivalitsin)'
 
   beforeEach(() => {
     container = document.createElement('div')
-    routes = [makeRoute('35km', '#2F6FB0'), makeRoute('55km', '#B5476B')]
+    routes = [makeRoute('smtb-30', '#2F6FB0'), makeRoute('smtb-55', '#B5476B')]
     polylines = [fakePolyline(), fakePolyline()]
     markerManager = { setVisibleRoutes: vi.fn() }
     map = {}
@@ -49,7 +49,7 @@ describe('T204 — RouteVisibilityControl (järjestäjän kevyt reittivalitsin)'
     build()
     expect(container.querySelectorAll('.route-vis-pill')).toHaveLength(2)
     const labels = [...container.querySelectorAll('.route-vis-label')].map(e => e.textContent)
-    expect(labels).toEqual(['35km', '55km'])
+    expect(labels).toEqual(['smtb-30', 'smtb-55'])
   })
 
   it('EI drive-kontrolleja: ei ◀▶-nuolia, ei route-tab-drive/scrubber-elementtejä', () => {
@@ -62,19 +62,19 @@ describe('T204 — RouteVisibilityControl (järjestäjän kevyt reittivalitsin)'
 
   it('reitin piilotus poistaa polylinen + kutsuu setVisibleRoutes jäljelle jäävällä', () => {
     build()
-    const pill = container.querySelector<HTMLButtonElement>('.route-vis-pill[data-route-id="55km"]')!
+    const pill = container.querySelector<HTMLButtonElement>('.route-vis-pill[data-route-id="smtb-55"]')!
     pill.click()
     expect(polylines[1].remove).toHaveBeenCalled()
-    expect(markerManager.setVisibleRoutes).toHaveBeenLastCalledWith(['35km'])
+    expect(markerManager.setVisibleRoutes).toHaveBeenLastCalledWith(['smtb-30'])
     expect(pill.classList.contains('route-hidden')).toBe(true)
   })
 
   it('V6: viimeistä näkyvää reittiä ei voi piilottaa (no-op)', () => {
     build()
-    // piilota 55km → jäljellä vain 35km
-    container.querySelector<HTMLButtonElement>('.route-vis-pill[data-route-id="55km"]')!.click()
+    // piilota smtb-55 → jäljellä vain smtb-30
+    container.querySelector<HTMLButtonElement>('.route-vis-pill[data-route-id="smtb-55"]')!.click()
     markerManager.setVisibleRoutes.mockClear()
-    const last = container.querySelector<HTMLButtonElement>('.route-vis-pill[data-route-id="35km"]')!
+    const last = container.querySelector<HTMLButtonElement>('.route-vis-pill[data-route-id="smtb-30"]')!
     expect(last.disabled).toBe(true)
     last.click()
     expect(markerManager.setVisibleRoutes).not.toHaveBeenCalled()
@@ -83,18 +83,18 @@ describe('T204 — RouteVisibilityControl (järjestäjän kevyt reittivalitsin)'
 
   it('piilotetun reitin uudelleennäyttö lisää polylinen takaisin', () => {
     build()
-    const pill = container.querySelector<HTMLButtonElement>('.route-vis-pill[data-route-id="55km"]')!
+    const pill = container.querySelector<HTMLButtonElement>('.route-vis-pill[data-route-id="smtb-55"]')!
     pill.click()
     polylines[1].addTo.mockClear()
     pill.click()
     expect(polylines[1].addTo).toHaveBeenCalled()
-    expect(markerManager.setVisibleRoutes).toHaveBeenLastCalledWith(['35km', '55km'])
+    expect(markerManager.setVisibleRoutes).toHaveBeenLastCalledWith(['smtb-30', 'smtb-55'])
   })
 
   it('getActiveRoute palauttaa ensimmäisen näkyvän reitin', () => {
     const ctrl = build()
-    expect(ctrl.getActiveRoute().id).toBe('35km')
-    container.querySelector<HTMLButtonElement>('.route-vis-pill[data-route-id="35km"]')!.click()
-    expect(ctrl.getActiveRoute().id).toBe('55km')
+    expect(ctrl.getActiveRoute().id).toBe('smtb-30')
+    container.querySelector<HTMLButtonElement>('.route-vis-pill[data-route-id="smtb-30"]')!.click()
+    expect(ctrl.getActiveRoute().id).toBe('smtb-55')
   })
 })

@@ -75,7 +75,7 @@ test.describe('T38 — Merkin tyyppi vaihdettavissa', () => {
   // #btn-list (aina toolbarissa, ei enää turha #btn-menu) → .marker-item → detail-modaali.
   const seededMarker = {
     id: 'mk-t38', type: 'right', lat: 65.62, lon: 27.62, distance_from_start: 5000,
-    route_ids: ['35km'], status: 'suunniteltu', location_note: null, color: null,
+    route_ids: ['smtb-30'], status: 'suunniteltu', location_note: null, color: null,
     label: null, icon_id: null, image_id: null, template_id: null, parts_json: null,
     description: null, images: [], created_by: null,
   }

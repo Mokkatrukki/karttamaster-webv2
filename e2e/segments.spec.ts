@@ -448,7 +448,7 @@ test.describe('T25 — SegmentPanel', () => {
   // talkoolaisen segment-view:ssä tarkastus-UI:n numeerisen X/N-progressin sijaan.
   test('tarkastus-segmentti näyttää segment-view:ssä "Merkitse tarkastetuksi" -UI:n', async ({ page }) => {
     const MOCK_TARKASTUS_SEGMENT = {
-      id: 'seg-tarkastus-1', routeIds: ['35km'],
+      id: 'seg-tarkastus-1', routeIds: ['smtb-30'],
       startDist: 0, endDist: 12500,
       displayName: 'Tarkastuspätkä', equipment: [],
       phase: 'tarkastus', assignedCode: 'INSP01', inspected: false,
@@ -473,15 +473,15 @@ test.describe('T25 — SegmentPanel', () => {
   // asettamattomaan merkkiin ja "Aseta" asettaa juuri sen (ei "randomia").
   test('seuraava-merkki-hero: Aseta asettaa pätkän ensimmäisen suunniteltu-merkin', async ({ page }) => {
     const MOCK_SEGMENT = {
-      id: 'seg-aset-1', routeIds: ['35km'],
+      id: 'seg-aset-1', routeIds: ['smtb-30'],
       startDist: 0, endDist: 20000,
       displayName: 'Asetuspätkä', equipment: [],
       phase: 'asettaminen', assignedCode: 'ASET01',
     }
     // Kaksi suunniteltu-merkkiä — 'late' ensin listalla mutta 'early' on pienin distanceFromStart.
     const MARKERS = [
-      { id: 'late', type: 'right', lat: 63.1, lon: 27.1, distance_from_start: 9000, route_ids: ['35km'], status: 'suunniteltu' },
-      { id: 'early', type: 'left', lat: 63.0, lon: 27.0, distance_from_start: 3000, route_ids: ['35km'], status: 'suunniteltu' },
+      { id: 'late', type: 'right', lat: 63.1, lon: 27.1, distance_from_start: 9000, route_ids: ['smtb-30'], status: 'suunniteltu' },
+      { id: 'early', type: 'left', lat: 63.0, lon: 27.0, distance_from_start: 3000, route_ids: ['smtb-30'], status: 'suunniteltu' },
     ]
     const putCalls: { url: string; body: unknown }[] = []
     await page.route('/api/segments/by-code/ASET01', r =>
@@ -520,7 +520,7 @@ test.describe('T25 — SegmentPanel', () => {
   // T78/V43: talkoolainen muokkaa oman pätkän rajoja kentällä → PUT /api/segments/:id
   test('talkoolainen muokkaa pätkän rajoja → PUT /api/segments/:id', async ({ page }) => {
     const MOCK_SEGMENT = {
-      id: 'seg-bounds-1', routeIds: ['35km'], startDist: 0, endDist: 10000,
+      id: 'seg-bounds-1', routeIds: ['smtb-30'], startDist: 0, endDist: 10000,
       displayName: 'Rajapätkä', equipment: [], phase: 'asettaminen', assignedCode: 'BND01',
     }
     const segPuts: unknown[] = []

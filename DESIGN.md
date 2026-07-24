@@ -67,8 +67,19 @@ myös `STATUS_RING`-taulussa synkassa vaalean teeman kanssa. Taustaväri: `color
 
 ### Reitti-/pätkävärit (SEGMENT_COLORS `src/logic/segments.ts` + ROUTE_DEFS `src/main.ts`)
 
-Valkoiselle kartalle: `#2F6FB0` (sininen) · `#7A4E9C` (violetti) · `#0E9594` (turkoosi) · `#B5476B` (magenta).
-Reitit 35km = `#2F6FB0`, 55km = `#B5476B`.
+Segmenttipaletti (pätkät, valkoiselle kartalle): `#2F6FB0` (sininen) · `#7A4E9C` (violetti) · `#0E9594` (turkoosi) · `#B5476B` (magenta).
+
+**Reittivärit — kaksi tapahtumaa, kaksi sävyperhettä (T285/§C).** Reittipilli renderöi taustan = reittiväri + tumma teksti (`--text-body`), joten jokainen ≥3:1 kontrasti (AA large). Tapahtuma tunnistuu perheestä, pituus perheen sävystä:
+
+| Reitti | id | väri | perhe | kontrasti (dark text) |
+|---|---|---|---|---|
+| SyöteMTB 30 km | `smtb-30` | `#4C97D6` vaalea sininen | MTB = viileä/sininen | 5.2:1 |
+| SyöteMTB 55 km | `smtb-55` | `#2F6FB0` sininen | " | 3.14:1 |
+| Gravel 62 km | `sgf-62` | `#E9A13B` amber | Gravel = lämmin oranssi-puna | ≥3:1 |
+| Gravel 125 km | `sgf-125` | `#E2662A` oranssi | " | ≥3:1 |
+| Gravel 175 km | `sgf-175` | `#C4384A` puna | " | 3.13:1 |
+
+Uusi reittiväri: pidä ≥3:1 tummalla tekstillä. `smtb-55 #1E5A94` hylättiin (2.29:1 < 3:1).
 
 **Sääntö:** Käytä vain yllä olevia tokeneja. Älä keksi uusia hex-koodeja suoraan CSS:ään.
 Jos tarvitaan uusi väri, lisää se ensin tähän taulukkoon. Icons.ts/sign-picker.ts JS-arvot

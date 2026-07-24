@@ -193,7 +193,7 @@ test.describe('Drag-to-move — T37', () => {
   // V82/B54/T135 (drag ei avaa modaalia). routeIds-uudelleenlasku katettu Vitest-purella. Ks. flaky-e2e-tests.
   const draggableMarker = {
     id: 'mk-drag', type: 'right', lat: 65.62, lon: 27.62, distance_from_start: 5000,
-    route_ids: ['35km'], status: 'suunniteltu', location_note: null, color: null,
+    route_ids: ['smtb-30'], status: 'suunniteltu', location_note: null, color: null,
     label: null, icon_id: null, image_id: null, template_id: null, parts_json: null,
     description: null, images: [], created_by: null,
   }

@@ -506,7 +506,8 @@ button {
   box-shadow: none;
   padding: 0;
 }
-#route-bar[data-mode="visibility"] #route-bar-main { justify-content: flex-end; }
+/* T285: 5 reittiä → järjestäjän vis-pillit rivittyvät oikeaan alakulmaan */
+#route-bar[data-mode="visibility"] #route-bar-main { justify-content: flex-end; flex-wrap: wrap; }
 
 .route-vis-pill {
   display: inline-flex;
@@ -536,13 +537,21 @@ button {
   display: flex;
   gap: 6px;
   align-items: center;
+  /* T285: 5 reittiä (2 tapahtumaa) → pillirivi ylittää mobiilileveyden.
+     Skrollaa vain pillit vaakaan, km/drive-kontrollit pysyvät paikallaan. */
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+#route-selector::-webkit-scrollbar { display: none; }
 
 .route-tab {
   display: flex;
   border-radius: var(--radius-sm);
   overflow: hidden;
   border: 1.5px solid transparent;
+  flex-shrink: 0; /* T285: älä purista pillejä kapeaksi — skrollaa sen sijaan */
   transition: border-color 0.15s, opacity 0.2s;
   background: var(--field-tint);
 }

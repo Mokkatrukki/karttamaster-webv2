@@ -25,7 +25,7 @@ import {
 import type { SignMarker } from '../src/logic/types'
 
 const baseSegment: Omit<Segment, 'id'> = {
-  routeIds: ['route-35km'],
+  routeIds: ['smtb-30'],
   startDist: 1000,
   endDist: 5000,
   equipment: [],
@@ -54,7 +54,7 @@ describe('segments', () => {
   describe('createSegment', () => {
     it('luo segmentin kaikilla kentillä', () => {
       const s = createSegment(store, baseSegment)
-      expect(s.routeIds).toEqual(['route-35km'])
+      expect(s.routeIds).toEqual(['smtb-30'])
       expect(s.startDist).toBe(1000)
       expect(s.endDist).toBe(5000)
       expect(s.phase).toBe('asettaminen')
@@ -205,8 +205,8 @@ describe('segments', () => {
     it('sisällyttää raja-arvot (startDist ja endDist)', () => {
       const segment = createSegment(store, { ...baseSegment, startDist: 1000, endDist: 5000 })
       const markers: SignMarker[] = [
-        makeMarker('start', ['route-35km'], 1000),
-        makeMarker('end', ['route-35km'], 5000),
+        makeMarker('start', ['smtb-30'], 1000),
+        makeMarker('end', ['smtb-30'], 5000),
       ]
       const result = getMarkersForSegment(segment, markers)
       expect(result.map(m => m.id)).toEqual(['start', 'end'])
@@ -248,10 +248,10 @@ describe('segments', () => {
     it('laskee lukumäärän per status vain segmentin omista merkeistä', () => {
       const segment = createSegment(store, baseSegment)
       const markers: SignMarker[] = [
-        { ...makeMarker('m1', ['route-35km'], 2000), status: 'asetettu' },
-        { ...makeMarker('m2', ['route-35km'], 3000), status: 'asetettu' },
-        { ...makeMarker('m3', ['route-35km'], 4000), status: 'kerätty' },
-        { ...makeMarker('outside', ['route-35km'], 9000), status: 'asetettu' },
+        { ...makeMarker('m1', ['smtb-30'], 2000), status: 'asetettu' },
+        { ...makeMarker('m2', ['smtb-30'], 3000), status: 'asetettu' },
+        { ...makeMarker('m3', ['smtb-30'], 4000), status: 'kerätty' },
+        { ...makeMarker('outside', ['smtb-30'], 9000), status: 'asetettu' },
       ]
       expect(getSegmentStatusCounts(segment, markers)).toEqual({
         suunniteltu: 0, asetettu: 2, tarkistettu: 0, kerätty: 1, ei_tarpeen: 0,
@@ -261,8 +261,8 @@ describe('segments', () => {
     it('täysi pätkä: kaikki yhdessä statuksessa', () => {
       const segment = createSegment(store, baseSegment)
       const markers: SignMarker[] = [
-        { ...makeMarker('m1', ['route-35km'], 2000), status: 'kerätty' },
-        { ...makeMarker('m2', ['route-35km'], 3000), status: 'kerätty' },
+        { ...makeMarker('m1', ['smtb-30'], 2000), status: 'kerätty' },
+        { ...makeMarker('m2', ['smtb-30'], 3000), status: 'kerätty' },
       ]
       expect(getSegmentStatusCounts(segment, markers)).toEqual({
         suunniteltu: 0, asetettu: 0, tarkistettu: 0, kerätty: 2, ei_tarpeen: 0,
@@ -296,10 +296,10 @@ describe('segments', () => {
     it('asettaminen-pätkä: done = asetettu+tarkistettu+kerätty', () => {
       const segment = createSegment(store, { ...baseSegment, phase: 'asettaminen' })
       const markers: SignMarker[] = [
-        { ...makeMarker('m1', ['route-35km'], 2000), status: 'suunniteltu' },
-        { ...makeMarker('m2', ['route-35km'], 3000), status: 'asetettu' },
-        { ...makeMarker('m3', ['route-35km'], 4000), status: 'tarkistettu' },
-        { ...makeMarker('m4', ['route-35km'], 4500), status: 'kerätty' },
+        { ...makeMarker('m1', ['smtb-30'], 2000), status: 'suunniteltu' },
+        { ...makeMarker('m2', ['smtb-30'], 3000), status: 'asetettu' },
+        { ...makeMarker('m3', ['smtb-30'], 4000), status: 'tarkistettu' },
+        { ...makeMarker('m4', ['smtb-30'], 4500), status: 'kerätty' },
       ]
       const progress = getPhaseProgress(segment, markers)
       expect(progress).toEqual({ kind: 'count', done: 3, total: 4, label: 'asetettu' })
@@ -309,8 +309,8 @@ describe('segments', () => {
     it('purku-pätkä: done = vain kerätty', () => {
       const segment = createSegment(store, { ...baseSegment, phase: 'purku' })
       const markers: SignMarker[] = [
-        { ...makeMarker('m1', ['route-35km'], 2000), status: 'asetettu' },
-        { ...makeMarker('m2', ['route-35km'], 3000), status: 'kerätty' },
+        { ...makeMarker('m1', ['smtb-30'], 2000), status: 'asetettu' },
+        { ...makeMarker('m2', ['smtb-30'], 3000), status: 'kerätty' },
       ]
       const progress = getPhaseProgress(segment, markers)
       expect(progress).toEqual({ kind: 'count', done: 1, total: 2, label: 'kerätty' })

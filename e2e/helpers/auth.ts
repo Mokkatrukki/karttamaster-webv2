@@ -24,7 +24,7 @@ export async function mockTalkoolainenSegment(
 ): Promise<void> {
   const code = opts.code ?? 'TEST01'
   const seg = {
-    id: 'seg-e2e', routeIds: ['35km'], startDist: 0, endDist: 100000,
+    id: 'seg-e2e', routeIds: ['smtb-30'], startDist: 0, endDist: 100000,
     assignedCode: code, displayName: 'E2E-pätkä', description: '', equipment: [],
     phase: 'asettaminen', inspected: false, completed: false,
   }
@@ -33,7 +33,7 @@ export async function mockTalkoolainenSegment(
   if (opts.withMarker) {
     const marker = {
       id: 'mk-e2e', type: 'right', lat: 65.62, lon: 27.62, distance_from_start: 5000,
-      route_ids: ['35km'], status: 'suunniteltu', location_note: null, color: null,
+      route_ids: ['smtb-30'], status: 'suunniteltu', location_note: null, color: null,
       label: null, icon_id: null, image_id: null, template_id: null, parts_json: null,
       description: null, images: [], created_by: null,
     }
