@@ -6,6 +6,8 @@ export interface RouteConfig {
   label: string
   color: string
   file: string
+  /** T286: tapahtuman nimi ryhmittelyä varten reittivalitsimessa (esim. "SyöteMTB"). */
+  event?: string
   routePoints: RoutePoint[]
 }
 

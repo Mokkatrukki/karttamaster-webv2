@@ -138,7 +138,10 @@ test.describe('RouteBar-jako (T204/V134)', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    await expect(page.locator('.route-vis-pill').first()).toBeVisible()
+    // T286: reittivalitsin = trigger-nappi → avaa listapaneeli
+    await expect(page.locator('.route-vis-trigger')).toBeVisible()
+    await page.locator('.route-vis-trigger').click()
+    await expect(page.locator('.route-vis-row').first()).toBeVisible()
     await expect(page.locator('#route-track')).toBeHidden()
     await expect(page.locator('#route-drive-controls')).toBeHidden()
     await expect(page.locator('.route-tab-drive')).toHaveCount(0)
@@ -153,7 +156,7 @@ test.describe('RouteBar-jako (T204/V134)', () => {
     await page.waitForTimeout(1500)
 
     await expect(page.locator('#route-bar')).toBeHidden()
-    await expect(page.locator('.route-vis-pill')).toHaveCount(0)
+    await expect(page.locator('.route-vis-trigger')).toHaveCount(0)
   })
 })
 
@@ -206,7 +209,7 @@ test.describe('Drag-to-move — T37', () => {
     await expect(page.locator('#auth-screen')).not.toHaveClass(/open/)
 
     // Seedattu merkki renderöi draggable Leaflet-markerin (järjestäjä, markers.ts:367)
-    const markerEl = page.locator('.leaflet-marker-pane .leaflet-marker-icon').first()
+    const markerEl = page.locator('.leaflet-marker-pane .leaflet-marker-icon:not(.route-dir-arrow)').first()
     await markerEl.waitFor({ state: 'visible' })
     const boxBefore = await markerEl.boundingBox()
     expect(boxBefore).not.toBeNull()
@@ -433,7 +436,7 @@ test.describe('Left panel — T73', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    const before = await page.locator('.leaflet-marker-pane .leaflet-marker-icon').count()
+    const before = await page.locator('.leaflet-marker-pane .leaflet-marker-icon:not(.route-dir-arrow)').count()
 
     // Klikkaa sivupalkin merkkikirjaston riviä — armaa sijoituksen, ei vaadi suosikkia
     await page.click('#left-panel #sign-type-dropdown .sign-lib-place-btn >> nth=0')
@@ -446,7 +449,7 @@ test.describe('Left panel — T73', () => {
     await page.waitForTimeout(500)
 
     await expect(page.locator('#map')).not.toHaveClass(/place-mode/)
-    const after = await page.locator('.leaflet-marker-pane .leaflet-marker-icon').count()
+    const after = await page.locator('.leaflet-marker-pane .leaflet-marker-icon:not(.route-dir-arrow)').count()
     expect(after).toBe(before + 1)
   })
 
@@ -482,7 +485,7 @@ test.describe('Left panel — T73', () => {
     await page.waitForTimeout(500)
 
     // Pino: yksi divIcon-elementti, kaksi osaa, yksi ankkuri (yksi tip-SVG)
-    const markerHtml = page.locator('.leaflet-marker-pane .leaflet-marker-icon').last()
+    const markerHtml = page.locator('.leaflet-marker-pane .leaflet-marker-icon:not(.route-dir-arrow)').last()
     await expect(markerHtml).toBeVisible()
     const html = await markerHtml.innerHTML()
     expect(html).toContain('flex-direction:column')
@@ -577,7 +580,7 @@ test.describe('Merkin zoom-skaalaus — T175', () => {
     await page.click('#floating-picker .sign-type-btn[data-type="right"]')
     await page.waitForTimeout(800)
 
-    const markerIcon = page.locator('.leaflet-marker-icon').first()
+    const markerIcon = page.locator('.leaflet-marker-icon:not(.route-dir-arrow)').first()
     await expect(markerIcon).toHaveCount(1)
 
     await page.evaluate(() => {

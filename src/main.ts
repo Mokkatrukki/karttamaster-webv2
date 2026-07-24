@@ -2,6 +2,7 @@ import './style.css'
 import L from 'leaflet'
 import { loadGpx } from './logic/gpx'
 import { buildRoutePoints } from './logic/bearing'
+import { buildDirectionArrows } from './map/route-direction'
 import type { MarkerManager } from './map/markers'
 import { fetchMarkers } from './logic/sync'
 import { startOutboxRetry, setOutboxReauthHandler, outbox } from './logic/outbox-instance'
@@ -20,11 +21,11 @@ initTheme()
 // Kaksi tapahtumaa erottuvat värisävyperheellä (SPEC §C, DESIGN §Reitti-/pätkävärit):
 // SyöteMTB = viileä/sininen, Syötekylä Gravel Fest = lämmin oranssi-puna.
 export const ROUTE_DEFS: Omit<RouteConfig, 'routePoints'>[] = [
-  { id: 'smtb-30',  label: '30 km',  color: '#4C97D6', file: '/smtb-2026-30km.gpx' },
-  { id: 'smtb-55',  label: '55 km',  color: '#2F6FB0', file: '/smtb-2026-55km.gpx' },
-  { id: 'sgf-62',   label: '62 km',  color: '#E9A13B', file: '/sgf-2026-62km.gpx' },
-  { id: 'sgf-125',  label: '125 km', color: '#E2662A', file: '/sgf-2026-125km.gpx' },
-  { id: 'sgf-175',  label: '175 km', color: '#C4384A', file: '/sgf-2026-175km.gpx' },
+  { id: 'smtb-30',  label: '30 km',  color: '#4C97D6', event: 'SyöteMTB',    file: '/smtb-2026-30km.gpx' },
+  { id: 'smtb-55',  label: '55 km',  color: '#2F6FB0', event: 'SyöteMTB',    file: '/smtb-2026-55km.gpx' },
+  { id: 'sgf-62',   label: '62 km',  color: '#E9A13B', event: 'Gravel Fest', file: '/sgf-2026-62km.gpx' },
+  { id: 'sgf-125',  label: '125 km', color: '#E2662A', event: 'Gravel Fest', file: '/sgf-2026-125km.gpx' },
+  { id: 'sgf-175',  label: '175 km', color: '#C4384A', event: 'Gravel Fest', file: '/sgf-2026-175km.gpx' },
 ]
 
 const { map, toolbarMenu, gpsNavigator } = initMap()
@@ -68,6 +69,24 @@ async function init(talkoolainenCode?: string) {
     }).addTo(map)
   )
   map.fitBounds(L.featureGroup(polylines).getBounds(), { padding: [20, 20] })
+
+  // T286: suuntanuolet — pienet, huomaamattomat. Näkyvät VAIN kun reitti on näkyvissä JA
+  // kartta on zoomattu tarpeeksi lähelle (MIN_ARROW_ZOOM) → yleiskuvassa reitit pysyvät
+  // siisteinä, nuolet paljastuvat lähikuvassa. Seuraa reittiviivan add/remove + zoomend.
+  const MIN_ARROW_ZOOM = 12
+  const arrowSyncs = polylines.map((pl, i) => {
+    const arrows = buildDirectionArrows(routes[i].routePoints, routes[i].color)
+    const sync = () => {
+      const show = map.hasLayer(pl) && map.getZoom() >= MIN_ARROW_ZOOM
+      if (show) arrows.addTo(map)
+      else map.removeLayer(arrows)
+    }
+    pl.on('add', sync)
+    pl.on('remove', sync)
+    sync()
+    return sync
+  })
+  map.on('zoomend', () => arrowSyncs.forEach(s => s()))
 
   // Ref täytetään markers-wiring.ts:ssä — segments-wiring tarvitsee merkit pätkän
   // status-väritykseen (V96) mutta MarkerManager luodaan vasta sen jälkeen.
