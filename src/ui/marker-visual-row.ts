@@ -40,7 +40,7 @@ function iconSvg(iconId: string, size: number, stroke: string): string {
 function singleVisualInner(marker: MarkerVisualInput, glyphSize: number): string {
   const v = signVisual({ iconId: marker.iconId, label: marker.label ?? '' }, signImageSrc(marker.type))
   if (v.kind === 'image') {
-    return `<img src="${v.src}" alt="" onerror="this.remove()" style="width:100%;height:100%;object-fit:contain;pointer-events:none">`
+    return `<img loading="lazy" src="${v.src}" alt="" onerror="this.remove()" style="width:100%;height:100%;object-fit:contain;pointer-events:none">`
   }
   if (v.kind === 'icon') {
     return iconSvg(v.id, glyphSize, '#fff')
@@ -80,7 +80,7 @@ export function buildMarkerVisual(marker: MarkerVisualInput, opts: MarkerVisualO
       const border = i > 0 ? 'border-top:1px solid rgba(255,255,255,0.25)' : ''
       if (p.kind === 'image') {
         slot.style.cssText = `height:${slotH}px;${border};display:flex;align-items:center;justify-content:center;background:#fff`
-        slot.innerHTML = `<img src="${p.src}" alt="" onerror="this.remove()" style="width:100%;height:100%;object-fit:contain;pointer-events:none">`
+        slot.innerHTML = `<img loading="lazy" src="${p.src}" alt="" onerror="this.remove()" style="width:100%;height:100%;object-fit:contain;pointer-events:none">`
       } else if (p.kind === 'icon') {
         slot.style.cssText = `height:${slotH}px;${border};display:flex;align-items:center;justify-content:center;background:${color}`
         slot.innerHTML = iconSvg(p.id, Math.round(slotH * 0.55), '#fff')

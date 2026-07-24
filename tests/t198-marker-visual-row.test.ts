@@ -1,5 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { buildMarkerVisual } from '../src/ui/marker-visual-row'
+import { signImageIds } from '../src/logic/sign-images'
+import { createSignIcon } from '../src/map/icons'
 
 afterEach(() => {
   document.body.innerHTML = ''
@@ -111,5 +113,34 @@ describe('T198 — MarkerVisualRow / buildMarkerVisual', () => {
     el.querySelector<HTMLButtonElement>('.marker-visual-row-zoom')!.click()
     document.body.querySelector<HTMLButtonElement>('.marker-visual-lightbox-close')!.click()
     expect(document.body.querySelector('.marker-visual-lightbox-backdrop')).toBeFalsy()
+  })
+
+  // T284/V200 — offscreen lista-thumbnailit lazy-ladataan (kuva ei-heti-näkyvissä listariveissä).
+  it('T284/V200: kuva-tyypin lista-thumb <img> saa loading="lazy"', () => {
+    const imageId = signImageIds()[0] // esim. '101km' — resolvoituu webp-kuvaksi (kind=image)
+    const el = buildMarkerVisual({ type: imageId, label: imageId }, { size: 34, zoomable: false })
+    const img = el.querySelector<HTMLImageElement>('.marker-visual-row-single img')
+    expect(img).toBeTruthy()
+    expect(img!.getAttribute('loading')).toBe('lazy')
+  })
+
+  it('T284/V200: kuva-osan combo-slot <img> saa loading="lazy"', () => {
+    const imageId = signImageIds()[0]
+    const el = buildMarkerVisual(
+      { type: 'combo', label: 'X', parts: [{ imageId }, { imageId }] },
+      { size: 34, zoomable: false },
+    )
+    const img = el.querySelector<HTMLImageElement>('.marker-visual-row-combo-slot img')
+    expect(img).toBeTruthy()
+    expect(img!.getAttribute('loading')).toBe('lazy')
+  })
+
+  // T284/V200 — INVARIANTTI: karttamarkkerien ikonit (icons.ts divIcon <img>) EIVÄT saa lazyä —
+  // ne näkyvät heti kartalla, lazy rikkoisi ensinäkymän.
+  it('V200: karttamerkin divIcon-kuva EI ole lazy (näkyy heti kartalla)', () => {
+    const icon = createSignIcon('101km', 'suunniteltu', undefined, undefined, undefined, '/fake/sign.webp')
+    const html = (icon.options as { html?: string }).html ?? ''
+    expect(html).toContain('<img')
+    expect(html).not.toContain('loading="lazy"')
   })
 })

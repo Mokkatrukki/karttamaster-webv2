@@ -267,7 +267,7 @@ export class SignTemplateModal {
       btn.style.cssText = 'position:relative;width:64px;height:64px;padding:0;background:#fff;border:2px solid var(--border-default);border-radius:var(--radius-sm);cursor:pointer;overflow:hidden'
       if (imageId) {
         const src = signImageSrc(imageId)
-        btn.innerHTML = `<img src="${src}" alt="" style="width:100%;height:100%;object-fit:contain;pointer-events:none">
+        btn.innerHTML = `<img loading="lazy" src="${src}" alt="" style="width:100%;height:100%;object-fit:contain;pointer-events:none">
           <span class="sign-image-zoom-btn" data-image-id="${imageId}" role="button" aria-label="Suurenna ${imageId}" style="position:absolute;bottom:0;right:0;width:44px;height:44px;display:flex;align-items:flex-end;justify-content:flex-end;padding:3px;box-sizing:border-box;cursor:zoom-in">
             <span style="width:18px;height:18px;background:rgba(0,0,0,0.55);border-radius:3px;display:flex;align-items:center;justify-content:center;pointer-events:none">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -472,7 +472,7 @@ export class SignTemplateModal {
       btn.dataset.imageId = imageId
       btn.title = imageId
       btn.style.cssText = 'width:44px;height:44px;padding:0;background:#fff;border:1px solid var(--border-default);border-radius:var(--radius-sm);cursor:pointer;overflow:hidden'
-      btn.innerHTML = `<img src="${signImageSrc(imageId)}" alt="" style="width:100%;height:100%;object-fit:contain;pointer-events:none">`
+      btn.innerHTML = `<img loading="lazy" src="${signImageSrc(imageId)}" alt="" style="width:100%;height:100%;object-fit:contain;pointer-events:none">`
       partImageGrid.appendChild(btn)
     }
     partPicker.appendChild(partImageGrid)
