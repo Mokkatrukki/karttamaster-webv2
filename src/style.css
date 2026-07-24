@@ -493,9 +493,10 @@ button {
 
 /* ── Map ── */
 
-#map { flex: 1; min-height: 0; touch-action: manipulation; }
-/* T287/V201: valkoinen tausta tilePanen alla → himmennys paljastaa valkoisen (paperikarttamaster) */
-#map .leaflet-container { background: #fff; }
+/* T287/V201: #map ON leaflet-container (L.map('map')) → valkoinen tausta tilePanen alla.
+   Himmennys (tilePane-opacity ↓) paljastaa PUHTAAN valkoisen (paperikarttamaster) ettei
+   tumma teema-tausta kuulla läpi → slider 0 % = täysin valkoinen pohja. */
+#map { flex: 1; min-height: 0; touch-action: manipulation; background: #fff; }
 #map.place-mode { cursor: crosshair !important; }
 #map.place-mode .leaflet-container { cursor: crosshair !important; }
 
