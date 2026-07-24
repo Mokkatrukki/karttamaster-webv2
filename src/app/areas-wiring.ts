@@ -3,7 +3,6 @@ import { AreaOverlay } from '../map/area-overlay'
 import { MapRectEditor } from '../map/map-rect-editor'
 import { fetchAreas, createArea, updateArea, deleteArea } from '../logic/area-sync'
 import { AreaPanel } from '../ui/area-panel'
-import { initAreaView } from '../ui/area-view'
 
 // T108/T109/T111/T114-T116: alueet kartalla + järjestäjän editor-paneeli + hash-URL /a/<hash>-katselu.
 // Itsenäinen kokonaisuus — ei riipu merkeistä tai pätkistä, ei vaikuta niihin.
@@ -18,7 +17,12 @@ export async function wireAreas(map: L.Map, talkoolainenCode?: string, onLoadErr
   if (!result.ok) onLoadError()
   areaOverlay.update(areas)
 
-  await initAreaView(map)
+  // T283/V199: area-view (+ `marked` ~40KB) tarvitaan VAIN /a/<hash>-deep-linkillä.
+  // Guardaa import ettei `marked` bundlaudu main-kartan initial-JS:ään (unused-javascript).
+  if (/^\/a\/[^/]+$/.test(window.location.pathname)) {
+    const { initAreaView } = await import('../ui/area-view')
+    await initAreaView(map)
+  }
 
   const areaPanelContainer = document.getElementById('area-panel-container')
   let areaPanel: AreaPanel | null = null
