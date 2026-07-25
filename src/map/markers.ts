@@ -8,6 +8,7 @@ import { genId } from '../logic/uid'
 import type { SignPart } from '../logic/sign-library'
 import { assignRoutesToMarker } from '../logic/multi-route'
 import { ensureRouteIds, FAR_FROM_ROUTE_M } from '../logic/marker-assign'
+import { computeDistanceByRoute } from '../logic/marker-distance'
 import { DEFAULT_STATUS, transitionStatus } from '../logic/marker-status'
 import type { StatusAction } from '../logic/marker-status'
 import type { MarkerStatus } from '../logic/types'
@@ -124,6 +125,10 @@ export class MarkerManager {
         lat: marker.lat,
         lon: marker.lon,
         distance_from_start: marker.distanceFromStart,
+        // T300/V212/V213: km per reitti kulkee payloadissa — backendin ownership-tarkistus
+        // (markerInOwnSegment) ! nähdä sama km-lähde kuin frontendin suodatin, muuten
+        // talkoolainen näkee merkin listalla mutta saa siitä 403:n (B100-oppi toisin päin).
+        distance_by_route: marker.distanceByRoute ?? null,
         route_ids: marker.routeIds,
         status: marker.status,
         location_note: marker.locationNote ?? null,
@@ -142,7 +147,10 @@ export class MarkerManager {
   // distance_from_start). Palvelin toistaa nyt clientin arvot, joten tämä on käytännössä
   // no-op — mutta suojaa jos palvelin joskus laskee kentät itse (ei hiljaista eroa).
   private reconcileFromServer(text: string): void {
-    let row: { id?: string; route_ids?: string[]; distance_from_start?: number }
+    let row: {
+      id?: string; route_ids?: string[]; distance_from_start?: number
+      distance_by_route?: Record<string, number[]> | null
+    }
     try { row = JSON.parse(text) } catch { return }
     if (!row.id) return
     const m = this.markers.find((x) => x.id === row.id)
@@ -153,6 +161,9 @@ export class MarkerManager {
     }
     if (typeof row.distance_from_start === 'number' && row.distance_from_start !== m.distanceFromStart) {
       m.distanceFromStart = row.distance_from_start; changed = true
+    }
+    if (row.distance_by_route && JSON.stringify(row.distance_by_route) !== JSON.stringify(m.distanceByRoute)) {
+      m.distanceByRoute = row.distance_by_route; changed = true
     }
     if (changed) this.onUpdate()
   }
@@ -177,6 +188,7 @@ export class MarkerManager {
   private nearestRouteAssignment(lat: number, lon: number): {
     routeIds: string[]
     distanceFromStart: number
+    distanceByRoute: Record<string, number[]>
   } {
     let bestIdx = 0, bestRouteIdx = 0, bestDist = Infinity
     this.routes.forEach((r, ri) => {
@@ -189,16 +201,22 @@ export class MarkerManager {
     const rawRouteIds = assignRoutesToMarker(lat, lon, this.routes)
     const routeIds = ensureRouteIds(rawRouteIds, primaryRoute.id)
     if (bestDist > FAR_FROM_ROUTE_M) this.onFarFromRoute?.(bestDist)
-    return { routeIds, distanceFromStart: point.distanceFromStart }
+    // T300/V212: km ERIKSEEN jokaiselle jäsenreitille — yksi skalaari ei riitä jaetulla osuudella.
+    return {
+      routeIds,
+      distanceFromStart: point.distanceFromStart,
+      distanceByRoute: computeDistanceByRoute(lat, lon, this.routes),
+    }
   }
 
   add(lat: number, lon: number, type: MarkerType, color?: string, label?: string, iconId?: string, parts?: SignPart[], imageId?: string, templateId?: string): SignMarker {
-    const { routeIds, distanceFromStart } = this.nearestRouteAssignment(lat, lon)
+    const { routeIds, distanceFromStart, distanceByRoute } = this.nearestRouteAssignment(lat, lon)
 
     const marker: SignMarker = {
       id: genId(),
       type, lat, lon,
       distanceFromStart,
+      distanceByRoute,
       routeIds,
       status: DEFAULT_STATUS,
       ...(color ? { color } : {}),
@@ -241,12 +259,14 @@ export class MarkerManager {
     let fixed = 0
     this.markers.forEach((m) => {
       if (m.routeIds.length > 0) return
-      const { routeIds, distanceFromStart } = this.nearestRouteAssignment(m.lat, m.lon)
+      const { routeIds, distanceFromStart, distanceByRoute } = this.nearestRouteAssignment(m.lat, m.lon)
       m.routeIds = routeIds
       m.distanceFromStart = distanceFromStart
+      m.distanceByRoute = distanceByRoute
       this.apiPut(m.id, {
         route_ids: routeIds,
         distance_from_start: distanceFromStart,
+        distance_by_route: distanceByRoute,
       })
       if (m.routeIds.some((id) => this.visibleRouteIds.includes(id)) && !this.leafletMarkers.has(m.id)) {
         this.addLeafletMarker(m)
@@ -403,11 +423,15 @@ export class MarkerManager {
       m.lat = lat
       m.lon = lng
       m.distanceFromStart = point.distanceFromStart
+      // T300/V212: siirto muuttaa sijaintia ∴ km ! laskea uudelleen JOKAISELLE reitille,
+      // ei vain lähimmälle — muuten vanha distanceByRoute jäisi osoittamaan entiseen kohtaan.
+      m.distanceByRoute = computeDistanceByRoute(lat, lng, this.routes)
       m.routeIds = routeIds
       this.apiPut(m.id, {
         lat,
         lon: lng,
         distance_from_start: point.distanceFromStart,
+        distance_by_route: m.distanceByRoute,
         route_ids: routeIds,
       })
       this.onUpdate()

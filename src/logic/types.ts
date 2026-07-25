@@ -15,8 +15,14 @@ export interface SignMarker {
   type: MarkerType
   lat: number
   lon: number
-  distanceFromStart: number // meters — nearest route at placement time
+  distanceFromStart: number // meters — nearest route at placement time (primary/legacy)
   routeIds: string[]      // routes this marker belongs to
+  // T300/V212/B115: km ERIKSEEN jokaiselle reitille johon merkki kuuluu. Sama fyysinen kohta
+  // on eri km eri reiteillä ∴ yksi skalaari ei riitä kun routeIds.length > 1 — pätkäsuodatus
+  // vertasi reitin A km:ää reitin B km-väliin → vääriä merkkejä. Puuttuu vanhalta datalta →
+  // `distanceForRoute` fallbackaa `distanceFromStart`iin (⊥ kantamigraatiota, ks. §C-parkki).
+  distanceByRoute?: Record<string, number[]>
+
   status: MarkerStatus    // lifecycle: suunniteltu → asetettu → tarkistettu → kerätty | ei_tarpeen
   locationNote?: string   // vapaa teksti: mihin tarkasti kiinnitetään
   color?: string          // custom template color (ei default-4 tyypeille)

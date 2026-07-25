@@ -33,6 +33,40 @@ export function nearestPointIndex(points: RoutePoint[], lat: number, lon: number
   return best
 }
 
+// T302/V214/B116: `nearestPointIndex` on GLOBAALI argmin ilman jatkuvuusrajoitetta. Kun reitti
+// palaa itsensä lähelle (lenkki, edestakainen osuus, risteys), kaksi fyysisesti vierekkäistä
+// polyline-pistettä voivat olla km 12 ja km 47 — argmin valitsee sen joka sattuu olemaan metrin
+// lähempänä, eli km-arvo ratkeaa KOHINALLA. Ratkaisu: palauta kaikki LOKAALIT minimit ja anna
+// kutsujan valita kontekstilla (pätkän km-väli, edellinen sijainti). Yksi ehdokas = entinen käytös.
+export interface RoutePointCandidate {
+  idx: number
+  distanceFromStart: number
+  distanceM: number
+}
+
+export function nearestPointCandidates(
+  points: RoutePoint[],
+  lat: number,
+  lon: number,
+  thresholdM: number,
+): RoutePointCandidate[] {
+  const out: RoutePointCandidate[] = []
+  const target = { lat, lon }
+  let prev = Infinity
+  let curr = points.length > 0 ? haversineDistance(points[0], target) : Infinity
+  for (let i = 0; i < points.length; i++) {
+    const next = i + 1 < points.length ? haversineDistance(points[i + 1], target) : Infinity
+    // lokaali minimi: naapurit molemmin puolin kauempana (tasatilanteessa <= vasemmalle,
+    // jotta tasainen jono ei tuota N päällekkäistä ehdokasta samasta kohdasta)
+    if (curr <= thresholdM && curr < prev && curr <= next) {
+      out.push({ idx: i, distanceFromStart: points[i].distanceFromStart, distanceM: curr })
+    }
+    prev = curr
+    curr = next
+  }
+  return out.sort((a, b) => a.distanceM - b.distanceM)
+}
+
 /** Position of a distance along a route as percentage 0–100 */
 export function routePositionPct(distanceFromStart: number, totalDistance: number): number {
   if (totalDistance <= 0) return 0
