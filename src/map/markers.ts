@@ -12,6 +12,7 @@ import {
   snapshotMarkerPosition,
   applyMarkerPosition,
   isServerRejection,
+  backfillDistanceByRoute,
 } from '../logic/marker-distance'
 import { DEFAULT_STATUS, transitionStatus } from '../logic/marker-status'
 import type { StatusAction } from '../logic/marker-status'
@@ -251,6 +252,11 @@ export class MarkerManager {
   reload(markers: SignMarker[]): void {
     this.leafletMarkers.forEach((lm) => lm.remove())
     this.leafletMarkers.clear()
+    // T319/V229/V212: serveriltä tulevilla merkeillä ei ole `distanceByRoute`ta (⊥ persistoitu,
+    // 190/190 prod-merkkiä tyhjänä 2026-07-25) ∴ ilman backfilliä km-akseli katoaisi ja
+    // järjestys/jäsenyys putoaisi rikkinäiseen skalaari-fallbackiin. main.ts tekee tämän
+    // alkulatauksessa; reload on TOINEN sisääntulo samaan dataan (GPKG-tuonti, re-fetch).
+    backfillDistanceByRoute(markers, this.routes)
     this.markers = markers
     this.markers.forEach((m) => {
       if (m.routeIds.some((id) => this.visibleRouteIds.includes(id))) {
