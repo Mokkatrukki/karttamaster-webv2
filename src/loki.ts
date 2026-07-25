@@ -53,7 +53,7 @@ const auth = new AuthScreen((result) => {
   // AuthResult.role kattaa client-roolit; /api/auth/me palauttaa myös 'admin' → laajennetaan.
   const role = result.role as string
   if (role !== 'admin' && role !== 'järjestäjä') {
-    renderForbidden(content)
+    renderForbidden(content, 'Aktiviteettiloki on vain järjestäjille ja admineille — sinulla ei ole oikeutta tähän näkymään.')
     return
   }
   void load()
