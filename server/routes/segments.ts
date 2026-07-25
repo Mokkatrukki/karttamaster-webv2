@@ -159,7 +159,12 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
     session.talkoolainen_code != null &&
     existing.assigned_code != null &&
     session.talkoolainen_code.toUpperCase() === existing.assigned_code.toUpperCase()
-  if (!isOrganizer && !isOwnTalkoolainen) return c.json({ error: 'forbidden' }, 403)
+  // T306/V217/B119: Model B -talkoo-sessio (yleissalasana V188) EI kanna pätkäkoodia ∴ vanha
+  // omistajuusehto hylkäsi sen aina → kaikki kenttätyö 403. Käyttäjäpäätös 2026-07-25: ei
+  // hierarkiaa — kooditon sessio saa kenttätyöoikeuden ∀ pätkään. Sallittu kenttäjoukko (alla)
+  // rajaa silti järjestäjän kentät pois.
+  const isCodelessTalkoo = session.role === 'talkoolainen' && session.talkoolainen_code == null
+  if (!isOrganizer && !isOwnTalkoolainen && !isCodelessTalkoo) return c.json({ error: 'forbidden' }, 403)
 
   // V93 (T224 laajennus): talkoolainen saa muuttaa oman pätkän kenttätyön kentät: inspected/
   // inspectionNote/startDist/endDist + equipment (varustelistan päivitys ennen lähtöä, VISION r42/239).

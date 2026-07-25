@@ -196,7 +196,9 @@ describe('T61: Segments API', () => {
       expect(res.status).toBe(403)
     })
 
-    test('PUT /api/segments/:id — talkoolainen 403', async () => {
+    // T306/V217 (amend): yleissalasana-sessio EI enää 403 — se saa kenttätyöoikeuden ∀ pätkään
+    // (B119). Suoja siirtyi kenttäsuodattimeen: järjestäjän kentät eivät läpäise PUT:ia.
+    test('PUT /api/segments/:id — talkoolaisen PUT ei muuta järjestäjän kenttiä', async () => {
       const app = makeApp(db)
       const postRes = await app.request('/api/segments', {
         method: 'POST',
@@ -209,7 +211,8 @@ describe('T61: Segments API', () => {
         headers: { ...authHeaders(db, 'talkoolainen'), 'Content-Type': 'application/json' },
         body: JSON.stringify({ description: 'yritys' }),
       })
-      expect(res.status).toBe(403)
+      expect(res.status).toBe(200)
+      expect(((await res.json()) as Record<string, unknown>).description).toBeUndefined()
     })
 
     test('DELETE /api/segments/:id — talkoolainen 403', async () => {

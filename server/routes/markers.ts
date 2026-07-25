@@ -8,6 +8,13 @@ import { ownSegments, markerInOwnSegment, logMarkerAudit, type AuditAction } fro
 
 export const markersRoutes = new Hono<AuthEnv>()
 
+// T306/V217/B119: Model B -talkoo-sessio (yleissalasana V188) EI kanna pätkäkoodia ∴ sillä ei ole
+// "omaa pätkää" mihin verrata. Käyttäjäpäätös 2026-07-25: ei hierarkiaa — koodittomalla sessiolla
+// on kenttätyöoikeus kaikkiin merkkeihin. Identiteettikenttä-gate (V150) pysyy voimassa myös sille.
+function isCodelessTalkoo(session: { role: string; talkoolainen_code?: string | null }): boolean {
+  return session.role === 'talkoolainen' && session.talkoolainen_code == null
+}
+
 interface MarkerRow {
   id: string
   type: string
@@ -82,7 +89,8 @@ markersRoutes.post('/', requireAuth(), async (c) => {
 
   // V149: role-gate — organizer aina; talkoolainen vain oman pätkän sisään; muu → 403
   const isOrganizer = session.role === 'admin' || session.role === 'järjestäjä'
-  if (!isOrganizer) {
+  // T306/V217: koodillinen legacy-sessio pitää pätkärajansa; kooditon (yleissalasana) saa asettaa ∀.
+  if (!isOrganizer && !isCodelessTalkoo(session)) {
     const segs = ownSegments(db, session)
     const mayPlace = markerInOwnSegment(segs, {
       routeIds: body.route_ids,
@@ -175,15 +183,17 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
   const existingRoutes = existing.route_ids ? (JSON.parse(existing.route_ids) as string[]) : []
   if (!isOrganizer) {
     const segs = ownSegments(db, session)
-    // (a) identiteettimuutos aina kielletty talkoolaiselta
+    // (a) identiteettimuutos aina kielletty talkoolaiselta — koskee MYÖS koodittomaan sessioon (V217)
     if (identityFields.some((f) => f in body)) return c.json({ error: 'forbidden' }, 403)
+    // T306/V217: koodittomalla sessiolla ei ole pätkää mihin verrata ∴ (b) ja (c) eivät päde.
+    const bound = !isCodelessTalkoo(session)
     // (b) V150a: olemassa olevan merkin PITÄÄ kuulua talkoolaisen pätkään (kanoninen unioni:
     //     route+dist ∪ linked ∪ typeFilter) — koskee MYÖS status/location_note-kenttiä.
-    if (!markerInOwnSegment(segs, { id, routeIds: existingRoutes, distFromStart: existing.distance_from_start, templateId: existing.template_id })) {
+    if (bound && !markerInOwnSegment(segs, { id, routeIds: existingRoutes, distFromStart: existing.distance_from_start, templateId: existing.template_id })) {
       return c.json({ error: 'forbidden' }, 403)
     }
     // (c) V150b: siirto ei saa raahata merkkiä ulos omasta pätkästä — uusi sijainti range-tarkistus.
-    if (moveFields.some((f) => f in body)) {
+    if (bound && moveFields.some((f) => f in body)) {
       const newDist = body.distance_from_start ?? existing.distance_from_start
       const newRoutes = body.route_ids ?? existingRoutes
       if (!markerInOwnSegment(segs, { id, routeIds: newRoutes, distFromStart: newDist, templateId: existing.template_id })) {
@@ -263,8 +273,16 @@ markersRoutes.delete('/:id', requireAuth(), (c) => {
     const existingRoutes = existing.route_ids ? (JSON.parse(existing.route_ids) as string[]) : []
     const segs = ownSegments(db, session)
     const owns = markerInOwnSegment(segs, { id, routeIds: existingRoutes, distFromStart: existing.distance_from_start, templateId: existing.template_id })
-    const selfCreated = existing.created_by != null && existing.created_by === session.talkoolainen_code
-    if (!owns || !selfCreated) return c.json({ error: 'forbidden' }, 403)
+    // T306/V217: koodittomalla sessiolla created_by = display_name ("Talkoolainen") ∴ itse-luotu-ehto
+    // vertaa siihen, ja pätkäsidos (owns) ei päde. SEURAUS jonka käyttäjä hyväksyi 2026-07-25:
+    // poisto-oikeus kattaa kaikki talkoolaisten luomat merkit (ei hierarkiaa). Järjestäjän merkit
+    // pysyvät suojattuina — ne on luotu järjestäjän display_namella.
+    if (isCodelessTalkoo(session)) {
+      if (existing.created_by !== session.display_name) return c.json({ error: 'forbidden' }, 403)
+    } else {
+      const selfCreated = existing.created_by != null && existing.created_by === session.talkoolainen_code
+      if (!owns || !selfCreated) return c.json({ error: 'forbidden' }, 403)
+    }
   }
 
   // T226/V152: remove-audit ennen-tilalla (audit-näkyvyys; V153 ei restoraa removea) + DELETE atomisesti.
