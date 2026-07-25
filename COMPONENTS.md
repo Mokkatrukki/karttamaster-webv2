@@ -63,7 +63,9 @@ server/       ← Hono + Bun + SQLite
 | SignVisual | `src/logic/sign-visual.ts` | ✓ T171 | — | [logic.md](docs/components/logic.md) |
 | SignImages | `src/logic/sign-images.ts` | ✓ T158 (Vite glob, 89 kuvaa T161:stä) | — | [logic.md](docs/components/logic.md) |
 | Sync | `src/logic/sync.ts` | ✓ T226 (createdBy-mäppäys) | — | [logic.md](docs/components/logic.md) |
-| AuditSync | `src/logic/audit-sync.ts` | ✓ T227 (fetchSegmentAudit + undoSegmentActions) | tests/audit-sync.test.ts | [logic.md](docs/components/logic.md) |
+| AuditSync | `src/logic/audit-sync.ts` | ✓ T320 (+ fetchAuditLog suodattimin + undoAuditEntry eritellyin virhein) | tests/audit-sync.test.ts, tests/t320-audit-log.test.ts | [logic.md](docs/components/logic.md) |
+| AuditLog | `src/logic/audit-log.ts` | ✓ T320 (verbit + poikkeama metreinä + suodatinpredikaatit + ketjut) | tests/t320-audit-log.test.ts | [logic.md](docs/components/logic.md) |
+| TalkooIdentity | `src/logic/talkoo-identity.ts` | ✓ T317 (nimen validointi + muistaminen laitteessa) | tests/t317-talkoo-nimi.test.ts | [logic.md](docs/components/logic.md) |
 | WriteOutbox | `src/logic/write-outbox.ts` + `outbox-instance.ts` | ✓ T183 (durable kirjoitusjono, V116) | — | [logic.md](docs/components/logic.md) |
 | MarkerScale | `src/logic/marker-scale.ts` | ✓ T175 | — | [logic.md](docs/components/logic.md) |
 | SegmentZoom | `src/logic/segment-zoom.ts` | ✓ T224 (planSegmentZoom: fit vs anchor pätkän latauksessa) | tests/t224-segment-zoom.test.ts | [logic.md](docs/components/logic.md) |
@@ -101,6 +103,8 @@ server/       ← Hono + Bun + SQLite
 | SegmentKotiTabs | `src/ui/segment-koti-tabs.ts` | ✓ T264/V184 (koti-välilehdet: Varustelista·Kaikki merkit·Kommentit; korvaa "Lisää ⋯" -accordionin) | tests/t264-segment-koti-tabs.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | PhaseSwitcher | `src/ui/phase-switcher.ts` | ✓ T148,T180 (stopPropagation, B80) | e2e/t180-phase-switcher-menu.spec.ts | [ui.md](docs/components/ui.md) |
 | AuthScreen | `src/ui/auth-screen.ts` | ✓ T51, T272 (Model B: talkoolainen=yleissalasana, deep-link pending→login→avaa pätkä) | critical-paths: "yleissalasana" | [ui.md](docs/components/ui.md) |
+| AuditLogPage | `src/ui/audit-log-page.ts` | ✓ T321 (globaali loki + per-rivi undo, /loki) | e2e/t321-audit-log.spec.ts | [ui.md](docs/components/ui.md) |
+| NamePrompt | `src/ui/name-prompt.ts` | ✓ T322 (nimi kesken session, ohitettava) | — | [ui.md](docs/components/ui.md) |
 | SnapshotPanel | `src/ui/snapshot-panel.ts` | ✓ T164 (lataa/palauta tiedostosta) | — | [ui.md](docs/components/ui.md) |
 | LeftPanel | `src/ui/left-panel.ts` | ✓ T73,T179 (onToggle callback),T181 (mobiili-drawer, default-collapsed ≤480px) | critical-paths: "Left panel"; e2e/t179-map-invalidate-size.spec.ts; e2e/t181-left-panel-mobile-drawer.spec.ts | [ui.md](docs/components/ui.md) |
 | StatusPanel | `src/ui/status-panel.ts` | ✓ T28 | sprint-features: "T28" | [ui.md](docs/components/ui.md) |
@@ -116,13 +120,13 @@ server/       ← Hono + Bun + SQLite
 | BackendServer | `server/index.ts` | ✓ T41 | — | [backend.md](docs/components/backend.md) |
 | DatabaseLayer | `server/db.ts` | ✓ | — | [backend.md](docs/components/backend.md) |
 | SegmentsAPI | `server/routes/segments.ts` | ✓ T149 | — | [backend.md](docs/components/backend.md) |
-| AuthRoutes | `server/routes/auth.ts` | ✓ T36, T267 (talkoo-login + rate-limit, Model B V188) | — | [backend.md](docs/components/backend.md) |
+| AuthRoutes | `server/routes/auth.ts` | ✓ T317/T322 (talkoo-login vaatii nimen + POST /api/auth/name kesken session) | — | [backend.md](docs/components/backend.md) |
 | Settings | `server/settings.ts` | ✓ T267 (settings-taulu key-value: talkoo_password_hash + faq_markdown; getSetting/setSetting) | — | [backend.md](docs/components/backend.md) |
 | AdminRoutes | `server/routes/admin.ts` | ✓ T121, T267/T269 (talkoo-salasana + FAQ PUT) | — | [backend.md](docs/components/backend.md) |
 | FaqRoutes | `server/routes/faq.ts` | ✓ T269 (GET /api/faq, ∀ autentikoitu; PUT admin.ts) | — | [backend.md](docs/components/backend.md) |
 | MarkersAPI | `server/routes/markers.ts` | ✓ T226 (kanoninen ownership + audit-kirjaus + created_by) | — | [backend.md](docs/components/backend.md) |
-| MarkerAudit | `server/marker-audit.ts` | ✓ T226 (ownSegments + markerInOwnSegment-unioni V154 + logMarkerAudit) | — | [backend.md](docs/components/backend.md) |
-| AuditAPI | `server/routes/audit.ts` | ✓ T227 (GET /api/audit + POST /api/audit/undo massaperuutus) | — | [backend.md](docs/components/backend.md) |
+| MarkerAudit | `server/marker-audit.ts` | ✓ T316 (+ segmentCodeForMarker: pätkä johdetaan merkistä V227) | — | [backend.md](docs/components/backend.md) |
+| AuditAPI | `server/routes/audit.ts` | ✓ T319 (+ per-rivi-undo /undo/:auditId + GET-suodattimet) | — | [backend.md](docs/components/backend.md) |
 | InventoryAPI | `server/routes/inventory.ts` | ✓ T243 (v2: paikat `inventory_locations`-CRUD + `template_id`-merkkilinkki V165 + location_id-suodatus V166; snapshot-name; V161/V162/V163) | — | [backend.md](docs/components/backend.md) |
 | TemplatesAPI | `server/routes/templates.ts` | ✓ T192 | — | [backend.md](docs/components/backend.md) |
 | AreasAPI | `server/routes/areas.ts` | ✓ | area-interaction | [backend.md](docs/components/backend.md) |

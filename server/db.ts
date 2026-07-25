@@ -260,6 +260,10 @@ function initSchema(db: Database): void {
   // järjestäjän suunnitteleman (vain soft ei_tarpeen). Talkoolainen_code ensisijainen tunniste
   // (display_name törmää nimikaimoilla). Olemassa olevat merkit → NULL (= suunniteltu, ei poistettavissa).
   try { db.exec('ALTER TABLE markers ADD COLUMN created_by TEXT') } catch { /* already exists */ }
+  // T319/V230: per-rivi-undon leima. NULL = rivi peruttavissa; aikaleima = jo peruttu (409).
+  // Ilman tätä sama siirto voitaisiin perua kahdesti ja toinen restore kirjoittaisi vanhentuneen
+  // ennen-tilan päälle. Vanhat rivit → NULL = peruttavissa (oikea oletus).
+  try { db.exec('ALTER TABLE marker_audit ADD COLUMN undone_at TEXT') } catch { /* already exists */ }
   // B84/V121: bearing-feature poistettiin (T129/T132) mutta DROP-migraatiota ei koskaan
   // kirjoitettu. Ennen poistoa luotu markers-taulu (esim. tuotanto Jun 11) säilyttää
   // `bearing NOT NULL` -sarakkeen ilman defaultia → koodin INSERT (ei bearingia) kaatuu

@@ -27,6 +27,55 @@ export async function fetchSegmentAudit(segmentCode: string): Promise<AuditEntry
   }
 }
 
+// T320: globaali loki suodattimineen (/loki-näkymä). Palvelin leikkaa limitiin ja palauttaa
+// uusimmat ensin; hienojakoinen suodatus tehdään clientissä (audit-log.ts filterEntries).
+export interface AuditQuery {
+  actor?: string
+  actorRole?: string
+  segmentCode?: string
+  since?: string
+  until?: string
+  limit?: number
+}
+
+export async function fetchAuditLog(query: AuditQuery = {}): Promise<AuditEntry[] | null> {
+  const params = new URLSearchParams()
+  if (query.actor) params.set('actor', query.actor)
+  if (query.actorRole) params.set('actor_role', query.actorRole)
+  if (query.segmentCode) params.set('segment_code', query.segmentCode)
+  if (query.since) params.set('since', query.since)
+  if (query.until) params.set('until', query.until)
+  params.set('limit', String(query.limit ?? 200))
+  try {
+    const resp = await fetch(`/api/audit?${params.toString()}`)
+    if (!resp.ok) return null
+    const data = await resp.json()
+    return Array.isArray(data) ? (data as AuditEntry[]) : null
+  } catch {
+    return null
+  }
+}
+
+// T320/V230: yhden rivin peruutus. Virhe ERITELLÄÄN — käyttäjälle on kerrottava MIKSI peruutus
+// ei onnistunut (jo peruttu vs. merkki kadonnut vs. verkko), ei pelkkää "ei onnistunut" (V21).
+export type UndoResult =
+  | { ok: true }
+  | { ok: false; error: 'already_undone' | 'not_found' | 'not_undoable' | 'forbidden' | 'network' }
+
+export async function undoAuditEntry(auditId: string): Promise<UndoResult> {
+  try {
+    const resp = await fetch(`/api/audit/undo/${encodeURIComponent(auditId)}`, { method: 'POST' })
+    if (resp.ok) return { ok: true }
+    if (resp.status === 409) return { ok: false, error: 'already_undone' }
+    if (resp.status === 404) return { ok: false, error: 'not_found' }
+    if (resp.status === 403) return { ok: false, error: 'forbidden' }
+    if (resp.status === 400) return { ok: false, error: 'not_undoable' }
+    return { ok: false, error: 'network' }
+  } catch {
+    return { ok: false, error: 'network' }
+  }
+}
+
 // Massaperuutus: peru pätkän kaikki tietyn actionin mutaatiot (add=poista, move/status=restore ennen-tila).
 // Palauttaa peruutettujen määrän tai null jos pyyntö epäonnistui.
 export async function undoSegmentActions(segmentCode: string, action: AuditAction): Promise<number | null> {

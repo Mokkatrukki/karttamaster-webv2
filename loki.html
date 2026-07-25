@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="fi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="description" content="Karttamaster aktiviteettiloki — kuka muutti mitäkin merkkiä ja milloin, sekä muutosten peruutus." />
+    <title>Karttamaster — Aktiviteettiloki</title>
+  </head>
+  <body>
+    <div id="loki-app">
+      <header id="loki-header">
+        <h1>Aktiviteettiloki</h1>
+        <div class="loki-header-actions">
+          <a href="/" class="btn btn-secondary">← Kartalle</a>
+          <button id="btn-loki-logout" class="btn btn-secondary">Kirjaudu ulos</button>
+        </div>
+      </header>
+      <main id="loki-content"></main>
+    </div>
+    <script type="module" src="/src/loki.ts"></script>
+  </body>
+</html>

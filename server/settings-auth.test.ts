@@ -40,7 +40,7 @@ describe('T267/V188: yleissalasana + Model B talkoo-auth', () => {
     const res = await makeApp(db).request('/api/auth/talkoo-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: PW }),
+      body: JSON.stringify({ password: PW, name: 'Testi Talkoolainen' }),
     })
     expect(res.status).toBe(200)
     const body = (await res.json()) as { role: string; display_name: string }
@@ -54,7 +54,7 @@ describe('T267/V188: yleissalasana + Model B talkoo-auth', () => {
     const res = await makeApp(db).request('/api/auth/talkoo-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: 'väärä' }),
+      body: JSON.stringify({ password: 'väärä', name: 'Testi Talkoolainen' }),
     })
     expect(res.status).toBe(401)
     expect(res.headers.get('set-cookie')).toBeNull()
@@ -64,7 +64,7 @@ describe('T267/V188: yleissalasana + Model B talkoo-auth', () => {
     const res = await makeApp(db).request('/api/auth/talkoo-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: PW }),
+      body: JSON.stringify({ password: PW, name: 'Testi Talkoolainen' }),
     })
     expect(res.status).toBe(401)
   })
@@ -76,7 +76,7 @@ describe('T267/V188: yleissalasana + Model B talkoo-auth', () => {
       app.request('/api/auth/talkoo-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '10.0.0.9' },
-        body: JSON.stringify({ password: pw }),
+        body: JSON.stringify({ password: pw, name: 'Testi Talkoolainen' }),
       })
 
     for (let i = 0; i < 10; i++) {
@@ -95,7 +95,7 @@ describe('T267/V188: yleissalasana + Model B talkoo-auth', () => {
       app.request('/api/auth/talkoo-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '10.0.0.10' },
-        body: JSON.stringify({ password: pw }),
+        body: JSON.stringify({ password: pw, name: 'Testi Talkoolainen' }),
       })
     for (let i = 0; i < 5; i++) await attempt('väärä')
     expect((await attempt(PW)).status).toBe(200) // onnistuu, nollaa
@@ -122,7 +122,7 @@ describe('T267/V188: yleissalasana + Model B talkoo-auth', () => {
     const login = await app.request('/api/auth/talkoo-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: 'uusisala' }),
+      body: JSON.stringify({ password: 'uusisala', name: 'Testi Talkoolainen' }),
     })
     expect(login.status).toBe(200)
   })
@@ -138,13 +138,13 @@ describe('T267/V188: yleissalasana + Model B talkoo-auth', () => {
     const oldPw = await app.request('/api/auth/talkoo-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '10.0.0.11' },
-      body: JSON.stringify({ password: 'eka' }),
+      body: JSON.stringify({ password: 'eka', name: 'Testi Talkoolainen' }),
     })
     expect(oldPw.status).toBe(401)
     const newPw = await app.request('/api/auth/talkoo-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '10.0.0.12' },
-      body: JSON.stringify({ password: 'toka' }),
+      body: JSON.stringify({ password: 'toka', name: 'Testi Talkoolainen' }),
     })
     expect(newPw.status).toBe(200)
   })

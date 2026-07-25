@@ -28,8 +28,9 @@ test.describe('Talkoolais-hub', () => {
     await page.route(/\/api\/markers(\?|$)/, r => r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
 
     await page.goto('/patkat')
-    await expect(page.locator('.patkat-login-input')).toBeVisible()
-    await page.locator('.patkat-login-input').fill('syote2026')
+    await expect(page.locator('.patkat-login-name')).toBeVisible()
+    await page.locator('.patkat-login-name').fill('Testi Talkoolainen')
+    await page.locator('input[type="password"].patkat-login-input').fill('syote2026')
     await page.locator('.patkat-login-btn').click()
 
     await expect(page.locator('.patkat-row-name')).toContainText('Pätkä 1')

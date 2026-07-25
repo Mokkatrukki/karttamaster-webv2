@@ -40,6 +40,16 @@ export class AccountMenu {
       container.appendChild(patkat)
     }
 
+    // T321/V231: aktiviteettiloki — järjestäjä ja admin. Vastaa kysymykseen "kuka muutti tätä"
+    // ja tarjoaa peruutuksen ilman SSH-yhteyttä tuotantoon (2026-07-25 incidentti).
+    if (opts.role && opts.role !== 'talkoolainen') {
+      const loki = document.createElement('a')
+      loki.className = 'account-menu-loki'
+      loki.href = '/loki.html'
+      loki.textContent = '🕓 Muutoshistoria'
+      container.appendChild(loki)
+    }
+
     container.appendChild(this.buildThemeSelector())
 
     const logout = document.createElement('button')

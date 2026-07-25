@@ -145,8 +145,19 @@ markersRoutes.post('/', requireAuth(), async (c) => {
         createdBy,
       ],
     )
-    // add: ei ENNEN-tilaa (undo = DELETE, V153).
-    logMarkerAudit(db, { markerId: id, action: 'add', session })
+    // add: ei ENNEN-tilaa (undo = DELETE, V153). T316/V227: pätkä johdetaan merkistä.
+    logMarkerAudit(db, {
+      markerId: id,
+      action: 'add',
+      session,
+      marker: {
+        id,
+        routeIds: body.route_ids,
+        distFromStart: body.distance_from_start,
+        distByRoute: body.distance_by_route ?? null,
+        templateId: body.template_id ?? null,
+      },
+    })
   })()
 
   const row = db.query<MarkerRow, [string]>('SELECT * FROM markers WHERE id = ?').get(id)!
@@ -260,7 +271,24 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
 
   db.transaction(() => {
     db.run(`UPDATE markers SET ${fields.join(', ')} WHERE id = ?`, values as string[])
-    if (audit) logMarkerAudit(db, { markerId: id, action: audit.action, session, payload: audit.payload })
+    if (audit) {
+      // T316/V227: pätkä johdetaan merkin UUDESTA tilasta — siirron jälkeen merkki kuuluu sinne
+      // minne se päätyi, ja juuri sen pätkän valvojan pitää nähdä rivi lokissaan.
+      const after = db.query<MarkerRow, [string]>('SELECT * FROM markers WHERE id = ?').get(id)!
+      logMarkerAudit(db, {
+        markerId: id,
+        action: audit.action,
+        session,
+        payload: audit.payload,
+        marker: {
+          id,
+          routeIds: after.route_ids ? (JSON.parse(after.route_ids) as string[]) : [],
+          distFromStart: after.distance_from_start,
+          distByRoute: parseDistByRoute(after.distance_by_route),
+          templateId: after.template_id,
+        },
+      })
+    }
   })()
 
   const updated = db.query<MarkerRow, [string]>('SELECT * FROM markers WHERE id = ?').get(id)!
@@ -308,19 +336,24 @@ markersRoutes.delete('/:id', requireAuth(), (c) => {
     }
   }
 
-  // T226/V152: remove-audit ennen-tilalla (audit-näkyvyys; V153 ei restoraa removea) + DELETE atomisesti.
+  // T226/V152: remove-audit ennen-tilalla + DELETE atomisesti.
+  // T318/V229: payload = KOKO merkkirivi ∴ poisto on peruttavissa INSERTillä. Aiempi 6 kentän
+  // otos riitti näkyvyyteen mutta ei palautukseen — ja juuri poisto on se jota halutaan perua.
   db.transaction(() => {
+    const full = db.query<MarkerRow, [string]>('SELECT * FROM markers WHERE id = ?').get(id)!
     logMarkerAudit(db, {
       markerId: id,
       action: 'remove',
       session,
-      payload: {
-        type: existing.type,
-        lat: existing.lat,
-        lon: existing.lon,
-        distance_from_start: existing.distance_from_start,
-        route_ids: existing.route_ids ? (JSON.parse(existing.route_ids) as string[]) : [],
-        status: existing.status,
+      payload: { ...full, route_ids: full.route_ids ? (JSON.parse(full.route_ids) as string[]) : [] },
+      // T316/V227: johdetaan ENNEN DELETEä — jälkikäteen merkkiä ei enää ole eikä pätkää voisi
+      // ratkaista, ja poistorivi katoaisi juuri sen pätkän lokista jossa sitä tarvitaan.
+      marker: {
+        id,
+        routeIds: existing.route_ids ? (JSON.parse(existing.route_ids) as string[]) : [],
+        distFromStart: existing.distance_from_start,
+        distByRoute: parseDistByRoute(existing.distance_by_route),
+        templateId: existing.template_id,
       },
     })
     db.run('DELETE FROM markers WHERE id = ?', [id])

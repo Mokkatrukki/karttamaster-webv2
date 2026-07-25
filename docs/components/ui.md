@@ -421,3 +421,36 @@ DOM-komponentit ilman Leafletia. **Testattavuus: Vitest-jsdom.**
 
 ### Käyttäjätarkistus
 > Järjestäjä/admin: "oho vahingossa painoin" -turvaverkko edit-moodissa — yksi klikkaus peruu viimeisimmän. Toast näkyy vain `viewMode='edit'`.
+
+## AuditLogPage — T321 ✓
+**Vastuu:** globaali merkkimuutosloki + yhden rivin peruutus. Kuka teki mitä, milloin, kuinka kauas merkki siirtyi.
+**Käyttäjä:** järjestäjä (desktop, tilannekuva) + admin
+**Konteksti:** oma entry `loki.html` → `src/loki.ts` → `renderAuditLogPage`. Rooligate `admin|järjestäjä` (V231); talkoolainen → `renderForbidden`.
+**Moduuli:** `src/ui/audit-log-page.ts` (+ tyylit `src/audit-log.css`, EI `style.css`:ään)
+**Testattavuus:** Vitest-jsdom (`tests/t321-audit-log-page.test.ts`) + Playwright (`e2e/t321-audit-log.spec.ts`)
+
+### Ominaisuudet
+- ✓ Rivi: tekijä + rooli-badge │ teko + merkin tyyppi │ pätkä │ aika │ poikkeama metreinä │ Kartalle / Peru tämä
+- ✓ Poikkeama `moveDeviationM` (T320) — >100 m korostuu punaisella; raja 2026-07-25 datasta (pienin vahinko 1272 m, suurin laillinen tarkennus 15 m)
+- ✓ Suodattimet rooli/tekijä/pätkä/aikaväli — tekijä- ja pätkävalikot rakentuvat datasta
+- ✓ Peruutus: `confirm` ennen (V102) → `undoAuditEntry` → 409/404/403/400 selkokielellä (V21)
+- ✓ Poistettu merkki: rivi näkyy ilman poikkeamaa ja kartalle-linkkiä
+- ✓ B124-legacy: pätkätön rivi → "pätkä tuntematon", ei arvausta
+
+### Käyttäjätarkistus
+> Järjestäjä: näenkö kuka sotki ja saanko sen peruttua ilman SSH-yhteyttä? Kyllä — se oli koko syy tehdä tämä (2026-07-25).
+> Talkoolainen: ei näe näkymää lainkaan (V231).
+
+## NamePrompt — T322 ✓
+**Vastuu:** kysyy nimen kesken session niiltä jotka kirjautuivat ennen T317:ää.
+**Käyttäjä:** talkoolainen (kenttätyö jo käynnissä)
+**Konteksti:** `/patkat`-hubi. Sessiot elävät 7 vrk ∴ ilman tätä ne olisivat nimettömiä koko tapahtuman ajan. Ohitettavissa — nimi on jäljitettävyysväline, ei pääsynvalvonta (V228).
+**Moduuli:** `src/ui/name-prompt.ts` (+ `src/name-prompt.css`)
+**Testattavuus:** Vitest-jsdom (`tests/t322-name-prompt.test.ts`)
+
+### Ominaisuudet
+- ✓ Näytetään vain kun `display_name` puuttuu tai on legacy-geneerinen `'Talkoolainen'`
+- ✓ Esitäyttö laitteen muistista (`km:talkoo:nimi`)
+- ✓ "Ei nyt" muistetaan (`km:talkoo:nimi-ohitettu`) → ei jankuta joka latauksella metsässä
+- ✓ Epäonnistunut tallennus ei sulje palkkia (V21)
+- ✓ `POST /api/auth/name` ei katkaise sessiota — kenttätyö jatkuu

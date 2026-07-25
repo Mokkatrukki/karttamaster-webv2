@@ -35,6 +35,7 @@ describe('T296 — talkoo-login landing (V208)', () => {
   })
 
   async function submitTalkooPassword(): Promise<void> {
+    ;(document.querySelector('#auth-talkoo-name') as HTMLInputElement).value = 'Testi Talkoolainen'
     ;(document.querySelector('#auth-talkoo-password') as HTMLInputElement).value = 'syote2026'
     const form = document.querySelector('#auth-form-talkoolainen') as HTMLFormElement
     form.dispatchEvent(new Event('submit', { cancelable: true }))

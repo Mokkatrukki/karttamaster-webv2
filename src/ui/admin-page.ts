@@ -247,12 +247,14 @@ async function enhanceFaqWithCrepe(
   }
 }
 
-export function renderForbidden(container: HTMLElement): void {
+// T321: viesti parametrina — /loki sallii myös järjestäjän, joten admin-kohtainen teksti
+// valehtelisi siellä.
+export function renderForbidden(container: HTMLElement, message = 'Tämä sivu on vain admin-käyttäjille.'): void {
   container.innerHTML = ''
   const wrap = document.createElement('div')
   wrap.className = 'admin-forbidden'
   const p = document.createElement('p')
-  p.textContent = 'Tämä sivu on vain admin-käyttäjille.'
+  p.textContent = message
   wrap.appendChild(p)
   container.appendChild(wrap)
 }
