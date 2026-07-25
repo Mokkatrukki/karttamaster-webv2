@@ -538,6 +538,13 @@ Sivun (ei modaalin) **primary-toiminto** kun sivun sisältö on datan mukana kas
   - `.comment-thread-send` (`.btn--confirm`): `width:100%`. Virhe: `.comment-thread-error` `danger-text 12px`.
 - **Sääntö:** kaikki lomakekontrollit ≥44px touch (§R, talkoolainen mobiili/hanskat) + DESIGN-tokenit — EI natiiveja selain-defaultteja.
 
+### ImageLightbox — jaettu suurennus (`src/ui/image-lightbox.ts`, T337/V246)
+- **Yksi kuori kaikille suurennetuille kuville:** merkkien valokuvat, huomioiden kuvat (T338), kylttivisuaali (`marker-visual-row`). Kolme toteutusta ⇒ kolme eri sulkemiskäytöstä; Esc, backdrop-klikki ja ✕ toimivat samoin joka paikassa (escape-chain).
+- **Rakenne:** `.marker-visual-lightbox-backdrop` (`--overlay` + blur, `z-index:5000`) > `.marker-visual-lightbox` (kortti, `max-width:min(90vw,420px)`) > `.marker-visual-lightbox-close` (✕, `34px`, oikea yläkulma) + `.marker-visual-lightbox-stage` + valinnainen `.marker-visual-lightbox-caption`.
+- **Valokuva (`openImageLightbox`):** `.image-lightbox-photo`, **`object-fit: contain`**, `max-height:70vh`. Lava `--surface-app` (tumma) ⇒ valokuva erottuu kortin reunasta. Thumbin `cover`-rajaus EI saa toistua isossa — rajaus hävittää juuri sen mitä kentällä kuvattiin (V246).
+- **Kuvan kahva (thumb):** `role="button"` + `tabindex=0` + `aria-label="Avaa kuva N"` + `cursor:zoom-in`, Enter/Space avaa. Thumb ≥44px hit-area (§R) — `.marker-detail-image-thumb` on 72px ∴ täyttyy.
+- Sisältö tulee kutsujalta (`stage`-elementti) — kuori ei tiedä mitä näyttää.
+
 ### CommentPin — vapaan pisteen huomio kartalla (`src/map/comment-layer.ts`, T221 → sijoitus T237)
 - **Konsepti:** huomio ("tämä voisi korjata", "puu kaatuu tässä") on kartalla PAIKANNETTU, mutta se **ei ole merkki**: ei tyyppiä, ei statusta, ei elinkaarta, ei pätkäjäsenyyttä, ei osuutta merkkilaskureihin. Visuaalin ainoa tehtävä on tehdä tuo ero ilmeiseksi 1 metrin päästä auringossa.
 - **Muoto erottaa, ei väri** (väri katoaa auringossa ja värisokealta): merkki = **neliökortti 40×40 + kärkikolmio** (V136/T208). Huomio = **pyöreä puhekupla 32×32**, `border-radius: 50% 50% 50% 4px` (yksi terävä alanurkka = osoitin), valkoinen 2px reuna, `box-shadow 0 1px 3px rgba(0,0,0,.35)`. Kupla on PIENEMPI kuin merkki — huomio ei kilpaile tehtävän kanssa.

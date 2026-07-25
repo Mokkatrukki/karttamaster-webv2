@@ -3,7 +3,7 @@ import { signImageSrc } from '../logic/sign-images'
 import { getIconById } from '../logic/icon-set'
 import { SIGN_TYPES } from '../logic/sign-picker'
 import type { SignPart } from '../logic/sign-library'
-import { registerEscClose, createBackdrop } from './modal-helpers'
+import { openLightbox } from './image-lightbox'
 
 // T198: jaettu render-helper merkin visuaalille — kuva>ikoni>label-precedence (V99),
 // yhdistelmämerkki pystypino max 4 osaa (V107). Erillinen segment-details-modal.ts:stä
@@ -124,41 +124,11 @@ export function buildMarkerVisual(marker: MarkerVisualInput, opts: MarkerVisualO
   return wrap
 }
 
+// T337: kuori tulee jaetusta image-lightboxista — tämä funktio päättää vain SISÄLLÖN.
+// Sulkeminen (Esc/backdrop/✕) on yksi toteutus kaikille kuville, ei kolme.
 function openMarkerLightbox(marker: MarkerVisualInput): void {
-  const close = () => {
-    backdrop.remove()
-    unregEsc()
-  }
-  const backdrop = createBackdrop('marker-visual-lightbox-backdrop', close)
-  backdrop.style.cssText = 'position:fixed;inset:0;background:var(--overlay);backdrop-filter:blur(2px);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px'
-
-  const box = document.createElement('div')
-  box.className = 'marker-visual-lightbox'
-  box.style.cssText = 'position:relative;max-width:min(90vw,420px);width:100%;background:var(--surface-card);border:1px solid var(--border-default);border-radius:var(--radius-lg);box-shadow:0 24px 64px rgba(0,0,0,0.6);padding:16px'
-  box.addEventListener('click', (e) => e.stopPropagation())
-
-  const closeBtn = document.createElement('button')
-  closeBtn.type = 'button'
-  closeBtn.className = 'marker-visual-lightbox-close'
-  closeBtn.setAttribute('aria-label', 'Sulje')
-  closeBtn.textContent = '✕'
-  closeBtn.style.cssText = 'position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:8px;border:1px solid var(--border-strong);background:transparent;color:var(--text-muted);font-size:15px;cursor:pointer'
-  closeBtn.addEventListener('click', close)
-  box.appendChild(closeBtn)
-
-  const stage = document.createElement('div')
-  stage.className = 'marker-visual-lightbox-stage'
-  stage.style.cssText = 'background:#fff;border-radius:var(--radius-sm);min-height:200px;display:flex;align-items:center;justify-content:center;margin-top:6px'
-  stage.appendChild(buildMarkerVisual(marker, { size: 160, zoomable: false }))
-  box.appendChild(stage)
-
-  const caption = document.createElement('p')
-  caption.className = 'marker-visual-lightbox-caption'
-  caption.style.cssText = 'text-align:center;font-size:13px;color:var(--text-muted);margin:10px 0 0'
-  caption.textContent = marker.label ?? compactLabel(marker.type)
-  box.appendChild(caption)
-
-  backdrop.appendChild(box)
-  document.body.appendChild(backdrop)
-  const unregEsc = registerEscClose(close)
+  openLightbox({
+    stage: buildMarkerVisual(marker, { size: 160, zoomable: false }),
+    caption: marker.label ?? compactLabel(marker.type),
+  })
 }

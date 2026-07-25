@@ -5,6 +5,7 @@ import { SIGN_TYPES } from '../logic/sign-picker'
 import { listTemplates } from '../logic/sign-library'
 import { validActions, canTransition } from '../logic/marker-status'
 import { registerEscClose, signPreviewHtml } from './modal-helpers'
+import { openImageLightbox } from './image-lightbox'
 import { CommentThread } from './comment-thread'
 
 const STATUS_LABELS: Record<MarkerStatus, string> = {
@@ -184,12 +185,23 @@ export class MarkerDetailModal {
     if (images.length > 0) {
       const gallery = document.createElement('div')
       gallery.className = 'marker-detail-image-gallery'
-      images.forEach((url) => {
+      images.forEach((url, i) => {
         const img = document.createElement('img')
         img.className = 'marker-detail-image-thumb'
         img.src = url
         img.loading = 'lazy'
         img.alt = 'Merkin kuva'
+        // T337/V246 (B132): thumb on KAHVA, ei kuvan esitys — 72px + object-fit:cover rajaa ∴
+        // ilman tätä kentällä otettu kuva on katsomiskelvoton. Klikki/Enter/Space → lightbox.
+        img.setAttribute('role', 'button')
+        img.tabIndex = 0
+        img.setAttribute('aria-label', `Avaa kuva ${i + 1}`)
+        img.style.cursor = 'zoom-in'
+        const open = () => openImageLightbox(url, marker.label)
+        img.addEventListener('click', open)
+        img.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open() }
+        })
         img.addEventListener('error', () => {
           const placeholder = document.createElement('div')
           placeholder.className = 'marker-detail-image-placeholder'
