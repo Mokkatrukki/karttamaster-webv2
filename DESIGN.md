@@ -538,6 +538,24 @@ Sivun (ei modaalin) **primary-toiminto** kun sivun sisältö on datan mukana kas
   - `.comment-thread-send` (`.btn--confirm`): `width:100%`. Virhe: `.comment-thread-error` `danger-text 12px`.
 - **Sääntö:** kaikki lomakekontrollit ≥44px touch (§R, talkoolainen mobiili/hanskat) + DESIGN-tokenit — EI natiiveja selain-defaultteja.
 
+### CommentPin — vapaan pisteen huomio kartalla (`src/map/comment-layer.ts`, T221 → sijoitus T237)
+- **Konsepti:** huomio ("tämä voisi korjata", "puu kaatuu tässä") on kartalla PAIKANNETTU, mutta se **ei ole merkki**: ei tyyppiä, ei statusta, ei elinkaarta, ei pätkäjäsenyyttä, ei osuutta merkkilaskureihin. Visuaalin ainoa tehtävä on tehdä tuo ero ilmeiseksi 1 metrin päästä auringossa.
+- **Muoto erottaa, ei väri** (väri katoaa auringossa ja värisokealta): merkki = **neliökortti 40×40 + kärkikolmio** (V136/T208). Huomio = **pyöreä puhekupla 32×32**, `border-radius: 50% 50% 50% 4px` (yksi terävä alanurkka = osoitin), valkoinen 2px reuna, `box-shadow 0 1px 3px rgba(0,0,0,.35)`. Kupla on PIENEMPI kuin merkki — huomio ei kilpaile tehtävän kanssa.
+- **Väri:** `#F2542D` (redesign-aksentti "tape"), ei kuulu merkkityyppi- eikä statuspalettiin ∴ ei törmää §C:n merkkiväreihin. Sisältö: valittu `iconId` (`renderIconSvg`, 18px) tai oletus-puhekupla-SVG, aina valkoisena.
+- **Ankkuri** `[4, 38]` — terävä alanurkka osoittaa pisteen, sama logiikka kuin merkin kärki.
+- **Fokus-tila (V243):** huomio-pinnit himmenevät samalla säännöllä kuin merkit (`.marker-dimmed`), ⊥ katoa — huomio kuuluu kartan totuuteen.
+- **⊥ arvoja koodiin ilman tätä lohkoa:** nykyiset hexit ovat inline `comment-layer.ts:60-66` -templatessa; jos niitä muutetaan, päivitä tämä sopimus samalla (sama drift-luokka kuin SEGMENT_COLORS-törmäys yllä).
+- Käyttäjä: molemmat (kuka tahansa autentikoitu saa jättää huomion, V13).
+
+### CommentPanel — "Huomiot" järjestäjän sivupalkissa (`#comment-panel-container`, `src/ui/comment-panel.ts`, T340)
+- **Missä:** `#left-panel-content`in oma `.left-panel-section`, `#area-panel-container`in jälkeen. Inventaario-linkki pysyy viimeisenä (se vie pois sivulta). Vain järjestäjä (`#left-panel` on jo roolisuojattu, ei toista porttia).
+- **Otsikko:** `Huomiot (N)` — sama `.left-panel-section-title`-kieli kuin naapureilla. Tyhjä: "Ei huomioita." `text-muted 12px`.
+- **Rivi (`.comment-panel-item`):** `[ikoni 20px] [tekstin 1. rivi] [nimi · pvm]` + `📷` jos kuvia. Ikoni = sama `#F2542D` kupla-aihe pienennettynä ⇒ sivupalkin rivi ja kartan pinni tunnistetaan samaksi asiaksi.
+- **Leveysrajoite (240px, B104-oppi):** teksti `overflow:hidden; text-overflow:ellipsis; white-space:nowrap`. Sivupalkki EI saa vuotaa vaakasuunnassa — pitkä huomioteksti katkaistaan, koko teksti näkyy avatessa.
+- **Rivin klikkaus = näytä kartalla** (panoroi + korosta pinni), EI modaalia — sama valinta kuin talkoolaisen keräyslistassa (`segment-view.ts:317`). Järjestäjä etsii paikkaa, ei lue tekstiä listasta.
+- **Poisto:** 🗑 rivin lopussa, `modal-btn-destructive`-väri, vahvistus ennen `DELETE`. Vain järjestäjä+ (backend V13).
+- **Touch:** rivi ≥44px korkea myös yhdellä tekstirivillä (järjestäjä on desktopilla, mutta sama sopimus pitää rivin luettavana).
+
 ### Talkoolaisen moodit (koti/kartta) — T254/V174–176 (R1 keystone)
 - **Moodi = `#app[data-view-mode="koti"|"kartta"]`**, asettaa `src/app/talkoolainen-mode.ts`. Koskee VAIN talkoolaista (järjestäjän `#app` ei saa attribuuttia).
 - **KOTI (oletus, V174):** pätkänäkymä ILMAN karttaa. `#map { display:none }`. Landing kun `/s/<koodi>` avataan.
@@ -693,7 +711,31 @@ Kartta avautuu **katselutilassa** joka latauksella; kaikki kartan MUTATOIVAT ele
 - DisplayName: pysyvä tooltip `permanent: true`, CSS-class `segment-label`
 - Aukko (gap): `color: text-muted hex (#94a3b8), weight: 8, opacity: 0.3`
 - SEGMENT_COLORS (6 väriä, **paletti ei saa sisältää route-värejä** `#f59e0b`/`#8b5cf6`):
-  `['#10b981', '#ec4899', '#3b82f6', '#ef4444', '#06b6d4', '#64748b']` (nyt `src/logic/segments.ts`)
+  ~~`['#10b981', '#ec4899', '#3b82f6', '#ef4444', '#06b6d4', '#64748b']`~~ **VANHENTUNUT** — todellinen paletti on §C:n 4 väriä `['#2F6FB0', '#7A4E9C', '#0E9594', '#B5476B']` (`src/logic/segments.ts:274`). ⚠ Sääntö "paletti ei saa sisältää route-värejä" on RIKKI: `#2F6FB0` = pätkäväri 1 = `smtb-55`-reittiväri (`route-defs.ts:12`) ∴ pätkä ja reitti näyttävät samalta juuri siinä kohtaa missä ne ovat päällekkäin. Korjataan T304:n paletti-päätöksen yhteydessä (V216), ei erikseen.
+
+### MarkerFocus — fokus-/himmennystila kartalla (`src/map/markers.ts` + `.marker-dimmed`)
+
+**Konsepti:** yksi primitiivi, kaksi laukaisinta. Fokus = "nämä merkit ovat sinun tehtäväsi nyt"; kaikki muut jäävät näkyviin taustaksi (kartta ei valehtele — merkki on olemassa) mutta lakkaavat kilpailemasta huomiosta. Sama visuaalinen kieli kuin `contextSegmentStyle` (V142) tekee jo pätkäVIIVOILLE.
+
+- **Laukaisin A — talkoolainen (`/s/<slug>`):** automaattinen, EI kytkintä. Oman pätkän merkit täysillä, muut himmeinä. VISION "max 2 nappia" ∴ talkoolaiselle tämä ei ole valinta vaan oletus. Sama lähde kuin viivoille: `contextOwnId`.
+- **Laukaisin B — järjestäjä:** eksplisiittinen kytkin, **oletus POIS** (järjestäjä tarvitsee kokonaiskuvan; §P "tilanne yhdellä silmäyksellä").
+  - Koti: `SegmentDetailsModal` toimintorivi — `.btn.btn--ghost` `aria-pressed`, teksti `◎ Korosta vain tämä pätkä` ↔ aktiivina `◉ Korostus päällä`. Yksi koti, EI rinnakkaista kytkintä `SegmentPanel`-riviin (kaksi sisääntuloa samaan tilaan = kaksi eri mieltä olevaa indikaattoria).
+  - **Poistuminen on pakollinen ja näkyvä:** modaali suljetaan mutta korostus jää → kartalle `.map-mode-pill`-kuvion mukainen pilleri `Korostus: <pätkän nimi> ✕` (T308/V219, sama komponenttisopimus). Ilman pilleriä tila jää päälle eikä käyttäjä tiedä miksi kartta on haalea — sama umpikuja-luokka kuin B131.
+- **Himmennysarvo:** `opacity: 0.4` **+ `filter: grayscale(1)`**. ⊥ käytä viivojen `CONTEXT_DIM_OPACITY 0.22`:ta merkeille: viiva on satoja pikseleitä pitkä, merkki 40×48px ∴ sama alfa katoaa kokonaan ilmakuvan päältä auringossa. Kaksi kanavaa (alfa + värikylläisyys) antaa saman "taustalla"-viestin matalammalla alfa-hinnalla. Harmaasävy on tässä oikea sivutuote: väri = identiteetti (tyyppiväri V87, pätkäväri), ja fokuksen ulkopuolella identiteettiä ei tarvitse lukea.
+- **Fokusoituja merkkejä EI korosteta ylöspäin** (ei hehkua, ei skaalausta) — `.marker-next-highlight` (T256/V178) on jo varattu "seuraava merkki" -tasolle. Kolme kilpailevaa korostustasoa samalla kartalla ⇒ ei yhtään.
+- **Status- ja tyyppikieli säilyy:** himmennetty kortti pitää muotonsa, kärkensä ja reunatyylinsä (katkoviiva = suunniteltu, solid = status, V51/V87). Grayscale vie sävyn, ⊥ rakennetta ∴ "tehty vs tekemättä" luettavissa myös himmennettynä.
+- **Klikattavuus:** talkoolainen → himmennetty merkki `pointer-events: none` (V142 read-only; vastaa myös serverin oikeuksia, V93/V150). Järjestäjä → himmennetty merkki **pysyy klikattavana** (hän omistaa kaiken; korostus on lukemisen apu, ei lukko).
+- **Suhde pohjakartan slideriin (T287/V201):** kaksi riippumatonta kontrollia. Merkkien himmennys ⊥ skaalaa slider-arvon mukaan (⊥ kertolaskua) — 30 % pohja + 0.4 merkki on luettava (valkoinen paperi taustalla), 100 % pohja + 0.4 merkki on se raja johon arvo on kalibroitu. Slideri koskee `tilePane`a, fokus `markerPane`a — ⊥ jaettua tilaa.
+- **Toteutus:** CSS-luokka Leafletin `divIcon`-elementtiin (`getElement().classList.toggle('marker-dimmed')`), ⊥ ikonin uudelleenluontia (`createSignIcon`) — uudelleenluonti nollaa `.marker-next-highlight`in ja vilkuttaa koko kartan. `transition: opacity .12s, filter .12s` — riittää pehmentämään, ⊥ hidasta kenttäkäytössä.
+- Käyttäjä: talkoolainen (automaattinen), järjestäjä (kytkin).
+
+### SegmentCasing — pätkä reitin päällä, kaksi kanavaa (`src/map/segment-overlay.ts`)
+
+- **Ongelma:** pätkä piirtyy nyt yhtenä `weight: 11` -viivana reitin PÄÄLLE ∴ reitti-identiteetti (mikä reitti tämä on) katoaa juuri pätkän kohdalta, ja jos pätkäväri sattuu olemaan sama kuin reittiväri (`#2F6FB0`, ks. yllä) pätkää ei erota lainkaan.
+- **Sopimus:** casing-kuvio — kaksi polylineä samalle geometrialle: **alempi = pätkäväri `weight: 15`**, **päällä = reitin oma väri `weight: 9`** ⇒ sisus kertoo reitin, ~3px reuna molemmin puolin kertoo pätkän. Reuna on itsenäinen kanava ∴ toimii myös värisokealle (leveysero) ja auringossa (kaksi reunaa, ei yksi sävy).
+- Viivatyyli = status (V96) siirtyy **casingiin** (dashArray/opacity `LINE_STATE_STYLE`), sisusviiva pysyy ehjänä — muuten katkoviiva paljastaisi pohjakartan ja koko kuvio hajoaisi.
+- Talkoolaisen ei-oma pätkä: ⊥ casingia lainkaan (nykyinen ohut himmeä viiva, `contextSegmentStyle`) — casing on korostuksen kieli, sitä ⊥ anneta taustalle.
+- **Riippuvuus:** vaatii että `SEGMENT_COLORS ∩ ROUTE-värit = ∅` ja että pätkäväri saa ≥3:1 kontrastin sisusvärinsä kanssa. Kumpikaan ei päde nyt ∴ **kalibroidaan T304:n (V216) paletti-päätöksessä, ⊥ erikseen** — muuten sama paletti säädetään kahdesti.
 
 
 **Regressiosuoja (V88):** `getSegmentStatusCounts()` (src/logic/segments.ts) yksikkötestaus ei riitä — T95 hävisi juuri koska pelkkä logiikkatesti jäi vihreäksi vaikka kutsupaikka katosi UI:sta. Pakollinen lisäksi: Vitest-jsdom-testi joka rakentaa oikean `main.ts`-wiring-polun (ei eristettyä komponenttia) ja tarkistaa että `#segment-status-bar` DOM-teksti sisältää oikean lukumäärän segmentStoren mutaation jälkeen. Tulevat refaktorit jotka koskevat `#map-area`-lasten järjestystä tai `SegmentPanel`/`segment-view`-riviä eivät saa läpäistä testejä jos tämä kutsu putoaa pois.
