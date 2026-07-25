@@ -252,7 +252,7 @@ export class MarkerManager {
   reload(markers: SignMarker[]): void {
     this.leafletMarkers.forEach((lm) => lm.remove())
     this.leafletMarkers.clear()
-    // T319/V229/V212: serveriltä tulevilla merkeillä ei ole `distanceByRoute`ta (⊥ persistoitu,
+    // T327/V235/V212: serveriltä tulevilla merkeillä ei ole `distanceByRoute`ta (⊥ persistoitu,
     // 190/190 prod-merkkiä tyhjänä 2026-07-25) ∴ ilman backfilliä km-akseli katoaisi ja
     // järjestys/jäsenyys putoaisi rikkinäiseen skalaari-fallbackiin. main.ts tekee tämän
     // alkulatauksessa; reload on TOINEN sisääntulo samaan dataan (GPKG-tuonti, re-fetch).

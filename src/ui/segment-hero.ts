@@ -64,7 +64,7 @@ export class SegmentHero {
     this.el.hidden = false
     this.el.innerHTML = ''
 
-    // T319/V229: km-akseli = pätkän primary-reitti (fallback routeIds[0]) — EI merkin skalaari,
+    // T327/V235: km-akseli = pätkän primary-reitti (fallback routeIds[0]) — EI merkin skalaari,
     // joka voi olla mitattu toiselta reitiltä ∴ järjestys ei vastaisi kulkusuuntaa (B126).
     const axis = segmentPrimaryRouteId(segment)
     const ordered = unsetMarkersOrdered(markers, axis)
@@ -249,7 +249,7 @@ export class SegmentHero {
   // render() re-render synkkaa kartan korostuksen (onNavigate) uuteen valintaan.
   private navStep(dir: 1 | -1): void {
     if (!this.selectedNavId) return
-    // Sama akseli kuin render():ssä (V229) — muuten ◀▶ selaisi eri järjestystä kuin lista näyttää.
+    // Sama akseli kuin render():ssä (V235) — muuten ◀▶ selaisi eri järjestystä kuin lista näyttää.
     const target = stepUnset(
       this.ctx.getMarkers(), this.selectedNavId, dir, segmentPrimaryRouteId(this.ctx.getSegment()),
     )

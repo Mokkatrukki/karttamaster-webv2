@@ -50,7 +50,7 @@ server/       ← Hono + Bun + SQLite
 | PhaseView | `src/logic/phase-view.ts` | ✓ T148 | — | [logic.md](docs/components/logic.md) |
 | RoleController | `src/logic/role.ts` | ✓ T12 (V80: rooli backendistä, toggle dead code) | critical-paths: "Rooli backendistä" | [logic.md](docs/components/logic.md) |
 | SituationLogic | `src/logic/situation.ts` *(ei vielä)* | ○ T15 | — | [logic.md](docs/components/logic.md) |
-| NavigationLogic | `src/logic/navigation.ts` | ✓ T16, T319 (km-akseli annetusta reitistä ⊥ skalaarista, V229/B126; + `distanceAhead` drive-kursorille) | tests/navigation.test.ts | [logic.md](docs/components/logic.md) |
+| NavigationLogic | `src/logic/navigation.ts` | ✓ T16, T327 (km-akseli annetusta reitistä ⊥ skalaarista, V235/B126; + `distanceAhead` drive-kursorille) | tests/navigation.test.ts | [logic.md](docs/components/logic.md) |
 | SegmentSync | `src/logic/segment-sync.ts` | ✓ T62 | — | [logic.md](docs/components/logic.md) |
 | AreaTypes | `src/logic/area-types.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | AreaGeometry | `src/logic/area-geometry.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
@@ -96,7 +96,7 @@ server/       ← Hono + Bun + SQLite
 | SegmentCreationModal | `src/ui/segment-creation-modal.ts` | ✓ T150 | — | [ui.md](docs/components/ui.md) |
 | SegmentDetailsModal | `src/ui/segment-details-modal.ts` | ✓ T146,T199,T227 (supervision: aktiviteettiloki + massaperuutus) ⚠️ pilkko | tests/t69-segment-details-modal.test.ts, tests/t199-segment-markers-list.test.ts | [ui.md](docs/components/ui.md) |
 | SegmentView | `src/ui/segment-view.ts` | ✓ T228, T218 (dynaaminen keräyslista), T234 (562r koordinaattori; hero irrotettu) | tests/t14-segment-view.test.ts, tests/t224-segment-view.test.ts, tests/t218-collection-list.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
-| SegmentHero | `src/ui/segment-hero.ts` | ✓ T234 (seuraava-merkki-hero + ◀▶-nav + selectedNavId V159, irrotettu SegmentViewsta), T319 (järjestys pätkän primary-reitin km:llä, V229) | tests/t232-segment-view-hero.test.ts | [ui.md](docs/components/ui.md) |
+| SegmentHero | `src/ui/segment-hero.ts` | ✓ T234 (seuraava-merkki-hero + ◀▶-nav + selectedNavId V159, irrotettu SegmentViewsta), T327 (järjestys pätkän primary-reitin km:llä, V235) | tests/t232-segment-view-hero.test.ts | [ui.md](docs/components/ui.md) |
 | EquipmentModal | `src/ui/equipment-modal.ts` | ✓ T224/C (talkoolaisen varustelista tilavana modaalina) | tests/t224-equipment-modal.test.ts | [ui.md](docs/components/ui.md) |
 | SegmentEquipment | `src/ui/segment-equipment.ts` | ✓ T262/V182 (KOTI-inline-varustelista + varustarkastus-checkoff; hero kartta-only; "Muokkaa"→EquipmentModal) | tests/t262-segment-equipment.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | SegmentMarkerList | `src/ui/segment-marker-list.ts` | ✓ T263/V183, T264 (KOTI "Kaikki merkit" -tab, ryhmitelty asetetut/asettamatta/ei tarpeen; rivi→MarkerDetailModal) | tests/t263-segment-marker-list.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |

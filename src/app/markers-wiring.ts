@@ -103,7 +103,7 @@ export function wireMarkers(
   // T224 (b1)/T256: korosta pätkän seuraava asettamaton merkki kartalla (vain asettaminen-phase).
   // R6/V178: ikoni-hehku (.marker-next-highlight) renkaan sijaan → markerManager.setNextHighlight.
   function updateNextHighlight(seg: Segment, segMarkers: SignMarker[]): void {
-    // T319/V229: sama km-akseli kuin herossa (segmentPrimaryRouteId) — muuten kartan korostus
+    // T327/V235: sama km-akseli kuin herossa (segmentPrimaryRouteId) — muuten kartan korostus
     // osoittaisi eri merkkiin kuin "Seuraava merkki" -palkki (B126).
     const next = seg.phase === 'asettaminen' ? firstUnsetMarker(segMarkers, segmentPrimaryRouteId(seg)) : null
     markerManager.setNextHighlight(next?.id ?? null)
@@ -472,7 +472,7 @@ export function wireMarkers(
   document.getElementById('btn-route-prev')!.addEventListener('click', () => driveMode.prev())
 
   // T39: "hyppää seuraavaan merkkiin" — siirtää driveMode-kursorin seuraavan merkin kohtaan
-  // aktiivisella reitillä (edessäpäin). Ei GPS-riippuvainen. T319/V229: sekä valinta että
+  // aktiivisella reitillä (edessäpäin). Ei GPS-riippuvainen. T327/V235: sekä valinta että
   // kursorin kohde luetaan AKTIIVISEN reitin akselilta (distanceAhead), EI merkin
   // distanceFromStart-skalaarista — se voi olla mitattu toiselta reitiltä ∴ kursori hyppäisi
   // väärään kohtaan (B126). Jos edessä ei ole merkkiä, ei tehdä mitään (kursori jää paikalleen).

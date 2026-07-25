@@ -184,11 +184,11 @@ describe('nextMarkerAhead', () => {
   })
 })
 
-// T319/V229/B126: järjestysavain = ANNETUN reitin km (distanceByRoute), ei merkin skalaari.
+// T327/V235/B126: järjestysavain = ANNETUN reitin km (distanceByRoute), ei merkin skalaari.
 // Prod-todiste 2026-07-25: Pätkä 4 (smtb-55, 20.68–25.65 km) — kolme merkkiä oli mitattu
 // smtb-30:ltä (4.6 km pitkä) → skalaari 0.00/0.03/0.57 km vaikka todellinen sijainti pätkän
 // LOPUSSA 25.18/25.21/25.65 km. Nykyjärjestys nosti pätkän viimeiset merkit ensimmäisiksi.
-describe('V229 km-akseli (B126)', () => {
+describe('V235 km-akseli (B126)', () => {
   // "oikea" @ smtb-55 km 21.0 — akseli oikein
   const alku = makeMarker({
     id: 'alku', distanceFromStart: 21000, routeIds: ['smtb-55'],
