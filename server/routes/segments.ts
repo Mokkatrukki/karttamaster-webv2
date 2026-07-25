@@ -7,6 +7,7 @@ import { requireAuth, requireRole } from '../middleware/auth'
 interface SegmentRow {
   id: string
   route_ids: string | null
+  primary_route_id: string | null
   start_dist: number | null
   end_dist: number | null
   assigned_code: string | null
@@ -28,6 +29,9 @@ function rowToSegment(row: SegmentRow) {
     // V141: reititön tehtävä — route-kentät null kannassa → undefined ulos.
     id: row.id,
     routeIds: row.route_ids ? (JSON.parse(row.route_ids) as string[]) : undefined,
+    // T299/V211/B114: mitä reittiä startDist/endDist mittaavat. NULL = legacy → client
+    // johtaa routeIds[0]:sta (segmentPrimaryRouteId), ei backfilliä.
+    primaryRouteId: row.primary_route_id ?? undefined,
     startDist: row.start_dist ?? undefined,
     endDist: row.end_dist ?? undefined,
     assignedCode: row.assigned_code ?? undefined,
@@ -64,6 +68,7 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
   const body = await c.req.json<{
     id?: string
     routeIds?: string[]
+    primaryRouteId?: string
     startDist?: number
     endDist?: number
     assignedCode?: string
@@ -83,10 +88,11 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
   const now = new Date().toISOString()
 
   db.run(
-    `INSERT INTO segments (id, route_ids, start_dist, end_dist, assigned_code, slug, display_name, description, equipment, phase, inspected, inspection_note, completed, linked_marker_ids, marker_type_filter, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO segments (id, route_ids, primary_route_id, start_dist, end_dist, assigned_code, slug, display_name, description, equipment, phase, inspected, inspection_note, completed, linked_marker_ids, marker_type_filter, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        route_ids = excluded.route_ids,
+       primary_route_id = excluded.primary_route_id,
        start_dist = excluded.start_dist,
        end_dist = excluded.end_dist,
        assigned_code = excluded.assigned_code,
@@ -105,6 +111,7 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
       id,
       // V141: reititön tehtävä → route-kentät null kantaan.
       body.routeIds != null ? JSON.stringify(body.routeIds) : null,
+      body.primaryRouteId ?? null,
       body.startDist ?? null,
       body.endDist ?? null,
       body.assignedCode?.toUpperCase() ?? null,
@@ -135,6 +142,7 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
   const id = c.req.param('id')
   const raw = await c.req.json<Partial<{
     routeIds: string[]
+    primaryRouteId: string
     startDist: number
     endDist: number
     assignedCode: string | null
@@ -177,12 +185,13 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
   const now = new Date().toISOString()
   db.run(
     `UPDATE segments SET
-      route_ids = ?, start_dist = ?, end_dist = ?, assigned_code = ?, slug = ?,
+      route_ids = ?, primary_route_id = ?, start_dist = ?, end_dist = ?, assigned_code = ?, slug = ?,
       display_name = ?, description = ?, equipment = ?, phase = ?,
       inspected = ?, inspection_note = ?, completed = ?, linked_marker_ids = ?, marker_type_filter = ?, updated_at = ?
      WHERE id = ?`,
     [
       'routeIds' in body && body.routeIds ? JSON.stringify(body.routeIds) : existing.route_ids,
+      'primaryRouteId' in body && body.primaryRouteId ? body.primaryRouteId : existing.primary_route_id,
       body.startDist ?? existing.start_dist,
       body.endDist ?? existing.end_dist,
       'assignedCode' in body ? (body.assignedCode?.toUpperCase() ?? null) : existing.assigned_code,

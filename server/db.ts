@@ -279,6 +279,9 @@ function initSchema(db: Database): void {
   // T297/V209/B113: slug ∀ pätkälle (ei enää vain assignatulle). Sama migraatiovyöhyke.
   try { db.exec('ALTER TABLE segments ADD COLUMN slug TEXT') } catch { /* already exists */ }
   backfillSegmentSlugs(db)
+  // T299/V211/B114: MITÄ reittiä start_dist/end_dist mittaavat. NULL = legacy → client
+  // johtaa route_ids[0]:sta (segmentPrimaryRouteId) ∴ EI backfill-ajoa, ei kosketa vanhaan dataan.
+  try { db.exec('ALTER TABLE segments ADD COLUMN primary_route_id TEXT') } catch { /* already exists */ }
 
   const existing = db.query<{ count: number }, []>(
     "SELECT COUNT(*) as count FROM map_state WHERE key='status'"

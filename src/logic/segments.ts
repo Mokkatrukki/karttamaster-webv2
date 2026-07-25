@@ -12,6 +12,10 @@ export interface EquipmentItem {
 export interface Segment {
   id: string
   routeIds?: string[]
+  // T299/V211/B114: MITÄ reittiä `startDist`/`endDist` mittaavat. `routeIds` kertoo vain
+  // jäsenyyden (jaettu osuus, V25) — se EI kelpaa km-lähteeksi, koska sama fyysinen kohta on
+  // eri km eri reiteillä. Puuttuu legacy-pätkiltä → `segmentPrimaryRouteId` palauttaa routeIds[0].
+  primaryRouteId?: string
   startDist?: number
   endDist?: number
   linkedMarkerIds?: string[]   // V140: eksplisiittisesti liitetyt merkit (poimittu kartalta)
@@ -39,13 +43,34 @@ export function createSegmentStore(): SegmentStore {
 
 // V139: validoi V11 (startDist<endDist) + V25 (routeIds non-empty) VAIN kun reitilliset kentät
 // annettu. Reititön tehtävä (kentät puuttuvat) ohittaa route-validoinnit laillisesti.
-function validateRouteFields(seg: Pick<Segment, 'routeIds' | 'startDist' | 'endDist'>): void {
+function validateRouteFields(
+  seg: Pick<Segment, 'routeIds' | 'startDist' | 'endDist' | 'primaryRouteId'>,
+): void {
   if (seg.startDist !== undefined && seg.endDist !== undefined && seg.startDist >= seg.endDist) {
     throw new Error(`V11: startDist (${seg.startDist}) must be < endDist (${seg.endDist})`)
   }
   if (seg.routeIds !== undefined && seg.routeIds.length === 0) {
     throw new Error('V25: routeIds must not be empty')
   }
+  // T299/V211: primary ! kuulua jäsenlistaan — muuten km viittaa reittiin jota pätkä ei kata.
+  // Puuttuva primary on laillinen (legacy) — vain ristiriitainen on virhe.
+  if (
+    seg.primaryRouteId !== undefined &&
+    seg.routeIds !== undefined &&
+    !seg.routeIds.includes(seg.primaryRouteId)
+  ) {
+    throw new Error(
+      `V211: primaryRouteId (${seg.primaryRouteId}) must be one of routeIds (${seg.routeIds.join(',')})`,
+    )
+  }
+}
+
+// T299/V211: kanoninen "mitä reittiä pätkän km:t mittaavat". Legacy-pätkä ilman kenttää →
+// routeIds[0] (sama kuin ennen T299:ää: ensimmäinen oli käytännössä klikkijärjestyksen primary).
+export function segmentPrimaryRouteId(
+  seg: Pick<Segment, 'primaryRouteId' | 'routeIds'>,
+): string | undefined {
+  return seg.primaryRouteId ?? seg.routeIds?.[0]
 }
 
 // T297/V209/V191: slug-avaruus = kaikkien pätkien slugit + legacy-assignedCodet (vanhat
@@ -142,15 +167,18 @@ export const NEXT_PHASE: Record<Segment['phase'], Segment['phase']> = {
 // V139: undefined-safe — reititön tehtävä ei laske overlappia eikä kopioi olematonta reittiä.
 export function cloneSegmentToNextPhase(store: SegmentStore, segment: Segment): Segment | null {
   const targetPhase = NEXT_PHASE[segment.phase]
-  if (segment.routeIds && segment.startDist !== undefined && segment.endDist !== undefined) {
-    for (const routeId of segment.routeIds) {
-      if (!validateNoOverlap(store, routeId, segment.startDist, segment.endDist, targetPhase)) {
-        return null
-      }
+  const primary = segmentPrimaryRouteId(segment)
+  // T299/V211: overlap ratkeaa primary-reitillä — km-välit ovat vertailukelpoisia vain saman
+  // geometrian sisällä. Ennen tätä silmukka vertasi jokaista routeIdiä samaan km-väliin ∴
+  // jaetun osuuden pätkä sai vääriä osumia naapurireittien pätkiin.
+  if (primary && segment.startDist !== undefined && segment.endDist !== undefined) {
+    if (!validateNoOverlap(store, primary, segment.startDist, segment.endDist, targetPhase)) {
+      return null
     }
   }
   return createSegment(store, {
     routeIds: segment.routeIds ? [...segment.routeIds] : undefined,
+    primaryRouteId: segment.primaryRouteId,
     startDist: segment.startDist,
     endDist: segment.endDist,
     displayName: segment.displayName,
@@ -281,7 +309,10 @@ export function validateNoOverlap(
     if (seg.phase !== phase) continue
     // V139: reitittömät tehtävät eivät osallistu overlappiin (overlap merkitsee vain reitillisille).
     if (!seg.routeIds || seg.startDist === undefined || seg.endDist === undefined) continue
-    if (!seg.routeIds.includes(routeId)) continue
+    // T299/V211: vertaa PRIMARY-reittiä, ei jäsenyyttä. `routeIds.includes` tarkoitti että
+    // jaetulla osuudella pätkän km-väli törmäsi toisen reitin km-väliin joka on eri geometriaa
+    // ∴ vääriä "menee päällekkäin" -esteitä (& päinvastoin ohi meneviä aitoja törmäyksiä).
+    if (segmentPrimaryRouteId(seg) !== routeId) continue
     if (startDist < seg.endDist && seg.startDist < endDist) return false
   }
   return true

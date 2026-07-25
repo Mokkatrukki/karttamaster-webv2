@@ -8,7 +8,8 @@ export type CreationState =
   | { mode: 'idle' }
   | { mode: 'vaihe1' }
   | { mode: 'vaihe2'; routeId: string; startDist: number }
-  | { mode: 'tiedot'; routeIds: string[]; startDist: number; endDist: number }
+  // T299/V211: primaryRouteId = reitti jota startDist/endDist mittaavat. routeIds = jäsenyys.
+  | { mode: 'tiedot'; routeIds: string[]; primaryRouteId: string; startDist: number; endDist: number }
   // T216/V139: reititön (alue)tehtävä — ei reitti-klikkejä, vaan nimi + kuvaus + valinnainen merkkijoukko
   | { mode: 'reititon' }
 
@@ -97,7 +98,7 @@ export class SegmentCreationModal {
       modal.appendChild(errorEl)
     } else if (state.mode === 'tiedot') {
       modal.appendChild(this.buildProgress(3))
-      this.appendTiedotForm(modal, state.routeIds, state.startDist, state.endDist)
+      this.appendTiedotForm(modal, state.routeIds, state.primaryRouteId, state.startDist, state.endDist)
     } else if (state.mode === 'reititon') {
       this.appendReititonForm(modal)
     }
@@ -154,6 +155,7 @@ export class SegmentCreationModal {
   private appendTiedotForm(
     modal: HTMLElement,
     routeIds: string[],
+    primaryRouteId: string,
     startDist: number,
     endDist: number,
   ): void {
@@ -193,7 +195,7 @@ export class SegmentCreationModal {
       const displayName = nameInput.value.trim() || `Pätkä ${this.segmentCounter}`
       const description = descInput.value.trim() || undefined
       const seg = createSegment(this.store, {
-        routeIds, startDist, endDist,
+        routeIds, primaryRouteId, startDist, endDist,
         equipment: [],
         phase: this.getPhase(),
         displayName,
