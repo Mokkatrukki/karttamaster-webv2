@@ -210,6 +210,7 @@ describe('T51 — AuthScreen', () => {
     // navigoi /patkat-hubiin. Kattava landing-testaus: tests/t296-talkoo-landing.test.ts.
     it('valid yleissalasana → talkoo-login → /patkat-hubi (T272/T296)', async () => {
       vi.stubGlobal('fetch', mockFetchMe(200, { role: 'talkoolainen', display_name: 'Talkoolainen 1' }))
+      ;(document.querySelector('#auth-talkoo-name') as HTMLInputElement).value = 'Testi Talkoolainen'
       ;(document.querySelector('#auth-talkoo-password') as HTMLInputElement).value = 'syote2026'
       const form = document.querySelector('#auth-form-talkoolainen') as HTMLFormElement
       form.dispatchEvent(new Event('submit', { cancelable: true }))
@@ -220,6 +221,7 @@ describe('T51 — AuthScreen', () => {
 
     it('väärä salasana → virheviesti (T272)', async () => {
       vi.stubGlobal('fetch', mockFetchMe(401, { error: 'invalid_password' }))
+      ;(document.querySelector('#auth-talkoo-name') as HTMLInputElement).value = 'Testi Talkoolainen'
       ;(document.querySelector('#auth-talkoo-password') as HTMLInputElement).value = 'väärä'
       const form = document.querySelector('#auth-form-talkoolainen') as HTMLFormElement
       form.dispatchEvent(new Event('submit', { cancelable: true }))
@@ -230,6 +232,7 @@ describe('T51 — AuthScreen', () => {
 
     it('rate-limit 429 → virheviesti (T272)', async () => {
       vi.stubGlobal('fetch', mockFetchMe(429, { error: 'rate_limited' }))
+      ;(document.querySelector('#auth-talkoo-name') as HTMLInputElement).value = 'Testi Talkoolainen'
       ;(document.querySelector('#auth-talkoo-password') as HTMLInputElement).value = 'x'
       const form = document.querySelector('#auth-form-talkoolainen') as HTMLFormElement
       form.dispatchEvent(new Event('submit', { cancelable: true }))
@@ -240,6 +243,7 @@ describe('T51 — AuthScreen', () => {
     it('empty salasana → no fetch', async () => {
       const fetchMock = vi.fn()
       vi.stubGlobal('fetch', fetchMock)
+      ;(document.querySelector('#auth-talkoo-name') as HTMLInputElement).value = 'Testi Talkoolainen'
       ;(document.querySelector('#auth-talkoo-password') as HTMLInputElement).value = ''
       const form = document.querySelector('#auth-form-talkoolainen') as HTMLFormElement
       form.dispatchEvent(new Event('submit', { cancelable: true }))

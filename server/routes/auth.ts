@@ -121,6 +121,20 @@ authRoutes.post('/talkoo-login', async (c) => {
   return c.json({ role: 'talkoolainen', display_name: displayName })
 })
 
+// T322/V228: nimen asetus KESKEN session. Kenttätyö oli jo käynnissä kun T317 vaati nimen
+// kirjautumisessa — olemassa olevat sessiot elävät 7 vrk (V188) ∴ ilman tätä ne olisivat
+// nimettömiä koko tapahtuman ajan, eikä uudelleenkirjautumista voi vaatia kesken maastotyön.
+authRoutes.post('/name', requireAuth(), async (c) => {
+  const db: Database = c.get('db')
+  const session: SessionData = c.get('session')
+  const body = await c.req.json<{ name?: string }>().catch(() => ({}) as { name?: string })
+  const name = (body.name ?? '').trim()
+  if (name.length < 2 || name.length > 40) return c.json({ error: 'name_required' }, 400)
+
+  db.run('UPDATE sessions SET display_name = ? WHERE id = ?', [name, session.id])
+  return c.json({ display_name: name })
+})
+
 authRoutes.post('/logout', requireAuth(), (c) => {
   const db: Database = c.get('db')
   const session: SessionData = c.get('session')

@@ -629,6 +629,19 @@ CSS-luokat:
 - **A11y:** `role=status` + `aria-live=polite` (ei keskeytä ruudunlukijaa, mutta ilmoittaa).
 - Rooli: molemmat (nyt järjestäjä/admin inventaariossa; jaettu → talkoolaisen flowt voivat uusiokäyttää).
 
+### AuditLogPage (`loki.html` + `src/loki.ts` + `src/ui/audit-log-page.ts` + `src/audit-log.css`, T321/V231)
+- **Oma entrypoint** admin/inventaario-mallin mukaan — rooligate `admin|järjestäjä` (talkoolainen → `renderForbidden`). EI osa `admin.html`:ää: se gettaa koko sivun adminiin, ja järjestäjä on tämän näkymän pääkäyttäjä.
+- **Omat tyylit** (`src/audit-log.css`, importattu `src/loki.ts`:stä) — ⊥ riviäkään `style.css`:ään. Tokenit peritään `:root`ista, arvoja ⊥ kopioida (V81-linja).
+- `#loki-app`: `max-width:1100px;margin:0 auto;padding:16px` — leveämpi kuin admin (960px), koska rivillä on 6 saraketta ja järjestäjä katsoo desktopilla.
+- **Rivi** (`.audit-row`): CSS-grid `tekijä │ teko │ pätkä │ aika │ poikkeama │ toiminnot`, `surface-card` + `border-card`, `radius 10px`. Uusin ensin.
+- **Rooli-badge** (`.audit-role-badge`): pilleri `--status-*`-tokeneista — talkoolainen `--status-tarkistettu` (sininen), järjestäjä `--status-asetettu` (vihreä), admin `--status-keratty` (violetti). ⊥ omia värejä.
+- **Poikkeama** (`.audit-deviation`): metrit `font-variant-numeric:tabular-nums` + `text-align:right` → suuruusluokat asettuvat allekkain silmäiltäviksi. >100 m → `.audit-deviation-warn` (`--danger-text`, 700). Raja perustuu 2026-07-25 dataan: pienin vahinkosiirto 1272 m, suurin laillinen tarkennus 15 m.
+- **Suodattimet** (`.audit-filters`): rooli/tekijä/pätkä `<select>` + alkaen/päättyen `<input type=date>`, kaikki `min-height:44px` (§R). Tekijä- ja pätkävalikot rakentuvat DATASTA, ⊥ kiinteästä listasta.
+- **Peruutus** (`.audit-undo`): `.btn.btn-secondary`, `min-height:44px`, `window.confirm` ennen (tuhoava, V102). Virhe → `.audit-status` (`aria-live=polite`) kertoo MIKSI (jo peruttu / merkki kadonnut / ei oikeutta / verkko) — ⊥ hiljaista epäonnistumista (V21).
+- **Tyhjätila** (`.audit-empty`): "Ei muutoksia näillä ehdoilla." — suodatin joka ei osu ⊥ saa näyttää rikkinäiseltä sivulta.
+- **Mobiili** (<768px): rivi → kortti `grid-template-areas`illa (tekijä+poikkeama, teko, pätkä+aika, toiminnot). Järjestäjän mobiili = välttävä toiminta (VISION), ⊥ täysoptimointi.
+- Rooli: järjestäjä/admin.
+
 ### InventoryPage (v1-huom, `inventory.html`, T242)
 - Erillinen entrypoint /admin-mallin mukaan — vain järjestäjä/admin (V163, talkoolainen → `.inv-forbidden`). Ei jaa `#app`-runkoa.
 - `#inventory-app`: `max-width:720px;margin:0 auto;padding:16px` — kapeampi kuin admin (960px), koska mobiili-primääri (järjestäjä puhelimella kärryllä).

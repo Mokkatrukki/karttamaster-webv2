@@ -4,7 +4,9 @@ import type { Segment, SegmentStore, EquipmentItem } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
 import { registerEscClose, createBackdrop } from './modal-helpers'
 import { buildMarkerVisual } from './marker-visual-row'
-import { fetchSegmentAudit, undoSegmentActions, type AuditEntry, type AuditAction } from '../logic/audit-sync'
+import { fetchSegmentAudit, undoSegmentActions, type AuditEntry } from '../logic/audit-sync'
+// T320: verbitaulu asuu logiikkakerroksessa — sama totuus lokinäkymälle ja tälle modaalille.
+import { ACTION_VERB } from '../logic/audit-log'
 
 const STATUS_LABELS: Record<string, string> = {
   suunniteltu: 'Suunniteltu',
@@ -571,13 +573,6 @@ export class SegmentDetailsModal {
 
   // T227: per-pätkä aktiviteettiloki + massaperuutus. Vastaa spammaus-huoleen (V149): talkoolaisen
   // lisäykset näkyvät, ja "Peru kaikki lisäykset" poistaa ne atomisesti (POST /api/audit/undo, V153).
-  private static readonly ACTION_VERB: Record<AuditAction, string> = {
-    add: 'lisäsi merkin',
-    move: 'siirsi merkkiä',
-    remove: 'poisti merkin',
-    status: 'muutti tilan',
-  }
-
   private buildAuditSection(code: string): HTMLElement {
     const section = document.createElement('div')
     section.className = 'segment-audit-section'
@@ -606,7 +601,7 @@ export class SegmentDetailsModal {
         for (const e of [...entries].reverse()) {
           const li = document.createElement('li')
           li.className = 'segment-audit-item'
-          const verb = SegmentDetailsModal.ACTION_VERB[e.action] ?? e.action
+          const verb = ACTION_VERB[e.action] ?? e.action
           const time = e.created_at.slice(11, 16) // HH:MM ISO-stringistä
           li.textContent = `${e.actor ?? '?'} — ${verb} · ${time}`
           ul.appendChild(li)

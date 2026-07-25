@@ -90,6 +90,8 @@ describe('T53 — AuthScreen URL-reititys', () => {
     await screen.start()
     await new Promise(r => setTimeout(r, 20))
 
+    ;(document.querySelector('#auth-talkoo-name') as HTMLInputElement).value = 'Testi Talkoolainen'
+
     ;(document.querySelector('#auth-talkoo-password') as HTMLInputElement).value = 'syote2026'
     ;(document.querySelector('#auth-form-talkoolainen') as HTMLFormElement)
       .dispatchEvent(new Event('submit', { cancelable: true }))

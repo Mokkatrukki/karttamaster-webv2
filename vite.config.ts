@@ -27,6 +27,7 @@ export default defineConfig({
         admin: resolve(__dirname, 'admin.html'),
         inventory: resolve(__dirname, 'inventory.html'),
         patkat: resolve(__dirname, 'patkat.html'),
+        loki: resolve(__dirname, 'loki.html'),
       },
     },
   },
