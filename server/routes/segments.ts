@@ -10,6 +10,7 @@ interface SegmentRow {
   start_dist: number | null
   end_dist: number | null
   assigned_code: string | null
+  slug: string | null
   display_name: string | null
   description: string | null
   equipment: string
@@ -30,6 +31,8 @@ function rowToSegment(row: SegmentRow) {
     startDist: row.start_dist ?? undefined,
     endDist: row.end_dist ?? undefined,
     assignedCode: row.assigned_code ?? undefined,
+    // T297/V209: slug ∀ pätkällä — jakamatonkin avattavissa /s/<slug>.
+    slug: row.slug ?? undefined,
     displayName: row.display_name ?? undefined,
     description: row.description ?? undefined,
     equipment: JSON.parse(row.equipment) as { name: string; count: number }[],
@@ -64,6 +67,7 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
     startDist?: number
     endDist?: number
     assignedCode?: string
+    slug?: string
     displayName?: string
     description?: string
     equipment?: { name: string; count: number }[]
@@ -79,13 +83,14 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
   const now = new Date().toISOString()
 
   db.run(
-    `INSERT INTO segments (id, route_ids, start_dist, end_dist, assigned_code, display_name, description, equipment, phase, inspected, inspection_note, completed, linked_marker_ids, marker_type_filter, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO segments (id, route_ids, start_dist, end_dist, assigned_code, slug, display_name, description, equipment, phase, inspected, inspection_note, completed, linked_marker_ids, marker_type_filter, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        route_ids = excluded.route_ids,
        start_dist = excluded.start_dist,
        end_dist = excluded.end_dist,
        assigned_code = excluded.assigned_code,
+       slug = excluded.slug,
        display_name = excluded.display_name,
        description = excluded.description,
        equipment = excluded.equipment,
@@ -103,6 +108,8 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
       body.startDist ?? null,
       body.endDist ?? null,
       body.assignedCode?.toUpperCase() ?? null,
+      // T297/V209: slug säilyy pienaakkosina (URL-luettavuus) — ei uppercase-normalisointia.
+      body.slug ?? null,
       body.displayName ?? null,
       body.description ?? null,
       JSON.stringify(body.equipment ?? []),
@@ -131,6 +138,7 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
     startDist: number
     endDist: number
     assignedCode: string | null
+    slug: string | null
     displayName: string
     description: string
     equipment: { name: string; count: number }[]
@@ -169,7 +177,7 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
   const now = new Date().toISOString()
   db.run(
     `UPDATE segments SET
-      route_ids = ?, start_dist = ?, end_dist = ?, assigned_code = ?,
+      route_ids = ?, start_dist = ?, end_dist = ?, assigned_code = ?, slug = ?,
       display_name = ?, description = ?, equipment = ?, phase = ?,
       inspected = ?, inspection_note = ?, completed = ?, linked_marker_ids = ?, marker_type_filter = ?, updated_at = ?
      WHERE id = ?`,
@@ -178,6 +186,7 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
       body.startDist ?? existing.start_dist,
       body.endDist ?? existing.end_dist,
       'assignedCode' in body ? (body.assignedCode?.toUpperCase() ?? null) : existing.assigned_code,
+      'slug' in body ? (body.slug ?? null) : existing.slug,
       'displayName' in body ? (body.displayName ?? existing.display_name) : existing.display_name,
       'description' in body && body.description !== undefined ? body.description : existing.description,
       'equipment' in body && body.equipment ? JSON.stringify(body.equipment) : existing.equipment,
@@ -210,10 +219,14 @@ segmentRoutes.delete('/:id', requireAuth(), requireRole('admin', 'järjestäjä'
 // Talkoolainen: hae oma pätkä koodilla (auth vaaditaan — session.talkoolainen_code)
 segmentRoutes.get('/by-code/:code', requireAuth(), (c) => {
   const db: Database = c.get('db')
+  // T297/V209: slug ensin (∀ pätkällä), assigned_code legacy-fallbackina (vanhat jaetut linkit).
   const code = c.req.param('code').toUpperCase()
   const row = db.query<SegmentRow, [string]>(
-    'SELECT * FROM segments WHERE assigned_code = ?',
+    'SELECT * FROM segments WHERE UPPER(slug) = ?',
   ).get(code)
+    ?? db.query<SegmentRow, [string]>(
+      'SELECT * FROM segments WHERE assigned_code = ?',
+    ).get(code)
   if (!row) return c.json({ error: 'not_found' }, 404)
   return c.json(rowToSegment(row))
 })

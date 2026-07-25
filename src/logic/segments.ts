@@ -17,6 +17,9 @@ export interface Segment {
   linkedMarkerIds?: string[]   // V140: eksplisiittisesti liitetyt merkit (poimittu kartalta)
   markerTypeFilter?: string    // V140/V143: dynaaminen tyyppisuodatin (templateId-osumat)
   assignedCode?: string
+  // T297/V209: URL-slug — ∀ pätkällä heti luonnista, ei vaadi "jaa linkki" -assignia.
+  // Regeneroituu kun displayName muuttuu; vanha slug kuolee (⊥ alias, V209).
+  slug?: string
   displayName?: string
   description?: string
   equipment: EquipmentItem[]
@@ -45,6 +48,19 @@ function validateRouteFields(seg: Pick<Segment, 'routeIds' | 'startDist' | 'endD
   }
 }
 
+// T297/V209/V191: slug-avaruus = kaikkien pätkien slugit + legacy-assignedCodet (vanhat
+// jaetut linkit elävät assignedCoden varassa) — uusi slug ei saa varastaa kumpaakaan.
+// exceptId: nimenmuutoksessa oma vanha slug ei blokkaa (muuten "Pätkä 1" → "patka-1-2").
+function takenSlugs(store: SegmentStore, exceptId?: string): string[] {
+  const out: string[] = []
+  for (const seg of store.values()) {
+    if (seg.id === exceptId) continue
+    if (seg.slug) out.push(seg.slug)
+    if (seg.assignedCode) out.push(seg.assignedCode)
+  }
+  return out
+}
+
 export function createSegment(
   store: SegmentStore,
   data: Omit<Segment, 'id'>,
@@ -52,6 +68,11 @@ export function createSegment(
 ): Segment {
   validateRouteFields(data)
   const segment: Segment = { id: id ?? genId(), ...data }
+  // T297/V209/B113: slug ∀ pätkälle heti — jakamatonkin pätkä avattavissa `/s/<slug>`.
+  // V210: EI luo talkoolainen_codes-riviä — slug on valitsin, ei credentiaali.
+  if (!segment.slug) {
+    segment.slug = generateSegmentSlug(segment.displayName ?? '', takenSlugs(store, segment.id))
+  }
   store.set(segment.id, segment)
   return segment
 }
@@ -65,6 +86,12 @@ export function updateSegment(
   if (!existing) return null
   const updated = { ...existing, ...patch }
   validateRouteFields(updated)
+  // T297/V209: nimi muuttui → slug regeneroituu & URL päivittyy. Vanha slug KUOLEE
+  // (käyttäjäpäätös 2026-07-25: ei alias-taulua — jaettu vanha linkki lakkaa toimimasta).
+  // Eksplisiittinen patch.slug voittaa (migraatio/palautus).
+  if (patch.slug === undefined && 'displayName' in patch && patch.displayName !== existing.displayName) {
+    updated.slug = generateSegmentSlug(updated.displayName ?? '', takenSlugs(store, id))
+  }
   store.set(id, updated)
   return updated
 }
@@ -136,8 +163,11 @@ export function getSegmentForCode(
   store: SegmentStore,
   code: string,
 ): Segment | undefined {
+  // T297/V209: slug ensin (∀ pätkällä), assignedCode legacy-fallbackina (vanhat jaetut linkit).
   const upper = code.toUpperCase()
-  return Array.from(store.values()).find(s => s.assignedCode?.toUpperCase() === upper)
+  const values = Array.from(store.values())
+  return values.find(s => s.slug?.toUpperCase() === upper)
+    ?? values.find(s => s.assignedCode?.toUpperCase() === upper)
 }
 
 // T141/B61/V88: lukumäärä per status, pätkäjako-listan riville. Vain count>0 -statukset näytetään UI:ssa.
