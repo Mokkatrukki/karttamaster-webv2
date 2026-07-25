@@ -436,9 +436,12 @@ test.describe('Auth screen — T51', () => {
     await page.fill('#auth-talkoo-name', 'Testi Talkoolainen')
     await page.fill('#auth-talkoo-password', 'syote2026')
     await page.click('#auth-form-talkoolainen button[type="submit"]')
-    await page.waitForTimeout(500)
 
-    await expect(page.locator('#auth-screen')).not.toHaveClass(/open/)
+    // T296/V208: kylmä talkoo-login ILMAN deep-link-koodia landaa `/patkat`-hubiin
+    // ∴ onnistumisen todiste on NAVIGOINTI, ei `#auth-screen`in luokka — sitä elementtiä
+    // ei ole hubissa lainkaan (T325/V233: testi jäi hub-redesignin jälkeen päivittämättä).
+    await page.waitForURL('**/patkat', { timeout: 5000 })
+    await expect(page.locator('#auth-screen')).toHaveCount(0)
   })
 
   test('väärä salasana → virheviesti näkyy', async ({ page }) => {
@@ -669,8 +672,13 @@ test.describe('T108 — AreaOverlay', () => {
       if (!el) throw new Error('.area-polygon not found')
       el.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
-    // flyTo animoitu — odota päättymistä
-    await page.waitForTimeout(2500)
+    // flyTo animoitu — odota EHTOA, ei kelloa. T324/V233: lentoaika riippuu alkuzoomista, joka
+    // riippuu reittimäärästä (`route-defs.ts` 2→6 → fitBounds → alkuzoom 13.4) ∴ kiinteä
+    // waitForTimeout(2500) luki animaation puolivälin (17.21) heti kun reittejä tuli lisää.
+    await page.waitForFunction(() => {
+      const m = (window as unknown as Record<string, unknown>)['__testMap'] as { getZoom(): number } | undefined
+      return m?.getZoom() === 18
+    }, { timeout: 10000 })
 
     const zoomAfter = await page.evaluate(() => {
       const m = (window as unknown as Record<string, unknown>)['__testMap'] as { getZoom(): number } | undefined

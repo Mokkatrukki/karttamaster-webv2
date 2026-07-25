@@ -20,10 +20,16 @@ export interface AuditLogPageOpts {
   entries: AuditEntry[]
   // Merkin nykytila poikkeaman laskentaan + tyyppisarakkeeseen. Puuttuva = merkki poistettu.
   markers: Map<string, { type: string; lat: number; lon: number }>
-  onReload: () => void
+  // T332/V241: uudelleenlataus SAA kantaa viestin mukanaan — vahvistus ei saa asua siinä
+  // DOM-solmussa jonka lataus itse pyyhkii (B130).
+  onReload: (statusMessage?: string) => void
+  // Renderin alkuviesti (esim. edellisen peruutuksen vahvistus). Elää renderin ULKOPUOLELLA.
+  statusMessage?: string
   // Injektoitavissa testejä varten — window.confirm ei ole jsdomissa käytettävissä sellaisenaan.
   confirmFn?: (msg: string) => boolean
 }
+
+const UNDO_OK_MESSAGE = '✓ Muutos peruttu.'
 
 // Poikkeama jota isompi siirto on todennäköisesti vahinko eikä tarkennus. 2026-07-25 sotkussa
 // pienin väärä siirto oli ~1272 m ja suurin laillinen tarkennus ~15 m.
@@ -50,6 +56,7 @@ export function renderAuditLogPage(container: HTMLElement, opts: AuditLogPageOpt
   const status = document.createElement('p')
   status.className = 'audit-status'
   status.setAttribute('aria-live', 'polite')
+  if (opts.statusMessage) status.textContent = opts.statusMessage
 
   const table = document.createElement('div')
   table.className = 'audit-table'
@@ -200,8 +207,10 @@ function buildRow(entry: AuditEntry, opts: AuditLogPageOpts, status: HTMLElement
     undoBtn.disabled = true
     const res = await undoAuditEntry(entry.id)
     if (res.ok) {
-      status.textContent = '✓ Muutos peruttu.'
-      opts.onReload()
+      // B130/V241: viesti kulkee latauksen MUKANA — `onReload` renderöi näkymän uudelleen
+      // (`container.innerHTML=''`) ∴ tähän solmuun kirjoitettu teksti katoaisi seuraavalla tikillä.
+      status.textContent = UNDO_OK_MESSAGE
+      opts.onReload(UNDO_OK_MESSAGE)
       return
     }
     // V21: kerrotaan MIKSI, ei pelkkää "ei onnistunut".

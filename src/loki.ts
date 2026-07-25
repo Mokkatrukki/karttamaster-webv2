@@ -18,7 +18,7 @@ logoutBtn.addEventListener('click', async () => {
 
 interface MarkerApiRow { id: string; type: string; lat: number; lon: number }
 
-async function load(): Promise<void> {
+async function load(statusMessage?: string): Promise<void> {
   const [entries, markers] = await Promise.all([
     fetchAuditLog({ limit: 500 }),
     fetchMarkers(),
@@ -33,7 +33,14 @@ async function load(): Promise<void> {
     return
   }
 
-  renderAuditLogPage(content, { entries, markers, onReload: () => void load() })
+  // T332/V241: peruutuksen vahvistus kulkee latauksen mukana ∴ se selviää uudelleenrenderöinnistä
+  // jonka peruutus itse laukaisee (B130).
+  renderAuditLogPage(content, {
+    entries,
+    markers,
+    statusMessage,
+    onReload: (msg) => void load(msg),
+  })
 }
 
 // Merkkien nykytila: poikkeaman laskentaan (T320) ja tyyppisarakkeeseen. Puuttuva merkki =

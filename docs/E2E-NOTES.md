@@ -2,8 +2,8 @@
 
 Tarkoitus: säästää Playwright-flakyn uudelleentutkinta. Siirretty auto-memorystä repoon 2026-07-21.
 
-## Suite-tila (2026-07-10)
-**93 passed, 0 skipped, 0 failed.** Karanteeni purettu (4/4 de-quarantined).
+## Suite-tila (2026-07-25)
+**133 passed, 0 failed** (T324/T325/T332). Edellinen: 93 passed 2026-07-10.
 
 ## Opetus: kun E2E "flakaa", tutki TÄMÄ järjestys ENNEN kuin syytät headlessiä
 
@@ -19,6 +19,24 @@ tässä setupissa. Todelliset juurisyyt olivat muualla:
 3. **Väärä klikkikohde** — raaka `page.mouse.click(nurkka)` osuu kontrolliin/paneeliin, ei Leaflet-
    map-clickiin. Fix: `page.click('#map', {position})` tyhjään kohtaan (VÄLTÄ zoom-kontrolli oikea
    ylänurkka, T191).
+
+4. **Kartan mittakaava ei ole vakio** (T324/T325, 2026-07-25) — `src/logic/route-defs.ts` kasvoi
+   2→6 reittiin (T285) → `fitBounds` kattaa isomman alueen → **alkuzoom romahti 13.4:ään**.
+   Seuraukset joita testit eivät kestäneet: 500×300 m alue renderöityi 12×8 px:iin (center-drag-
+   handle peitti sen → dblclick ei tavoittanut polygonia), `flyTo` kesti ~4 s eikä 2.5 s,
+   status-panel sai 6 riviä kahden sijaan. Sääntö: **älä koodaa kartan mittakaavaa äläkä
+   rivimäärää testiin** — `setView(center, zoom)` ennen geometria-mittauksia, `waitForFunction`
+   animaation loppuun (ei `waitForTimeout`), rivimäärä `ROUTE_DEFS.length`:stä. Tyhjä klikkikohta
+   etsitään `elementFromPoint`illa (`area-interaction.spec.ts` `clickEmptyMapSpot`), ei arvata —
+   status-panel kasvoi ja söi entisen kiinteän pisteen.
+5. **Tuotemuutos siirtää testin ENNAKKOEHTOA — se ei ole flaky** (T325, 2026-07-25). Kaksi tapausta:
+   T296/V208 navigoi kylmän talkoo-loginin `/patkat`-hubiin ∴ `#auth-screen` ei ole enää DOMissa
+   (odota `waitForURL('**/patkat')`); T298/V209/B113 avaa luodun pätkän details-modaalin
+   automaattisesti ∴ rivin `···`-nappi on backdropin takana (älä klikkaa sitä, modaali on auki).
+6. **Vihreä testi voi olla kilpajuoksu** (B130/T332, 2026-07-25). `t321-audit-log` meni läpi yksin
+   mutta failasi koko suitessa: `/loki`-undo asetti vahvistuksen DOM-solmuun jonka sen oma
+   uudelleenlataus pyyhki. Yksikkötesti oli vihreä koska `onReload` oli `vi.fn()` joka ei
+   renderöi. Ordering-riippuvainen punainen ⇒ etsi kilpajuoksu, älä lisää odotusta.
 
 ## Talkoolainen-E2E-sudenkuoppa (V27)
 Talkoolaisen koodi tulee **URL-polusta `/s/<koodi>`**, EI `/api/auth/me`-mockista.

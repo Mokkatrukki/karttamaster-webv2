@@ -402,9 +402,10 @@ test.describe('T25 — SegmentPanel', () => {
 
     await expect(page.locator('.segment-item')).toHaveCount(1)
 
-    // Poisto siirretty SegmentDetailsModaliin (T77) — avaa se rivin ···-napista ja hyväksy confirm()
+    // Poisto elää SegmentDetailsModalissa (T77). T298/V209/B113: luotu pätkä AUKAISEE modaalin
+    // itse (`segment-panel.ts:63-65`) ∴ ···-nappia ei tarvitse eikä VOI klikata — se on auki
+    // olevan backdropin takana (T325/V233: entinen klikki jäi 30 s timeoutiin).
     page.once('dialog', dialog => dialog.accept())
-    await page.click('.segment-item .btn-segment-details-open')
     await expect(page.locator('.segment-details-modal')).toBeVisible()
     await page.click('.btn-segment-delete-modal')
 

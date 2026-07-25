@@ -159,6 +159,19 @@ describe('peruutus', () => {
     expect(container.querySelector('.audit-status')!.textContent).toContain('peruttu')
   })
 
+  // T332/V241/B130: entinen testi käytti `vi.fn()`-onReloadia joka EI renderöi uudelleen ∴ se oli
+  // vihreä vaikka tuotannossa `loki.ts` ajaa `renderAuditLogPage`in uusiksi (`innerHTML=''`) ja
+  // pyyhkii juuri asetetun viestin. Tämä testi ajaa oikean uudelleenlatauksen.
+  it('vahvistus selviää uudelleenlatauksesta jonka peruutus itse laukaisee (V241)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
+    const reload = (msg?: string) => render([entry()], { onReload: reload, statusMessage: msg })
+    render([entry()], { onReload: reload })
+
+    container.querySelector<HTMLButtonElement>('.audit-undo')!.click()
+    await vi.waitFor(() =>
+      expect(container.querySelector('.audit-status')!.textContent).toContain('peruttu'))
+  })
+
   it('409 → kerrotaan että jo peruttu, nappi jää käyttöön', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 409 }))
     render([entry()])

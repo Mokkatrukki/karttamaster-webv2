@@ -48,6 +48,8 @@ test.describe('T117 — V69: MapRectEditor edit exit + polygon guard', () => {
       { timeout: 8000 },
     )
 
+    await zoomToArea(page)
+
     const poly = page.locator('.area-polygon').first()
 
     // Ennen editiä: ei nurkkahandleja
@@ -69,6 +71,52 @@ test.describe('T117 — V69: MapRectEditor edit exit + polygon guard', () => {
     )
   }
 
+  // T324/V233: alkuzoom EI ole vakio — se seuraa `route-defs.ts`:n reittimäärää fitBoundsin kautta.
+  // Kun reittejä oli 2, testialue (500×300 m) renderöityi isoksi; 6 reitin jälkeen se kutistui
+  // 12×8 px:iin ja keskellä oleva `.area-drag-handle` peitti sen kokonaan → dblclick ei koskaan
+  // tavoittanut polygonia (elementFromPoint todisti: osui drag-handleen). Testi ei saa olettaa
+  // kartan mittakaavaa: aja kartta alueen päälle tunnetulla zoomilla ennen geometria-mittauksia.
+  async function zoomToArea(page: import('playwright/test').Page) {
+    await page.evaluate(([lat, lng]) => {
+      const m = (window as unknown as Record<string, unknown>)['__testMap'] as
+        { setView(c: [number, number], z: number, o?: unknown): void } | undefined
+      m?.setView([lat as number, lng as number], 15, { animate: false })
+    }, [MOCK_AREA.centerLat, MOCK_AREA.centerLng])
+    // zoom 15 @ lat 65.6 ≈ 2 m/px → 500×300 m alue ≈ 250×150 px: mahtuu viewportiin
+    // ja on selvästi isompi kuin center drag-handle ∴ nurkka on vapaa.
+    await page.waitForFunction(() => {
+      const el = document.querySelector('.area-polygon')
+      return !!el && el.getBoundingClientRect().width > 100
+    }, { timeout: 5000 })
+  }
+
+  // Etsi kartalta piste jossa ylin elementti on itse Leaflet-kontaineri (ei paneeli, kontrolli,
+  // polygoni eikä merkki) ja klikkaa sitä. Kiinteä koordinaatti mätänee heti kun jokin overlay
+  // kasvaa — tämä ei (T324/V233).
+  async function clickEmptyMapSpot(page: import('playwright/test').Page) {
+    const mapBox = await page.locator('#map').boundingBox()
+    if (!mapBox) throw new Error('map element not found')
+    const spot = await page.evaluate(([x0, y0, w, h]) => {
+      const map = document.getElementById('map')!
+      for (let fy = 0.85; fy >= 0.15; fy -= 0.05) {
+        for (let fx = 0.1; fx <= 0.9; fx += 0.05) {
+          const px = (x0 as number) + (w as number) * fx
+          const py = (y0 as number) + (h as number) * fy
+          const el = document.elementFromPoint(px, py)
+          if (!el || !map.contains(el)) continue
+          // Tyhjä kartta = ei interaktiivista layeria, ei kontrollia, ei merkki-ikonia
+          const blocked = el.closest('.leaflet-interactive, .leaflet-control, .leaflet-marker-icon, .leaflet-tooltip')
+          if (!blocked) {
+            return { x: Math.round(px - (x0 as number)), y: Math.round(py - (y0 as number)) }
+          }
+        }
+      }
+      return null
+    }, [mapBox.x, mapBox.y, mapBox.width, mapBox.height])
+    if (!spot) throw new Error('no empty map spot found')
+    await page.click('#map', { position: spot })
+  }
+
   // Dblclick polygonin reunaan (ei centeriin missä drag-handle on)
   async function dblclickPolyEdge(page: import('playwright/test').Page, poly: import('playwright/test').Locator) {
     const box = await poly.boundingBox()
@@ -83,6 +131,7 @@ test.describe('T117 — V69: MapRectEditor edit exit + polygon guard', () => {
     await page.goto('/')
     await page.waitForTimeout(2000)
     await waitForAreaRendered(page)
+    await zoomToArea(page)
 
     const poly = page.locator('.area-polygon').first()
 
@@ -91,15 +140,20 @@ test.describe('T117 — V69: MapRectEditor edit exit + polygon guard', () => {
     await page.waitForTimeout(500)
     await expect(page.locator('.area-corner-handle')).toHaveCount(4)
 
-    // Klikkaa tyhjää kohtaa polygonin yläpuolella — page.click('#map', {position}) rekisteröityy
-    // Leafletin map-clickinä (toisin kuin raaka page.mouse.click nurkkaan, joka osui kontrolliin/paneeliin).
-    // Vältetään zoom-kontrolli (oikea ylänurkka T191) ja polygoni: klikataan vasenta ylälaitaa.
-    const mapBox = await page.locator('#map').boundingBox()
-    const polyBox = await poly.boundingBox()
-    if (!mapBox || !polyBox) throw new Error('map or polygon element not found')
-    const clickX = 40 // vasen laita, kaukana zoom-kontrollista ja polygonin keskeltä
-    const clickY = Math.max(40, Math.round(polyBox.y - mapBox.y - 40)) // polygonin yläpuolella
-    await page.click('#map', { position: { x: clickX, y: clickY } })
+    // Klikkaa tyhjää kohtaa kartalla — page.click('#map', {position}) rekisteröityy Leafletin
+    // map-clickinä (toisin kuin raaka page.mouse.click nurkkaan, joka osui kontrolliin/paneeliin).
+    // T324/V233: kohta ETSITÄÄN elementFromPointilla, ei arvata kiinteistä koordinaateista —
+    // status-panel kasvaa reittimäärän mukana (6 riviä) ja söi entisen "vasen ylälaita" -pisteen.
+    // Siirrä näkymä pois alueen päältä ENNEN karttaklikkiä: dblclick zoomaa Leafletissa sisään
+    // ∴ edit-tilassa polygoni täyttää koko viewportin eikä tyhjää kohtaa ole. Panorointi ei
+    // lopeta editiä (vain map-click tai Esc tekee sen — juuri se tässä testataan).
+    await page.evaluate(([lat, lng]) => {
+      const m = (window as unknown as Record<string, unknown>)['__testMap'] as
+        { setView(c: [number, number], z: number, o?: unknown): void } | undefined
+      m?.setView([(lat as number) + 0.03, lng as number], 14, { animate: false })
+    }, [MOCK_AREA.centerLat, MOCK_AREA.centerLng])
+    await expect(page.locator('.area-corner-handle')).toHaveCount(4) // edit yhä päällä panoroinnin jälkeen
+    await clickEmptyMapSpot(page)
     await page.waitForTimeout(500)
 
     // Handleit poistuvat
@@ -112,6 +166,7 @@ test.describe('T117 — V69: MapRectEditor edit exit + polygon guard', () => {
     await page.goto('/')
     await page.waitForTimeout(2000)
     await waitForAreaRendered(page)
+    await zoomToArea(page)
 
     const poly = page.locator('.area-polygon').first()
 
@@ -130,6 +185,7 @@ test.describe('T117 — V69: MapRectEditor edit exit + polygon guard', () => {
     await page.goto('/')
     await page.waitForTimeout(2000)
     await waitForAreaRendered(page)
+    await zoomToArea(page)
 
     const poly = page.locator('.area-polygon').first()
 

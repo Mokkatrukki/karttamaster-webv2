@@ -104,7 +104,7 @@ server/       ← Hono + Bun + SQLite
 | SegmentKotiTabs | `src/ui/segment-koti-tabs.ts` | ✓ T264/V184 (koti-välilehdet: Varustelista·Kaikki merkit·Kommentit; korvaa "Lisää ⋯" -accordionin) | tests/t264-segment-koti-tabs.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | PhaseSwitcher | `src/ui/phase-switcher.ts` | ✓ T148,T180 (stopPropagation, B80) | e2e/t180-phase-switcher-menu.spec.ts | [ui.md](docs/components/ui.md) |
 | AuthScreen | `src/ui/auth-screen.ts` | ✓ T51, T272 (Model B: talkoolainen=yleissalasana, deep-link pending→login→avaa pätkä) | critical-paths: "yleissalasana" | [ui.md](docs/components/ui.md) |
-| AuditLogPage | `src/ui/audit-log-page.ts` | ✓ T321 (globaali loki + per-rivi undo, /loki) | e2e/t321-audit-log.spec.ts | [ui.md](docs/components/ui.md) |
+| AuditLogPage | `src/ui/audit-log-page.ts` | ✓ T332 (vahvistus selviää uudelleenlatauksesta V241/B130), T321 (globaali loki + per-rivi undo, /loki) | e2e/t321-audit-log.spec.ts, tests/t321-audit-log-page.test.ts | [ui.md](docs/components/ui.md) |
 | NamePrompt | `src/ui/name-prompt.ts` | ✓ T322 (nimi kesken session, ohitettava) | — | [ui.md](docs/components/ui.md) |
 | SnapshotPanel | `src/ui/snapshot-panel.ts` | ✓ T164 (lataa/palauta tiedostosta) | — | [ui.md](docs/components/ui.md) |
 | LeftPanel | `src/ui/left-panel.ts` | ✓ T73,T179 (onToggle callback),T181 (mobiili-drawer, default-collapsed ≤480px) | critical-paths: "Left panel"; e2e/t179-map-invalidate-size.spec.ts; e2e/t181-left-panel-mobile-drawer.spec.ts | [ui.md](docs/components/ui.md) |
@@ -177,6 +177,7 @@ Lippu ilman toimenpidettä on hukkaa: ⚠️-tason lippu → varmista pilkko-§T
 | `src/ui/segment-view.ts` | ✓ T234 | PILKOTTU 2026-07-10: hero → `segment-hero.ts` (248r); view 562r koordinaattori |
 | `src/ui/segment-details-modal.ts` | ⚠️ | monta vastuuta: nimi/kuvaus/merkit/varusteet/assign/editpts/klooni/poisto |
 | `src/ui/area-panel.ts` | ⚠️ | ylittää 400 riv -kynnyksen (analysoi 2026-07-04) |
+| `src/ui/inventory-page.ts` | ⚠️ | suurin UI-moduuli; vastuut eriytyneet: read/edit-viewMode + paikkatabit + add-form + undo-toast (analysoi 2026-07-25) |
 | `src/map/markers.ts` | evaluoitu → KEEP | T236 2026-07-10: API-glue JO eriytetty V116-outboxiin; reconcile/addImage ovat domain-mutaattoreita → irrotus jakaisi totuuslähteen. Ei pilkota. |
 | `src/ui/marker-detail-modal.ts` | seuraa | kasvoi T103/T137:ssä |
 | `src/map/map-rect-editor.ts` | seuraa | erota drag-logiikka jos vastuut eriytyvät |

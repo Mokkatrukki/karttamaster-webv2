@@ -4,6 +4,7 @@
  */
 import { test, expect } from 'playwright/test'
 import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTemplates, mockMarkers, mockTalkoolainenSegment } from './helpers/auth'
+import { ROUTE_DEFS } from '../src/logic/route-defs'
 
 test.describe('T28 — Status panel (tilannekuva)', () => {
   test('näkyy järjestäjälle toolbarin alla', async ({ page }) => {
@@ -20,9 +21,10 @@ test.describe('T28 — Status panel (tilannekuva)', () => {
     const panel = page.locator('#status-panel')
     await expect(panel).toBeVisible()
 
-    // Sisältää rivi per reitti
+    // Sisältää rivi per reitti — luku JOHDETAAN kanonisesta reittilistasta (T324/V233).
+    // Hardkoodattu 2 mätäni heti kun `route-defs.ts` kasvoi 6 reittiin (T285).
     const rows = panel.locator('.status-panel-row')
-    await expect(rows).toHaveCount(2)
+    await expect(rows).toHaveCount(ROUTE_DEFS.length)
 
     // Prosentit näkyvissä
     const pcts = panel.locator('.status-panel-pct')
@@ -50,10 +52,12 @@ test.describe('T28 — Status panel (tilannekuva)', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    // Lue alkutila — ei merkkejä vielä (status-panel.ts: total===0 → '—')
-    const detail = page.locator('.status-panel-detail').first()
-    const before = await detail.textContent()
-    expect(before).toBe('—')
+    // Lue alkutila — ei merkkejä vielä (status-panel.ts: total===0 → '—') millään rivillä.
+    // T324/V233: `.first()` oli väärä lukupiste 6 reitin jälkeen — merkki osuu YHTEEN reittiin
+    // eikä se ole välttämättä ensimmäinen rivi ∴ luetaan koko paneeli, ei yhtä riviä.
+    const details = page.locator('.status-panel-detail')
+    const before = await details.allTextContents()
+    expect(before.every(t => t.trim() === '—')).toBe(true)
 
     // Lisää merkki (T85: dblclick → floating picker → tyyppi).
     // T307/V218: sijoitus on muokkaustilan toiminto → avaa tila ensin (kartta avautuu katselussa).
@@ -65,9 +69,9 @@ test.describe('T28 — Status panel (tilannekuva)', () => {
     await page.click('#floating-picker .sign-type-btn[data-type="right"]')
     await page.waitForTimeout(500)
 
-    // Detail päivittynyt
-    const after = await detail.textContent()
-    expect(after).not.toBe('—')
+    // Detail päivittynyt — jokin reittirivi kantaa nyt merkin
+    const after = await details.allTextContents()
+    expect(after.some(t => t.trim() !== '—')).toBe(true)
   })
 })
 
