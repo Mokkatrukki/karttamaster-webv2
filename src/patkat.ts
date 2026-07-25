@@ -1,4 +1,5 @@
 import './style.css'
+import { isValidTalkooName, readRememberedName, rememberName, NAME_MAX } from './logic/talkoo-identity'
 import { renderPatkatPage } from './ui/patkat-page'
 import { fetchAllSegments } from './logic/segment-sync'
 import { fetchMarkers } from './logic/sync'
@@ -44,6 +45,15 @@ function renderLogin(): void {
 
   const form = document.createElement('form')
   form.className = 'patkat-login-form'
+  // T317/V228: nimi salasanan VIERELLE — yksi lomake, yksi lähetys (ei erillistä vaihetta).
+  const nameInput = document.createElement('input')
+  nameInput.type = 'text'
+  nameInput.className = 'patkat-login-input'
+  nameInput.placeholder = 'Nimesi'
+  nameInput.autocomplete = 'name'
+  nameInput.maxLength = NAME_MAX
+  nameInput.setAttribute('aria-label', 'Nimesi')
+  nameInput.value = readRememberedName()
   const input = document.createElement('input')
   input.type = 'password'
   input.className = 'patkat-login-input'
@@ -57,19 +67,25 @@ function renderLogin(): void {
   error.className = 'patkat-login-error'
   error.setAttribute('aria-live', 'polite')
 
-  form.append(input, btn)
+  form.append(nameInput, input, btn)
   form.addEventListener('submit', async (e) => {
     e.preventDefault()
     const password = input.value
     if (!password) return
     error.textContent = ''
+    const name = nameInput.value
+    if (!isValidTalkooName(name)) {
+      error.textContent = 'Kirjoita nimesi (vähintään 2 merkkiä).'
+      return
+    }
     try {
       const resp = await fetch('/api/auth/talkoo-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password, name: name.trim() }),
       })
       if (resp.ok) {
+        rememberName(name)
         void boot() // sessio luotu → näytä hub
       } else if (resp.status === 429) {
         error.textContent = 'Liikaa yrityksiä — odota hetki.'

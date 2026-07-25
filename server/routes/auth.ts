@@ -87,8 +87,9 @@ authRoutes.post('/talkoo-login', async (c) => {
     return c.json({ error: 'rate_limited' }, 429)
   }
 
-  const body = await c.req.json<{ password?: string }>().catch(() => ({}) as { password?: string })
+  const body = await c.req.json<{ password?: string; name?: string }>().catch(() => ({}) as { password?: string; name?: string })
   const password = body.password
+  const name = (body.name ?? '').trim()
   const stored = getSetting(db, SETTING_TALKOO_PASSWORD)
   // Plaintext-vertailu (jaettu salasana). Rate-limit (yllä) hoitaa brute-forcen.
   const valid = !!password && !!stored && password === stored
@@ -101,10 +102,16 @@ authRoutes.post('/talkoo-login', async (c) => {
   }
   talkooFails.delete(ip)
 
+  // T317/V228: nimi on JÄLJITETTÄVYYSVÄLINE, ei turvaraja — kuka tahansa voi kirjoittaa mitä
+  // tahansa. Ilman sitä audit-loki ei voi vastata kysymykseen "kuka" (B124: 11 sessiota
+  // nimellä 'Talkoolainen'). Tarkistus VASTA salasanan jälkeen: muuten väärä salasana saisi
+  // 400:n eikä 401:tä ja rate-limit-laskuri ohitettaisiin.
+  if (name.length < 2 || name.length > 40) return c.json({ error: 'name_required' }, 400)
+
   const sessionId = randomUUID()
   // V188/V119: talkoo-sessio kestää tapahtumapäivät (sama 7pv kuin code-login — 24h vanhenisi day-2 kesken).
   const expires = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString()
-  const displayName = 'Talkoolainen'
+  const displayName = name
   db.run(
     'INSERT INTO sessions (id, user_id, talkoolainen_code, role, display_name, expires_at) VALUES (?, ?, ?, ?, ?, ?)',
     [sessionId, null, null, 'talkoolainen', displayName, expires],

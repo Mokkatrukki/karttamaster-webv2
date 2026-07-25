@@ -1,5 +1,6 @@
 import type { Role } from '../logic/role'
 import { getRole } from '../logic/role'
+import { isValidTalkooName, readRememberedName, rememberName } from '../logic/talkoo-identity'
 
 export type AuthResult = { role: Role; displayName: string; code?: string }
 
@@ -138,6 +139,7 @@ export class AuthScreen {
           <button type="submit">Kirjaudu</button>
         </form>
         <form id="auth-form-talkoolainen" class="auth-form">
+          <input type="text" id="auth-talkoo-name" placeholder="Nimesi" autocomplete="name" maxlength="40" />
           <input type="password" id="auth-talkoo-password" placeholder="Yleissalasana" autocomplete="off" />
           <button type="submit">Kirjaudu</button>
         </form>
@@ -160,6 +162,11 @@ export class AuthScreen {
     })
     this.järjestäjäForm.classList.toggle('active', tab === 'järjestäjä')
     this.talkoolainenForm.classList.toggle('active', tab === 'talkoolainen')
+    // T317: nimi muistetaan laitteessa → metsässä ei kirjoiteta samaa uudestaan hanskat kädessä.
+    if (tab === 'talkoolainen') {
+      const nameInput = this.overlay.querySelector<HTMLInputElement>('#auth-talkoo-name')
+      if (nameInput && !nameInput.value) nameInput.value = readRememberedName()
+    }
   }
 
   private showError(msg: string): void {
@@ -222,15 +229,16 @@ export class AuthScreen {
 
   // T272/V188 (Model B): talkoolainen kirjautuu yhdellä yleissalasanalla. pendingCode (jos
   // /s/<slug>-deep-linkistä) välitetään eteenpäin → sovellus avaa kyseisen pätkän.
-  private async loginTalkoo(password: string): Promise<void> {
+  private async loginTalkoo(password: string, name: string): Promise<void> {
     try {
       const resp = await fetch('/api/auth/talkoo-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password, name }),
       })
       if (resp.ok) {
         const data = await resp.json() as { role: Role; display_name: string }
+        rememberName(name)
         // T296/V208: kylmä talkoo-login ILMAN deep-link-koodia → landing on /patkat-hubi
         // (V188/T271), ei /-kartta. Koodilla → deep-select ennallaan (T272). Re-auth kesken
         // session EI heitä hubiin — käyttäjä jatkaa siitä mihin jäi (V119).
@@ -268,8 +276,14 @@ export class AuthScreen {
     this.talkoolainenForm.addEventListener('submit', async (e) => {
       e.preventDefault()
       const password = (this.overlay.querySelector('#auth-talkoo-password') as HTMLInputElement).value
+      const name = (this.overlay.querySelector('#auth-talkoo-name') as HTMLInputElement).value
       if (!password) return
-      await this.loginTalkoo(password)
+      // T317/V228: nimi pakollinen — audit-loki ei voi kertoa "kuka" ilman sitä (B124).
+      if (!isValidTalkooName(name)) {
+        this.showError('Kirjoita nimesi (vähintään 2 merkkiä)')
+        return
+      }
+      await this.loginTalkoo(password, name.trim())
     })
 
     this.inviteForm.addEventListener('submit', async (e) => {
