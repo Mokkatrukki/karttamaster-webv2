@@ -31,7 +31,11 @@ export class AuthScreen {
   private reauthCallback: (() => void) | null = null
   private reauthActive = false
 
-  constructor(private readonly onAuthenticated: (result: AuthResult) => void) {
+  // T296/V208: navigointi injektoitavissa — jsdom-testit eivät voi ajaa window.location.assignia.
+  constructor(
+    private readonly onAuthenticated: (result: AuthResult) => void,
+    private readonly navigate: (url: string) => void = (url) => { window.location.assign(url) },
+  ) {
     this.overlay = this.buildOverlay()
     document.body.appendChild(this.overlay)
     this.errorEl = this.overlay.querySelector('#auth-error')!
@@ -227,6 +231,14 @@ export class AuthScreen {
       })
       if (resp.ok) {
         const data = await resp.json() as { role: Role; display_name: string }
+        // T296/V208: kylmä talkoo-login ILMAN deep-link-koodia → landing on /patkat-hubi
+        // (V188/T271), ei /-kartta. Koodilla → deep-select ennallaan (T272). Re-auth kesken
+        // session EI heitä hubiin — käyttäjä jatkaa siitä mihin jäi (V119).
+        if (!this.pendingCode && !this.reauthActive) {
+          this.hide()
+          this.navigate('/patkat')
+          return
+        }
         this.finishAuth({ role: data.role, displayName: data.display_name, code: this.pendingCode ?? undefined })
       } else if (resp.status === 429) {
         this.showError('Liikaa yrityksiä — odota hetki ja yritä uudelleen')

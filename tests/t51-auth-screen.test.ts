@@ -194,21 +194,28 @@ describe('T51 — AuthScreen', () => {
   })
 
   describe('talkoolainen login', () => {
+    // T296/V208: navigointi injektoidaan — muuten jsdom heittää window.location.assignista.
+    let navigate: ReturnType<typeof vi.fn>
+
     beforeEach(async () => {
       vi.stubGlobal('fetch', mockFetchMe(401, {}))
-      const screen = new AuthScreen(onAuthenticated)
+      navigate = vi.fn()
+      const screen = new AuthScreen(onAuthenticated, navigate)
       await screen.start()
       const tab = document.querySelector('[data-tab="talkoolainen"]') as HTMLElement
       tab.click()
     })
 
-    it('valid yleissalasana → talkoo-login → onAuthenticated (T272)', async () => {
+    // T296/V208 (amend T272): ilman deep-link-koodia login ei jatka /-kartalle vaan
+    // navigoi /patkat-hubiin. Kattava landing-testaus: tests/t296-talkoo-landing.test.ts.
+    it('valid yleissalasana → talkoo-login → /patkat-hubi (T272/T296)', async () => {
       vi.stubGlobal('fetch', mockFetchMe(200, { role: 'talkoolainen', display_name: 'Talkoolainen 1' }))
       ;(document.querySelector('#auth-talkoo-password') as HTMLInputElement).value = 'syote2026'
       const form = document.querySelector('#auth-form-talkoolainen') as HTMLFormElement
       form.dispatchEvent(new Event('submit', { cancelable: true }))
       await new Promise(r => setTimeout(r, 10))
-      expect(onAuthenticated).toHaveBeenCalledWith({ role: 'talkoolainen', displayName: 'Talkoolainen 1', code: undefined })
+      expect(navigate).toHaveBeenCalledWith('/patkat')
+      expect(onAuthenticated).not.toHaveBeenCalled()
     })
 
     it('väärä salasana → virheviesti (T272)', async () => {
