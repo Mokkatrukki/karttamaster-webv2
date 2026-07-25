@@ -12,11 +12,18 @@ export interface EquipmentItem {
 export interface Segment {
   id: string
   routeIds?: string[]
+  // T299/V211/B114: MITÄ reittiä `startDist`/`endDist` mittaavat. `routeIds` kertoo vain
+  // jäsenyyden (jaettu osuus, V25) — se EI kelpaa km-lähteeksi, koska sama fyysinen kohta on
+  // eri km eri reiteillä. Puuttuu legacy-pätkiltä → `segmentPrimaryRouteId` palauttaa routeIds[0].
+  primaryRouteId?: string
   startDist?: number
   endDist?: number
   linkedMarkerIds?: string[]   // V140: eksplisiittisesti liitetyt merkit (poimittu kartalta)
   markerTypeFilter?: string    // V140/V143: dynaaminen tyyppisuodatin (templateId-osumat)
   assignedCode?: string
+  // T297/V209: URL-slug — ∀ pätkällä heti luonnista, ei vaadi "jaa linkki" -assignia.
+  // Regeneroituu kun displayName muuttuu; vanha slug kuolee (⊥ alias, V209).
+  slug?: string
   displayName?: string
   description?: string
   equipment: EquipmentItem[]
@@ -36,13 +43,47 @@ export function createSegmentStore(): SegmentStore {
 
 // V139: validoi V11 (startDist<endDist) + V25 (routeIds non-empty) VAIN kun reitilliset kentät
 // annettu. Reititön tehtävä (kentät puuttuvat) ohittaa route-validoinnit laillisesti.
-function validateRouteFields(seg: Pick<Segment, 'routeIds' | 'startDist' | 'endDist'>): void {
+function validateRouteFields(
+  seg: Pick<Segment, 'routeIds' | 'startDist' | 'endDist' | 'primaryRouteId'>,
+): void {
   if (seg.startDist !== undefined && seg.endDist !== undefined && seg.startDist >= seg.endDist) {
     throw new Error(`V11: startDist (${seg.startDist}) must be < endDist (${seg.endDist})`)
   }
   if (seg.routeIds !== undefined && seg.routeIds.length === 0) {
     throw new Error('V25: routeIds must not be empty')
   }
+  // T299/V211: primary ! kuulua jäsenlistaan — muuten km viittaa reittiin jota pätkä ei kata.
+  // Puuttuva primary on laillinen (legacy) — vain ristiriitainen on virhe.
+  if (
+    seg.primaryRouteId !== undefined &&
+    seg.routeIds !== undefined &&
+    !seg.routeIds.includes(seg.primaryRouteId)
+  ) {
+    throw new Error(
+      `V211: primaryRouteId (${seg.primaryRouteId}) must be one of routeIds (${seg.routeIds.join(',')})`,
+    )
+  }
+}
+
+// T299/V211: kanoninen "mitä reittiä pätkän km:t mittaavat". Legacy-pätkä ilman kenttää →
+// routeIds[0] (sama kuin ennen T299:ää: ensimmäinen oli käytännössä klikkijärjestyksen primary).
+export function segmentPrimaryRouteId(
+  seg: Pick<Segment, 'primaryRouteId' | 'routeIds'>,
+): string | undefined {
+  return seg.primaryRouteId ?? seg.routeIds?.[0]
+}
+
+// T297/V209/V191: slug-avaruus = kaikkien pätkien slugit + legacy-assignedCodet (vanhat
+// jaetut linkit elävät assignedCoden varassa) — uusi slug ei saa varastaa kumpaakaan.
+// exceptId: nimenmuutoksessa oma vanha slug ei blokkaa (muuten "Pätkä 1" → "patka-1-2").
+function takenSlugs(store: SegmentStore, exceptId?: string): string[] {
+  const out: string[] = []
+  for (const seg of store.values()) {
+    if (seg.id === exceptId) continue
+    if (seg.slug) out.push(seg.slug)
+    if (seg.assignedCode) out.push(seg.assignedCode)
+  }
+  return out
 }
 
 export function createSegment(
@@ -52,6 +93,11 @@ export function createSegment(
 ): Segment {
   validateRouteFields(data)
   const segment: Segment = { id: id ?? genId(), ...data }
+  // T297/V209/B113: slug ∀ pätkälle heti — jakamatonkin pätkä avattavissa `/s/<slug>`.
+  // V210: EI luo talkoolainen_codes-riviä — slug on valitsin, ei credentiaali.
+  if (!segment.slug) {
+    segment.slug = generateSegmentSlug(segment.displayName ?? '', takenSlugs(store, segment.id))
+  }
   store.set(segment.id, segment)
   return segment
 }
@@ -65,6 +111,12 @@ export function updateSegment(
   if (!existing) return null
   const updated = { ...existing, ...patch }
   validateRouteFields(updated)
+  // T297/V209: nimi muuttui → slug regeneroituu & URL päivittyy. Vanha slug KUOLEE
+  // (käyttäjäpäätös 2026-07-25: ei alias-taulua — jaettu vanha linkki lakkaa toimimasta).
+  // Eksplisiittinen patch.slug voittaa (migraatio/palautus).
+  if (patch.slug === undefined && 'displayName' in patch && patch.displayName !== existing.displayName) {
+    updated.slug = generateSegmentSlug(updated.displayName ?? '', takenSlugs(store, id))
+  }
   store.set(id, updated)
   return updated
 }
@@ -93,6 +145,13 @@ export function generateSegmentSlug(name: string, existing: string[]): string {
   return `${base}-${n}`
 }
 
+// T298/V209: pätkän jaettava URL-polku. Slug ensin, legacy-assignedCode fallbackina;
+// null = ei linkitettävissä (ei pitäisi tapahtua T297:n jälkeen, mutta UI ei saa kaatua).
+export function segmentPath(seg: Pick<Segment, 'slug' | 'assignedCode'>): string | null {
+  const code = seg.slug ?? seg.assignedCode
+  return code ? `/s/${code}` : null
+}
+
 // T146/V91: lookup, ei if-ketju — uusi phase helppo lisätä. purku→asettaminen kiertää ympäri
 // (järjestäjä voi kloonata takaisin seuraavan tapahtuman asetusvaihetta varten).
 export const NEXT_PHASE: Record<Segment['phase'], Segment['phase']> = {
@@ -108,15 +167,18 @@ export const NEXT_PHASE: Record<Segment['phase'], Segment['phase']> = {
 // V139: undefined-safe — reititön tehtävä ei laske overlappia eikä kopioi olematonta reittiä.
 export function cloneSegmentToNextPhase(store: SegmentStore, segment: Segment): Segment | null {
   const targetPhase = NEXT_PHASE[segment.phase]
-  if (segment.routeIds && segment.startDist !== undefined && segment.endDist !== undefined) {
-    for (const routeId of segment.routeIds) {
-      if (!validateNoOverlap(store, routeId, segment.startDist, segment.endDist, targetPhase)) {
-        return null
-      }
+  const primary = segmentPrimaryRouteId(segment)
+  // T299/V211: overlap ratkeaa primary-reitillä — km-välit ovat vertailukelpoisia vain saman
+  // geometrian sisällä. Ennen tätä silmukka vertasi jokaista routeIdiä samaan km-väliin ∴
+  // jaetun osuuden pätkä sai vääriä osumia naapurireittien pätkiin.
+  if (primary && segment.startDist !== undefined && segment.endDist !== undefined) {
+    if (!validateNoOverlap(store, primary, segment.startDist, segment.endDist, targetPhase)) {
+      return null
     }
   }
   return createSegment(store, {
     routeIds: segment.routeIds ? [...segment.routeIds] : undefined,
+    primaryRouteId: segment.primaryRouteId,
     startDist: segment.startDist,
     endDist: segment.endDist,
     displayName: segment.displayName,
@@ -136,8 +198,11 @@ export function getSegmentForCode(
   store: SegmentStore,
   code: string,
 ): Segment | undefined {
+  // T297/V209: slug ensin (∀ pätkällä), assignedCode legacy-fallbackina (vanhat jaetut linkit).
   const upper = code.toUpperCase()
-  return Array.from(store.values()).find(s => s.assignedCode?.toUpperCase() === upper)
+  const values = Array.from(store.values())
+  return values.find(s => s.slug?.toUpperCase() === upper)
+    ?? values.find(s => s.assignedCode?.toUpperCase() === upper)
 }
 
 // T141/B61/V88: lukumäärä per status, pätkäjako-listan riville. Vain count>0 -statukset näytetään UI:ssa.
@@ -244,7 +309,10 @@ export function validateNoOverlap(
     if (seg.phase !== phase) continue
     // V139: reitittömät tehtävät eivät osallistu overlappiin (overlap merkitsee vain reitillisille).
     if (!seg.routeIds || seg.startDist === undefined || seg.endDist === undefined) continue
-    if (!seg.routeIds.includes(routeId)) continue
+    // T299/V211: vertaa PRIMARY-reittiä, ei jäsenyyttä. `routeIds.includes` tarkoitti että
+    // jaetulla osuudella pätkän km-väli törmäsi toisen reitin km-väliin joka on eri geometriaa
+    // ∴ vääriä "menee päällekkäin" -esteitä (& päinvastoin ohi meneviä aitoja törmäyksiä).
+    if (segmentPrimaryRouteId(seg) !== routeId) continue
     if (startDist < seg.endDist && seg.startDist < endDist) return false
   }
   return true

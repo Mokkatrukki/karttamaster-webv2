@@ -1,0 +1,42 @@
+/* T322/V228: nimipyyntöpalkki (kesken session). Omassa tiedostossaan — style.css pysyy
+   koskemattomana (rinnakkainen työ T307–T315). Tokenit peritään :root-lohkosta. */
+
+.name-prompt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--text-body);
+}
+
+.name-prompt-label {
+  flex: 1 1 100%;
+  color: var(--text-muted);
+}
+
+.name-prompt-input {
+  flex: 1 1 160px;
+  min-height: 44px; /* §R touch-target — hanskat kädessä */
+  padding: 0 10px;
+  font-size: 16px; /* iOS ei zoomaa fokusoinnissa */
+  background: var(--surface-app);
+  color: var(--text-body);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+}
+
+.name-prompt .btn {
+  min-height: 44px;
+}
+
+.name-prompt-error {
+  flex: 1 1 100%;
+  color: var(--danger-text);
+  font-size: 13px;
+}

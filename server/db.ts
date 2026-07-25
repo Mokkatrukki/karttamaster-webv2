@@ -260,6 +260,10 @@ function initSchema(db: Database): void {
   // järjestäjän suunnitteleman (vain soft ei_tarpeen). Talkoolainen_code ensisijainen tunniste
   // (display_name törmää nimikaimoilla). Olemassa olevat merkit → NULL (= suunniteltu, ei poistettavissa).
   try { db.exec('ALTER TABLE markers ADD COLUMN created_by TEXT') } catch { /* already exists */ }
+  // T319/V230: per-rivi-undon leima. NULL = rivi peruttavissa; aikaleima = jo peruttu (409).
+  // Ilman tätä sama siirto voitaisiin perua kahdesti ja toinen restore kirjoittaisi vanhentuneen
+  // ennen-tilan päälle. Vanhat rivit → NULL = peruttavissa (oikea oletus).
+  try { db.exec('ALTER TABLE marker_audit ADD COLUMN undone_at TEXT') } catch { /* already exists */ }
   // B84/V121: bearing-feature poistettiin (T129/T132) mutta DROP-migraatiota ei koskaan
   // kirjoitettu. Ennen poistoa luotu markers-taulu (esim. tuotanto Jun 11) säilyttää
   // `bearing NOT NULL` -sarakkeen ilman defaultia → koodin INSERT (ei bearingia) kaatuu
@@ -276,12 +280,58 @@ function initSchema(db: Database): void {
   // T230: talkoolaisen eksplisiittinen "pätkä valmiiksi" -signaali asettaminen/purku-vaiheelle
   // (eri kuin merkkimatematiikka). Sama migraatiovyöhyke kuin yllä — rebuildin jälkeen.
   try { db.exec('ALTER TABLE segments ADD COLUMN completed INTEGER NOT NULL DEFAULT 0') } catch { /* already exists */ }
+  // T297/V209/B113: slug ∀ pätkälle (ei enää vain assignatulle). Sama migraatiovyöhyke.
+  try { db.exec('ALTER TABLE segments ADD COLUMN slug TEXT') } catch { /* already exists */ }
+  backfillSegmentSlugs(db)
+  // T299/V211/B114: MITÄ reittiä start_dist/end_dist mittaavat. NULL = legacy → client
+  // johtaa route_ids[0]:sta (segmentPrimaryRouteId) ∴ EI backfill-ajoa, ei kosketa vanhaan dataan.
+  try { db.exec('ALTER TABLE segments ADD COLUMN primary_route_id TEXT') } catch { /* already exists */ }
+  // T300/V212/B115: merkin km per reitti (JSON-objekti). NULL = legacy → distance_from_start
+  // -fallback (distanceForRoute / distOnSegmentAxis). EI backfilliä — lat/lon on totuus ja
+  // client laskee arvon geometriasta (§C-parkki: vanhaan dataan ei kosketa).
+  try { db.exec('ALTER TABLE markers ADD COLUMN distance_by_route TEXT') } catch { /* already exists */ }
 
   const existing = db.query<{ count: number }, []>(
     "SELECT COUNT(*) as count FROM map_state WHERE key='status'"
   ).get()
   if (!existing || existing.count === 0) {
     db.run("INSERT INTO map_state (key, value) VALUES ('status', 'luonnos')")
+  }
+}
+
+// T297/V209/V191: slug-backfill vanhoille riveille. Olemassa oleva assigned_code voittaa
+// (vanha jaettu linkki jatkaa toimintaansa), muuten display_name → slug. Idempotentti:
+// koskee vain rivejä joilla slug IS NULL. Uniikkius sovelluskerroksessa (V191) — sama
+// slugify-logiikka kuin `src/logic/segments.ts`, tarkoituksella duplikoitu (server ⊥ importtaa src/).
+export function backfillSegmentSlugs(db: Database): void {
+  const rows = db.query<{ id: string; assigned_code: string | null; display_name: string | null }, []>(
+    'SELECT id, assigned_code, display_name FROM segments WHERE slug IS NULL OR slug = \'\''
+  ).all()
+  if (rows.length === 0) return
+
+  const taken = new Set(
+    db.query<{ slug: string }, []>("SELECT slug FROM segments WHERE slug IS NOT NULL AND slug != ''")
+      .all()
+      .map(r => r.slug.toLowerCase()),
+  )
+  const slugify = (name: string): string => {
+    const s = name
+      .toLowerCase()
+      .replace(/ä/g, 'a').replace(/ö/g, 'o').replace(/å/g, 'a')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+    return s || 'patka'
+  }
+
+  for (const row of rows) {
+    let slug = row.assigned_code ? slugify(row.assigned_code) : slugify(row.display_name ?? '')
+    if (taken.has(slug)) {
+      let n = 2
+      while (taken.has(`${slug}-${n}`)) n++
+      slug = `${slug}-${n}`
+    }
+    taken.add(slug)
+    db.run('UPDATE segments SET slug = ? WHERE id = ?', [slug, row.id])
   }
 }
 

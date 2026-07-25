@@ -318,7 +318,8 @@ test.describe('Auth screen — T51', () => {
     await page.click('[data-tab="talkoolainen"]')
     await expect(page.locator('#auth-form-talkoolainen')).toHaveClass(/active/)
 
-    // Syötä yleissalasana ja kirjaudu
+    // Syötä nimi (T317/V228) ja yleissalasana
+    await page.fill('#auth-talkoo-name', 'Testi Talkoolainen')
     await page.fill('#auth-talkoo-password', 'syote2026')
     await page.click('#auth-form-talkoolainen button[type="submit"]')
     await page.waitForTimeout(500)

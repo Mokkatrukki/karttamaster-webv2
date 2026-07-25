@@ -8,12 +8,20 @@ import { ownSegments, markerInOwnSegment, logMarkerAudit, type AuditAction } fro
 
 export const markersRoutes = new Hono<AuthEnv>()
 
+// T306/V217/B119: Model B -talkoo-sessio (yleissalasana V188) EI kanna pätkäkoodia ∴ sillä ei ole
+// "omaa pätkää" mihin verrata. Käyttäjäpäätös 2026-07-25: ei hierarkiaa — koodittomalla sessiolla
+// on kenttätyöoikeus kaikkiin merkkeihin. Identiteettikenttä-gate (V150) pysyy voimassa myös sille.
+function isCodelessTalkoo(session: { role: string; talkoolainen_code?: string | null }): boolean {
+  return session.role === 'talkoolainen' && session.talkoolainen_code == null
+}
+
 interface MarkerRow {
   id: string
   type: string
   lat: number
   lon: number
   distance_from_start: number
+  distance_by_route: string | null
   route_ids: string
   status: string
   location_note: string | null
@@ -38,7 +46,19 @@ function imageUrls(db: Database, markerId: string): string[] {
 }
 
 function toJson(db: Database, row: MarkerRow) {
-  return { ...row, route_ids: JSON.parse(row.route_ids) as string[], images: imageUrls(db, row.id) }
+  return {
+    ...row,
+    route_ids: JSON.parse(row.route_ids) as string[],
+    // T300/V212: NULL = legacy → client fallbackaa distance_from_startiin (distanceForRoute).
+    distance_by_route: parseDistByRoute(row.distance_by_route),
+    images: imageUrls(db, row.id),
+  }
+}
+
+// T300/V212: rikkinäinen JSON ⊥ saa kaataa koko merkkilistan latausta (V14-linja) → null.
+function parseDistByRoute(raw: string | null): Record<string, number[]> | null {
+  if (!raw) return null
+  try { return JSON.parse(raw) as Record<string, number[]> } catch { return null }
 }
 
 // GET /api/markers — kaikki autentikoidut käyttäjät näkevät merkit
@@ -58,6 +78,7 @@ markersRoutes.post('/', requireAuth(), async (c) => {
     lat?: number
     lon?: number
     distance_from_start?: number
+    distance_by_route?: Record<string, number[]> | null
     route_ids?: string[]
     status?: string
     location_note?: string
@@ -82,11 +103,13 @@ markersRoutes.post('/', requireAuth(), async (c) => {
 
   // V149: role-gate — organizer aina; talkoolainen vain oman pätkän sisään; muu → 403
   const isOrganizer = session.role === 'admin' || session.role === 'järjestäjä'
-  if (!isOrganizer) {
+  // T306/V217: koodillinen legacy-sessio pitää pätkärajansa; kooditon (yleissalasana) saa asettaa ∀.
+  if (!isOrganizer && !isCodelessTalkoo(session)) {
     const segs = ownSegments(db, session)
     const mayPlace = markerInOwnSegment(segs, {
       routeIds: body.route_ids,
       distFromStart: body.distance_from_start,
+      distByRoute: body.distance_by_route ?? null,
       templateId: body.template_id,
     })
     if (!mayPlace) return c.json({ error: 'forbidden' }, 403)
@@ -99,13 +122,14 @@ markersRoutes.post('/', requireAuth(), async (c) => {
   const createdBy = session.talkoolainen_code ?? session.display_name
   db.transaction(() => {
     db.run(
-      'INSERT INTO markers (id, type, lat, lon, distance_from_start, route_ids, status, location_note, color, label, icon_id, image_id, template_id, parts_json, description, updated_at, updated_by, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO markers (id, type, lat, lon, distance_from_start, distance_by_route, route_ids, status, location_note, color, label, icon_id, image_id, template_id, parts_json, description, updated_at, updated_by, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         body.type,
         body.lat,
         body.lon,
         body.distance_from_start,
+        body.distance_by_route != null ? JSON.stringify(body.distance_by_route) : null,
         JSON.stringify(body.route_ids),
         body.status ?? 'suunniteltu',
         body.location_note ?? null,
@@ -121,8 +145,19 @@ markersRoutes.post('/', requireAuth(), async (c) => {
         createdBy,
       ],
     )
-    // add: ei ENNEN-tilaa (undo = DELETE, V153).
-    logMarkerAudit(db, { markerId: id, action: 'add', session })
+    // add: ei ENNEN-tilaa (undo = DELETE, V153). T316/V227: pätkä johdetaan merkistä.
+    logMarkerAudit(db, {
+      markerId: id,
+      action: 'add',
+      session,
+      marker: {
+        id,
+        routeIds: body.route_ids,
+        distFromStart: body.distance_from_start,
+        distByRoute: body.distance_by_route ?? null,
+        templateId: body.template_id ?? null,
+      },
+    })
   })()
 
   const row = db.query<MarkerRow, [string]>('SELECT * FROM markers WHERE id = ?').get(id)!
@@ -141,12 +176,13 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
     id: string
     route_ids: string | null
     distance_from_start: number
+    distance_by_route: string | null
     status: string
     lat: number
     lon: number
     template_id: string | null
   }, [string]>(
-    'SELECT id, route_ids, distance_from_start, status, lat, lon, template_id FROM markers WHERE id = ?',
+    'SELECT id, route_ids, distance_from_start, distance_by_route, status, lat, lon, template_id FROM markers WHERE id = ?',
   ).get(id)
   if (!existing) return c.json({ error: 'not_found' }, 404)
 
@@ -157,6 +193,7 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
     lon?: number
     type?: string
     distance_from_start?: number
+    distance_by_route?: Record<string, number[]> | null
     route_ids?: string[]
     description?: string | null
     icon_id?: string | null
@@ -170,23 +207,25 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
   // T222/V150: identiteettikentät (tyyppi, kuvaus, ikoni, kuva, malli) = vain järjestäjä+.
   const identityFields = ['type', 'description', 'icon_id', 'image_id', 'template_id', 'parts_json'] as const
   // Sijaintikentät (siirto) — talkoolainen sallittu VAIN omalle pätkälleen + range-tarkistus.
-  const moveFields = ['lat', 'lon', 'distance_from_start', 'route_ids'] as const
+  const moveFields = ['lat', 'lon', 'distance_from_start', 'distance_by_route', 'route_ids'] as const
 
   const existingRoutes = existing.route_ids ? (JSON.parse(existing.route_ids) as string[]) : []
   if (!isOrganizer) {
     const segs = ownSegments(db, session)
-    // (a) identiteettimuutos aina kielletty talkoolaiselta
+    // (a) identiteettimuutos aina kielletty talkoolaiselta — koskee MYÖS koodittomaan sessioon (V217)
     if (identityFields.some((f) => f in body)) return c.json({ error: 'forbidden' }, 403)
+    // T306/V217: koodittomalla sessiolla ei ole pätkää mihin verrata ∴ (b) ja (c) eivät päde.
+    const bound = !isCodelessTalkoo(session)
     // (b) V150a: olemassa olevan merkin PITÄÄ kuulua talkoolaisen pätkään (kanoninen unioni:
     //     route+dist ∪ linked ∪ typeFilter) — koskee MYÖS status/location_note-kenttiä.
-    if (!markerInOwnSegment(segs, { id, routeIds: existingRoutes, distFromStart: existing.distance_from_start, templateId: existing.template_id })) {
+    if (bound && !markerInOwnSegment(segs, { id, routeIds: existingRoutes, distFromStart: existing.distance_from_start, distByRoute: parseDistByRoute(existing.distance_by_route), templateId: existing.template_id })) {
       return c.json({ error: 'forbidden' }, 403)
     }
     // (c) V150b: siirto ei saa raahata merkkiä ulos omasta pätkästä — uusi sijainti range-tarkistus.
-    if (moveFields.some((f) => f in body)) {
+    if (bound && moveFields.some((f) => f in body)) {
       const newDist = body.distance_from_start ?? existing.distance_from_start
       const newRoutes = body.route_ids ?? existingRoutes
-      if (!markerInOwnSegment(segs, { id, routeIds: newRoutes, distFromStart: newDist, templateId: existing.template_id })) {
+      if (!markerInOwnSegment(segs, { id, routeIds: newRoutes, distFromStart: newDist, distByRoute: body.distance_by_route ?? parseDistByRoute(existing.distance_by_route), templateId: existing.template_id })) {
         return c.json({ error: 'forbidden' }, 403)
       }
     }
@@ -201,6 +240,10 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
   if (body.lon !== undefined) { fields.push('lon = ?'); values.push(body.lon) }
   if (body.type !== undefined) { fields.push('type = ?'); values.push(body.type) }
   if (body.distance_from_start !== undefined) { fields.push('distance_from_start = ?'); values.push(body.distance_from_start) }
+  if (body.distance_by_route !== undefined) {
+    fields.push('distance_by_route = ?')
+    values.push(body.distance_by_route != null ? JSON.stringify(body.distance_by_route) : null)
+  }
   if (body.route_ids !== undefined) { fields.push('route_ids = ?'); values.push(JSON.stringify(body.route_ids)) }
   if (body.icon_id !== undefined) { fields.push('icon_id = ?'); values.push(body.icon_id) }
   if (body.image_id !== undefined) { fields.push('image_id = ?'); values.push(body.image_id) }
@@ -228,7 +271,24 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
 
   db.transaction(() => {
     db.run(`UPDATE markers SET ${fields.join(', ')} WHERE id = ?`, values as string[])
-    if (audit) logMarkerAudit(db, { markerId: id, action: audit.action, session, payload: audit.payload })
+    if (audit) {
+      // T316/V227: pätkä johdetaan merkin UUDESTA tilasta — siirron jälkeen merkki kuuluu sinne
+      // minne se päätyi, ja juuri sen pätkän valvojan pitää nähdä rivi lokissaan.
+      const after = db.query<MarkerRow, [string]>('SELECT * FROM markers WHERE id = ?').get(id)!
+      logMarkerAudit(db, {
+        markerId: id,
+        action: audit.action,
+        session,
+        payload: audit.payload,
+        marker: {
+          id,
+          routeIds: after.route_ids ? (JSON.parse(after.route_ids) as string[]) : [],
+          distFromStart: after.distance_from_start,
+          distByRoute: parseDistByRoute(after.distance_by_route),
+          templateId: after.template_id,
+        },
+      })
+    }
   })()
 
   const updated = db.query<MarkerRow, [string]>('SELECT * FROM markers WHERE id = ?').get(id)!
@@ -248,12 +308,13 @@ markersRoutes.delete('/:id', requireAuth(), (c) => {
     lat: number
     lon: number
     distance_from_start: number
+    distance_by_route: string | null
     route_ids: string | null
     status: string
     template_id: string | null
     created_by: string | null
   }, [string]>(
-    'SELECT id, type, lat, lon, distance_from_start, route_ids, status, template_id, created_by FROM markers WHERE id = ?',
+    'SELECT id, type, lat, lon, distance_from_start, distance_by_route, route_ids, status, template_id, created_by FROM markers WHERE id = ?',
   ).get(id)
   if (!existing) return c.json({ error: 'not_found' }, 404)
 
@@ -262,24 +323,37 @@ markersRoutes.delete('/:id', requireAuth(), (c) => {
     // T225/V151: (a) merkki omalla pätkällä JA (b) oma itse-luoma (created_by = talkoolainen_code).
     const existingRoutes = existing.route_ids ? (JSON.parse(existing.route_ids) as string[]) : []
     const segs = ownSegments(db, session)
-    const owns = markerInOwnSegment(segs, { id, routeIds: existingRoutes, distFromStart: existing.distance_from_start, templateId: existing.template_id })
-    const selfCreated = existing.created_by != null && existing.created_by === session.talkoolainen_code
-    if (!owns || !selfCreated) return c.json({ error: 'forbidden' }, 403)
+    const owns = markerInOwnSegment(segs, { id, routeIds: existingRoutes, distFromStart: existing.distance_from_start, distByRoute: parseDistByRoute(existing.distance_by_route), templateId: existing.template_id })
+    // T306/V217: koodittomalla sessiolla created_by = display_name ("Talkoolainen") ∴ itse-luotu-ehto
+    // vertaa siihen, ja pätkäsidos (owns) ei päde. SEURAUS jonka käyttäjä hyväksyi 2026-07-25:
+    // poisto-oikeus kattaa kaikki talkoolaisten luomat merkit (ei hierarkiaa). Järjestäjän merkit
+    // pysyvät suojattuina — ne on luotu järjestäjän display_namella.
+    if (isCodelessTalkoo(session)) {
+      if (existing.created_by !== session.display_name) return c.json({ error: 'forbidden' }, 403)
+    } else {
+      const selfCreated = existing.created_by != null && existing.created_by === session.talkoolainen_code
+      if (!owns || !selfCreated) return c.json({ error: 'forbidden' }, 403)
+    }
   }
 
-  // T226/V152: remove-audit ennen-tilalla (audit-näkyvyys; V153 ei restoraa removea) + DELETE atomisesti.
+  // T226/V152: remove-audit ennen-tilalla + DELETE atomisesti.
+  // T318/V229: payload = KOKO merkkirivi ∴ poisto on peruttavissa INSERTillä. Aiempi 6 kentän
+  // otos riitti näkyvyyteen mutta ei palautukseen — ja juuri poisto on se jota halutaan perua.
   db.transaction(() => {
+    const full = db.query<MarkerRow, [string]>('SELECT * FROM markers WHERE id = ?').get(id)!
     logMarkerAudit(db, {
       markerId: id,
       action: 'remove',
       session,
-      payload: {
-        type: existing.type,
-        lat: existing.lat,
-        lon: existing.lon,
-        distance_from_start: existing.distance_from_start,
-        route_ids: existing.route_ids ? (JSON.parse(existing.route_ids) as string[]) : [],
-        status: existing.status,
+      payload: { ...full, route_ids: full.route_ids ? (JSON.parse(full.route_ids) as string[]) : [] },
+      // T316/V227: johdetaan ENNEN DELETEä — jälkikäteen merkkiä ei enää ole eikä pätkää voisi
+      // ratkaista, ja poistorivi katoaisi juuri sen pätkän lokista jossa sitä tarvitaan.
+      marker: {
+        id,
+        routeIds: existing.route_ids ? (JSON.parse(existing.route_ids) as string[]) : [],
+        distFromStart: existing.distance_from_start,
+        distByRoute: parseDistByRoute(existing.distance_by_route),
+        templateId: existing.template_id,
       },
     })
     db.run('DELETE FROM markers WHERE id = ?', [id])

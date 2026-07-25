@@ -55,11 +55,13 @@ describe('T271 — /patkat-hub renderöinti', () => {
     expect(row.querySelector('.patkat-row-meta')?.textContent).toContain('asetettu')
   })
 
-  it('jakamaton pätkä → "Ei vielä jaettu", ei linkkiä', () => {
+  // T298/V209 (amend T271): "jaa linkki" ei ole enää portti — slug syntyy luonnissa (T297),
+  // joten jokainen pätkä on avattavissa. Ilman slugia JA koodia riviä ei voi linkittää.
+  it('pätkä ilman slugia ja koodia → ei linkkiä (ei pitäisi tapahtua T297:n jälkeen)', () => {
     const s = seg({ displayName: 'Pätkä 2' })
     renderPatkatPage(c, { faqMarkdown: '', segments: [s], markers: [], role: 'talkoolainen' })
     expect(c.querySelector('.patkat-row-open')).toBeNull()
-    expect(c.querySelector('.patkat-row-nolink')?.textContent).toContain('Ei vielä jaettu')
+    expect(c.querySelector('.patkat-row-nolink')?.textContent).toContain('Ei linkkiä')
   })
 
   it('FAQ-markdown renderöityy HTML:ksi', () => {

@@ -7,6 +7,8 @@ interface ServerMarker {
   lat: number
   lon: number
   distance_from_start: number
+  // T300/V212/B115: km per reitti. NULL/puuttuu = legacy → distanceForRoute fallbackaa.
+  distance_by_route?: Record<string, number[]> | null
   route_ids: string[]
   status: string
   location_note: string | null
@@ -39,6 +41,7 @@ function fromServer(row: ServerMarker): SignMarker {
     lat: row.lat,
     lon: row.lon,
     distanceFromStart: row.distance_from_start,
+    ...(row.distance_by_route ? { distanceByRoute: row.distance_by_route } : {}),
     routeIds: row.route_ids,
     status: row.status as MarkerStatus,
     ...(row.location_note != null ? { locationNote: row.location_note } : {}),

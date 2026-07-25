@@ -1,10 +1,12 @@
-import { updateSegment, deleteSegment, getMarkersForSegment, cloneSegmentToNextPhase, NEXT_PHASE, generateSegmentSlug } from '../logic/segments'
+import { updateSegment, deleteSegment, getMarkersForSegment, cloneSegmentToNextPhase, NEXT_PHASE, generateSegmentSlug, segmentPath } from '../logic/segments'
 import { updateSegmentRemote, deleteSegmentRemote, pushSegment } from '../logic/segment-sync'
 import type { Segment, SegmentStore, EquipmentItem } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
 import { registerEscClose, createBackdrop } from './modal-helpers'
 import { buildMarkerVisual } from './marker-visual-row'
-import { fetchSegmentAudit, undoSegmentActions, type AuditEntry, type AuditAction } from '../logic/audit-sync'
+import { fetchSegmentAudit, undoSegmentActions, type AuditEntry } from '../logic/audit-sync'
+// T320: verbitaulu asuu logiikkakerroksessa — sama totuus lokinäkymälle ja tälle modaalille.
+import { ACTION_VERB } from '../logic/audit-log'
 
 const STATUS_LABELS: Record<string, string> = {
   suunniteltu: 'Suunniteltu',
@@ -156,11 +158,46 @@ export class SegmentDetailsModal {
     nameInput.placeholder = 'Esim. Pätkä 1'
     section.appendChild(nameInput)
 
+    // T298/V209: pätkän linkki näkyy heti nimen alla — ei enää "jaa linkki" -porttia (B113).
+    // Nimenmuutos regeneroi slugin ∴ linkki päivittyy tässä ja vanha lakkaa toimimasta.
+    const linkRow = document.createElement('div')
+    linkRow.className = 'segment-details-link-row'
+    const linkEl = document.createElement('a')
+    linkEl.className = 'segment-details-link'
+    const copyBtn = document.createElement('button')
+    copyBtn.className = 'btn-copy-url'
+    copyBtn.textContent = '📋 Kopioi'
+    const renderLink = () => {
+      const current = this.store.get(seg.id) ?? seg
+      const path = segmentPath(current)
+      linkRow.hidden = !path
+      if (!path) return
+      linkEl.href = path
+      linkEl.textContent = path
+      copyBtn.onclick = () => {
+        navigator.clipboard?.writeText(`${window.location.origin}${path}`).catch(() => {})
+      }
+    }
+    linkRow.append(linkEl, copyBtn)
+    section.appendChild(linkRow)
+
+    const linkHint = document.createElement('p')
+    linkHint.className = 'segment-details-link-hint'
+    linkHint.textContent = 'Nimen muutos vaihtaa linkin — vanha linkki lakkaa toimimasta.'
+    section.appendChild(linkHint)
+    renderLink()
+
     const saveDisplayName = () => {
       const val = nameInput.value.trim() || undefined
-      updateSegment(this.store, seg.id, { displayName: val })
-      updateSegmentRemote(seg.id, { displayName: val ?? null as unknown as string }).catch(() => {})
+      const updated = updateSegment(this.store, seg.id, { displayName: val })
+      seg.displayName = val
+      if (updated) seg.slug = updated.slug
+      updateSegmentRemote(seg.id, {
+        displayName: val ?? null as unknown as string,
+        slug: updated?.slug ?? null as unknown as string,
+      }).catch(() => {})
       titleEl.textContent = val ?? 'Pätkän lisätiedot'
+      renderLink()
       this.onRender()
     }
     nameInput.addEventListener('blur', saveDisplayName)
@@ -372,7 +409,8 @@ export class SegmentDetailsModal {
 
     const title = document.createElement('p')
     title.className = 'segment-equipment-title'
-    title.textContent = 'Talkoolaisen linkki:'
+    // T298: linkki EI enää synny täällä (nimi-osio näyttää sen) — tämä osio nimeää tekijän.
+    title.textContent = 'Kuka tekee pätkän:'
     section.appendChild(title)
 
     const errorEl = document.createElement('p')
@@ -424,13 +462,13 @@ export class SegmentDetailsModal {
 
       const nameInput = document.createElement('input')
       nameInput.className = 'input-assign-name'
-      nameInput.placeholder = 'Näyttönimi (esim. Pätkä 1 — Varikko)'
+      nameInput.placeholder = 'Tekijän näyttönimi (esim. Matti / Pätkä 1)'
       nameInput.setAttribute('aria-label', 'Talkoolaisen pätkän näyttönimi')
       nameInput.value = seg.displayName ?? ''
 
       const saveBtn = document.createElement('button')
       saveBtn.className = 'btn-assign-save'
-      saveBtn.textContent = 'Luo linkki'
+      saveBtn.textContent = 'Tallenna tekijä'
       saveBtn.addEventListener('click', async () => {
         const name = nameInput.value.trim() || seg.displayName?.trim() || ''
         if (!name) {
@@ -535,13 +573,6 @@ export class SegmentDetailsModal {
 
   // T227: per-pätkä aktiviteettiloki + massaperuutus. Vastaa spammaus-huoleen (V149): talkoolaisen
   // lisäykset näkyvät, ja "Peru kaikki lisäykset" poistaa ne atomisesti (POST /api/audit/undo, V153).
-  private static readonly ACTION_VERB: Record<AuditAction, string> = {
-    add: 'lisäsi merkin',
-    move: 'siirsi merkkiä',
-    remove: 'poisti merkin',
-    status: 'muutti tilan',
-  }
-
   private buildAuditSection(code: string): HTMLElement {
     const section = document.createElement('div')
     section.className = 'segment-audit-section'
@@ -570,7 +601,7 @@ export class SegmentDetailsModal {
         for (const e of [...entries].reverse()) {
           const li = document.createElement('li')
           li.className = 'segment-audit-item'
-          const verb = SegmentDetailsModal.ACTION_VERB[e.action] ?? e.action
+          const verb = ACTION_VERB[e.action] ?? e.action
           const time = e.created_at.slice(11, 16) // HH:MM ISO-stringistä
           li.textContent = `${e.actor ?? '?'} — ${verb} · ${time}`
           ul.appendChild(li)

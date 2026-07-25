@@ -4788,3 +4788,30 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 .patkat-login-input { flex: 1 1 180px; min-height: 48px; padding: 0 14px; background: var(--surface-card); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: var(--text-body); font-size: 1rem; }
 .patkat-login-btn { min-height: 48px; padding: 0 20px; }
 .patkat-login-error { color: var(--danger); min-height: 1.2em; margin: 0; }
+
+/* T298/V209: pätkän elävä linkki (nimi-osio) + luonnin jälkeinen "Avaa pätkä" -vaihe.
+   Linkki näkyy heti luonnista — ei enää "jaa linkki" -porttia (B113). */
+.segment-details-link-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.segment-details-link {
+  color: var(--accent);
+  font-size: 12px;
+  word-break: break-all;
+  flex: 1;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.segment-details-link-hint {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin: 2px 0 0;
+}
+

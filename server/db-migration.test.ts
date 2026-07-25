@@ -179,3 +179,58 @@ describe('T213/V141: segments route-kentät nullable -migraatio', () => {
     db.close()
   })
 })
+
+// T297/V209/B113: slug-sarake + backfill vanhoille riveille. Vanha jaettu linkki
+// (assigned_code) voittaa nimen — se jatkaa toimintaansa migraation yli.
+describe('T297/V209: segments.slug-migraatio + backfill', () => {
+  const tmpFiles: string[] = []
+
+  afterEach(() => {
+    for (const f of tmpFiles) {
+      for (const s of ['', '-wal', '-shm']) {
+        try { if (existsSync(f + s)) unlinkSync(f + s) } catch { /* ignore */ }
+      }
+    }
+    tmpFiles.length = 0
+  })
+
+  function legacySegmentsDb(): string {
+    const dir = mkdtempSync(join(tmpdir(), 'km-slug-'))
+    const p = join(dir, 'legacy.db')
+    tmpFiles.push(p)
+    const raw = new Database(p)
+    raw.exec(`
+      CREATE TABLE segments (
+        id TEXT PRIMARY KEY,
+        route_ids TEXT,
+        start_dist REAL,
+        end_dist REAL,
+        assigned_code TEXT,
+        display_name TEXT,
+        description TEXT,
+        equipment TEXT NOT NULL DEFAULT '[]',
+        phase TEXT NOT NULL DEFAULT 'asettaminen',
+        updated_at TEXT NOT NULL
+      );
+    `)
+    raw.run("INSERT INTO segments (id, display_name, assigned_code, updated_at) VALUES ('a', 'Pätkä 1', 'VARIKKO-1', '2026-01-01')")
+    raw.run("INSERT INTO segments (id, display_name, updated_at) VALUES ('b', 'Pätkä 2', '2026-01-01')")
+    raw.run("INSERT INTO segments (id, display_name, updated_at) VALUES ('c', 'Pätkä 2', '2026-01-01')")
+    raw.close()
+    return p
+  }
+
+  test('backfill: assigned_code voittaa nimen, törmäys suffiksoituu, idempotentti', () => {
+    const p = legacySegmentsDb()
+    const db = createDb(p)
+    const rows = db.query<{ id: string; slug: string }, []>('SELECT id, slug FROM segments ORDER BY id').all()
+    expect(rows.map(r => r.slug)).toEqual(['varikko-1', 'patka-2', 'patka-2-2'])
+    db.close()
+
+    // Idempotentti: toinen avaus ei muuta slugeja eikä kaadu (ALTER TABLE jo tehty).
+    const db2 = createDb(p)
+    const again = db2.query<{ id: string; slug: string }, []>('SELECT id, slug FROM segments ORDER BY id').all()
+    expect(again.map(r => r.slug)).toEqual(['varikko-1', 'patka-2', 'patka-2-2'])
+    db2.close()
+  })
+})

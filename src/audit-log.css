@@ -1,0 +1,162 @@
+/* T321/V231: /loki-sivun tyylit.
+   Omassa tiedostossaan, ei style.css:ään — tokenit peritään :root-lohkosta (ei kopioida arvoja).
+   Desktop = taulukkorivi, <768px = kortti (järjestäjän mobiili on välttävä toiminta, VISION). */
+
+#loki-app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px;
+  color: var(--text-body);
+}
+
+#loki-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+#loki-header h1 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.loki-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Suodattimet ───────────────────────────────────────────────────────── */
+
+.audit-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.audit-filter-select,
+.audit-filter-date {
+  min-height: 44px; /* §R touch-target */
+  padding: 0 10px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--surface-card);
+  color: var(--text-body);
+  font-size: 14px;
+}
+
+.audit-status {
+  min-height: 20px;
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* ── Rivit ─────────────────────────────────────────────────────────────── */
+
+.audit-table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.audit-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1.2fr) minmax(160px, 1.6fr) 90px 110px 80px auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.audit-actor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-weight: 600;
+}
+
+.audit-role-badge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 999px;
+  color: var(--surface-raised);
+  background: var(--status-suunniteltu);
+  white-space: nowrap;
+}
+
+.audit-role-talkoolainen { background: var(--status-tarkistettu); }
+.audit-role-järjestäjä   { background: var(--status-asetettu); }
+.audit-role-admin        { background: var(--status-keratty); }
+
+.audit-what { color: var(--text-body); }
+
+.audit-where,
+.audit-when {
+  color: var(--text-meta);
+  font-size: 13px;
+}
+
+/* Poikkeama on rivin tärkein luku sotkua etsittäessä → tabulaarinumerot, jotta
+   suuruusluokat asettuvat allekkain silmäiltäviksi. */
+.audit-deviation {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--text-meta);
+}
+
+.audit-deviation-warn {
+  color: var(--danger-text);
+  font-weight: 700;
+}
+
+.audit-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.audit-actions .btn {
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.audit-empty {
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+/* ── Mobiili: rivi → kortti ────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .audit-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'actor    deviation'
+      'what     what'
+      'where    when'
+      'actions  actions';
+    row-gap: 6px;
+  }
+
+  .audit-actor     { grid-area: actor; }
+  .audit-what      { grid-area: what; }
+  .audit-where     { grid-area: where; }
+  .audit-when      { grid-area: when; text-align: right; }
+  .audit-deviation { grid-area: deviation; }
+  .audit-actions   { grid-area: actions; justify-content: flex-start; }
+
+  .audit-filter-select,
+  .audit-filter-date {
+    flex: 1 1 140px;
+  }
+}

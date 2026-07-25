@@ -507,3 +507,23 @@ Seed admin → vaihda salasana → luo invitet järjestäjille → luo koodit ta
 Järjestäjä → invite-linkki → rekisteröinti → pysyvä tunnus
 Talkoolainen → koodi → 24h sessio (uusittavissa samalla koodilla)
 ```
+
+## AuditAPI — T226/T227/T319 ✓
+**Moduuli:** `server/routes/audit.ts`
+**Käyttäjä:** järjestäjä/admin
+
+- `GET /api/audit` — `requireRole('admin','järjestäjä')`. Suodattimet `segment_code`, `actor`, `actor_role`, `since`, `until`, `limit` (oletus 200, max 1000). Pelkkä `segment_code` → ASC ilman limitiä (pätkämodaalin sopimus T227); muut → uusin ensin + limit.
+- `POST /api/audit/undo` — massaperuutus pätkäkoodilla (T227/V153).
+- `POST /api/audit/undo/:auditId` — YHDEN rivin peruutus (T319/V230). `add`→DELETE, `move`/`status`→UPDATE ennen-tilasta, `remove`→INSERT alkuperäisellä id:llä (V229). Atominen. Virheet: 409 jo peruttu, 404 tuntematon / merkki kadonnut, 400 `not_undoable` (legacy-payload). Peruutus kirjautuu itsekin audit-riviksi ∴ peruutuskin peruttavissa.
+- `marker_audit.undone_at` (T319) estää tuplaperuutuksen.
+
+## MarkerAudit — T226/T316 ✓
+**Moduuli:** `server/marker-audit.ts`
+
+- `logMarkerAudit(db, {markerId, action, session, payload, marker})` — `marker` annettuna pätkä JOHDETAAN merkistä (`segmentCodeForMarker`, V227), ei sessiosta: yleissalasana-sessio on kooditon (B124). Session koodi voittaa kun se osuu (päällekkäiset pätkät).
+- `segmentCodeForMarker(db, marker)` — käänteinen `markerInOwnSegment`: merkki tiedossa, etsitään pätkä. Sama V154-unioni. Geometriaton pätkä (V139) kelpaa vain eksplisiittisellä liitoksella, muuten se nappaisi jokaisen merkin.
+- DELETE kirjaa koko merkkirivin `payload_json`iin (V229) ∴ poisto peruttavissa.
+
+## AuthRoutes — nimi (T317/T322) ✓
+- `POST /api/auth/talkoo-login` vaatii `name` (trim 2–40) → `sessions.display_name`. Tarkistus VASTA salasanan jälkeen: muuten väärä salasana palauttaisi 400:n eikä 401:tä ja rate-limit-laskuri ohittuisi.
+- `POST /api/auth/name` — nimen asetus kesken session (T322). `requireAuth`, sama validointi, ei katkaise sessiota. Tarpeen koska kenttätyö oli jo käynnissä kun nimi tuli pakolliseksi.

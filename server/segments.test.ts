@@ -196,7 +196,9 @@ describe('T61: Segments API', () => {
       expect(res.status).toBe(403)
     })
 
-    test('PUT /api/segments/:id — talkoolainen 403', async () => {
+    // T306/V217 (amend): yleissalasana-sessio EI enää 403 — se saa kenttätyöoikeuden ∀ pätkään
+    // (B119). Suoja siirtyi kenttäsuodattimeen: järjestäjän kentät eivät läpäise PUT:ia.
+    test('PUT /api/segments/:id — talkoolaisen PUT ei muuta järjestäjän kenttiä', async () => {
       const app = makeApp(db)
       const postRes = await app.request('/api/segments', {
         method: 'POST',
@@ -209,7 +211,8 @@ describe('T61: Segments API', () => {
         headers: { ...authHeaders(db, 'talkoolainen'), 'Content-Type': 'application/json' },
         body: JSON.stringify({ description: 'yritys' }),
       })
-      expect(res.status).toBe(403)
+      expect(res.status).toBe(200)
+      expect(((await res.json()) as Record<string, unknown>).description).toBeUndefined()
     })
 
     test('DELETE /api/segments/:id — talkoolainen 403', async () => {
@@ -506,6 +509,85 @@ describe('T61: Segments API', () => {
       const updated = await put.json() as Record<string, unknown>
       expect(updated.linkedMarkerIds).toEqual(['x1'])
       expect(updated.markerTypeFilter).toBe('wc')
+    })
+  })
+  // T297/V209/B113: slug ∀ pätkälle — jakamatonkin avattavissa /s/<slug>.
+  describe('T297/V209 — slug', () => {
+    test('POST säilyttää slugin ja GET /by-code/:slug löytää pätkän', async () => {
+      const app = makeApp(db)
+      const post = await app.request('/api/segments', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...SEG_BODY, slug: 'patka-1' }),
+      })
+      expect(post.status).toBe(201)
+      const created = await post.json() as Record<string, unknown>
+      expect(created.slug).toBe('patka-1')
+      expect(created.assignedCode).toBeUndefined()
+
+      const get = await app.request('/api/segments/by-code/patka-1', {
+        headers: authHeaders(db, 'talkoolainen'),
+      })
+      expect(get.status).toBe(200)
+      expect(((await get.json()) as Record<string, unknown>).id).toBe(created.id)
+    })
+
+    test('PUT vaihtaa slugin — vanha slug ei enää resolvoidu (V209)', async () => {
+      const app = makeApp(db)
+      const post = await app.request('/api/segments', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...SEG_BODY, slug: 'patka-1' }),
+      })
+      const { id } = await post.json() as { id: string }
+
+      const put = await app.request(`/api/segments/${id}`, {
+        method: 'PUT',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayName: 'Varikon silmukka', slug: 'varikon-silmukka' }),
+      })
+      expect(put.status).toBe(200)
+      expect(((await put.json()) as Record<string, unknown>).slug).toBe('varikon-silmukka')
+
+      const uusi = await app.request('/api/segments/by-code/varikon-silmukka', {
+        headers: authHeaders(db, 'talkoolainen'),
+      })
+      expect(uusi.status).toBe(200)
+      const vanha = await app.request('/api/segments/by-code/patka-1', {
+        headers: authHeaders(db, 'talkoolainen'),
+      })
+      expect(vanha.status).toBe(404)
+    })
+
+    test('legacy assignedCode resolvoituu yhä ilman slugia', async () => {
+      const app = makeApp(db)
+      const post = await app.request('/api/segments', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...SEG_BODY, assignedCode: 'vanha-koodi' }),
+      })
+      const created = await post.json() as Record<string, unknown>
+      expect(created.slug).toBeUndefined()
+
+      const get = await app.request('/api/segments/by-code/vanha-koodi', {
+        headers: authHeaders(db, 'talkoolainen'),
+      })
+      expect(get.status).toBe(200)
+      expect(((await get.json()) as Record<string, unknown>).id).toBe(created.id)
+    })
+
+    test('slug ⊥ luo talkoolainen_codes-riviä (V210)', async () => {
+      const app = makeApp(db)
+      await app.request('/api/segments', {
+        method: 'POST',
+        headers: { ...authHeaders(db, 'järjestäjä'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...SEG_BODY, slug: 'patka-1' }),
+      })
+      // Fixture seedaa oman koodinsa → tarkista ettei SLUGILLE synny riviä.
+      const codes = db.query<{ n: number }, [string]>(
+        'SELECT COUNT(*) as n FROM talkoolainen_codes WHERE UPPER(code) = ?',
+      ).get('PATKA-1')
+      expect(codes?.n).toBe(0)
     })
   })
 })

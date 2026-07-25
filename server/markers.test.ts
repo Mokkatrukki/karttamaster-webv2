@@ -353,14 +353,17 @@ describe('T47: Markers REST API', () => {
       expect(res.status).toBe(403)
     })
 
-    test('codeless talkoolainen ei voi muuttaa position → 403', async () => {
+    // T306/V217 (amend V150b): kooditon yleissalasana-sessio EI ole sidottu pätkään ∴ sillä ei ole
+    // rangea mihin siirtoa verrata — siirto sallittu ∀ merkille (käyttäjäpäätös 2026-07-25).
+    // Koodillinen legacy-sessio pitää range-rajansa (testit yllä).
+    test('kooditon talkoolainen saa siirtää merkkiä → 200', async () => {
       const id = await seedMarker(db)
       const res = await makeApp(db).request(`/api/markers/${id}`, {
         method: 'PUT',
         headers: { ...authHeaders(db, 'talkoolainen'), 'Content-Type': 'application/json' },
         body: JSON.stringify({ lat: 65.2, lon: 27.6 }),
       })
-      expect(res.status).toBe(403)
+      expect(res.status).toBe(200)
     })
 
     test('järjestäjä can update position', async () => {
