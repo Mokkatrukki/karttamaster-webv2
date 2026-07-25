@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { nearestUnsetMarker, distanceToNext, firstUnsetMarker, unsetMarkersOrdered, stepUnset, nextMarkerAhead } from '../src/logic/navigation'
+import { nearestUnsetMarker, distanceToNext, firstUnsetMarker, unsetMarkersOrdered, stepUnset, nextMarkerAhead, distanceAhead } from '../src/logic/navigation'
 import type { SignMarker } from '../src/logic/types'
 
 function makeMarker(overrides: Partial<SignMarker>): SignMarker {
@@ -181,6 +181,80 @@ describe('nextMarkerAhead', () => {
     const shared = makeMarker({ id: 'shared', distanceFromStart: 250, routeIds: ['r1', 'r2'] })
     expect(nextMarkerAhead([shared], 0, 'r1')?.id).toBe('shared')
     expect(nextMarkerAhead([shared], 0, 'r2')?.id).toBe('shared')
+  })
+})
+
+// T319/V229/B126: järjestysavain = ANNETUN reitin km (distanceByRoute), ei merkin skalaari.
+// Prod-todiste 2026-07-25: Pätkä 4 (smtb-55, 20.68–25.65 km) — kolme merkkiä oli mitattu
+// smtb-30:ltä (4.6 km pitkä) → skalaari 0.00/0.03/0.57 km vaikka todellinen sijainti pätkän
+// LOPUSSA 25.18/25.21/25.65 km. Nykyjärjestys nosti pätkän viimeiset merkit ensimmäisiksi.
+describe('V229 km-akseli (B126)', () => {
+  // "oikea" @ smtb-55 km 21.0 — akseli oikein
+  const alku = makeMarker({
+    id: 'alku', distanceFromStart: 21000, routeIds: ['smtb-55'],
+    distanceByRoute: { 'smtb-55': [21000] },
+  })
+  // "30km only irtokyltti" @ smtb-55 km 25.65, mutta skalaari mitattu smtb-30:ltä (570 m)
+  const loppu = makeMarker({
+    id: 'loppu', distanceFromStart: 570, routeIds: ['smtb-55', 'smtb-30'],
+    distanceByRoute: { 'smtb-55': [25650], 'smtb-30': [570] },
+  })
+
+  it('väärältä reitiltä mitattu merkki menee LOPPUUN, ei alkuun', () => {
+    expect(unsetMarkersOrdered([loppu, alku], 'smtb-55').map(m => m.id)).toEqual(['alku', 'loppu'])
+  })
+
+  it('firstUnsetMarker valitsee pätkän alun, ei pienimmän skalaarin', () => {
+    expect(firstUnsetMarker([loppu, alku], 'smtb-55')?.id).toBe('alku')
+    // Ilman akselia entinen (rikkinäinen) käytös — todistaa että ero tulee nimenomaan akselista
+    expect(firstUnsetMarker([loppu, alku])?.id).toBe('loppu')
+  })
+
+  it('stepUnset selaa samassa järjestyksessä kuin lista', () => {
+    expect(stepUnset([loppu, alku], 'alku', 1, 'smtb-55')?.id).toBe('loppu')
+    expect(stepUnset([loppu, alku], 'loppu', -1, 'smtb-55')?.id).toBe('alku')
+  })
+
+  it('nextMarkerAhead lukee km:n aktiiviselta reitiltä', () => {
+    // 22 km kohdalla edessä on vain loppu (25.65) — ei alku (21.0)
+    expect(nextMarkerAhead([alku, loppu], 22000, 'smtb-55')?.id).toBe('loppu')
+    // Skalaarilla loppu näyttäisi olevan 570 m ∴ takana → vanha koodi palautti null
+    expect(nextMarkerAhead([alku, loppu], 22000, 'smtb-55')).not.toBeNull()
+  })
+
+  it('distanceAhead antaa kursorille reitin km:n, ei skalaaria', () => {
+    expect(distanceAhead([alku, loppu], 22000, 'smtb-55')).toBe(25650)
+    expect(distanceAhead([alku, loppu], 30000, 'smtb-55')).toBeNull()
+  })
+
+  it('eri akseli → eri järjestys (sama data, smtb-30 näkökulmasta)', () => {
+    const m30 = makeMarker({
+      id: 'm30', distanceFromStart: 2000, routeIds: ['smtb-30'],
+      distanceByRoute: { 'smtb-30': [2000] },
+    })
+    expect(unsetMarkersOrdered([m30, loppu], 'smtb-30').map(m => m.id)).toEqual(['loppu', 'm30'])
+  })
+
+  it('legacy-fallback: distanceByRoute puuttuu → skalaari, käytös ennallaan (V212)', () => {
+    // m1=100, m2=300 ilman distanceByRoutea — akseli annettu mutta dataa ei ole
+    expect(unsetMarkersOrdered([m2, m1], 'r1').map(m => m.id)).toEqual(['m1', 'm2'])
+    expect(firstUnsetMarker([m2, m1], 'r1')?.id).toBe('m1')
+  })
+
+  it('lenkki: usea km-ehdokas samalla reitillä → pienin järjestää (V214)', () => {
+    const lenkki = makeMarker({
+      id: 'lenkki', distanceFromStart: 40000, routeIds: ['smtb-55'],
+      distanceByRoute: { 'smtb-55': [40000, 12000] },
+    })
+    // 12 km -ehdokas on pienin ∴ lenkki ennen alkua (21 km)
+    expect(unsetMarkersOrdered([alku, lenkki], 'smtb-55').map(m => m.id)).toEqual(['lenkki', 'alku'])
+    // ...ja edessäpäin 15 km:ssä osuu 40 km -ehdokkaaseen
+    expect(distanceAhead([lenkki], 15000, 'smtb-55')).toBe(40000)
+  })
+
+  it('nearestUnsetMarker mittaa etäisyyden akselilta', () => {
+    expect(nearestUnsetMarker([alku, loppu], 25000, 'smtb-55')?.id).toBe('loppu')
+    expect(distanceToNext([alku, loppu], 25000, 'smtb-55')).toBe(650)
   })
 })
 

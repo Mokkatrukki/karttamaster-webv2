@@ -1,5 +1,5 @@
 import { firstUnsetMarker, unsetMarkersOrdered, stepUnset } from '../logic/navigation'
-import type { Segment } from '../logic/segments'
+import { segmentPrimaryRouteId, type Segment } from '../logic/segments'
 import { buildMarkerVisual } from './marker-visual-row'
 import { SIGN_TYPES } from '../logic/sign-picker'
 import type { SignMarker } from '../logic/types'
@@ -64,11 +64,14 @@ export class SegmentHero {
     this.el.hidden = false
     this.el.innerHTML = ''
 
-    const ordered = unsetMarkersOrdered(markers)
+    // T319/V229: km-akseli = pätkän primary-reitti (fallback routeIds[0]) — EI merkin skalaari,
+    // joka voi olla mitattu toiselta reitiltä ∴ järjestys ei vastaisi kulkusuuntaa (B126).
+    const axis = segmentPrimaryRouteId(segment)
+    const ordered = unsetMarkersOrdered(markers, axis)
     // V159 reconcile: valittu id kadonnut asettamattomien joukosta (asetettu/poistettu) → nollaa.
     if (this.selectedNavId && !ordered.some(m => m.id === this.selectedNavId)) this.selectedNavId = null
     const current = (this.selectedNavId ? ordered.find(m => m.id === this.selectedNavId) : null)
-      ?? firstUnsetMarker(markers)
+      ?? firstUnsetMarker(markers, axis)
     this.selectedNavId = current?.id ?? null
 
     if (!current) {
@@ -246,7 +249,10 @@ export class SegmentHero {
   // render() re-render synkkaa kartan korostuksen (onNavigate) uuteen valintaan.
   private navStep(dir: 1 | -1): void {
     if (!this.selectedNavId) return
-    const target = stepUnset(this.ctx.getMarkers(), this.selectedNavId, dir)
+    // Sama akseli kuin render():ssä (V229) — muuten ◀▶ selaisi eri järjestystä kuin lista näyttää.
+    const target = stepUnset(
+      this.ctx.getMarkers(), this.selectedNavId, dir, segmentPrimaryRouteId(this.ctx.getSegment()),
+    )
     if (target && target.id !== this.selectedNavId) {
       this.selectedNavId = target.id
       this.render()

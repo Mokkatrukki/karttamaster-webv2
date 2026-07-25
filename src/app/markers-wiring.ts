@@ -17,7 +17,7 @@ import { MarkerDetailModal } from '../ui/marker-detail-modal'
 import { getSegmentForCode, getMarkersForSegment, updateSegment, segmentPrimaryRouteId } from '../logic/segments'
 import type { Segment } from '../logic/segments'
 import { planSegmentZoom } from '../logic/segment-zoom'
-import { firstUnsetMarker, nextMarkerAhead } from '../logic/navigation'
+import { firstUnsetMarker, distanceAhead } from '../logic/navigation'
 import { CommentLayer } from '../map/comment-layer'
 import { fetchComments, deleteComment } from '../logic/comments'
 import type { GpsNavigator } from '../map/gps-navigator'
@@ -103,7 +103,9 @@ export function wireMarkers(
   // T224 (b1)/T256: korosta pätkän seuraava asettamaton merkki kartalla (vain asettaminen-phase).
   // R6/V178: ikoni-hehku (.marker-next-highlight) renkaan sijaan → markerManager.setNextHighlight.
   function updateNextHighlight(seg: Segment, segMarkers: SignMarker[]): void {
-    const next = seg.phase === 'asettaminen' ? firstUnsetMarker(segMarkers) : null
+    // T319/V229: sama km-akseli kuin herossa (segmentPrimaryRouteId) — muuten kartan korostus
+    // osoittaisi eri merkkiin kuin "Seuraava merkki" -palkki (B126).
+    const next = seg.phase === 'asettaminen' ? firstUnsetMarker(segMarkers, segmentPrimaryRouteId(seg)) : null
     markerManager.setNextHighlight(next?.id ?? null)
   }
 
@@ -469,15 +471,16 @@ export function wireMarkers(
   document.getElementById('btn-route-next')!.addEventListener('click', () => driveMode.next())
   document.getElementById('btn-route-prev')!.addEventListener('click', () => driveMode.prev())
 
-  // T39: "hyppää seuraavaan merkkiin" — siirtää driveMode-kursorin seuraavan merkin
-  // distanceFromStart-kohtaan aktiivisella reitillä (edessäpäin). Ei GPS-riippuvainen — käyttää
-  // vain merkin distanceFromStart-arvoa (nextMarkerAhead) + driveMode.jumpToDistance. Jos edessä
-  // ei ole merkkiä, ei tehdä mitään (kursori jää paikalleen).
+  // T39: "hyppää seuraavaan merkkiin" — siirtää driveMode-kursorin seuraavan merkin kohtaan
+  // aktiivisella reitillä (edessäpäin). Ei GPS-riippuvainen. T319/V229: sekä valinta että
+  // kursorin kohde luetaan AKTIIVISEN reitin akselilta (distanceAhead), EI merkin
+  // distanceFromStart-skalaarista — se voi olla mitattu toiselta reitiltä ∴ kursori hyppäisi
+  // väärään kohtaan (B126). Jos edessä ei ole merkkiä, ei tehdä mitään (kursori jää paikalleen).
   document.getElementById('btn-route-next-marker')?.addEventListener('click', () => {
     const route = activeRouteProvider()
     const currentDistM = driveMode.currentKm() * 1000
-    const target = nextMarkerAhead(markerManager.getAll(), currentDistM, route.id)
-    if (target) driveMode.jumpToDistance(target.distanceFromStart)
+    const targetKm = distanceAhead(markerManager.getAll(), currentDistM, route.id)
+    if (targetKm !== null) driveMode.jumpToDistance(targetKm)
   })
 
   // T221/T75: vapaa-piste-kommentit kartalle (targetType='point'). Ikoni-marker, klikkaus →
