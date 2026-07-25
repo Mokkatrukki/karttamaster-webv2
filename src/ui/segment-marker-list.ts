@@ -1,6 +1,8 @@
 import { buildMarkerVisual } from './marker-visual-row'
 import { markerLabel } from './segment-hero'
 import type { MarkerStatus } from '../logic/marker-status'
+import { displayKm, orderMarkersInSegment } from '../logic/segment-order'
+import type { Segment } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
 
 const STATUS_LABELS: Record<MarkerStatus, string> = {
@@ -18,6 +20,8 @@ const STATUS_LABELS: Record<MarkerStatus, string> = {
 // mutaatiopolku). Erotettu SegmentView:stä (562r pilkkohälytys). Kartta-moodissa CSS piilottaa.
 export interface SegmentMarkerListContext {
   getMarkers(): SignMarker[]
+  // T328/V237: lista järjestää PÄTKÄN km-akselilla ∴ se tarvitsee pätkän, ei pelkkiä merkkejä.
+  getSegment(): Segment | null
   onOpenDetail(id: string): void
 }
 
@@ -28,7 +32,12 @@ export class SegmentMarkerList {
   ) {}
 
   render(): void {
-    const markers = [...this.ctx.getMarkers()].sort((a, b) => a.distanceFromStart - b.distanceFromStart)
+    // T328/V237/V238: järjestys pätkän km-akselilta (purku-phasessa käänteinen), EI merkin
+    // skalaarista joka voi olla mitattu toiselta reitiltä (B129). "Ei reitillä" -merkit
+    // (segmentKm null) omaan ryhmäänsä listan alkuun — ne eivät katoa eivätkä sekoita järjestystä.
+    const segment = this.ctx.getSegment()
+    const { onRoute, offRoute } = orderMarkersInSegment(this.ctx.getMarkers(), segment)
+    const markers = [...onRoute, ...offRoute]
     this.el.innerHTML = ''
 
     const header = document.createElement('div')
@@ -44,18 +53,23 @@ export class SegmentMarkerList {
       return
     }
 
+    // V238: "ei reitillä" ENSIN — merkki joka ei osu pätkän km-välille ei katoa hiljaa eikä
+    // saa väärää paikkaa järjestyksessä (hiljainen katoaminen olisi B127:n uusi versio).
+    this.renderGroup('Ei reitillä', offRoute, segment)
+
     // T264/V184: ryhmittele asettamatta (suunniteltu) / asetetut (asetettu·tarkistettu·kerätty) /
     // ei tarpeen. Tyhjät ryhmät jätetään pois; talkoolainen näkee heti mitä on vielä laittamatta.
-    const unplaced = markers.filter(m => m.status === 'suunniteltu')
-    const placed = markers.filter(m => m.status === 'asetettu' || m.status === 'tarkistettu' || m.status === 'kerätty')
-    const skipped = markers.filter(m => m.status === 'ei_tarpeen')
+    // Ryhmien sisäinen järjestys periytyy `onRoute`sta = kulkusuunta (V237/V238).
+    const unplaced = onRoute.filter(m => m.status === 'suunniteltu')
+    const placed = onRoute.filter(m => m.status === 'asetettu' || m.status === 'tarkistettu' || m.status === 'kerätty')
+    const skipped = onRoute.filter(m => m.status === 'ei_tarpeen')
 
-    this.renderGroup('Asettamatta', unplaced)
-    this.renderGroup('Asetetut', placed)
-    this.renderGroup('Ei tarpeen', skipped)
+    this.renderGroup('Asettamatta', unplaced, segment)
+    this.renderGroup('Asetetut', placed, segment)
+    this.renderGroup('Ei tarpeen', skipped, segment)
   }
 
-  private renderGroup(title: string, markers: SignMarker[]): void {
+  private renderGroup(title: string, markers: SignMarker[], segment: Segment | null): void {
     if (markers.length === 0) return
 
     const groupTitle = document.createElement('p')
@@ -87,7 +101,8 @@ export class SegmentMarkerList {
       info.appendChild(name)
       const meta = document.createElement('span')
       meta.className = 'segment-view-markers-meta'
-      meta.textContent = `${STATUS_LABELS[m.status] ?? m.status} · ${(m.distanceFromStart / 1000).toFixed(1)} km`
+      // T328/V237: km pätkän akselilta — sama luku kuin hero näyttää samasta merkistä (B129).
+      meta.textContent = `${STATUS_LABELS[m.status] ?? m.status} · ${(displayKm(m, segment) / 1000).toFixed(1)} km`
       info.appendChild(meta)
       row.appendChild(info)
 

@@ -1,6 +1,25 @@
 import { describe, it, expect } from 'vitest'
 import { nearestUnsetMarker, distanceToNext, firstUnsetMarker, unsetMarkersOrdered, stepUnset, nextMarkerAhead, distanceAhead } from '../src/logic/navigation'
 import type { SignMarker } from '../src/logic/types'
+import type { Segment } from '../src/logic/segments'
+
+// T328/V237: pätkä omistaa km-akselin ∴ järjestysfunktiot saavat pätkän, ei routeId-parametria.
+// Testipätkä kattaa koko akselin (0–100 km) ellei testi tarvitse tiukempaa väliä.
+function seg(overrides: Partial<Segment> = {}): Segment {
+  return {
+    id: 'seg-test',
+    routeIds: ['r1'],
+    primaryRouteId: 'r1',
+    startDist: 0,
+    endDist: 100000,
+    equipment: [],
+    phase: 'asettaminen',
+    ...overrides,
+  }
+}
+const SEG_R1 = seg()
+const SEG_55 = seg({ routeIds: ['smtb-55'], primaryRouteId: 'smtb-55' })
+const SEG_30 = seg({ routeIds: ['smtb-30'], primaryRouteId: 'smtb-30' })
 
 function makeMarker(overrides: Partial<SignMarker>): SignMarker {
   return {
@@ -65,45 +84,45 @@ describe('nearestUnsetMarker', () => {
 describe('firstUnsetMarker', () => {
   it('palauttaa pienimmän distanceFromStart -suunniteltu-merkin (ei lähintä kursoriin)', () => {
     // m1=100, m2=300 — kummatkin suunniteltu; ensimmäinen = m1 riippumatta järjestyksestä
-    expect(firstUnsetMarker([m2, m1])?.id).toBe('m1')
+    expect(firstUnsetMarker([m2, m1], SEG_R1)?.id).toBe('m1')
   })
 
   it('ohittaa ei-suunniteltu-merkit', () => {
     // m3 (500, asetettu) ohitetaan; m2 (300, suunniteltu) valitaan
-    expect(firstUnsetMarker([m3, m2])?.id).toBe('m2')
+    expect(firstUnsetMarker([m3, m2], SEG_R1)?.id).toBe('m2')
   })
 
   it('palauttaa null kun ei suunniteltu-merkkejä', () => {
-    expect(firstUnsetMarker([m3])).toBeNull()
-    expect(firstUnsetMarker([])).toBeNull()
+    expect(firstUnsetMarker([m3], SEG_R1)).toBeNull()
+    expect(firstUnsetMarker([], SEG_R1)).toBeNull()
   })
 
   it('valitsee aina saman ensimmäisen syötejärjestyksestä riippumatta', () => {
     const early = makeMarker({ id: 'early', distanceFromStart: 50 })
     const late = makeMarker({ id: 'late', distanceFromStart: 900 })
-    expect(firstUnsetMarker([late, early])?.id).toBe('early')
-    expect(firstUnsetMarker([early, late])?.id).toBe('early')
+    expect(firstUnsetMarker([late, early], SEG_R1)?.id).toBe('early')
+    expect(firstUnsetMarker([early, late], SEG_R1)?.id).toBe('early')
   })
 })
 
 // T231/V159: hero-◀▶-selailu asettamattomien merkkien välillä.
 describe('unsetMarkersOrdered', () => {
   it('palauttaa vain suunniteltu-merkit km-järjestyksessä (asc)', () => {
-    const ids = unsetMarkersOrdered([m2, m1, m3]).map(m => m.id) // m3=asetettu tippuu
+    const ids = unsetMarkersOrdered([m2, m1, m3], SEG_R1).map(m => m.id) // m3=asetettu tippuu
     expect(ids).toEqual(['m1', 'm2'])
   })
 
   it('tyhjä lista → tyhjä', () => {
-    expect(unsetMarkersOrdered([])).toEqual([])
+    expect(unsetMarkersOrdered([], SEG_R1)).toEqual([])
   })
 
   it('kaikki asetettu → tyhjä', () => {
-    expect(unsetMarkersOrdered([m3])).toEqual([])
+    expect(unsetMarkersOrdered([m3], SEG_R1)).toEqual([])
   })
 
   it('ei mutatoi syötteen järjestystä', () => {
     const input = [m2, m1]
-    unsetMarkersOrdered(input)
+    unsetMarkersOrdered(input, SEG_R1)
     expect(input.map(m => m.id)).toEqual(['m2', 'm1'])
   })
 })
@@ -111,35 +130,35 @@ describe('unsetMarkersOrdered', () => {
 describe('stepUnset', () => {
   // ordered = [m1(100), m2(300)]
   it('dir=1 seuraava asettamaton', () => {
-    expect(stepUnset([m1, m2, m3], 'm1', 1)?.id).toBe('m2')
+    expect(stepUnset([m1, m2, m3], 'm1', 1, SEG_R1)?.id).toBe('m2')
   })
 
   it('dir=-1 edellinen asettamaton', () => {
-    expect(stepUnset([m1, m2, m3], 'm2', -1)?.id).toBe('m1')
+    expect(stepUnset([m1, m2, m3], 'm2', -1, SEG_R1)?.id).toBe('m1')
   })
 
   it('clamp: viimeisestä eteen → viimeinen (ei wrap)', () => {
-    expect(stepUnset([m1, m2], 'm2', 1)?.id).toBe('m2')
+    expect(stepUnset([m1, m2], 'm2', 1, SEG_R1)?.id).toBe('m2')
   })
 
   it('clamp: ensimmäisestä taakse → ensimmäinen (ei wrap)', () => {
-    expect(stepUnset([m1, m2], 'm1', -1)?.id).toBe('m1')
+    expect(stepUnset([m1, m2], 'm1', -1, SEG_R1)?.id).toBe('m1')
   })
 
   it('tuntematon id → firstUnsetMarker (ensimmäinen asettamaton)', () => {
-    expect(stepUnset([m2, m1], 'ei-ole', 1)?.id).toBe('m1')
+    expect(stepUnset([m2, m1], 'ei-ole', 1, SEG_R1)?.id).toBe('m1')
   })
 
   it('jo-asetettu id (katosi listalta) → firstUnsetMarker (reconcile V159)', () => {
-    expect(stepUnset([m1, m2, m3], 'm3', 1)?.id).toBe('m1')
+    expect(stepUnset([m1, m2, m3], 'm3', 1, SEG_R1)?.id).toBe('m1')
   })
 
   it('tyhjä lista → null', () => {
-    expect(stepUnset([], 'm1', 1)).toBeNull()
+    expect(stepUnset([], 'm1', 1, SEG_R1)).toBeNull()
   })
 
   it('kaikki asetettu → null', () => {
-    expect(stepUnset([m3], 'm3', 1)).toBeNull()
+    expect(stepUnset([m3], 'm3', 1, SEG_R1)).toBeNull()
   })
 })
 
@@ -201,18 +220,18 @@ describe('V235 km-akseli (B126)', () => {
   })
 
   it('väärältä reitiltä mitattu merkki menee LOPPUUN, ei alkuun', () => {
-    expect(unsetMarkersOrdered([loppu, alku], 'smtb-55').map(m => m.id)).toEqual(['alku', 'loppu'])
+    expect(unsetMarkersOrdered([loppu, alku], SEG_55).map(m => m.id)).toEqual(['alku', 'loppu'])
   })
 
   it('firstUnsetMarker valitsee pätkän alun, ei pienimmän skalaarin', () => {
-    expect(firstUnsetMarker([loppu, alku], 'smtb-55')?.id).toBe('alku')
+    expect(firstUnsetMarker([loppu, alku], SEG_55)?.id).toBe('alku')
     // Ilman akselia entinen (rikkinäinen) käytös — todistaa että ero tulee nimenomaan akselista
-    expect(firstUnsetMarker([loppu, alku])?.id).toBe('loppu')
+    expect(firstUnsetMarker([loppu, alku], SEG_30)?.id).toBe('loppu')
   })
 
   it('stepUnset selaa samassa järjestyksessä kuin lista', () => {
-    expect(stepUnset([loppu, alku], 'alku', 1, 'smtb-55')?.id).toBe('loppu')
-    expect(stepUnset([loppu, alku], 'loppu', -1, 'smtb-55')?.id).toBe('alku')
+    expect(stepUnset([loppu, alku], 'alku', 1, SEG_55)?.id).toBe('loppu')
+    expect(stepUnset([loppu, alku], 'loppu', -1, SEG_55)?.id).toBe('alku')
   })
 
   it('nextMarkerAhead lukee km:n aktiiviselta reitiltä', () => {
@@ -232,13 +251,13 @@ describe('V235 km-akseli (B126)', () => {
       id: 'm30', distanceFromStart: 2000, routeIds: ['smtb-30'],
       distanceByRoute: { 'smtb-30': [2000] },
     })
-    expect(unsetMarkersOrdered([m30, loppu], 'smtb-30').map(m => m.id)).toEqual(['loppu', 'm30'])
+    expect(unsetMarkersOrdered([m30, loppu], SEG_30).map(m => m.id)).toEqual(['loppu', 'm30'])
   })
 
   it('legacy-fallback: distanceByRoute puuttuu → skalaari, käytös ennallaan (V212)', () => {
     // m1=100, m2=300 ilman distanceByRoutea — akseli annettu mutta dataa ei ole
-    expect(unsetMarkersOrdered([m2, m1], 'r1').map(m => m.id)).toEqual(['m1', 'm2'])
-    expect(firstUnsetMarker([m2, m1], 'r1')?.id).toBe('m1')
+    expect(unsetMarkersOrdered([m2, m1], SEG_R1).map(m => m.id)).toEqual(['m1', 'm2'])
+    expect(firstUnsetMarker([m2, m1], SEG_R1)?.id).toBe('m1')
   })
 
   it('lenkki: usea km-ehdokas samalla reitillä → pienin järjestää (V214)', () => {
@@ -247,7 +266,7 @@ describe('V235 km-akseli (B126)', () => {
       distanceByRoute: { 'smtb-55': [40000, 12000] },
     })
     // 12 km -ehdokas on pienin ∴ lenkki ennen alkua (21 km)
-    expect(unsetMarkersOrdered([alku, lenkki], 'smtb-55').map(m => m.id)).toEqual(['lenkki', 'alku'])
+    expect(unsetMarkersOrdered([alku, lenkki], SEG_55).map(m => m.id)).toEqual(['lenkki', 'alku'])
     // ...ja edessäpäin 15 km:ssä osuu 40 km -ehdokkaaseen
     expect(distanceAhead([lenkki], 15000, 'smtb-55')).toBe(40000)
   })

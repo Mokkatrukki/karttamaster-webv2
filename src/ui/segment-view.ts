@@ -1,6 +1,7 @@
 import { bulkCollect } from '../logic/segment-actions'
 import { isTerminal } from '../logic/marker-status'
 import { getPhaseProgress, formatPhaseProgress } from '../logic/segments'
+import { orderMarkersInSegment } from '../logic/segment-order'
 import type { Segment, EquipmentItem } from '../logic/segments'
 import { buildMarkerVisual } from './marker-visual-row'
 import { EquipmentModal } from './equipment-modal'
@@ -143,6 +144,7 @@ export class SegmentView {
     // T263/V183: KOTI-inline "Kaikki merkit" -lista. Rivi → onFocusMarker (= MarkerDetailModal).
     this.markerList = new SegmentMarkerList(this.markerListEl, {
       getMarkers: () => this.currentMarkers,
+      getSegment: () => this.segment,
       onOpenDetail: (id) => this.actions.onFocusMarker?.(id),
     })
     // T264/V184: koti-välilehdet. Reparentoi elementit paneleihin (varuste / kaikki merkit +
@@ -275,7 +277,10 @@ export class SegmentView {
     this.collectionEl.hidden = false
     this.collectionEl.innerHTML = ''
 
-    const markers = [...this.currentMarkers].sort((a, b) => a.distanceFromStart - b.distanceFromStart)
+    // T328/V237: pätkän km-akseli, ei merkin skalaari (B129). Keräyskasa-tehtävä on usein
+    // reititön (V139) → segmentKm null ∀ merkillä → `offRoute` säilyttää saapumisjärjestyksen.
+    const { onRoute, offRoute } = orderMarkersInSegment(this.currentMarkers, this.segment)
+    const markers = [...onRoute, ...offRoute]
     const collected = markers.filter(m => m.status === 'kerätty').length
 
     const header = document.createElement('div')

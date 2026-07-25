@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { SegmentMarkerList } from '../src/ui/segment-marker-list'
 import type { SignMarker } from '../src/logic/types'
+import type { Segment } from '../src/logic/segments'
+
+// T328/V237: lista järjestää PÄTKÄN km-akselilla ∴ mount tarvitsee pätkän. Oletuspätkä kattaa
+// koko akselin (35km-reitti, 0–100 km) → kaikki testimerkit ovat "reitillä" kuten ennenkin.
+const SEG: Segment = {
+  id: 'seg-test', routeIds: ['35km'], primaryRouteId: '35km',
+  startDist: 0, endDist: 100000, equipment: [], phase: 'asettaminen',
+}
 
 // T263/V183 — KOTI-inline "Kaikki merkit" -lista (SegmentMarkerList). Vitest-jsdom.
 function makeMarker(overrides: Partial<SignMarker> = {}): SignMarker {
@@ -10,10 +18,14 @@ function makeMarker(overrides: Partial<SignMarker> = {}): SignMarker {
   }
 }
 
-function mount(markers: SignMarker[], onOpenDetail: (id: string) => void = () => {}): HTMLElement {
+function mount(
+  markers: SignMarker[],
+  onOpenDetail: (id: string) => void = () => {},
+  segment: Segment | null = SEG,
+): HTMLElement {
   const el = document.createElement('div')
   document.body.appendChild(el)
-  new SegmentMarkerList(el, { getMarkers: () => markers, onOpenDetail }).render()
+  new SegmentMarkerList(el, { getMarkers: () => markers, getSegment: () => segment, onOpenDetail }).render()
   return el
 }
 

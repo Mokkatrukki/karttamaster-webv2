@@ -4,6 +4,7 @@ import type { Segment, SegmentStore, EquipmentItem } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
 import { registerEscClose, createBackdrop } from './modal-helpers'
 import { buildMarkerVisual } from './marker-visual-row'
+import { displayKm, orderMarkersInSegment } from '../logic/segment-order'
 import { fetchSegmentAudit, undoSegmentActions, type AuditEntry } from '../logic/audit-sync'
 // T320: verbitaulu asuu logiikkakerroksessa — sama totuus lokinäkymälle ja tälle modaalille.
 import { ACTION_VERB } from '../logic/audit-log'
@@ -253,7 +254,10 @@ export class SegmentDetailsModal {
 
       const list = document.createElement('ul')
       list.className = 'segment-details-marker-list'
-      const sorted = [...segMarkers].sort((a, b) => a.distanceFromStart - b.distanceFromStart)
+      // T328/V237: sama akseli & sama luku kuin talkoolaisen näkymässä (V236-henki) — järjestäjä
+      // ja talkoolainen eivät saa nähdä samaa pätkää eri järjestyksessä (B129).
+      const ord = orderMarkersInSegment(segMarkers, seg)
+      const sorted = [...ord.onRoute, ...ord.offRoute]
       for (const m of sorted) {
         const li = document.createElement('li')
         li.className = 'segment-details-marker-item'
@@ -264,7 +268,7 @@ export class SegmentDetailsModal {
         li.appendChild(info)
         const km = document.createElement('span')
         km.className = 'segment-details-marker-km'
-        km.textContent = `${(m.distanceFromStart / 1000).toFixed(1)} km`
+        km.textContent = `${(displayKm(m, seg) / 1000).toFixed(1)} km`
         li.appendChild(km)
         const badge = document.createElement('span')
         badge.className = `segment-details-marker-status status-${m.status}`

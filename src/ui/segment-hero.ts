@@ -1,5 +1,6 @@
 import { firstUnsetMarker, unsetMarkersOrdered, stepUnset } from '../logic/navigation'
-import { segmentPrimaryRouteId, type Segment } from '../logic/segments'
+import { displayKm } from '../logic/segment-order'
+import { type Segment } from '../logic/segments'
 import { buildMarkerVisual } from './marker-visual-row'
 import { SIGN_TYPES } from '../logic/sign-picker'
 import type { SignMarker } from '../logic/types'
@@ -64,14 +65,14 @@ export class SegmentHero {
     this.el.hidden = false
     this.el.innerHTML = ''
 
-    // T327/V235: km-akseli = pätkän primary-reitti (fallback routeIds[0]) — EI merkin skalaari,
-    // joka voi olla mitattu toiselta reitiltä ∴ järjestys ei vastaisi kulkusuuntaa (B126).
-    const axis = segmentPrimaryRouteId(segment)
-    const ordered = unsetMarkersOrdered(markers, axis)
+    // T328/V237: akseli tulee PÄTKÄSTÄ, ei erillisenä routeId-parametrina — järjestys JA
+    // näytetty km samalta akselilta (B129: hero eteni oikein mutta näytti 0.0 km merkille
+    // joka on 25.18 km kohdalla). V238: purku-phasessa järjestys on käänteinen.
+    const ordered = unsetMarkersOrdered(markers, segment)
     // V159 reconcile: valittu id kadonnut asettamattomien joukosta (asetettu/poistettu) → nollaa.
     if (this.selectedNavId && !ordered.some(m => m.id === this.selectedNavId)) this.selectedNavId = null
     const current = (this.selectedNavId ? ordered.find(m => m.id === this.selectedNavId) : null)
-      ?? firstUnsetMarker(markers, axis)
+      ?? firstUnsetMarker(markers, segment)
     this.selectedNavId = current?.id ?? null
 
     if (!current) {
@@ -128,7 +129,9 @@ export class SegmentHero {
 
     const info = document.createElement('div')
     info.className = 'segment-view-next-info'
-    const km = (current.distanceFromStart / 1000).toFixed(1)
+    // T328/V237/B129: lukema PÄTKÄN akselilta — sama akseli kuin järjestys. Skalaari näytti
+    // 0.0 km merkille joka on 25.18 km kohdalla (mitattu smtb-30:ltä) ⇒ "hyppii sinne tänne".
+    const km = (displayKm(current, segment) / 1000).toFixed(1)
     const nameEl = document.createElement('span')
     nameEl.className = 'segment-view-next-name'
     nameEl.textContent = markerLabel(current)
@@ -249,9 +252,9 @@ export class SegmentHero {
   // render() re-render synkkaa kartan korostuksen (onNavigate) uuteen valintaan.
   private navStep(dir: 1 | -1): void {
     if (!this.selectedNavId) return
-    // Sama akseli kuin render():ssä (V235) — muuten ◀▶ selaisi eri järjestystä kuin lista näyttää.
+    // Sama akseli kuin render():ssä (V237) — muuten ◀▶ selaisi eri järjestystä kuin lista näyttää.
     const target = stepUnset(
-      this.ctx.getMarkers(), this.selectedNavId, dir, segmentPrimaryRouteId(this.ctx.getSegment()),
+      this.ctx.getMarkers(), this.selectedNavId, dir, this.ctx.getSegment(),
     )
     if (target && target.id !== this.selectedNavId) {
       this.selectedNavId = target.id

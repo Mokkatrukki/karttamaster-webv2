@@ -103,9 +103,9 @@ export function wireMarkers(
   // T224 (b1)/T256: korosta pätkän seuraava asettamaton merkki kartalla (vain asettaminen-phase).
   // R6/V178: ikoni-hehku (.marker-next-highlight) renkaan sijaan → markerManager.setNextHighlight.
   function updateNextHighlight(seg: Segment, segMarkers: SignMarker[]): void {
-    // T327/V235: sama km-akseli kuin herossa (segmentPrimaryRouteId) — muuten kartan korostus
-    // osoittaisi eri merkkiin kuin "Seuraava merkki" -palkki (B126).
-    const next = seg.phase === 'asettaminen' ? firstUnsetMarker(segMarkers, segmentPrimaryRouteId(seg)) : null
+    // T328/V237: sama akseli kuin herossa — akseli tulee PÄTKÄSTÄ, ei erillisenä parametrina,
+    // muuten kartan korostus osoittaisi eri merkkiin kuin "Seuraava merkki" -palkki (B126).
+    const next = seg.phase === 'asettaminen' ? firstUnsetMarker(segMarkers, seg) : null
     markerManager.setNextHighlight(next?.id ?? null)
   }
 

@@ -50,7 +50,8 @@ server/       ← Hono + Bun + SQLite
 | PhaseView | `src/logic/phase-view.ts` | ✓ T148 | — | [logic.md](docs/components/logic.md) |
 | RoleController | `src/logic/role.ts` | ✓ T12 (V80: rooli backendistä, toggle dead code) | critical-paths: "Rooli backendistä" | [logic.md](docs/components/logic.md) |
 | SituationLogic | `src/logic/situation.ts` *(ei vielä)* | ○ T15 | — | [logic.md](docs/components/logic.md) |
-| NavigationLogic | `src/logic/navigation.ts` | ✓ T16, T327 (km-akseli annetusta reitistä ⊥ skalaarista, V235/B126; + `distanceAhead` drive-kursorille) | tests/navigation.test.ts | [logic.md](docs/components/logic.md) |
+| NavigationLogic | `src/logic/navigation.ts` | ✓ T16, T327, T328 (pätkäkontekstin funktiot saavat `segment`in ⊥ `routeId`-parametria, V237; drive-funktiot pitävät `routeId`:n — eri omistaja) | tests/navigation.test.ts | [logic.md](docs/components/logic.md) |
+| SegmentOrder | `src/logic/segment-order.ts` | ✓ T328 (pätkä omistaa km-akselin: `segmentKm`/`orderMarkersInSegment`/`displayKm`, suunta phasesta, "ei reitillä" -ryhmä; V237/V238/B129) | tests/segment-order.test.ts | [logic.md](docs/components/logic.md) |
 | SegmentSync | `src/logic/segment-sync.ts` | ✓ T62 | — | [logic.md](docs/components/logic.md) |
 | AreaTypes | `src/logic/area-types.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | AreaGeometry | `src/logic/area-geometry.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
