@@ -16,6 +16,8 @@ export interface Comment {
   iconId?: string
   authorName?: string
   createdAt: string
+  /** T338: kuva-URL:t (`/api/comments/:id/images/:imageId`). Sama muoto kuin SignMarker.images. */
+  images?: string[]
 }
 
 // Uuden kommentin syöte (ilman palvelimen generoimia id/createdAt-kenttiä).
@@ -89,6 +91,29 @@ export async function postComment(input: NewComment): Promise<Comment | null> {
     return data && typeof data === 'object' && 'id' in data ? (data as Comment) : null
   } catch {
     return null
+  }
+}
+
+// T338: liitä kuva huomioon. ∀ autentikoitu (V13/V246) — backend gate hoitaa auktorisoinnin.
+// Palauttaa virhekoodin tai null jos onnistui: kutsuja erottaa taajuusrajan (429) muusta,
+// koska "yritä uudelleen" on väärä ohje kun kiintiö on täynnä (V247).
+export type CommentImageError = 'rate_limited' | 'too_large' | 'invalid_type' | 'failed'
+
+export async function addCommentImage(commentId: string, file: File): Promise<CommentImageError | null> {
+  try {
+    const fd = new FormData()
+    fd.append('image', file)
+    const resp = await fetch(`/api/comments/${encodeURIComponent(commentId)}/images`, {
+      method: 'POST',
+      body: fd,
+    })
+    if (resp.ok) return null
+    if (resp.status === 429) return 'rate_limited'
+    if (resp.status === 413) return 'too_large'
+    if (resp.status === 400) return 'invalid_type'
+    return 'failed'
+  } catch {
+    return 'failed'
   }
 }
 

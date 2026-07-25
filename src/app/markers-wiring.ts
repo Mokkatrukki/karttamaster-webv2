@@ -19,7 +19,10 @@ import type { Segment } from '../logic/segments'
 import { planSegmentZoom } from '../logic/segment-zoom'
 import { firstUnsetMarker, distanceAhead } from '../logic/navigation'
 import { CommentLayer } from '../map/comment-layer'
-import { fetchComments, deleteComment } from '../logic/comments'
+import { fetchComments, addCommentImage } from '../logic/comments'
+import { CommentPointModal } from '../ui/comment-point-modal'
+import { CommentPanel } from '../ui/comment-panel'
+
 import type { GpsNavigator } from '../map/gps-navigator'
 import { updateSegmentRemote } from '../logic/segment-sync'
 import { outbox, setOutboxChangeHandler } from '../logic/outbox-instance'
@@ -407,7 +410,10 @@ export function wireMarkers(
   statusPanel.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
 
   signLibrary = createSignLibrary()
-  const placeMode = new PlaceMode(markerManager, signLibrary)
+  // T237: pickerin "💬 Huomio" → luontimodaali samaan lat/loniin johon picker aukesi.
+  // Arrow lukee commentModalin vasta klikkihetkellä ∴ määrittelyjärjestys ei sido.
+  const placeMode = new PlaceMode(markerManager, signLibrary, mapMode, (lat, lon) =>
+    commentModal.openCreate(lat, lon))
   const signLibraryContainer = document.getElementById('sign-type-dropdown')
   let signLibraryPanel: SignLibraryPanel | null = null
   if (signLibraryContainer) {
@@ -486,17 +492,33 @@ export function wireMarkers(
   // T221/T75: vapaa-piste-kommentit kartalle (targetType='point'). Ikoni-marker, klikkaus →
   // järjestäjä voi poistaa (confirm), muut näkevät tekstin. Haetaan latauksessa; poiston jälkeen
   // uudelleenrender. (Vapaan pisteen SIJOITUS-UI on erillinen jatko — tässä renderöinti + poisto.)
-  const commentLayer = new CommentLayer(map, (c) => {
-    if (getRole() === 'järjestäjä') {
-      if (window.confirm(`Poistetaanko kommentti: "${c.text}"?`)) {
-        void deleteComment(c.id).then((ok) => { if (ok) refreshPointComments() })
-      }
-    } else {
-      showWarning(c.text, 5000)
-    }
+  // T237/T338: klikkaus avaa huomio-modaalin (teksti + kuvat + poisto järjestäjälle) — aiempi
+  // confirm/toast-haara korvattu: toast ei mahduta kuvia eikä kerro kuka huomion jätti.
+  const commentModal = new CommentPointModal({
+    onChanged: () => refreshPointComments(),
+    canDelete: () => getRole() === 'järjestäjä',
+    uploadImage: (id, file) => addCommentImage(id, file),
   })
+  const commentLayer = new CommentLayer(map, (c) => commentModal.openView(c))
+
+  // T340: järjestäjän sivupalkin lista. Sama data kuin kartalla ∴ yksi refresh päivittää molemmat
+  // — erilliset hakukierrokset ajautuisivat eri mielisiksi (B127-oppi).
+  const commentPanelEl = document.getElementById('comment-panel-container')
+  const commentPanel = commentPanelEl
+    ? new CommentPanel(commentPanelEl, {
+        onFocus: (c) => {
+          if (typeof c.lat === 'number' && typeof c.lon === 'number') map.setView([c.lat, c.lon], 16)
+          commentModal.openView(c)
+        },
+      })
+    : null
+
   const refreshPointComments = () => {
-    void fetchComments('point').then((rows) => { if (rows) commentLayer.render(rows) })
+    void fetchComments('point').then((rows) => {
+      if (!rows) return
+      commentLayer.render(rows)
+      commentPanel?.setComments(rows)
+    })
   }
   refreshPointComments()
 

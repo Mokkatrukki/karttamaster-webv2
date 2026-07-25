@@ -112,6 +112,9 @@ server/       ← Hono + Bun + SQLite
 | ModalHelpers | `src/ui/modal-helpers.ts` | ✓ T172 | — | [ui.md](docs/components/ui.md) |
 | MarkerVisualRow | `src/ui/marker-visual-row.ts` | ✓ T198 | tests/t198-marker-visual-row.test.ts | [ui.md](docs/components/ui.md) |
 | ImageLightbox | `src/ui/image-lightbox.ts` | ✓ T337 (jaettu kuori: valokuvat + kylttivisuaali, V246/B132) | tests/t337-image-lightbox.test.ts | [ui.md](docs/components/ui.md) |
+| ImageDownscale | `src/ui/image-downscale.ts` | ✓ T338 (canvas-pienennys 1600px/JPEG ennen lähetystä, V247) | tests/t237-comment-point-modal.test.ts | [ui.md](docs/components/ui.md) |
+| CommentPointModal | `src/ui/comment-point-modal.ts` | ✓ T237/T338 (huomion luonti kartalta + katselu + kuvat + poisto, V245) | tests/t237-comment-point-modal.test.ts | [ui.md](docs/components/ui.md) |
+| CommentPanel | `src/ui/comment-panel.ts` | ✓ T340 (järjestäjän sivupalkin Huomiot-lista, V245) | tests/t237-comment-point-modal.test.ts | [ui.md](docs/components/ui.md) |
 | Toast | `src/ui/toast.ts` | ✓ T253 (jaettu "Kumoa"-toast, client-only undo V172; auto-dismiss, yksi kerrallaan, 44px §R) | tests/t253-toast.test.ts | [ui.md](docs/components/ui.md) |
 | AreaDetailsModal | `src/ui/area-details-modal.ts` | ✓ | — | [ui.md](docs/components/ui.md) |
 | AreaPanel | `src/ui/area-panel.ts` | ✓ | area-interaction | [ui.md](docs/components/ui.md) |
