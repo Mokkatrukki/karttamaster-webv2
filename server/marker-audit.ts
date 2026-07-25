@@ -33,6 +33,8 @@ export function logMarkerAudit(
 
 export interface OwnerSegRow {
   route_ids: string | null
+  // T299/V211: mitä reittiä start_dist/end_dist mittaavat. NULL = legacy → route_ids[0].
+  primary_route_id: string | null
   start_dist: number | null
   end_dist: number | null
   linked_marker_ids: string | null
@@ -44,7 +46,7 @@ export function ownSegments(db: Database, session: SessionData): OwnerSegRow[] {
   if (session.role !== 'talkoolainen' || !session.talkoolainen_code) return []
   return db
     .query<OwnerSegRow, [string]>(
-      'SELECT route_ids, start_dist, end_dist, linked_marker_ids, marker_type_filter FROM segments WHERE UPPER(assigned_code) = ?',
+      'SELECT route_ids, primary_route_id, start_dist, end_dist, linked_marker_ids, marker_type_filter FROM segments WHERE UPPER(assigned_code) = ?',
     )
     .all(session.talkoolainen_code.toUpperCase())
 }
@@ -53,7 +55,25 @@ export interface OwnershipCandidate {
   id?: string // olemassa oleva merkki (PUT/DELETE); uudella (POST) puuttuu → linked ei voi täsmätä
   routeIds: string[]
   distFromStart: number
+  // T300/V212/V213: km per reitti. Puuttuu (legacy/vanha client) → distFromStart-fallback,
+  // jolloin käytös on täsmälleen entinen. Server ⊥ voi laskea tätä itse: reittigeometriaa ei
+  // ole kannassa (V149) ∴ arvo luetaan clientilta samalla luottamustasolla kuin distFromStart.
+  distByRoute?: Record<string, number[]> | null
   templateId?: string | null
+}
+
+// T300/V212/V213: merkin km SILLÄ reitillä jota pätkän km-väli mittaa. Tämä on se funktio
+// jonka ANSIOSTA backend ja frontend ovat samaa mieltä pätkäjäsenyydestä (V213/B100-oppi).
+// T302/V214: LISTA, ei luku — lenkillä sama reitti ohittaa merkin kahdesti (km 12 JA km 47).
+// Riittää että yksi ehdokas osuu pätkän väliin, muuten backend hylkäisi merkin jonka
+// frontend näyttää pätkässä (V213).
+function distsOnSegmentAxis(marker: OwnershipCandidate, segRoutes: string[], primary: string | null): number[] {
+  const axis = primary ?? segRoutes[0]
+  if (axis != null) {
+    const d = marker.distByRoute?.[axis]
+    if (d !== undefined && d.length > 0) return d
+  }
+  return [marker.distFromStart]
 }
 
 // KANONINEN ownership-sääntö — peilaa frontendin resolveTaskMarkers-unionia (task-markers.ts):
@@ -66,10 +86,11 @@ export function markerInOwnSegment(segs: OwnerSegRow[], marker: OwnershipCandida
     // V139: reititön pätkä (ei route/dist-geometriaa) → salli jos assignattu seg olemassa.
     if (seg.route_ids == null || seg.start_dist == null || seg.end_dist == null) return true
     const segRoutes = JSON.parse(seg.route_ids) as string[]
+    const start = seg.start_dist - RANGE_EPS_M
+    const end = seg.end_dist + RANGE_EPS_M
     const routeMatch =
       marker.routeIds.some((r) => segRoutes.includes(r)) &&
-      marker.distFromStart >= seg.start_dist - RANGE_EPS_M &&
-      marker.distFromStart <= seg.end_dist + RANGE_EPS_M
+      distsOnSegmentAxis(marker, segRoutes, seg.primary_route_id).some(d => d >= start && d <= end)
     if (routeMatch) return true
     // Eksplisiittinen liitos (poimittu kartalta) — vain olemassa olevalle merkille.
     if (marker.id && seg.linked_marker_ids) {

@@ -21,6 +21,7 @@ interface MarkerRow {
   lat: number
   lon: number
   distance_from_start: number
+  distance_by_route: string | null
   route_ids: string
   status: string
   location_note: string | null
@@ -45,7 +46,19 @@ function imageUrls(db: Database, markerId: string): string[] {
 }
 
 function toJson(db: Database, row: MarkerRow) {
-  return { ...row, route_ids: JSON.parse(row.route_ids) as string[], images: imageUrls(db, row.id) }
+  return {
+    ...row,
+    route_ids: JSON.parse(row.route_ids) as string[],
+    // T300/V212: NULL = legacy → client fallbackaa distance_from_startiin (distanceForRoute).
+    distance_by_route: parseDistByRoute(row.distance_by_route),
+    images: imageUrls(db, row.id),
+  }
+}
+
+// T300/V212: rikkinäinen JSON ⊥ saa kaataa koko merkkilistan latausta (V14-linja) → null.
+function parseDistByRoute(raw: string | null): Record<string, number[]> | null {
+  if (!raw) return null
+  try { return JSON.parse(raw) as Record<string, number[]> } catch { return null }
 }
 
 // GET /api/markers — kaikki autentikoidut käyttäjät näkevät merkit
@@ -65,6 +78,7 @@ markersRoutes.post('/', requireAuth(), async (c) => {
     lat?: number
     lon?: number
     distance_from_start?: number
+    distance_by_route?: Record<string, number[]> | null
     route_ids?: string[]
     status?: string
     location_note?: string
@@ -95,6 +109,7 @@ markersRoutes.post('/', requireAuth(), async (c) => {
     const mayPlace = markerInOwnSegment(segs, {
       routeIds: body.route_ids,
       distFromStart: body.distance_from_start,
+      distByRoute: body.distance_by_route ?? null,
       templateId: body.template_id,
     })
     if (!mayPlace) return c.json({ error: 'forbidden' }, 403)
@@ -107,13 +122,14 @@ markersRoutes.post('/', requireAuth(), async (c) => {
   const createdBy = session.talkoolainen_code ?? session.display_name
   db.transaction(() => {
     db.run(
-      'INSERT INTO markers (id, type, lat, lon, distance_from_start, route_ids, status, location_note, color, label, icon_id, image_id, template_id, parts_json, description, updated_at, updated_by, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO markers (id, type, lat, lon, distance_from_start, distance_by_route, route_ids, status, location_note, color, label, icon_id, image_id, template_id, parts_json, description, updated_at, updated_by, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         body.type,
         body.lat,
         body.lon,
         body.distance_from_start,
+        body.distance_by_route != null ? JSON.stringify(body.distance_by_route) : null,
         JSON.stringify(body.route_ids),
         body.status ?? 'suunniteltu',
         body.location_note ?? null,
@@ -149,12 +165,13 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
     id: string
     route_ids: string | null
     distance_from_start: number
+    distance_by_route: string | null
     status: string
     lat: number
     lon: number
     template_id: string | null
   }, [string]>(
-    'SELECT id, route_ids, distance_from_start, status, lat, lon, template_id FROM markers WHERE id = ?',
+    'SELECT id, route_ids, distance_from_start, distance_by_route, status, lat, lon, template_id FROM markers WHERE id = ?',
   ).get(id)
   if (!existing) return c.json({ error: 'not_found' }, 404)
 
@@ -165,6 +182,7 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
     lon?: number
     type?: string
     distance_from_start?: number
+    distance_by_route?: Record<string, number[]> | null
     route_ids?: string[]
     description?: string | null
     icon_id?: string | null
@@ -178,7 +196,7 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
   // T222/V150: identiteettikentät (tyyppi, kuvaus, ikoni, kuva, malli) = vain järjestäjä+.
   const identityFields = ['type', 'description', 'icon_id', 'image_id', 'template_id', 'parts_json'] as const
   // Sijaintikentät (siirto) — talkoolainen sallittu VAIN omalle pätkälleen + range-tarkistus.
-  const moveFields = ['lat', 'lon', 'distance_from_start', 'route_ids'] as const
+  const moveFields = ['lat', 'lon', 'distance_from_start', 'distance_by_route', 'route_ids'] as const
 
   const existingRoutes = existing.route_ids ? (JSON.parse(existing.route_ids) as string[]) : []
   if (!isOrganizer) {
@@ -189,14 +207,14 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
     const bound = !isCodelessTalkoo(session)
     // (b) V150a: olemassa olevan merkin PITÄÄ kuulua talkoolaisen pätkään (kanoninen unioni:
     //     route+dist ∪ linked ∪ typeFilter) — koskee MYÖS status/location_note-kenttiä.
-    if (bound && !markerInOwnSegment(segs, { id, routeIds: existingRoutes, distFromStart: existing.distance_from_start, templateId: existing.template_id })) {
+    if (bound && !markerInOwnSegment(segs, { id, routeIds: existingRoutes, distFromStart: existing.distance_from_start, distByRoute: parseDistByRoute(existing.distance_by_route), templateId: existing.template_id })) {
       return c.json({ error: 'forbidden' }, 403)
     }
     // (c) V150b: siirto ei saa raahata merkkiä ulos omasta pätkästä — uusi sijainti range-tarkistus.
     if (bound && moveFields.some((f) => f in body)) {
       const newDist = body.distance_from_start ?? existing.distance_from_start
       const newRoutes = body.route_ids ?? existingRoutes
-      if (!markerInOwnSegment(segs, { id, routeIds: newRoutes, distFromStart: newDist, templateId: existing.template_id })) {
+      if (!markerInOwnSegment(segs, { id, routeIds: newRoutes, distFromStart: newDist, distByRoute: body.distance_by_route ?? parseDistByRoute(existing.distance_by_route), templateId: existing.template_id })) {
         return c.json({ error: 'forbidden' }, 403)
       }
     }
@@ -211,6 +229,10 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
   if (body.lon !== undefined) { fields.push('lon = ?'); values.push(body.lon) }
   if (body.type !== undefined) { fields.push('type = ?'); values.push(body.type) }
   if (body.distance_from_start !== undefined) { fields.push('distance_from_start = ?'); values.push(body.distance_from_start) }
+  if (body.distance_by_route !== undefined) {
+    fields.push('distance_by_route = ?')
+    values.push(body.distance_by_route != null ? JSON.stringify(body.distance_by_route) : null)
+  }
   if (body.route_ids !== undefined) { fields.push('route_ids = ?'); values.push(JSON.stringify(body.route_ids)) }
   if (body.icon_id !== undefined) { fields.push('icon_id = ?'); values.push(body.icon_id) }
   if (body.image_id !== undefined) { fields.push('image_id = ?'); values.push(body.image_id) }
@@ -258,12 +280,13 @@ markersRoutes.delete('/:id', requireAuth(), (c) => {
     lat: number
     lon: number
     distance_from_start: number
+    distance_by_route: string | null
     route_ids: string | null
     status: string
     template_id: string | null
     created_by: string | null
   }, [string]>(
-    'SELECT id, type, lat, lon, distance_from_start, route_ids, status, template_id, created_by FROM markers WHERE id = ?',
+    'SELECT id, type, lat, lon, distance_from_start, distance_by_route, route_ids, status, template_id, created_by FROM markers WHERE id = ?',
   ).get(id)
   if (!existing) return c.json({ error: 'not_found' }, 404)
 
@@ -272,7 +295,7 @@ markersRoutes.delete('/:id', requireAuth(), (c) => {
     // T225/V151: (a) merkki omalla pätkällä JA (b) oma itse-luoma (created_by = talkoolainen_code).
     const existingRoutes = existing.route_ids ? (JSON.parse(existing.route_ids) as string[]) : []
     const segs = ownSegments(db, session)
-    const owns = markerInOwnSegment(segs, { id, routeIds: existingRoutes, distFromStart: existing.distance_from_start, templateId: existing.template_id })
+    const owns = markerInOwnSegment(segs, { id, routeIds: existingRoutes, distFromStart: existing.distance_from_start, distByRoute: parseDistByRoute(existing.distance_by_route), templateId: existing.template_id })
     // T306/V217: koodittomalla sessiolla created_by = display_name ("Talkoolainen") ∴ itse-luotu-ehto
     // vertaa siihen, ja pätkäsidos (owns) ei päde. SEURAUS jonka käyttäjä hyväksyi 2026-07-25:
     // poisto-oikeus kattaa kaikki talkoolaisten luomat merkit (ei hierarkiaa). Järjestäjän merkit

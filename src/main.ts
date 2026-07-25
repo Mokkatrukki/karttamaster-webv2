@@ -5,6 +5,11 @@ import { buildRoutePoints } from './logic/bearing'
 import { buildDirectionArrows } from './map/route-direction'
 import type { MarkerManager } from './map/markers'
 import { fetchMarkers } from './logic/sync'
+import { backfillDistanceByRoute } from './logic/marker-distance'
+// T303/V215: reittilista on `src/logic/route-defs.ts`:ssä jotta huoltoskriptit voivat lukea
+// saman lähteen ilman Leaflet/DOM-riippuvuutta. Re-export säilyttää olemassa olevat importit.
+import { ROUTE_DEFS } from './logic/route-defs'
+export { ROUTE_DEFS }
 import { startOutboxRetry, setOutboxReauthHandler, outbox } from './logic/outbox-instance'
 import type { RouteConfig } from './logic/multi-route'
 import { initMap } from './app/map-init'
@@ -18,16 +23,6 @@ import { initTheme } from './logic/theme'
 // V132/T202: palauta käyttäjän valitsema teema ennen renderiä (estää välkkeen).
 initTheme()
 
-// Kaksi tapahtumaa erottuvat värisävyperheellä (SPEC §C, DESIGN §Reitti-/pätkävärit):
-// SyöteMTB = viileä/sininen, Syötekylä Gravel Fest = lämmin oranssi-puna.
-export const ROUTE_DEFS: Omit<RouteConfig, 'routePoints'>[] = [
-  { id: 'smtb-30',  label: '30 km',  color: '#4C97D6', event: 'SyöteMTB',    file: '/smtb-2026-30km.gpx' },
-  { id: 'smtb-55',  label: '55 km',  color: '#2F6FB0', event: 'SyöteMTB',    file: '/smtb-2026-55km.gpx' },
-  { id: 'smtb-110-siirtyma', label: '110 km siirtymä', color: '#1E5A8F', event: 'SyöteMTB', file: '/smtb-2026-110km-siirtyma.gpx' },
-  { id: 'sgf-62',   label: '62 km',  color: '#E9A13B', event: 'Gravel Fest', file: '/sgf-2026-62km.gpx' },
-  { id: 'sgf-125',  label: '125 km', color: '#E2662A', event: 'Gravel Fest', file: '/sgf-2026-125km.gpx' },
-  { id: 'sgf-175',  label: '175 km', color: '#C4384A', event: 'Gravel Fest', file: '/sgf-2026-175km.gpx' },
-]
 
 const { map, toolbarMenu, gpsNavigator } = initMap()
 
@@ -63,6 +58,12 @@ async function init(talkoolainenCode?: string) {
       return { ...def, routePoints: buildRoutePoints(coords) }
     })
   )
+
+  // T300/V212/B115: lazy backfill — vanhoilla merkeillä on vain yksi km-luku vaikka ne
+  // kuuluvat useaan reittiin. lat/lon on totuus ∴ km per reitti lasketaan geometriasta heti
+  // kun GPX:t ovat ladattu. EI kantamigraatiota eikä kirjoitusta — vanhaan dataan ei kosketa
+  // (§C-parkki, käyttäjäpäätös 2026-07-25). Ilman tätä pätkäsuodatus jäisi legacy-fallbackiin.
+  backfillDistanceByRoute(initialMarkers, routes)
 
   const polylines = routes.map(r =>
     L.polyline(r.routePoints.map(p => [p.lat, p.lon] as [number, number]), {

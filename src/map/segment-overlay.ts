@@ -2,7 +2,7 @@ import L from 'leaflet'
 import { nearestPointIndex } from '../logic/bearing'
 import type { RoutePoint, SignMarker } from '../logic/types'
 import type { Segment, SegmentStore, SegmentLineState } from '../logic/segments'
-import { colorForSegment, segmentLineState, getPhaseProgress } from '../logic/segments'
+import { colorForSegment, segmentLineState, getPhaseProgress, segmentPrimaryRouteId } from '../logic/segments'
 
 interface RouteRef { id: string; routePoints: RoutePoint[] }
 
@@ -91,7 +91,11 @@ export class SegmentOverlay {
       if (!seg.routeIds || seg.startDist === undefined || seg.endDist === undefined) continue
       const segStart = seg.startDist
       const segEnd = seg.endDist
-      for (const routeId of seg.routeIds) {
+      // T299/V211/B114: km-väli leikataan VAIN primary-reitistä. Ennen tätä sama [start,end]
+      // leikattiin jokaisesta jäsenreitistä ∴ jaetun osuuden pätkä piirtyi naapurireitin
+      // km-kohtaan = kartalle ilmestyi viiva aivan väärään paikkaan.
+      {
+        const routeId = segmentPrimaryRouteId(seg)
         const route = this.routes.find(r => r.id === routeId)
         if (!route) continue
         const pts = sliceRoutePoints(route.routePoints, segStart, segEnd)
@@ -145,9 +149,11 @@ export class SegmentOverlay {
       if (!seg.routeIds || seg.startDist === undefined || seg.endDist === undefined) continue
       const segStart = seg.startDist
       const segEnd = seg.endDist
-      for (const routeId of seg.routeIds) {
+      // T299/V211: snap-pisteet primary-reitin km-kohtiin (ks. render-haaran perustelu).
+      {
+        const routeId = segmentPrimaryRouteId(seg)
         const route = this.routes.find(r => r.id === routeId)
-        if (!route) continue
+        if (!route || !routeId) continue
         for (const [dist, color] of [[segStart, '#f59e0b'], [segEnd, '#10b981']] as [number, string][]) {
           const pos = routePointAtDist(route.routePoints, dist)
           const m = L.circleMarker(pos, { radius: 8, color, fillColor: color, fillOpacity: 0.9, weight: 2 })
@@ -172,7 +178,10 @@ export class SegmentOverlay {
     this.exitEditMode()
     // V139: reitittömällä tehtävällä ei raahattavia raja-merkkejä.
     if (!seg.routeIds || seg.startDist === undefined || seg.endDist === undefined) return
-    const route = this.routes.find(r => seg.routeIds!.includes(r.id))
+    // T299/V211/B114: A/B-raahausmerkit primary-reitille — `find(includes)` otti listajärjestyksen
+    // ensimmäisen jäsenen ∴ jaetulla osuudella rajat piirtyivät eri geometriaan kuin km:t mittaavat.
+    const primaryId = segmentPrimaryRouteId(seg)
+    const route = this.routes.find(r => r.id === primaryId)
     if (!route) return
 
     let editStartDist = seg.startDist
@@ -236,7 +245,9 @@ export function computeGapRanges(segments: Segment[], routeId: string, routePoin
   const totalEnd = routePoints[routePoints.length - 1]?.distanceFromStart ?? 0
   const covered = segments
     .filter((s): s is Segment & { startDist: number; endDist: number } =>
-      !!s.routeIds && s.routeIds.includes(routeId) && s.startDist !== undefined && s.endDist !== undefined)
+      // T299/V211: kattavuus lasketaan primary-reitin km-akselilla — jäsenyys (`includes`) toi
+      // mukaan naapurireitin km-välejä jotka eivät ole tällä reitillä vertailukelpoisia.
+      !!s.routeIds && segmentPrimaryRouteId(s) === routeId && s.startDist !== undefined && s.endDist !== undefined)
     .map(s => [s.startDist, s.endDist] as [number, number])
     .sort((a, b) => a[0] - b[0])
   const gaps: [number, number][] = []

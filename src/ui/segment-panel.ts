@@ -8,7 +8,7 @@ import {
   getSegmentsForPhase,
 } from '../logic/segments'
 import type { SegmentStore, Segment } from '../logic/segments'
-import type { RouteConfig } from '../logic/multi-route'
+import { SHARED_THRESHOLD_M, type RouteConfig } from '../logic/multi-route'
 import type { SignMarker } from '../logic/types'
 import { SegmentCreationModal, type CreationState } from './segment-creation-modal'
 import { SegmentDetailsModal } from './segment-details-modal'
@@ -135,8 +135,18 @@ export class SegmentPanel {
 
     if (this.state.mode === 'vaihe2') {
       const first = this.state
-      const startDist = Math.min(first.startDist, dist)
-      const endDist = Math.max(first.startDist, dist)
+      // T299/V211/B114: klikki 2:n km ! lukea PRIMARY-reitistä (= klikki 1:n reitti), ei siitä
+      // reitistä johon se sattui snappaamaan. 3 SMTB-reittiä kulkee samaa polkua ≤100 m ∴ ennen
+      // tätä klikki 2 saattoi tuoda km:n eri geometriasta → Math.min/max vertasi reitin A km 12.4
+      // ja reitin B km 47.1 → intervalli ei vastannut kumpaakaan → pätkä keräsi random-merkit.
+      const secondDist = this.distOnRoute(first.routeId, lat, lon)
+      if (secondDist === null) {
+        this.creationModal.setError('Toinen piste ei ole samalla reitillä — klikkaa reitin varrelta')
+        return
+      }
+
+      const startDist = Math.min(first.startDist, secondDist)
+      const endDist = Math.max(first.startDist, secondDist)
 
       if (endDist - startDist < 1) {
         this.creationModal.setError('Pisteet liian lähellä — klikkaa kauempaa')
@@ -148,14 +158,54 @@ export class SegmentPanel {
         return
       }
 
-      const routeIds = [first.routeId]
-      if (routeId !== first.routeId) routeIds.push(routeId)
-
-      this.state = { mode: 'tiedot', routeIds, startDist, endDist }
+      this.state = {
+        mode: 'tiedot',
+        routeIds: this.sharedRouteIds(first.routeId, startDist, endDist),
+        primaryRouteId: first.routeId,
+        startDist,
+        endDist,
+      }
       this.callbacks.onFirstPointClear?.()
       this.callbacks.onHideSnapMarkers?.()
       this.creationModal.updatePhase(this.state)
     }
+  }
+
+  // T299/V211: paljonko km:ää annetulla reitillä, kun kartalta klikattiin (lat,lon).
+  // null = klikki ei ole tämän reitin varrella (>SHARED_THRESHOLD_M) ∴ km olisi arvaus.
+  private distOnRoute(routeId: string, lat: number, lon: number): number | null {
+    const route = this.routes.find(r => r.id === routeId)
+    if (!route || route.routePoints.length === 0) return null
+    const pt = route.routePoints[nearestPointIndex(route.routePoints, lat, lon)]
+    if (haversineDistance(pt, { lat, lon }) > SHARED_THRESHOLD_M) return null
+    return pt.distanceFromStart
+  }
+
+  // T299/V25/V211: pätkän jäsenreitit = ne jotka kulkevat pätkän MATKALLA primaryn rinnalla
+  // (≤SHARED_THRESHOLD_M koko välin ajan), ei "se reitti johon klikki 2 sattui osumaan".
+  // Otos primaryn pisteistä välillä [startDist,endDist]; reitti kelpaa vain jos se on lähellä
+  // JOKAISTA otospistettä — yhdessä kohdassa risteävä reitti ei tee siitä jaettua osuutta.
+  private sharedRouteIds(primaryRouteId: string, startDist: number, endDist: number): string[] {
+    const primary = this.routes.find(r => r.id === primaryRouteId)
+    if (!primary) return [primaryRouteId]
+
+    const inRange = primary.routePoints.filter(
+      p => p.distanceFromStart >= startDist && p.distanceFromStart <= endDist,
+    )
+    if (inRange.length === 0) return [primaryRouteId]
+    const step = Math.max(1, Math.floor(inRange.length / 12))
+    const samples = inRange.filter((_, i) => i % step === 0)
+
+    const ids = [primaryRouteId]
+    for (const route of this.routes) {
+      if (route.id === primaryRouteId || route.routePoints.length === 0) continue
+      const alongside = samples.every(s => {
+        const pt = route.routePoints[nearestPointIndex(route.routePoints, s.lat, s.lon)]
+        return haversineDistance(pt, s) <= SHARED_THRESHOLD_M
+      })
+      if (alongside) ids.push(route.id)
+    }
+    return ids
   }
 
   private resolveClick(
