@@ -21,7 +21,7 @@ export interface SegmentViewActions {
   onSkipMarker?: (id: string) => void
   // Rivin/napin klikkaus — kohdista merkki kartalla + avaa detaljit (ohjeet, siirto).
   onFocusMarker?: (id: string) => void
-  // "Näytä kartalla" — panoroi kartta merkkiin AVAAMATTA modaalia (näkymä pienenee, kartta esiin).
+  // "Näytä kartalla" — panoroi kartta merkkiin AVAAMATTA modaalia. T333/V242: näkymä EI kutistu.
   onShowOnMap?: (id: string) => void
   // T224 (B) "Siirretty" overflow — talkoolainen siirtää merkin (→ T222 merkin siirto kentällä).
   onMoveMarker?: (id: string) => void
@@ -133,7 +133,6 @@ export class SegmentView {
       getSegment: () => this.segment,
       getMarkers: () => this.currentMarkers,
       actions: this.actions,
-      setCollapsed: (collapsed) => this.setCollapsed(collapsed),
     })
     // T262/V182: KOTI-inline-varustelista. "Muokkaa" → sama EquipmentModal kuin yläpalkin 🎒.
     this.equipment = new SegmentEquipment(this.equipmentEl, {
@@ -244,7 +243,8 @@ export class SegmentView {
     }
   }
 
-  // Kutistaa/laajentaa näkymän (kartta esiin mobiilissa). Kutsuttavissa ulkoa + "Näytä kartalla".
+  // Kutistaa/laajentaa näkymän (kartta esiin mobiilissa). T333/V242: AINOA laukaisin on
+  // käyttäjän oma komento (chevron) tai ulkoinen kutsuja — ⊥ minkään toiminnon sivuvaikutus.
   setCollapsed(collapsed: boolean): void {
     this.panel.classList.toggle('segment-view--collapsed', collapsed)
     const btn = this.panel.querySelector('.segment-view-collapse')
@@ -314,9 +314,10 @@ export class SegmentView {
         noteEl.textContent = m.locationNote
         info.appendChild(noteEl)
       }
-      // Rivin klikkaus → näytä kartalla (löydä keräyskohde). Ei modaalia, kartta esiin.
+      // Rivin klikkaus → näytä kartalla (löydä keräyskohde). Ei modaalia.
       info.addEventListener('click', () => {
-        if (this.actions.onShowOnMap) { this.actions.onShowOnMap(m.id); this.setCollapsed(true) }
+        // T333/V242: sama sääntö kuin herolla — panorointi ⊥ kutista näkymää (B131).
+        if (this.actions.onShowOnMap) this.actions.onShowOnMap(m.id)
         else this.actions.onFocusMarker?.(m.id)
       })
       row.appendChild(info)

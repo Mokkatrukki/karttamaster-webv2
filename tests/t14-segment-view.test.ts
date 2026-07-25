@@ -165,7 +165,10 @@ describe('T14 — SegmentView', () => {
       expect(panel.classList.contains('segment-view--collapsed')).toBe(false)
     })
 
-    it('"Näytä kartalla" kutsuu onShowOnMap + kutistaa (ei avaa detaljia)', () => {
+    // T333/V242 (B131): odotusarvo KÄÄNNETTY tarkoituksella — aiemmin "Näytä kartalla"
+    // kutisti näkymän, mikä vei koko heron eikä paluuta ollut ∴ tuotekäytös muuttui.
+    // Katso tests/t333-show-on-map-no-collapse.test.ts.
+    it('"Näytä kartalla" kutsuu onShowOnMap EIKÄ kutista (ei avaa detaljia)', () => {
       let shown: string | null = null
       let focused: string | null = null
       const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, undefined, {
@@ -176,7 +179,7 @@ describe('T14 — SegmentView', () => {
       ;(container.querySelector('.segment-view-next-show') as HTMLButtonElement).click()
       expect(shown).toBe('m1')
       expect(focused).toBeNull()
-      expect((container.querySelector('#segment-view') as HTMLElement).classList.contains('segment-view--collapsed')).toBe(true)
+      expect((container.querySelector('#segment-view') as HTMLElement).classList.contains('segment-view--collapsed')).toBe(false)
     })
   })
 

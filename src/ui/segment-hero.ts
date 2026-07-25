@@ -21,12 +21,13 @@ export function markerLabel(m: SignMarker): string {
 }
 
 // T234: heron tarvitsema tila/callbackit SegmentView:stä (koordinaattori). Getterit koska
-// segment/markers vaihtuvat update():ssa; actions on stabiili viittaus; setCollapsed on delegaatti.
+// segment/markers vaihtuvat update():ssa; actions on stabiili viittaus.
+// T333/V242: setCollapsed POISTETTU tästä ctx:stä — hero ei enää kutista näkymää (B131).
+// Älä kytke sitä takaisin: kutistus on käyttäjän oma komento (chevron), ei toiminnon sivuvaikutus.
 export interface SegmentHeroContext {
   getSegment(): Segment
   getMarkers(): SignMarker[]
   actions: SegmentViewActions
-  setCollapsed(collapsed: boolean): void
 }
 
 // "Seuraava merkki" -ohjaus (asettaminen-heron renderöinti). Eristetty SegmentView:stä (T234) —
@@ -175,7 +176,9 @@ export class SegmentHero {
     showBtn.className = 'btn btn--secondary segment-view-next-show'
     showBtn.textContent = 'Näytä kartalla'
     showBtn.addEventListener('click', () => {
-      if (actions.onShowOnMap) { actions.onShowOnMap(current.id); this.ctx.setCollapsed(true) }
+      // T333/V242: panoroi VAIN — ⊥ kutista näkymää. Kutistus vei koko heron (.segment-view-next)
+      // ja ainoa paluu oli merkitsemätön chevron ∴ umpikuja kentällä (B131).
+      if (actions.onShowOnMap) actions.onShowOnMap(current.id)
       else actions.onFocusMarker?.(current.id)
     })
     actionsRow.appendChild(showBtn)
