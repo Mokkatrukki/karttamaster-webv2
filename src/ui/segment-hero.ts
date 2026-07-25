@@ -112,7 +112,13 @@ export class SegmentHero {
       row.appendChild(prevBtn)
     }
 
-    row.appendChild(buildMarkerVisual(
+    // T312/V224: 3-sarakkeinen rivi — ◀ kiinni vasempaan, joustava keskiosa (ikoni+nimi), ▶ kiinni
+    // oikeaan. Keskiosa on OMA flex:1;min-width:0 -laatikko ∴ pitkä merkin nimi ellipsoituu eikä
+    // työnnä nuolta: nuolen x-sijainti on vakio merkistä merkkiin (hanskakäsi löytää kohteen).
+    const body = document.createElement('div')
+    body.className = 'segment-view-next-body'
+
+    body.appendChild(buildMarkerVisual(
       { type: current.type, iconId: current.iconId, label: current.label, parts: current.parts, color: current.color },
       { size: 44, zoomable: false },
     ))
@@ -134,7 +140,8 @@ export class SegmentHero {
       noteEl.textContent = current.locationNote
       info.appendChild(noteEl)
     }
-    row.appendChild(info)
+    body.appendChild(info)
+    row.appendChild(body)
 
     if (ordered.length > 1) {
       const nextBtn = document.createElement('button')

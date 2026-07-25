@@ -12,6 +12,9 @@
         <span id="app-brand">Karttamaster</span>
         <div id="toolbar-actions">
           <button id="btn-home-view" aria-label="Takaisin pätkänäkymään">🏠</button>
+          <!-- T308/V219: kartan muokkaustilan toggle. Järjestäjä = karttatyökalurivi (tässä);
+               talkoolainen = ⋯-valikon #btn-tk-map-mode (V179-linja) → data-role-hide. -->
+          <button id="btn-map-mode" class="map-mode-toggle" data-role-hide="talkoolainen" aria-pressed="false">✎ Muokkaa</button>
           <button id="btn-list">Kaikki merkit</button>
           <button id="btn-menu" aria-label="Tilivalikko">⋯</button>
         </div>
@@ -20,6 +23,8 @@
         <div id="account-menu-section"></div>
         <div id="tk-menu-actions" data-role-hide="järjestäjä">
           <div class="menu-sep"></div>
+          <!-- T308/V219: sama MapMode-tila kuin järjestäjän #btn-map-mode (ei rooli-logiikkaa). -->
+          <button id="btn-tk-map-mode" class="map-mode-toggle" aria-pressed="false">✎ Muokkaa</button>
           <button id="btn-tk-gps">📍 GPS</button>
           <button id="btn-tk-add-marker">➕ Lisää merkki</button>
           <button id="btn-tk-complete">✓ Merkitse pätkä valmiiksi</button>
@@ -61,6 +66,9 @@
         </div>
 
         <div id="map-area">
+          <!-- T308/V219: pysyvä tilapilleri (sanoin, ei pelkkä väri). Näkyvyys = [hidden]
+               map-mode-toggle.ts:stä; accent-kehys = CSS body[data-map-mode="muokkaus"]. -->
+          <div id="map-mode-pill" class="map-mode-pill" role="status" hidden>✎ Muokkaustila</div>
           <div id="status-panel"></div>
 <div id="segment-view-container"></div>
           <button id="btn-to-map">Kartalle →</button>

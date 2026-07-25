@@ -1,5 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { PlaceMode } from '../src/ui/place-mode'
+// T307/V218: merkin sijoitus toimii vain muokkaustilassa → testit ajavat muokkaustilassa.
+import { createMapModeState } from '../src/logic/map-mode'
 import { createLibrary, createTemplate } from '../src/logic/sign-library'
 
 // T219/V149: talkoolaisen place-UI — näkyvä "➕ Merkki" avaa suosikki-pickerin (listFavorites,
@@ -28,7 +30,7 @@ function libWithFavorites() {
 describe('T219 — talkoolaisen suosikki-picker (openPicker)', () => {
   it('picker näyttää yhden napin per suosikki (listFavorites), ei ei-suosikkeja', () => {
     setup()
-    const pm = new PlaceMode({ add: vi.fn() } as any, libWithFavorites())
+    const pm = new PlaceMode({ add: vi.fn() } as any, libWithFavorites(), createMapModeState('muokkaus'))
 
     pm.openPicker(65.0, 27.0, 200, 300)
 
@@ -42,7 +44,7 @@ describe('T219 — talkoolaisen suosikki-picker (openPicker)', () => {
   it('suosikin klikkaus sijoittaa merkin pendingiin koordinaatteihin + templateId (V143)', () => {
     setup()
     const add = vi.fn()
-    const pm = new PlaceMode({ add } as any, libWithFavorites())
+    const pm = new PlaceMode({ add } as any, libWithFavorites(), createMapModeState('muokkaus'))
 
     pm.openPicker(65.0, 27.0, 200, 300)
     const favA = document.querySelector<HTMLButtonElement>('#floating-picker .sign-type-btn[data-type="favA"]')!

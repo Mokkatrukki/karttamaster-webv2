@@ -4,8 +4,9 @@ export interface AccountMenuOptions {
   displayName: string
   // Kutsutaan onnistuneen uloskirjautumisen jälkeen — avaa AuthScreenin uudelleen (V133).
   onLoggedOut: () => void
-  // T274/V189: rooli crossover-linkkiä varten. Järjestäjä (⊃ talkoolainen) näkee "Pätkät-sivu"
-  // -linkin → /patkat-hub (sama sessio, ei uutta autentikaatiota). Talkoolaiselle ei näytetä.
+  // T274/V189 + T310/V222: rooli ohjaa hub-linkin TEKSTIÄ (ei enää näkyvyyttä).
+  // Järjestäjä (⊃ talkoolainen) → "🔧 Pätkät-sivu (tee pätkä)" (crossover, sama sessio).
+  // Talkoolainen → "🧭 Kaikki pätkät" (hubi on Model B:n koti, V188 — paluupolku ! olla aina).
   role?: string
 }
 
@@ -22,12 +23,20 @@ export class AccountMenu {
     container.appendChild(name)
 
     // T274/V189: järjestäjä-crossover — pääsy /patkat-hubiin tehdäkseen itse pätkiä.
-    // Sama sessio (cookie säilyy), ei uutta autentikaatiota; hubista voi avata minkä pätkän tahansa.
-    if (opts.role && opts.role !== 'talkoolainen') {
+    // T310/B122/V222: gate `role !== 'talkoolainen'` POISTETTU — se jätti talkoolaisen
+    // umpikujaan (hubiin pääsi vain kirjoittamalla URL käsin), vaikka Model B:ssä (V188)
+    // hubi ON talkoolaisen koti josta pätkä valitaan. Linkki on ⋯-valikossa ∴ tavoitettava
+    // molemmissa view-moodeissa (koti JA kartta — mikään CSS ei piilota #btn-menu:a).
+    // Sama sessio (cookie säilyy), ei uutta autentikaatiota.
+    // Teksti eroaa 🏠 #btn-home-view:stä (= moodinvaihto saman pätkän sisällä) ettei
+    // synny kahta "kotia": tämä on SIVUNVAIHTO kaikkien pätkien listaan.
+    if (opts.role) {
       const patkat = document.createElement('a')
       patkat.className = 'account-menu-patkat'
       patkat.href = '/patkat'
-      patkat.textContent = '🔧 Pätkät-sivu (tee pätkä)'
+      patkat.dataset.role = opts.role
+      patkat.textContent =
+        opts.role === 'talkoolainen' ? '🧭 Kaikki pätkät' : '🔧 Pätkät-sivu (tee pätkä)'
       container.appendChild(patkat)
     }
 

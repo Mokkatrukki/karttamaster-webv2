@@ -9,6 +9,7 @@ import { fetchSegmentByCode, fetchAllSegments } from '../logic/segment-sync'
 import { getActivePhase } from '../logic/phase-view'
 import type { RouteConfig } from '../logic/multi-route'
 import type { SignMarker } from '../logic/types'
+import { mapMode } from '../logic/map-mode'
 
 export interface SegmentsWiring {
   segmentStore: Map<string, Segment>
@@ -67,6 +68,12 @@ export async function wireSegments(
   }
   renderSegmentOverlay()
 
+  // T307/V218: muokkaustilasta poistuminen sulkee auki olevan rajaeditorin — muuten kahvat
+  // jäisivät kartalle raahattaviksi katselutilassa (rinnakkainen mekanismi).
+  mapMode.onChange(() => {
+    if (!mapMode.canDragSegmentBounds() && segmentOverlay.isEditMode()) segmentOverlay.exitEditMode()
+  })
+
   let tempCreationMarker: L.CircleMarker | null = null
 
   const segmentPanel = new SegmentPanel(
@@ -87,7 +94,13 @@ export async function wireSegments(
         tempCreationMarker?.remove()
         tempCreationMarker = null
       },
-      onEnterEditMode: (seg, onSave) => segmentOverlay.enterEditMode(seg, onSave),
+      // T307/V218: rajakahvat ovat muokkaustilan toiminto — katselussa no-op (kartalla ei
+      // ilmesty raahattavia päätepisteitä). Numeerinen rajojen muokkaus (hero/modaali) ei
+      // ole kartan ele ∴ ei tämän portin takana.
+      onEnterEditMode: (seg, onSave) => {
+        if (!mapMode.canDragSegmentBounds()) return
+        segmentOverlay.enterEditMode(seg, onSave)
+      },
       onExitEditMode: () => segmentOverlay.exitEditMode(),
       onEnterCreationMode: () => { map.getContainer().style.cursor = 'crosshair' },
       onExitCreationMode: () => { map.getContainer().style.cursor = '' },

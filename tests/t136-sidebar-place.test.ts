@@ -1,6 +1,8 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { SignLibraryPanel } from '../src/ui/sign-library-panel'
 import { PlaceMode } from '../src/ui/place-mode'
+// T307/V218: merkin sijoitus toimii vain muokkaustilassa → testit ajavat muokkaustilassa.
+import { createMapModeState } from '../src/logic/map-mode'
 import { createLibrary, createTemplate, listTemplates } from '../src/logic/sign-library'
 import type { SignLibrary } from '../src/logic/sign-library'
 
@@ -47,7 +49,7 @@ describe('T136 — sivupalkin merkkikirjastosta voi asettaa merkin kartalle (B55
     const managerStub = { add } as any
     const lib = createLibrary()
     createTemplate(lib, { label: 'Custom', color: '#123456', description: '', favorite: false }, 'custom')
-    const pm = new PlaceMode(managerStub, lib)
+    const pm = new PlaceMode(managerStub, lib, createMapModeState('muokkaus'))
     const custom = listTemplates(lib)[0]
 
     expect(pm.isArmed()).toBe(false)

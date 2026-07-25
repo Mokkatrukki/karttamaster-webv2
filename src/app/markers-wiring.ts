@@ -14,7 +14,7 @@ import { StatusPanel } from '../ui/status-panel'
 import { calcAllRouteStatus } from '../logic/route-status'
 import { getRole } from '../logic/role'
 import { MarkerDetailModal } from '../ui/marker-detail-modal'
-import { getSegmentForCode, getMarkersForSegment, updateSegment } from '../logic/segments'
+import { getSegmentForCode, getMarkersForSegment, updateSegment, segmentPrimaryRouteId } from '../logic/segments'
 import type { Segment } from '../logic/segments'
 import { planSegmentZoom } from '../logic/segment-zoom'
 import { firstUnsetMarker, nextMarkerAhead } from '../logic/navigation'
@@ -26,6 +26,18 @@ import { outbox, setOutboxChangeHandler } from '../logic/outbox-instance'
 import type { RouteConfig } from '../logic/multi-route'
 import type { SignMarker } from '../logic/types'
 import type { SegmentPanel } from '../ui/segment-panel'
+import { mapMode, type MapMode, type MapModeState } from '../logic/map-mode'
+import { initMapModeToggle } from '../ui/map-mode-toggle'
+
+// T307/V218: `document.body.dataset.mapMode` asetetaan TÄSTÄ yhdestä paikasta (CSS-korostus
+// T308 + E2E-assertit lukevat sen). UI-toggle EI kirjoita attribuuttia itse — se kutsuu
+// `mapMode.toggle()` ja tämä kuuntelija heijastaa tilan DOM:iin ∴ yksi totuus.
+// Idempotentti: uusi kutsu korvaa arvon, kuuntelija lisätään kertaalleen per wireMarkers.
+export function syncMapModeToBody(state: MapModeState = mapMode): () => void {
+  const apply = (m: MapMode): void => { document.body.dataset.mapMode = m }
+  apply(state.get())
+  return state.onChange(apply)
+}
 
 export interface MarkersWiring {
   markerManager: MarkerManager
@@ -149,6 +161,33 @@ export function wireMarkers(
   )
   markerManager.setOnMarkerClick((id) => onOpenMarkerDetail(id))
 
+  // T309/V221: siirron km-akseli = talkoolaisen oman pätkän PRIMARY-reitti (⊥ lähin reitti yli
+  // kaikkien) → jaetulla osuudella merkki mitataan samasta reitistä kuin serverin
+  // `markerInOwnSegment` ∴ ei putoa pätkästä liikkumatta käytännössä minnekään (B121, B100-oppi).
+  // Järjestäjä (ei koodia) → undefined = MarkerManagerin fallback (merkin ENTINEN akseli).
+  markerManager.setKmAxisRouteFn(() => {
+    if (!talkoolainenCode) return undefined
+    const seg = getSegmentForCode(segmentStore, talkoolainenCode)
+    return seg ? segmentPrimaryRouteId(seg) : undefined
+  })
+
+  // T307/V218 + T222/V150: raahattavuus = muokkaustila JA rooli-/pätkäehto. `baseDraggable`
+  // pitää V150-ehdon (talkoolainen: vain oman pätkän merkit; järjestäjä: kaikki) ja
+  // `applyDraggable` yhdistää sen moodiin. Kutsutaan (a) initissä, (b) kun pätkän rajat
+  // muuttuvat (oma merkki-setti muuttuu), (c) kun moodi vaihtuu → merkit päivittyvät ILMAN
+  // reloadia (setDraggablePredicate sovittaa jo piirretyt Leaflet-markerit heti).
+  let baseDraggable: (m: SignMarker) => boolean = () => true
+  const applyDraggable = (): void => {
+    markerManager.setDraggablePredicate(m => mapMode.canDragMarkers() && baseDraggable(m))
+  }
+  mapMode.onChange(() => applyDraggable())
+  applyDraggable()
+  // Yksi paikka joka heijastaa moodin DOM:iin (CSS-korostus T308 lukee body[data-map-mode]).
+  syncMapModeToBody()
+  // T308/V219: toggle-napit (järjestäjä #btn-map-mode, talkoolainen ⋯ #btn-tk-map-mode) +
+  // pysyvä "Muokkaustila"-pilleri. Sama tila molemmille rooleille (ei rooli-logiikkaa).
+  initMapModeToggle()
+
   // T185/V117: outbox-jonon muutos → päivitä kartan pending-korostus + listan "tallentamatta".
   // Käsittelijä kattaa myös 2xx-vahvistuksen (avain poistuu → korostus katoaa).
   setOutboxChangeHandler((keys) => {
@@ -176,6 +215,10 @@ export function wireMarkers(
       }
       // T232/E + T257/R8: "Lisää merkki" — sign-picker kartan keskelle (POST omalle pätkälle V149).
       const openAddMarkerPicker = () => {
+        // T307/V218: napin painallus ON eksplisiittinen käyttäjätoimi (kielletty on automaattinen
+        // siirtymä merkin/pätkän VALINNASTA) ∴ "+ Merkki" avaa muokkaustilan sen sijaan että
+        // olisi hiljaa toimimaton. Tila näkyy heti (pilleri + kehys, T308) → käyttäjä tietää.
+        if (!mapMode.canPlaceMarkers()) mapMode.set('muokkaus')
         const c = map.getCenter()
         placeMode.openPicker(c.lat, c.lng, window.innerWidth / 2, window.innerHeight / 2)
       }
@@ -228,7 +271,7 @@ export function wireMarkers(
               renderSegmentOverlay()
               segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
               // T222/V150: rajat muuttuivat → oma merkki-setti muuttuu → päivitä raahattavuus.
-              markerManager.setDraggablePredicate(m => currentSegmentMarkerIds()?.has(m.id) ?? false)
+              applyDraggable()
             }
           },
           // T224 (C)/V38/V93: talkoolainen muokkaa oman pätkän varustelistaa (valmisteluvaihe).
@@ -273,7 +316,9 @@ export function wireMarkers(
       // T224 (b1)/T256: korosta seuraava asettamaton merkki kartalla (kartta = päänavigointi).
       updateNextHighlight(seg, segMarkers0)
       // T222/V150: vain oman pätkän merkit raahattavia — vieraita ei voi siirtää (backend 403).
-      markerManager.setDraggablePredicate(m => currentSegmentMarkerIds()?.has(m.id) ?? false)
+      // T307/V218: lisäksi vain muokkaustilassa (applyDraggable yhdistää ehdot).
+      baseDraggable = m => currentSegmentMarkerIds()?.has(m.id) ?? false
+      applyDraggable()
 
       // T257/R8/V179: talkoolaisen yläpalkin ⋯-toiminnot (VISION "GPS ym ylävalikkoon").
       // Karttamoodissa hero-chrome minimaali (T255) → GPS/Lisää merkki/Merkitse valmiiksi ⋯:ssä.
@@ -368,7 +413,13 @@ export function wireMarkers(
       signLibraryContainer,
       signLibrary,
       () => saveLibrary(signLibrary),
-      (t) => placeMode.armFromSidebar(t),
+      // T307/V218: sivupalkin "aseta kartalle" on eksplisiittinen käyttäjätoimi → avaa
+      // muokkaustila ennen viritystä (PlaceMode.armFromSidebar itse on no-op katselussa).
+      // Sama linja kuin talkoolaisen "+ Merkki" — nappi ei jää hiljaa toimimattomaksi.
+      (t) => {
+        if (!mapMode.canPlaceMarkers()) mapMode.set('muokkaus')
+        placeMode.armFromSidebar(t)
+      },
       // T193/V123: luonti/päivitys → backend outboxin kautta (jaettu kaikille järjestäjille)
       (template: SignTemplate, isNew: boolean) => {
         void (isNew ? createTemplateRemote(template) : updateTemplateRemote(template))

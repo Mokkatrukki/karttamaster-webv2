@@ -5,10 +5,25 @@
  *   2. Drive mode käynnistyy + navigoi eteenpäin
  *   3. Rooli (backendistä) muuttaa toolbaria
  */
-import { test, expect } from 'playwright/test'
+import { test, expect, type Page } from 'playwright/test'
 import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTemplates, mockTalkoolainenSegment, mockMarkers } from './helpers/auth'
 
 // Dev-server pyörii ulkopuolella (bun run dev) — playwright.config.ts baseURL
+
+// T307/T308 (V218/V219): kartta avautuu KATSELUTILASSA joka latauksella — merkin raahaus,
+// tuplaklikki-sijoitus ja pätkän rajakahvat ovat muokkaustilan alla. Kaikki mutatoivat
+// karttapolut avaavat siis ensin muokkaustilan togglella (järjestäjä = yläpalkin nappi,
+// talkoolainen = ⋯-valikon #btn-tk-map-mode).
+async function enterEditMode(page: Page, selector = '#btn-map-mode'): Promise<void> {
+  // Kuuntelija kytketään wireMarkersissa (initMapModeToggle) VASTA app-initin jälkeen. Ennen sitä
+  // klikki katoaa tyhjään ja tila jää katseluun. `title` on luotettava valmius-signaali: HTML:ssä
+  // sitä ei ole, apply() asettaa sen initissä ∴ sen ilmestyminen = kuuntelija kiinni.
+  await expect(page.locator(selector)).toHaveAttribute('title', /muokkaustila/i)
+  await page.click(selector)
+  await expect(page.locator(selector)).toHaveText('✓ Valmis')
+  await expect(page.locator('#map-mode-pill')).toBeVisible()
+  await expect(page.locator('body')).toHaveAttribute('data-map-mode', 'muokkaus')
+}
 
 test.describe('Merkki kartalle', () => {
   test('dblclick kartalla → picker → tyyppi valitaan → merkki näkyy listassa (T85)', async ({ page }) => {
@@ -28,6 +43,9 @@ test.describe('Merkki kartalle', () => {
 
     // Ei btn-add-sign toolbarissa (T85)
     await expect(page.locator('#btn-add-sign')).toHaveCount(0)
+
+    // T308/V218: sijoitus on muokkaustilan toiminto → avaa tila ensin
+    await enterEditMode(page)
 
     // dblclick kartalla avaa floating pickerin
     await page.dblclick('#map', { position: { x: 460, y: 260 } })
@@ -63,6 +81,7 @@ test.describe('Merkki kartalle', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
 
+    await enterEditMode(page)
     await page.dblclick('#map', { position: { x: 460, y: 260 } })
     await page.waitForTimeout(500)
     await page.click('#floating-picker .sign-type-btn[data-type="right"]')
@@ -82,6 +101,7 @@ test.describe('Merkki kartalle', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
 
+    await enterEditMode(page)
     await page.dblclick('#map', { position: { x: 460, y: 260 } })
     await page.waitForTimeout(500)
 
@@ -97,6 +117,35 @@ test.describe('Merkki kartalle', () => {
     await page.keyboard.press('Escape')
     await page.waitForTimeout(200)
     await expect(page.locator('#floating-picker')).not.toHaveClass(/open/)
+  })
+
+  // T307/T308 (V218/V219): katselutila on oletus JOKAISELLA latauksella → vahinkomerkkejä
+  // ei synny kun hanskakäsi tuplanapauttaa karttaa panoroinnin lomassa.
+  test('katselutilassa tuplaklikki EI avaa pickeriä eikä luo merkkiä (V218/V219)', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    // Oletus = katselu: pilleri piilossa, toggle tarjoaa "✎ Muokkaa"
+    await expect(page.locator('body')).toHaveAttribute('data-map-mode', 'katselu')
+    await expect(page.locator('#map-mode-pill')).toBeHidden()
+    await expect(page.locator('#btn-map-mode')).toHaveText('✎ Muokkaa')
+
+    const before = await page.locator('.leaflet-marker-pane .leaflet-marker-icon:not(.route-dir-arrow)').count()
+    await page.dblclick('#map', { position: { x: 460, y: 260 } })
+    await page.waitForTimeout(500)
+
+    await expect(page.locator('#floating-picker')).not.toHaveClass(/open/)
+    const after = await page.locator('.leaflet-marker-pane .leaflet-marker-icon:not(.route-dir-arrow)').count()
+    expect(after).toBe(before)
+
+    // Muokkaustila avattuna sama ele toimii → portti on tila, ei rikki mennyt polku
+    await enterEditMode(page)
+    await page.dblclick('#map', { position: { x: 460, y: 260 } })
+    await page.waitForTimeout(500)
+    await expect(page.locator('#floating-picker')).toHaveClass(/open/)
   })
 })
 
@@ -208,6 +257,9 @@ test.describe('Drag-to-move — T37', () => {
     await page.goto('/')
     await expect(page.locator('#auth-screen')).not.toHaveClass(/open/)
 
+    // T308/V218: raahaus on muokkaustilan toiminto (katselussa marker ei ole draggable)
+    await enterEditMode(page)
+
     // Seedattu merkki renderöi draggable Leaflet-markerin (järjestäjä, markers.ts:367)
     const markerEl = page.locator('.leaflet-marker-pane .leaflet-marker-icon:not(.route-dir-arrow)').first()
     await markerEl.waitFor({ state: 'visible' })
@@ -234,6 +286,68 @@ test.describe('Drag-to-move — T37', () => {
 
     // B54/V82/T135: drag ei saa avata merkki-modaalia sivuvaikutuksena
     await expect(page.locator('.marker-detail-modal')).toHaveCount(0)
+  })
+
+  // T307/T308 (V218/V219): kartta on talkoolaisen päänavigointi — panorointi hanskoilla osui
+  // merkkiin ja siirsi sen vahingossa. Katselutilassa merkki EI liiku raahauksesta.
+  test('katselutilassa merkin raahaus EI siirrä merkkiä (V218/V219)', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
+    await mockMarkers(page, [draggableMarker])
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await expect(page.locator('#auth-screen')).not.toHaveClass(/open/)
+    await expect(page.locator('body')).toHaveAttribute('data-map-mode', 'katselu')
+
+    const markerEl = page.locator('.leaflet-marker-pane .leaflet-marker-icon:not(.route-dir-arrow)').first()
+    await markerEl.waitFor({ state: 'visible' })
+    const boxBefore = await markerEl.boundingBox()
+    const startX = boxBefore!.x + boxBefore!.width / 2
+    const startY = boxBefore!.y + boxBefore!.height / 2
+
+    // Katselussa Leaflet ei kytke drag-handleria → ei `leaflet-marker-draggable`-luokkaa
+    await expect(markerEl).not.toHaveClass(/leaflet-marker-draggable/)
+
+    // Raahaus merkin päältä panoroi karttaa ∴ merkin RUUTUsijainti muuttuu joka tapauksessa.
+    // Todiste sijainnin muuttumattomuudesta = merkin siirtymä suhteessa kiinteään maantiet.
+    // pisteeseen (latLngToContainerPoint) — se pysyy vakiona jos merkin lat/lon ei muuttunut.
+    const offsetToFixedPoint = async (): Promise<{ dx: number; dy: number }> => {
+      const mapBox = (await page.locator('#map').boundingBox())!
+      const box = (await markerEl.boundingBox())!
+      const ref = await page.evaluate(() => {
+        const m = (window as unknown as Record<string, unknown>)['__testMap'] as
+          { latLngToContainerPoint(ll: [number, number]): { x: number; y: number } }
+        const p = m.latLngToContainerPoint([65.62, 27.62])
+        return { x: p.x, y: p.y }
+      })
+      return { dx: (box.x + box.width / 2) - (mapBox.x + ref.x), dy: (box.y + box.height) - (mapBox.y + ref.y) }
+    }
+    const offBefore = await offsetToFixedPoint()
+
+    await page.mouse.move(startX, startY)
+    await page.mouse.down()
+    await page.mouse.move(startX + 60, startY + 30, { steps: 5 })
+    await page.mouse.move(startX + 120, startY + 60, { steps: 5 })
+    await page.mouse.up()
+    await page.waitForTimeout(600)
+
+    const offAfter = await offsetToFixedPoint()
+    expect(Math.abs(offAfter.dx - offBefore.dx)).toBeLessThan(3)
+    expect(Math.abs(offAfter.dy - offBefore.dy)).toBeLessThan(3)
+
+    // Muokkaustilassa sama raahaus siirtää merkin (portti on tila, ei rikki mennyt drag)
+    await enterEditMode(page)
+    await expect(markerEl).toHaveClass(/leaflet-marker-draggable/)
+    const box2 = await markerEl.boundingBox()
+    await page.mouse.move(box2!.x + box2!.width / 2, box2!.y + box2!.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(box2!.x + box2!.width / 2 + 60, box2!.y + box2!.height / 2 + 30, { steps: 5 })
+    await page.mouse.move(box2!.x + box2!.width / 2 + 120, box2!.y + box2!.height / 2 + 60, { steps: 5 })
+    await page.mouse.up()
+    await page.waitForTimeout(800)
+    const offEdited = await offsetToFixedPoint()
+    const movedGeo = Math.abs(offEdited.dx - offBefore.dx) > 20 || Math.abs(offEdited.dy - offBefore.dy) > 20
+    expect(movedGeo).toBe(true)
   })
 })
 
@@ -575,6 +689,7 @@ test.describe('Merkin zoom-skaalaus — T175', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
 
+    await enterEditMode(page)
     await page.dblclick('#map', { position: { x: 460, y: 260 } })
     await page.waitForTimeout(500)
     await page.click('#floating-picker .sign-type-btn[data-type="right"]')

@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { PlaceMode } from '../src/ui/place-mode'
+// T307/V218: merkin sijoitus toimii vain muokkaustilassa → testit ajavat muokkaustilassa.
+import { createMapModeState } from '../src/logic/map-mode'
 import { createLibrary, createTemplate } from '../src/logic/sign-library'
 import type { SignLibrary } from '../src/logic/sign-library'
 
@@ -25,25 +27,25 @@ describe('T87 PlaceMode XSS-suojaus (B21/V44)', () => {
 
   it('label jossa HTML-tagi ei luo DOM-elementtiä pickerissä', () => {
     createTemplate(lib, { label: '<img src=x id="xss-pm-label">', color: '#000', description: '', favorite: true }, 'xss-pm-a')
-    new PlaceMode(makeMarkerManagerStub(), lib)
+    new PlaceMode(makeMarkerManagerStub(), lib, createMapModeState('muokkaus'))
     const picker = document.getElementById('floating-picker')!
     picker.dispatchEvent(Object.assign(new MouseEvent('mousedown'), {}))
     // simuloi openPicker kutsumalla suoraan
-    const pm = new PlaceMode(makeMarkerManagerStub(), lib)
+    const pm = new PlaceMode(makeMarkerManagerStub(), lib, createMapModeState('muokkaus'))
     ;(pm as any).openPicker(0, 0, 10, 10)
     expect(document.getElementById('xss-pm-label')).toBeNull()
   })
 
   it('V99: labelista johdettu kompakti-swatch escapetaan (ei DOM-elementtiä)', () => {
     createTemplate(lib, { label: '<img src=x id="xss-pm-short">', color: '#000', description: '', favorite: true }, 'xss-pm-b')
-    const pm = new PlaceMode(makeMarkerManagerStub(), lib)
+    const pm = new PlaceMode(makeMarkerManagerStub(), lib, createMapModeState('muokkaus'))
     ;(pm as any).openPicker(0, 0, 10, 10)
     expect(document.getElementById('xss-pm-short')).toBeNull()
   })
 
   it('color jossa HTML-attribuutti ei injektoidu pickerissä', () => {
     createTemplate(lib, { label: 'Ok', color: '#000" onmouseover="alert(1)', description: '', favorite: true }, 'xss-pm-c')
-    const pm = new PlaceMode(makeMarkerManagerStub(), lib)
+    const pm = new PlaceMode(makeMarkerManagerStub(), lib, createMapModeState('muokkaus'))
     ;(pm as any).openPicker(0, 0, 10, 10)
     const picker = document.getElementById('floating-picker')!
     // väri-arvo ei saa luoda scripti-elementtiä tai rikkoa attribuuttia
@@ -55,7 +57,7 @@ describe('T87 PlaceMode XSS-suojaus (B21/V44)', () => {
 
   it('normaali template renderöityy oikein pickerin kautta', () => {
     createTemplate(lib, { label: 'Vasemmalle', color: '#2563eb', description: '', favorite: true }, 'left')
-    const pm = new PlaceMode(makeMarkerManagerStub(), lib)
+    const pm = new PlaceMode(makeMarkerManagerStub(), lib, createMapModeState('muokkaus'))
     ;(pm as any).openPicker(0, 0, 10, 10)
     const picker = document.getElementById('floating-picker')!
     const btn = picker.querySelector<HTMLElement>('.sign-type-btn[data-type="left"]')
@@ -68,7 +70,7 @@ describe('T87 PlaceMode XSS-suojaus (B21/V44)', () => {
   // oikein. openPicker() ei koskaan tarkistanut t.iconId:tä (vain compactLabel + kuva).
   it('iconId-templaten swatch näyttää Lucide-SVG:n, ei compactLabelia (V99-precedence sama kuin sivupaneelissa)', () => {
     createTemplate(lib, { label: 'Huolto', color: '#1d4ed8', description: '', favorite: true, iconId: 'wrench' }, 'huolto-icon')
-    const pm = new PlaceMode(makeMarkerManagerStub(), lib)
+    const pm = new PlaceMode(makeMarkerManagerStub(), lib, createMapModeState('muokkaus'))
     ;(pm as any).openPicker(0, 0, 10, 10)
     const picker = document.getElementById('floating-picker')!
     const swatch = picker.querySelector<HTMLElement>('.sign-type-btn[data-type="huolto-icon"] .sign-swatch')

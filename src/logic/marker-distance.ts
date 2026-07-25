@@ -1,6 +1,7 @@
 import type { RoutePoint, SignMarker } from './types'
-import { nearestPointCandidates } from './bearing'
-import { SHARED_THRESHOLD_M } from './multi-route'
+import { nearestPointCandidates, nearestPointIndex, haversineDistance } from './bearing'
+import { SHARED_THRESHOLD_M, assignRoutesToMarker } from './multi-route'
+import { ensureRouteIds } from './marker-assign'
 
 // T300/V212/B115: merkin km per reitti.
 //
@@ -81,4 +82,138 @@ export function backfillDistanceByRoute(
     changed++
   }
   return changed
+}
+
+// ─── T309/V220/V221 — merkin siirto (sijoitus & rollback) ────────────────────────────────
+//
+// B121: dragend valitsi km-akselin = LÄHIN reitti yli KAIKKIEN reittien ja kirjoitti sen
+// `distanceFromStart`iin. Jaetulla osuudella (3 SMTB-reittiä ≤100 m) metrien snap-ero ratkaisi
+// akselin ∴ merkin km hyppäsi toisen reitin lukemaan → merkki putosi oman pätkän
+// [startDist,endDist]-rangesta liikkumatta käytännössä minnekään (sama B114/B117/B120-suku).
+// Sääntö nyt: akseli on PÄTKÄN primary-reitti kun se tunnetaan (sama akseli kuin serverin
+// `markerInOwnSegment`/`distsOnSegmentAxis`, V213/B100-oppi), muuten merkin ENTINEN akseli
+// niin kauan kuin se on yhä reitin varrella — vasta viimeisenä lähin reitti.
+
+/** Merkin sijaintikentät jotka siirto muuttaa (V220-snapshot). */
+export interface MarkerPositionSnapshot {
+  lat: number
+  lon: number
+  distanceFromStart: number
+  distanceByRoute?: Record<string, number[]>
+  routeIds: string[]
+}
+
+export type PositionedMarker = Pick<
+  SignMarker,
+  'lat' | 'lon' | 'distanceFromStart' | 'distanceByRoute' | 'routeIds'
+>
+
+/** Snapshot ENNEN mutaatiota — rollbackin (V220) ainoa totuus siitä mihin palataan. */
+export function snapshotMarkerPosition(m: PositionedMarker): MarkerPositionSnapshot {
+  return {
+    lat: m.lat,
+    lon: m.lon,
+    distanceFromStart: m.distanceFromStart,
+    // kopio: alkuperäinen objekti ei jää jaettuun viittaukseen jota uusi arvo voisi mutatoida
+    ...(m.distanceByRoute ? { distanceByRoute: { ...m.distanceByRoute } } : {}),
+    routeIds: [...m.routeIds],
+  }
+}
+
+/** Kirjoita sijaintikentät merkkiin (sekä optimistinen siirto että rollback käyttävät tätä). */
+export function applyMarkerPosition(m: PositionedMarker, pos: MarkerPositionSnapshot): void {
+  m.lat = pos.lat
+  m.lon = pos.lon
+  m.distanceFromStart = pos.distanceFromStart
+  m.distanceByRoute = pos.distanceByRoute ? { ...pos.distanceByRoute } : undefined
+  m.routeIds = [...pos.routeIds]
+}
+
+/**
+ * Millä reitillä merkin nykyinen `distanceFromStart` on mitattu. Ei omaa kenttää (types.ts:n
+ * `distanceByRoute` on Record) ∴ päätellään: se reitti jonka km-ehdokkaista löytyy nykyinen
+ * `distanceFromStart`. Jaetulla osuudella lukemat eroavat kilometreillä (5.0 vs 45.0) ∴
+ * osuma on käytännössä yksikäsitteinen. `routeIds`-järjestys ratkaisee tasapelin (determinismi).
+ */
+export function inferKmAxisRouteId(m: PositionedMarker, tolM = 1): string | undefined {
+  const byRoute = m.distanceByRoute
+  if (!byRoute) return undefined
+  const ids = [...m.routeIds, ...Object.keys(byRoute).filter((id) => !m.routeIds.includes(id))]
+  for (const id of ids) {
+    const cands = byRoute[id]
+    if (cands?.some((d) => Math.abs(d - m.distanceFromStart) <= tolM)) return id
+  }
+  return undefined
+}
+
+export interface MoveAssignment extends MarkerPositionSnapshot {
+  distanceByRoute: Record<string, number[]>
+  /** Reitti jota `distanceFromStart` mittaa. undefined = orpo (ei reittiä ≤threshold). */
+  kmAxisRouteId?: string
+  /** Etäisyys lähimpään reittiin metreinä — kutsuja päättää FAR_FROM_ROUTE_M-varoituksesta. */
+  distFromNearestRouteM: number
+}
+
+/**
+ * V221: uudet sijaintikentät siirretylle merkille. Km-akselin valinta järjestyksessä:
+ *   1. `preferRouteId` (pätkän `primaryRouteId`) jos merkki on yhä sen reitin varrella
+ *   2. `fallbackAxisRouteId` (merkin ENTINEN akseli, `inferKmAxisRouteId`) jos yhä varrella
+ *   3. lähin reitti
+ * ⊥ arvo "lähin yli kaikkien reittien" ehdoitta: se vaihtaa akselia jaetulla osuudella
+ * metrien snap-erosta ja pudottaa merkin pätkästä (B121).
+ */
+export function resolveMoveAssignment(
+  lat: number,
+  lon: number,
+  routes: RouteGeometry[],
+  opts: { preferRouteId?: string; fallbackAxisRouteId?: string; threshold?: number } = {},
+): MoveAssignment {
+  const threshold = opts.threshold ?? SHARED_THRESHOLD_M
+  const distanceByRoute = computeDistanceByRoute(lat, lon, routes, threshold)
+
+  let nearestId: string | undefined
+  let nearestDistFromStart = 0
+  let nearestM = Infinity
+  for (const r of routes) {
+    if (r.routePoints.length === 0) continue
+    const idx = nearestPointIndex(r.routePoints, lat, lon)
+    const d = haversineDistance(r.routePoints[idx], { lat, lon })
+    if (d < nearestM) {
+      nearestM = d
+      nearestId = r.id
+      nearestDistFromStart = r.routePoints[idx].distanceFromStart
+    }
+  }
+
+  const onRoute = (id: string | undefined): boolean =>
+    id !== undefined && (distanceByRoute[id]?.length ?? 0) > 0
+  const kmAxisRouteId = [opts.preferRouteId, opts.fallbackAxisRouteId, nearestId].find(onRoute)
+
+  return {
+    lat,
+    lon,
+    distanceFromStart: kmAxisRouteId
+      ? distanceByRoute[kmAxisRouteId][0]
+      : nearestDistFromStart,
+    distanceByRoute,
+    // Jäsenyys (V25) = kaikki reitit ≤threshold; orvolle merkille fallback lähin reitti
+    // (ensureRouteIds, V21/B1: tyhjä routeIds = merkki katoaa hiljaa kartalta).
+    routeIds: nearestId
+      ? ensureRouteIds(assignRoutesToMarker(lat, lon, routes, threshold), nearestId)
+      : [],
+    ...(kmAxisRouteId ? { kmAxisRouteId } : {}),
+    distFromNearestRouteM: nearestM,
+  }
+}
+
+/**
+ * V220: hylkäsikö serveri kirjoituksen PYSYVÄSTI (⊥ vain "ei mennyt vielä läpi")?
+ * Vain tämä oikeuttaa optimistisen tilan rollbackin. Peilaa `write-outbox.ts:isPermanent`ia:
+ * verkkovirhe (`null` = offline), 5xx, 401 (uudelleenauth) ja 408/425/429 jäävät JONOON →
+ * ne ovat laillinen pending-tila, ⊥ hylkäys ∴ rollback niissä hävittäisi käyttäjän työn.
+ */
+export function isServerRejection(status: number | null): boolean {
+  if (status === null) return false
+  if (status === 401 || status === 408 || status === 425 || status === 429) return false
+  return status >= 400 && status < 500
 }

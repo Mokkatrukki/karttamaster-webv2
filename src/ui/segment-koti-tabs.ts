@@ -51,6 +51,10 @@ export class SegmentKotiTabs {
   setActive(id: string): void {
     this.active = id
     for (const [k, p] of this.panels) p.hidden = k !== id
+    // T315/V226: kaikki tabit jakavat SAMAN scrollerin (#segment-view, koti-moodi) ∴ tab-vaihto
+    // nollaa scroll-position — muuten uusi tabi avautuu keskeltä (edellisen tabin scrollTop jää).
+    const sc = this.scroller()
+    if (sc) sc.scrollTop = 0
     for (const [k, b] of this.buttons) {
       const on = k === id
       b.classList.toggle('is-active', on)
@@ -60,5 +64,10 @@ export class SegmentKotiTabs {
 
   getActive(): string {
     return this.active
+  }
+
+  /** Lähin scrollaava esivanhempi (koti-moodin ainoa scrolleri). null ennen DOM-kiinnitystä. */
+  private scroller(): HTMLElement | null {
+    return this.root.closest<HTMLElement>('#segment-view')
   }
 }

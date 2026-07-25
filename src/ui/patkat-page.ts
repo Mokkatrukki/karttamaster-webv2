@@ -84,9 +84,13 @@ export function renderPatkatPage(container: HTMLElement, opts: PatkatPageOpts): 
   }
   container.appendChild(listSection)
 
-  // ── Kartalle ──
+  // ── Kartalle (T311/V223: sticky-toimintopalkki alalaidassa) ──
+  // Primary-toiminto on aina viewportissa ⊥ vaadi skrollausta pätkälistan ohi. Palkki on OMA
+  // elementti (.patkat-actionbar) ja sisältö saa vastaavan padding-bottomin (.patkat-page-body)
+  // ettei viimeinen pätkärivi jää palkin alle (V157/B101-oppi: kiinnitetty palkki ⊥ jätä orpoa
+  // gappia eikä peitä sisältöä → padding elää palkin mukana, ei sivun pohjassa vakiona).
   const nav = document.createElement('div')
-  nav.className = 'patkat-nav'
+  nav.className = 'patkat-actionbar'
   const toMap = document.createElement('button')
   toMap.className = 'patkat-to-map btn btn-primary'
   toMap.textContent = 'Kartalle →'
@@ -96,6 +100,7 @@ export function renderPatkatPage(container: HTMLElement, opts: PatkatPageOpts): 
   })
   nav.appendChild(toMap)
   container.appendChild(nav)
+  container.classList.add('patkat-page--has-actionbar')
 }
 
 function buildSegmentRow(seg: Segment, markers: SignMarker[], role: string): HTMLLIElement {

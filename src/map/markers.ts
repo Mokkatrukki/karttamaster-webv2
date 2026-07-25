@@ -1,14 +1,18 @@
 import L from 'leaflet'
 import type { SignMarker, MarkerType, RoutePoint } from '../logic/types'
-import { nearestPointIndex, haversineDistance } from '../logic/bearing'
 import { createSignIcon } from './icons'
 import { signImageSrc } from '../logic/sign-images'
 import { compactLabel, signVisualParts } from '../logic/sign-visual'
 import { genId } from '../logic/uid'
 import type { SignPart } from '../logic/sign-library'
-import { assignRoutesToMarker } from '../logic/multi-route'
-import { ensureRouteIds, FAR_FROM_ROUTE_M } from '../logic/marker-assign'
-import { computeDistanceByRoute } from '../logic/marker-distance'
+import { FAR_FROM_ROUTE_M } from '../logic/marker-assign'
+import {
+  resolveMoveAssignment,
+  inferKmAxisRouteId,
+  snapshotMarkerPosition,
+  applyMarkerPosition,
+  isServerRejection,
+} from '../logic/marker-distance'
 import { DEFAULT_STATUS, transitionStatus } from '../logic/marker-status'
 import type { StatusAction } from '../logic/marker-status'
 import type { MarkerStatus } from '../logic/types'
@@ -47,6 +51,12 @@ export class MarkerManager {
   // T222/V150: mitkä merkit ovat raahattavia. Oletus = kaikki (järjestäjä). Talkoolaiselle
   // asetetaan predikaatti joka sallii vain oman pätkän merkit → ei raahaa vieraita (backend 403).
   private draggableFn: (m: SignMarker) => boolean = () => true
+  // T309/V220: näkyvä virhe rollbackille (sama kanava kuin outboxin V115-banneri).
+  private onSaveError?: (msg: string) => void
+  // T309/V221: sen pätkän primaryRouteId jonka näkymässä ollaan (talkoolainen) — km-akseli
+  // siirrossa. Wiring (`src/app/markers-wiring.ts`) asettaa; null = ei pätkäkontekstia →
+  // akseli pysyy merkin entisessä reitissä (⊥ hypi lähimpään, B121).
+  private kmAxisRouteFn: (() => string | undefined) | null = null
 
   constructor(map: L.Map, routes: RouteRef[], onUpdate: () => void, initialMarkers: SignMarker[] = [], onFarFromRoute?: (distM: number) => void, onSaveError?: (msg: string) => void) {
     this.map = map
@@ -54,6 +64,7 @@ export class MarkerManager {
     this.visibleRouteIds = routes.map((r) => r.id)
     this.onUpdate = onUpdate
     this.onFarFromRoute = onFarFromRoute
+    this.onSaveError = onSaveError
     // T183: outbox raportoi kirjoitusvirheet keskitetysti (V115).
     if (onSaveError) setOutboxSaveErrorHandler(onSaveError)
     this.markers = initialMarkers
@@ -169,7 +180,14 @@ export class MarkerManager {
   }
 
   private apiPut(id: string, patch: Record<string, unknown>): void {
-    void outbox.enqueue({
+    void this.apiPutAwaited(id, patch)
+  }
+
+  // T309/V220: sama outbox-polku, mutta VÄLITTÖMÄN yrityksen tulos palautetaan kutsujalle.
+  // `delivered=false, status=null` = jäi jonoon (offline / 5xx / saman resurssin FIFO-jono) =
+  // laillinen pending-tila. Vain `isServerRejection(status)` (403/400/404…) on hylkäys.
+  private apiPutAwaited(id: string, patch: Record<string, unknown>): Promise<{ delivered: boolean; status: number | null }> {
+    return outbox.enqueue({
       resourceKey: 'marker:' + id,
       method: 'PUT',
       url: `/api/markers/${id}`,
@@ -185,27 +203,19 @@ export class MarkerManager {
     })
   }
 
-  private nearestRouteAssignment(lat: number, lon: number): {
+  // T300/V212 + T309/V221: sijoitus/siirto käyttävät SAMAA kanonista sijaintiratkaisijaa
+  // (`resolveMoveAssignment`) → km-akseli valitaan yhdellä säännöllä, ei kahdessa paikassa.
+  private nearestRouteAssignment(lat: number, lon: number, opts: { preferRouteId?: string; fallbackAxisRouteId?: string } = {}): {
     routeIds: string[]
     distanceFromStart: number
     distanceByRoute: Record<string, number[]>
   } {
-    let bestIdx = 0, bestRouteIdx = 0, bestDist = Infinity
-    this.routes.forEach((r, ri) => {
-      const idx = nearestPointIndex(r.routePoints, lat, lon)
-      const dist = haversineDistance(r.routePoints[idx], { lat, lon })
-      if (dist < bestDist) { bestDist = dist; bestIdx = idx; bestRouteIdx = ri }
-    })
-    const primaryRoute = this.routes[bestRouteIdx]
-    const point = primaryRoute.routePoints[bestIdx]
-    const rawRouteIds = assignRoutesToMarker(lat, lon, this.routes)
-    const routeIds = ensureRouteIds(rawRouteIds, primaryRoute.id)
-    if (bestDist > FAR_FROM_ROUTE_M) this.onFarFromRoute?.(bestDist)
-    // T300/V212: km ERIKSEEN jokaiselle jäsenreitille — yksi skalaari ei riitä jaetulla osuudella.
+    const asg = resolveMoveAssignment(lat, lon, this.routes, opts)
+    if (asg.distFromNearestRouteM > FAR_FROM_ROUTE_M) this.onFarFromRoute?.(asg.distFromNearestRouteM)
     return {
-      routeIds,
-      distanceFromStart: point.distanceFromStart,
-      distanceByRoute: computeDistanceByRoute(lat, lon, this.routes),
+      routeIds: asg.routeIds,
+      distanceFromStart: asg.distanceFromStart,
+      distanceByRoute: asg.distanceByRoute,
     }
   }
 
@@ -400,6 +410,44 @@ export class MarkerManager {
     if (m) m.images = [...(m.images ?? []), data.url]
   }
 
+  // T309/V221: wiring kertoo minkä pätkän km-akselia vasten jäsenyys ratkeaa (pätkän
+  // `primaryRouteId`) → siirto mittaa km:n SAMASTA reitistä kuin serverin `markerInOwnSegment`
+  // (V213/B100-oppi). Ilman tätä akseli valittiin "lähin yli kaikkien reittien" (B121).
+  setKmAxisRouteFn(fn: (() => string | undefined) | null): void {
+    this.kmAxisRouteFn = fn
+  }
+
+  // T309/V220/V221: merkin siirto on optimistinen VAIN kunnes serveri vahvistaa.
+  //  1. snapshot ENNEN mutaatiota
+  //  2. km-akseli = pätkän primary (⊥ lähin reitti) → merkki ei putoa pätkästä jaetulla osuudella
+  //  3. optimistinen tila + onUpdate() → UI reagoi heti
+  //  4. serverin hylkäys (403, V150) → palauta kentät + Leaflet-marker + re-render + varoitus
+  //     Offline/5xx/401 ⊥ rollbackaa: kirjoitus on jonossa (V116) ja retrytään.
+  private async handleDragEnd(m: SignMarker, lm: L.Marker): Promise<void> {
+    const { lat, lng } = lm.getLatLng()
+    const before = snapshotMarkerPosition(m)
+    const { routeIds, distanceFromStart, distanceByRoute } = this.nearestRouteAssignment(lat, lng, {
+      preferRouteId: this.kmAxisRouteFn?.() ?? undefined,
+      fallbackAxisRouteId: inferKmAxisRouteId(m),
+    })
+    applyMarkerPosition(m, { lat, lon: lng, distanceFromStart, distanceByRoute, routeIds })
+    this.onUpdate()
+
+    const { delivered, status } = await this.apiPutAwaited(m.id, {
+      lat,
+      lon: lng,
+      distance_from_start: distanceFromStart,
+      distance_by_route: distanceByRoute,
+      route_ids: routeIds,
+    })
+    if (delivered || !isServerRejection(status)) return
+
+    applyMarkerPosition(m, before)
+    lm.setLatLng([before.lat, before.lon])
+    this.onUpdate()
+    this.onSaveError?.('⚠ Siirto ei sallittu — merkki palautettiin')
+  }
+
   private addLeafletMarker(m: SignMarker): void {
     const icon = createSignIcon(m.type, m.status, m.color, compactOf(m), m.iconId, signImageSrc(m.imageId ?? m.type), visualPartsOf(m))
     // V197/aria-command-name: Leaflet-merkin role=button tarvitsee saavutettavan nimen (title+alt)
@@ -407,35 +455,7 @@ export class MarkerManager {
     const lm = L.marker([m.lat, m.lon], { icon, draggable: this.draggableFn(m), title: accName, alt: accName }).addTo(this.map)
     this.leafletMarkers.set(m.id, lm)
 
-    lm.on('dragend', () => {
-      const { lat, lng } = lm.getLatLng()
-      let bestIdx = 0, bestRouteIdx = 0, bestDist = Infinity
-      this.routes.forEach((r, ri) => {
-        const idx = nearestPointIndex(r.routePoints, lat, lng)
-        const dist = haversineDistance(r.routePoints[idx], { lat, lon: lng })
-        if (dist < bestDist) { bestDist = dist; bestIdx = idx; bestRouteIdx = ri }
-      })
-      const primaryRoute = this.routes[bestRouteIdx]
-      const point = primaryRoute.routePoints[bestIdx]
-      const rawRouteIds = assignRoutesToMarker(lat, lng, this.routes)
-      const routeIds = ensureRouteIds(rawRouteIds, primaryRoute.id)
-      if (bestDist > FAR_FROM_ROUTE_M) this.onFarFromRoute?.(bestDist)
-      m.lat = lat
-      m.lon = lng
-      m.distanceFromStart = point.distanceFromStart
-      // T300/V212: siirto muuttaa sijaintia ∴ km ! laskea uudelleen JOKAISELLE reitille,
-      // ei vain lähimmälle — muuten vanha distanceByRoute jäisi osoittamaan entiseen kohtaan.
-      m.distanceByRoute = computeDistanceByRoute(lat, lng, this.routes)
-      m.routeIds = routeIds
-      this.apiPut(m.id, {
-        lat,
-        lon: lng,
-        distance_from_start: point.distanceFromStart,
-        distance_by_route: m.distanceByRoute,
-        route_ids: routeIds,
-      })
-      this.onUpdate()
-    })
+    lm.on('dragend', () => { void this.handleDragEnd(m, lm) })
 
     const el = lm.getElement()
     if (el) el.style.cursor = 'pointer'

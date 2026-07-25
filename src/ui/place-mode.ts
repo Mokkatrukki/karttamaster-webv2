@@ -5,6 +5,7 @@ import { compactLabel } from '../logic/sign-visual'
 import { getIconById, renderIconSvg } from '../logic/icon-set'
 import type { MarkerType } from '../logic/types'
 import type { MarkerManager } from '../map/markers'
+import { mapMode as sharedMapMode, type MapModeState } from '../logic/map-mode'
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -19,9 +20,19 @@ export class PlaceMode {
   constructor(
     private readonly markerManager: MarkerManager,
     private readonly library: SignLibrary,
+    // T307/V218: merkin sijoitus on muokkaustilan toiminto. Injektoitavissa testeille;
+    // tuotannossa sama jaettu tila kuin raahauksella ja rajakahvoilla (⊥ rinnakkaisia mekanismeja).
+    private readonly mapMode: MapModeState = sharedMapMode,
   ) {
     this.floatingPicker = document.getElementById('floating-picker')!
     this.bindEvents()
+    // Muokkaustilasta poistuminen purkaa myös viritetyn mallin ja avoimen pickerin —
+    // muuten "katselu" jäisi vuotamaan sijoituskyvyn seuraavaan karttaklikkiin.
+    this.mapMode.onChange(() => {
+      if (this.mapMode.canPlaceMarkers()) return
+      this.disarm()
+      this.closePicker()
+    })
   }
 
   isPickerOpen(): boolean { return this.floatingPicker.classList.contains('open') }
@@ -29,6 +40,8 @@ export class PlaceMode {
   isArmed(): boolean { return this.armedTemplate !== null }
 
   armFromSidebar(template: SignTemplate): void {
+    // V218: katselutilassa no-op — sivupalkin mallin klikkaus ei viritä karttaa sijoitusvalmiiksi.
+    if (!this.mapMode.canPlaceMarkers()) return
     this.closePicker()
     this.armedTemplate = template
     document.getElementById('map')?.classList.add('place-mode')
@@ -41,6 +54,7 @@ export class PlaceMode {
 
   // Kutsutaan kartan single-clickistä main.ts:ssä kun isArmed(). Palauttaa true jos sijoitti.
   placeArmedAt(lat: number, lon: number): boolean {
+    if (!this.mapMode.canPlaceMarkers()) return false
     if (!this.armedTemplate) return false
     const t = this.armedTemplate
     this.markerManager.add(lat, lon, t.id as MarkerType, t.color, t.label, t.iconId, t.parts, t.imageId, t.id)
@@ -49,6 +63,9 @@ export class PlaceMode {
   }
 
   openPicker(lat: number, lon: number, clientX: number, clientY: number): void {
+    // V218: kartan tuplaklikki-haara no-op katselutilassa — pendingDblClick jää null:iksi
+    // ∴ myöskään pickerin klikkikäsittelijä ei voi luoda merkkiä (kaksinkertainen portti).
+    if (!this.mapMode.canPlaceMarkers()) return
     this.pendingDblClick = { lat, lon }
     this.floatingPicker.innerHTML = listFavorites(this.library).map(t => {
       // V99-precedence sama kuin sign-library-panel.ts buildRow(): kuva > ikoni > compactLabel
@@ -78,6 +95,7 @@ export class PlaceMode {
     this.floatingPicker.addEventListener('click', e => {
       const btn = (e.target as HTMLElement).closest('.sign-type-btn') as HTMLElement | null
       if (!btn || !this.pendingDblClick) return
+      if (!this.mapMode.canPlaceMarkers()) { this.closePicker(); return }
       const { lat, lon } = this.pendingDblClick
       const parts = btn.dataset.parts ? JSON.parse(btn.dataset.parts) : undefined
       // T215/V143: viimeinen arg = templateId (= data-type, joka on template.id) → denormalisoi

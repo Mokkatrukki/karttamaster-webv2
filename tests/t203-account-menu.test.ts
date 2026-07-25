@@ -87,7 +87,7 @@ describe('T203 — AccountMenu', () => {
   })
 })
 
-describe('T274/V189 — järjestäjä-crossover linkki', () => {
+describe('T274/V189 + T310/V222 — hub-linkki (/patkat)', () => {
   beforeEach(() => {
     vi.resetModules()
     document.body.innerHTML = ''
@@ -97,7 +97,7 @@ describe('T274/V189 — järjestäjä-crossover linkki', () => {
     vi.unstubAllGlobals()
   })
 
-  it('järjestäjä näkee "Pätkät-sivu"-linkin → /patkat', async () => {
+  it('järjestäjä näkee "Pätkät-sivu"-linkin → /patkat (teksti ennallaan T310:n jälkeen)', async () => {
     mockLocalStorage()
     const { AccountMenu } = await import('../src/ui/account-menu')
     const c = document.createElement('div')
@@ -105,6 +105,7 @@ describe('T274/V189 — järjestäjä-crossover linkki', () => {
     const link = c.querySelector('.account-menu-patkat') as HTMLAnchorElement
     expect(link).not.toBeNull()
     expect(link.getAttribute('href')).toBe('/patkat')
+    expect(link.textContent).toBe('🔧 Pätkät-sivu (tee pätkä)')
   })
 
   it('admin näkee linkin (⊃ järjestäjä)', async () => {
@@ -115,12 +116,51 @@ describe('T274/V189 — järjestäjä-crossover linkki', () => {
     expect(c.querySelector('.account-menu-patkat')).not.toBeNull()
   })
 
-  it('talkoolainen EI näe crossover-linkkiä', async () => {
+  // T310/B122/V222: aiemmin talkoolaiselta gatettiin linkki pois → umpikuja. Nyt näkyy,
+  // omalla tekstillä (hubi = Model B:n koti, V188).
+  it('V222: talkoolainen näkee "🧭 Kaikki pätkät" -linkin → /patkat', async () => {
     mockLocalStorage()
     const { AccountMenu } = await import('../src/ui/account-menu')
     const c = document.createElement('div')
     new AccountMenu(c, { displayName: 'Talkoolainen', role: 'talkoolainen', onLoggedOut: vi.fn() })
-    expect(c.querySelector('.account-menu-patkat')).toBeNull()
+    const link = c.querySelector('.account-menu-patkat') as HTMLAnchorElement
+    expect(link).not.toBeNull()
+    expect(link.getAttribute('href')).toBe('/patkat')
+    expect(link.textContent).toBe('🧭 Kaikki pätkät')
+  })
+
+  it('V222: talkoolaisen hub-linkki ⊥ ole sama kuin 🏠 moodinvaihto (eri label, ei kahta kotia)', async () => {
+    mockLocalStorage()
+    const { AccountMenu } = await import('../src/ui/account-menu')
+    const c = document.createElement('div')
+    new AccountMenu(c, { displayName: 'Talkoolainen', role: 'talkoolainen', onLoggedOut: vi.fn() })
+    const link = c.querySelector('.account-menu-patkat') as HTMLAnchorElement
+    // 🏠 (#btn-home-view) = moodinvaihto saman pätkän sisällä → hub-linkki ei saa lukea "koti"
+    expect(link.textContent?.toLowerCase()).not.toContain('koti')
+    expect(link.textContent).not.toContain('🏠')
+    // Linkki on <a href> (sivunvaihto), ei <button> (moodikytkin)
+    expect(link.tagName).toBe('A')
+  })
+
+  it('V222: linkki on ⋯-valikon DOM:issa view-moodista riippumatta (koti JA kartta)', async () => {
+    mockLocalStorage()
+    const { AccountMenu } = await import('../src/ui/account-menu')
+    for (const mode of ['koti', 'kartta']) {
+      document.body.innerHTML = `<div id="app" data-view-mode="${mode}">
+        <div id="toolbar-actions"><button id="btn-menu">⋯</button></div>
+        <div id="toolbar-menu"><div id="account-menu-section"></div></div>
+      </div>`
+      const section = document.getElementById('account-menu-section')!
+      new AccountMenu(section, {
+        displayName: 'Talkoolainen',
+        role: 'talkoolainen',
+        onLoggedOut: vi.fn(),
+      })
+      const link = document.querySelector('#toolbar-menu .account-menu-patkat')
+      expect(link, `moodi=${mode}`).not.toBeNull()
+      // ⋯-nappi on olemassa molemmissa moodeissa (näkyvyys = CSS; ei piiloteta moodilla)
+      expect(document.getElementById('btn-menu')).not.toBeNull()
+    }
   })
 
   it('ilman roolia ei linkkiä (taaksepäin-yhteensopiva)', async () => {

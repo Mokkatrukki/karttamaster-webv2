@@ -55,7 +55,10 @@ test.describe('T28 — Status panel (tilannekuva)', () => {
     const before = await detail.textContent()
     expect(before).toBe('—')
 
-    // Lisää merkki (T85: dblclick → floating picker → tyyppi)
+    // Lisää merkki (T85: dblclick → floating picker → tyyppi).
+    // T307/V218: sijoitus on muokkaustilan toiminto → avaa tila ensin (kartta avautuu katselussa).
+    await page.click('#btn-map-mode')
+    await expect(page.locator('body')).toHaveAttribute('data-map-mode', 'muokkaus')
     await page.dblclick('#map', { position: { x: 460, y: 260 } })
     await page.waitForTimeout(500)
     await expect(page.locator('#floating-picker')).toHaveClass(/open/)
