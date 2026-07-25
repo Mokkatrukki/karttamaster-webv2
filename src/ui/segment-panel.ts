@@ -60,7 +60,9 @@ export class SegmentPanel {
         this.callbacks.onExitCreationMode?.()
         this.render()
         this.onUpdate()
-        void seg
+        // T298/V209/B113: luotu pätkä aukeaa suoraan lisätiedot-modaaliin — järjestäjä näkee
+        // linkin ja voi muokata heti. Slug syntyy luonnissa (T297), ei "jaa linkki" -porttia.
+        this.detailsModal.open(seg)
       },
       () => this.creationPhase(),
       () => this.callbacks.getMarkers?.() ?? [],

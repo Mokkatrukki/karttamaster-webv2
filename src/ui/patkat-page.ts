@@ -1,5 +1,5 @@
 import { marked } from 'marked'
-import { getSegmentStatusCounts, formatStatusCounts } from '../logic/segments'
+import { getSegmentStatusCounts, formatStatusCounts, segmentPath } from '../logic/segments'
 import type { Segment } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
 
@@ -120,14 +120,15 @@ function buildSegmentRow(seg: Segment, markers: SignMarker[], role: string): HTM
 
   const actions = document.createElement('div')
   actions.className = 'patkat-row-actions'
-  if (seg.assignedCode) {
-    const url = `/s/${seg.assignedCode}`
+  // T298/V209/B113: "Avaa" ∀ pätkälle — slug syntyy luonnissa (T297), ei vaadi assignia.
+  const url = segmentPath(seg)
+  if (url) {
     const open = document.createElement('a')
     open.className = 'patkat-row-open btn'
     open.href = url
     open.textContent = 'Avaa →'
     actions.appendChild(open)
-    li.dataset.slug = seg.assignedCode
+    li.dataset.slug = seg.slug ?? seg.assignedCode ?? ''
     // T275: järjestäjä näkee kaikki linkit + Kopioi yhdessä näkymässä (korjaa "jokaiselle
     // reitille hankala mennä" — ei tarvitse avata jokaista SegmentDetailsModalia erikseen).
     if (role !== 'talkoolainen') {
@@ -140,9 +141,10 @@ function buildSegmentRow(seg: Segment, markers: SignMarker[], role: string): HTM
       actions.appendChild(copyBtn)
     }
   } else {
+    // Ei slugia eikä koodia — ei pitäisi tapahtua T297:n jälkeen (backfill), mutta ei kaadeta UI:ta.
     const nolink = document.createElement('span')
     nolink.className = 'patkat-row-nolink'
-    nolink.textContent = role === 'talkoolainen' ? 'Ei vielä jaettu' : 'Ei jaettu'
+    nolink.textContent = 'Ei linkkiä'
     actions.appendChild(nolink)
   }
   li.appendChild(actions)

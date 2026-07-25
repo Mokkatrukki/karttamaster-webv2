@@ -120,6 +120,13 @@ export function generateSegmentSlug(name: string, existing: string[]): string {
   return `${base}-${n}`
 }
 
+// T298/V209: pätkän jaettava URL-polku. Slug ensin, legacy-assignedCode fallbackina;
+// null = ei linkitettävissä (ei pitäisi tapahtua T297:n jälkeen, mutta UI ei saa kaatua).
+export function segmentPath(seg: Pick<Segment, 'slug' | 'assignedCode'>): string | null {
+  const code = seg.slug ?? seg.assignedCode
+  return code ? `/s/${code}` : null
+}
+
 // T146/V91: lookup, ei if-ketju — uusi phase helppo lisätä. purku→asettaminen kiertää ympäri
 // (järjestäjä voi kloonata takaisin seuraavan tapahtuman asetusvaihetta varten).
 export const NEXT_PHASE: Record<Segment['phase'], Segment['phase']> = {
