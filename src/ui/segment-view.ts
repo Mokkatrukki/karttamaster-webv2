@@ -38,6 +38,9 @@ export interface SegmentViewActions {
   onToggleGps?: () => boolean
   // T232 (B): GPS-navigaattorin nykyinen tila (napin alkuperäisen ilmeen renderöintiin).
   isGpsActive?: () => boolean
+  // T341/V247: napin teksti navigaattorin tilasta ('Haetaan…' ennen ensimmäistä fixiä).
+  // Puuttuessa fallback boolean-labeliin — ui-kerros ei importtaa map-kerrosta (kerrosraja).
+  gpsLabel?: () => string
   // T232 (F)/V159: hero:n valittu merkki muuttui (◀▶-selailu/reconcile) → synkkaa kartan
   // ikoni-korostus (T256 setNextHighlight). null = ei valittua merkkiä (done/väärä phase) → tyhjennä.
   onNavigate?: (markerId: string | null) => void
@@ -196,7 +199,8 @@ export class SegmentView {
     this.gpsBtn.hidden = false
     const active = this.actions.isGpsActive?.() ?? false
     this.gpsBtn.classList.toggle('gps-active', active)
-    this.gpsBtn.textContent = active ? '📍 GPS päällä' : '📍 GPS'
+    // T341/V247: label navigaattorin tilasta jos annettu — muuten boolean-fallback.
+    this.gpsBtn.textContent = this.actions.gpsLabel?.() ?? (active ? '📍 GPS päällä' : '📍 GPS')
   }
 
   // T230: "Merkitse pätkä valmiiksi" — vain asettaminen/purku (tarkastus käyttää inspect-osiota).
@@ -418,7 +422,7 @@ export class SegmentView {
     gpsBtn.addEventListener('click', () => {
       const active = this.actions.onToggleGps?.() ?? false
       gpsBtn.classList.toggle('gps-active', active)
-      gpsBtn.textContent = active ? '📍 GPS päällä' : '📍 GPS'
+      gpsBtn.textContent = this.actions.gpsLabel?.() ?? (active ? '📍 GPS päällä' : '📍 GPS')
     })
     panel.appendChild(gpsBtn)
 

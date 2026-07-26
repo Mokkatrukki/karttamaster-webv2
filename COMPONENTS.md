@@ -76,7 +76,7 @@ server/       ← Hono + Bun + SQLite
 | RouteBar | `src/map/route-bar.ts` | ✓ (T224: piilotettu talkoolaiselta, `#route-bar` hidden) | — | [map.md](docs/components/map.md) |
 | BasemapDimControl | `src/map/basemap-dim-control.ts` | ✓ T287 (pohjan näkyvyys-slider ⋯-valikossa, tilePane-opacity, V201) | — | [map.md](docs/components/map.md) |
 | ~~NextMarkerHighlight~~ | POISTETTU T256/R6 | accent-rengas → ikoni-hehku (`MarkerManager.setNextHighlight` + `.marker-next-highlight` CSS-glow, V178) | — | — |
-| GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30 | critical-paths: "GPS-paikannin" | [map.md](docs/components/map.md) |
+| GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30, T341 (tilakone haetaan/päällä/pois + näkyvät virheet, V247) | critical-paths: "GPS-paikannin" · t341-gps-no-segment | [map.md](docs/components/map.md) |
 | AreaOverlay | `src/map/area-overlay.ts` | ✓ | area-interaction | [map.md](docs/components/map.md) |
 | MapRectEditor | `src/map/map-rect-editor.ts` | ✓ T117 | area-interaction | [map.md](docs/components/map.md) |
 | SegmentOverlay | `src/map/segment-overlay.ts` | ✓ T152, T217 (reititön skip) | segments: "viivatyyli koodaa statuksen"; t217: routeless gap-safety (Taso-1, Playwright post-T216) | [map.md](docs/components/map.md) |

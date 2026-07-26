@@ -20,7 +20,7 @@ import { planSegmentZoom } from '../logic/segment-zoom'
 import { firstUnsetMarker, distanceAhead } from '../logic/navigation'
 import { CommentLayer } from '../map/comment-layer'
 import { fetchComments, deleteComment } from '../logic/comments'
-import type { GpsNavigator } from '../map/gps-navigator'
+import type { GpsNavigator, GpsState } from '../map/gps-navigator'
 import { updateSegmentRemote } from '../logic/segment-sync'
 import { outbox, setOutboxChangeHandler } from '../logic/outbox-instance'
 import type { RouteConfig } from '../logic/multi-route'
@@ -37,6 +37,37 @@ export function syncMapModeToBody(state: MapModeState = mapMode): () => void {
   const apply = (m: MapMode): void => { document.body.dataset.mapMode = m }
   apply(state.get())
   return state.onChange(apply)
+}
+
+// T341/V247: talkoolaisen GPS-napin label yhdestä paikasta — hero (`.segment-view-gps-btn`) ja
+// yläpalkin ⋯ (`#btn-tk-gps`) lukevat SAMAN GpsNavigator-tilan. Kaksi labelia = kaksi totuutta.
+export function gpsButtonLabel(state: GpsState): string {
+  if (state === 'päällä') return '📍 GPS päällä'
+  if (state === 'haetaan') return '📍 Haetaan…'
+  return '📍 GPS'
+}
+
+// T341/V247 (fix B133): GPS-toggle kytketään ROOLIN perusteella, EI pätkän olemassaolon.
+// Oma sijainti on laitteen tieto ∴ jos tämä elää `if (seg)`-lohkon sisällä, nappi renderöityy
+// kuuntelijatta aina kun pätkää ei löydy (lataus kaatui / koodilla ei pätkää) → klikkaus ei tee
+// mitään eikä mikään kerro siitä. Paikannusvirhe ei myöskään saa olla hiljainen (V247).
+export function wireGpsButton(
+  gps: Pick<GpsNavigator, 'start' | 'stop' | 'getState'>,
+  showWarning: (msg: string, ms?: number) => void,
+): (state: GpsState, msg?: string) => void {
+  const sync = (state: GpsState, msg?: string): void => {
+    document.querySelectorAll<HTMLElement>('#btn-tk-gps, .segment-view-gps-btn').forEach(btn => {
+      btn.textContent = gpsButtonLabel(state)
+      btn.classList.toggle('gps-active', state !== 'pois')
+    })
+    if (msg) showWarning(`⚠ ${msg}`, 5000)
+  }
+  document.getElementById('btn-tk-gps')?.addEventListener('click', () => {
+    if (gps.getState() !== 'pois') { gps.stop(); sync('pois'); return }
+    gps.start(sync)
+  })
+  sync(gps.getState())
+  return sync
 }
 
 export interface MarkersWiring {
@@ -200,6 +231,10 @@ export function wireMarkers(
   markerManager.setPendingKeys(outbox.pendingResourceKeys())
 
   if (talkoolainenCode) {
+    // T341/V247 (B133): GPS ENNEN pätkähakua — oma sijainti ei riipu pätkästä. Jos tämä
+    // siirtyy `if (seg)`:n sisään, talkoolainen jää ilman GPS:ää aina kun pätkä puuttuu.
+    const syncGpsLabel = wireGpsButton(gpsNavigator, showWarning)
+
     const seg = getSegmentForCode(segmentStore, talkoolainenCode)
     if (seg) {
       // T230/V93 + T257/R8: pätkän valmiiksi-merkintä. Jaettu SegmentView-heron (onComplete)
@@ -291,10 +326,14 @@ export function wireMarkers(
           // T232 (B)/V156: GPS-toggle. Ohjaa GpsNavigatoria (T30, oma sijainti) — ERILLINEN
           // driveModesta. Palauttaa uuden aktiivitilan napin ilmeeseen. R8: GPS myös yläpalkin ⋯:ssä.
           onToggleGps: () => {
-            if (gpsNavigator.isActive()) { gpsNavigator.stop(); return false }
-            gpsNavigator.start(); return true
+            if (gpsNavigator.isActive()) { gpsNavigator.stop(); syncGpsLabel('pois'); return false }
+            gpsNavigator.start(syncGpsLabel)
+            return gpsNavigator.isActive()
           },
           isGpsActive: () => gpsNavigator.isActive(),
+          // T341/V247: hero-nappi lukee saman tilan kuin ⋯-nappi — "Haetaan…" ennen ensimmäistä
+          // fixiä, ei valheellista "GPS päällä" (B133).
+          gpsLabel: () => gpsButtonLabel(gpsNavigator.getState()),
           // T232 (F)/V159: hero:n valittu merkki (◀▶-selailu/reconcile) → synkkaa kartan korostus.
           // null = ei valittua (done/väärä phase) → tyhjennä. Korostus SEURAA valintaa, ei suoraan
           // firstUnsetMarkeria (estää "highlight osoittaa eri merkkiin kuin hero" -epäjohdonmukaisuuden).
@@ -323,16 +362,8 @@ export function wireMarkers(
       applyDraggable()
 
       // T257/R8/V179: talkoolaisen yläpalkin ⋯-toiminnot (VISION "GPS ym ylävalikkoon").
-      // Karttamoodissa hero-chrome minimaali (T255) → GPS/Lisää merkki/Merkitse valmiiksi ⋯:ssä.
-      // Sama polku kuin hero (gpsNavigator, openAddMarkerPicker, applyComplete).
-      const btnTkGps = document.getElementById('btn-tk-gps')
-      const syncGpsLabel = () => { if (btnTkGps) btnTkGps.textContent = gpsNavigator.isActive() ? '📍 GPS päällä' : '📍 GPS' }
-      btnTkGps?.addEventListener('click', () => {
-        if (gpsNavigator.isActive()) gpsNavigator.stop(); else gpsNavigator.start()
-        syncGpsLabel()
-      })
-      syncGpsLabel()
-
+      // Karttamoodissa hero-chrome minimaali (T255) → Lisää merkki/Merkitse valmiiksi ⋯:ssä.
+      // GPS kytkettiin jo ylempänä (T341/V247) — se ei tarvitse pätkää, nämä kaksi tarvitsevat.
       document.getElementById('btn-tk-add-marker')?.addEventListener('click', openAddMarkerPicker)
 
       const btnTkComplete = document.getElementById('btn-tk-complete')

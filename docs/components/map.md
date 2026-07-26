@@ -98,15 +98,16 @@ Leaflet-glue. Ohut kerros kartan päällä. **Testattavuus: Playwright.**
 
 ---
 
-## GpsNavigator *(tulossa — T21, T30, T31)*
+## GpsNavigator *(T30 ✓, T341 ✓ — T21/T31 tulossa)*
 **Vastuu:** Laitteen GPS-sijainti kartalla + navigointi seuraavaan merkkiin
 **Käyttäjä:** talkoolainen metsässä
 **Konteksti:** mobiili, ulkona, GPS päällä, mahdollinen offline
-**Moduuli:** `src/map/gps-navigator.ts` *(ei vielä)*
+**Moduuli:** `src/map/gps-navigator.ts`
 **Testattavuus:** Playwright (Geolocation API mock)
 
 ### Tulossa
-- [ ] Geolocation API: sijainti pisteenä kartalla (T30)
+- [x] Geolocation API: sijainti pisteenä kartalla (T30)
+- [x] Tilakone `haetaan → päällä → pois` + näkyvä virhesyy, TIMEOUT-retry matalalla tarkkuudella (T341/V247, fix B133)
 - [ ] `nearestUnsetMarker` — lähin asettamaton merkki (T16)
 - [ ] "Seuraava merkki Xm päässä" -näyttö (T31)
 - [ ] GPS-drive UI: navigointi + kuittaus yhdessä (T31)
