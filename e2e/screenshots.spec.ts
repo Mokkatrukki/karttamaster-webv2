@@ -123,7 +123,8 @@ test('admin_desktop_segment-details-modal', async ({ page }) => {
   await page.waitForTimeout(LOAD)
   await page.locator('.left-panel-section-header').filter({ hasText: 'Reittipätkät' }).click()
   await page.waitForTimeout(300)
-  await page.locator('.btn-segment-details-open').first().click()
+  // T345: ··· avaa pikavalikon → modaali aukeaa rivin nimestä (T344).
+  await page.locator('.segment-info').first().click()
   await page.waitForTimeout(400)
   await snap(page, 'admin_desktop_segment-details-modal')
 })

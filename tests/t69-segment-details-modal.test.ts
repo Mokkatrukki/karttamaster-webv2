@@ -54,7 +54,7 @@ describe('T69 — SegmentDetailsModal', () => {
 
   it('pätkärivillä on "Lisätiedot & varusteet" -nappi (ei inline toggle)', () => {
     const { container } = setup()
-    const openBtn = container.querySelector('.btn-segment-details-open')
+    const openBtn = container.querySelector('.segment-info')
     expect(openBtn).not.toBeNull()
     // vanha inline toggle ei enää olemassa
     expect(container.querySelector('.btn-segment-details-toggle')).toBeNull()
@@ -62,7 +62,7 @@ describe('T69 — SegmentDetailsModal', () => {
 
   it('nappi avaa modaalin document.body:yyn', () => {
     const { container } = setup()
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const backdrop = document.querySelector('.segment-details-modal-backdrop')
     const modal = document.querySelector('.segment-details-modal')
@@ -72,7 +72,7 @@ describe('T69 — SegmentDetailsModal', () => {
 
   it('modaali näyttää pätkän nimen', () => {
     const { container } = setup()
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const title = document.querySelector('.segment-details-modal-title')
     expect(title?.textContent).toBe('Testipätkä')
@@ -80,7 +80,7 @@ describe('T69 — SegmentDetailsModal', () => {
 
   it('modaali näyttää kuvauksen tekstialueessa', () => {
     const { container } = setup()
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const descInput = document.querySelector('.segment-desc-input') as HTMLTextAreaElement
     expect(descInput).not.toBeNull()
@@ -89,7 +89,7 @@ describe('T69 — SegmentDetailsModal', () => {
 
   it('modaali näyttää manuaalivarusteet', () => {
     const { container } = setup()
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const equipInputs = document.querySelectorAll('.equipment-name-input')
     expect(equipInputs.length).toBeGreaterThan(0)
@@ -98,7 +98,7 @@ describe('T69 — SegmentDetailsModal', () => {
 
   it('suljetaan ✕-napilla', () => {
     const { container } = setup()
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     expect(document.querySelector('.segment-details-modal')).not.toBeNull()
     const closeBtn = document.querySelector('.segment-details-modal-close') as HTMLButtonElement
@@ -108,7 +108,7 @@ describe('T69 — SegmentDetailsModal', () => {
 
   it('suljetaan Escape-näppäimellä', () => {
     const { container } = setup()
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     expect(document.querySelector('.segment-details-modal')).not.toBeNull()
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
@@ -117,7 +117,7 @@ describe('T69 — SegmentDetailsModal', () => {
 
   it('suljetaan backdrop-klikillä', () => {
     const { container } = setup()
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const backdrop = document.querySelector('.segment-details-modal-backdrop') as HTMLElement
     backdrop.click()
@@ -126,7 +126,7 @@ describe('T69 — SegmentDetailsModal', () => {
 
   it('displayName-tallennus blur-eventissä päivittää storen', async () => {
     const { container, store } = setup()
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const nameInput = document.querySelector('.segment-details-name-input') as HTMLInputElement
     nameInput.value = 'Uusi nimi'
@@ -138,7 +138,7 @@ describe('T69 — SegmentDetailsModal', () => {
 
   it('displayName-tallennus Enter-näppäimellä päivittää storen', async () => {
     const { container, store } = setup()
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const nameInput = document.querySelector('.segment-details-name-input') as HTMLInputElement
     nameInput.value = 'Enter-nimi'
@@ -150,7 +150,7 @@ describe('T69 — SegmentDetailsModal', () => {
 
   it('description-tallennus change-eventissä päivittää storen', async () => {
     const { container, store } = setup()
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const descInput = document.querySelector('.segment-desc-input') as HTMLTextAreaElement
     descInput.value = 'Uusi kuvaus'
@@ -162,7 +162,7 @@ describe('T69 — SegmentDetailsModal', () => {
 
   it('varuste-lisäys "+ Lisää" -napilla', async () => {
     const { container, store } = setup()
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const addInputs = document.querySelectorAll('.segment-equipment-add .equipment-name-input')
     const addBtn = document.querySelector('.btn-equipment-add') as HTMLButtonElement
@@ -176,7 +176,7 @@ describe('T69 — SegmentDetailsModal', () => {
 
   it('varuste-poisto ✕-napilla', async () => {
     const { container, store } = setup()
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const removeBtn = document.querySelector('.btn-equipment-remove') as HTMLButtonElement
     removeBtn.click()
@@ -196,7 +196,7 @@ describe('T69 — SegmentDetailsModal', () => {
       status: 'asetettu',
     }
     const { container } = setup([marker])
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const markerList = document.querySelector('.segment-details-marker-list')
     expect(markerList).not.toBeNull()
@@ -207,7 +207,7 @@ describe('T69 — SegmentDetailsModal', () => {
 
   it('merkkilista piilotettu jos pätkällä ei merkkejä', () => {
     const { container } = setup([])
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     expect(document.querySelector('.segment-details-marker-list')).toBeNull()
   })
@@ -215,7 +215,7 @@ describe('T69 — SegmentDetailsModal', () => {
   // T146: kloonaa seuraavaan vaiheeseen -nappi
   it('modaali näyttää "Kloonaa tarkastus-vaiheeseen" -napin asettaminen-pätkällä', () => {
     const { container } = setup()
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const cloneBtn = document.querySelector('.btn-segment-clone-phase') as HTMLButtonElement
     expect(cloneBtn).not.toBeNull()
@@ -224,7 +224,7 @@ describe('T69 — SegmentDetailsModal', () => {
 
   it('klikkaus luo uuden segmentin oikealla phase-arvolla, vanha säilyy', async () => {
     const { container, store } = setup()
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const original = Array.from(store.values())[0]
     const cloneBtn = document.querySelector('.btn-segment-clone-phase') as HTMLButtonElement

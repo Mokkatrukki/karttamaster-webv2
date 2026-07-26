@@ -67,7 +67,7 @@ describe('T199 — SegmentDetailsModal yhtenäinen merkit & varusteet -lista', (
 
   it('per-merkki-rivi näyttää oikean merkkivisuaalin (ei enää pelkkää tekstiä)', () => {
     const { container } = setup([marker({ type: 'right' })])
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const item = document.querySelector('.segment-details-marker-item')!
     expect(item.querySelector('.marker-visual-row-sv')).toBeTruthy()
@@ -75,7 +75,7 @@ describe('T199 — SegmentDetailsModal yhtenäinen merkit & varusteet -lista', (
 
   it('per-merkki-rivi näyttää km-lukeman erillisessä spanissa', () => {
     const { container } = setup([marker({ type: 'right', distanceFromStart: 8400 })])
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const km = document.querySelector('.segment-details-marker-km')
     expect(km?.textContent).toBe('8.4 km')
@@ -85,7 +85,7 @@ describe('T199 — SegmentDetailsModal yhtenäinen merkit & varusteet -lista', (
     const { container } = setup([
       marker({ type: 'combo', label: 'Risteys', parts: [{ iconId: 'arrow-left' }, { iconId: 'arrow-right' }] }),
     ])
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const item = document.querySelector('.segment-details-marker-item')!
     expect(item.querySelectorAll('.marker-visual-row-combo-slot')).toHaveLength(2)
@@ -94,7 +94,7 @@ describe('T199 — SegmentDetailsModal yhtenäinen merkit & varusteet -lista', (
 
   it('zoom-nappi rivillä avaa lightboxin oikealla merkillä', () => {
     const { container } = setup([marker({ type: 'left', label: 'Vasemmalle' })])
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const zoomBtn = document.querySelector<HTMLButtonElement>('.segment-details-marker-item .marker-visual-row-zoom')!
     zoomBtn.click()
@@ -108,7 +108,7 @@ describe('T199 — SegmentDetailsModal yhtenäinen merkit & varusteet -lista', (
       marker({ type: 'left', label: 'Vasemmalle' }),
       marker({ type: 'right', label: 'Oikealle' }),
     ])
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const chips = document.querySelectorAll('.segment-equipment-chip')
     expect(chips).toHaveLength(2)
@@ -122,7 +122,7 @@ describe('T199 — SegmentDetailsModal yhtenäinen merkit & varusteet -lista', (
 
   it('yhteenveto-chip ei sisällä zoom-nappia', () => {
     const { container } = setup([marker({ type: 'left', label: 'Vasemmalle' })])
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const chip = document.querySelector('.segment-equipment-chip')!
     expect(chip.querySelector('.marker-visual-row-zoom')).toBeFalsy()
@@ -130,7 +130,7 @@ describe('T199 — SegmentDetailsModal yhtenäinen merkit & varusteet -lista', (
 
   it('manuaalinen lisävaruste-lisäys toimii ennallaan (regressio)', async () => {
     const { container, store } = setup()
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const addInputs = document.querySelectorAll('.segment-equipment-add .equipment-name-input')
     const addBtn = document.querySelector('.btn-equipment-add') as HTMLButtonElement
@@ -144,7 +144,7 @@ describe('T199 — SegmentDetailsModal yhtenäinen merkit & varusteet -lista', (
 
   it('manuaalinen lisävaruste-poisto toimii ennallaan (regressio)', async () => {
     const { container, store } = setup()
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     const removeBtn = document.querySelector('.btn-equipment-remove') as HTMLButtonElement
     removeBtn.click()
@@ -155,7 +155,7 @@ describe('T199 — SegmentDetailsModal yhtenäinen merkit & varusteet -lista', (
 
   it('ei merkkejä → ei merkkilistaa eikä yhteenveto-chippejä, manuaalilista näkyy silti', () => {
     const { container } = setup([])
-    const openBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+    const openBtn = container.querySelector('.segment-info') as HTMLButtonElement
     openBtn.click()
     expect(document.querySelector('.segment-details-marker-list')).toBeNull()
     expect(document.querySelector('.segment-equipment-chip-list')).toBeNull()

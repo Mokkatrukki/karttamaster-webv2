@@ -3,7 +3,8 @@ import type { MarkerManager } from '../map/markers'
 import { SegmentOverlay } from '../map/segment-overlay'
 import { SegmentPanel } from '../ui/segment-panel'
 import { PhaseSwitcher } from '../ui/phase-switcher'
-import { getSegmentsForPhase, getSegmentForCode } from '../logic/segments'
+import { getSegmentsForPhase, getSegmentForCode, getMarkersForSegment } from '../logic/segments'
+import { fitMapToSegment } from '../map/segment-fit'
 import type { Segment } from '../logic/segments'
 import { fetchSegmentByCode, fetchAllSegments } from '../logic/segment-sync'
 import { getActivePhase } from '../logic/phase-view'
@@ -31,6 +32,8 @@ export async function wireSegments(
   markerManagerRef: { current: MarkerManager | null },
   onSaveError: () => void,
   onLoadError: () => void = () => {},
+  // T345: näkyvä palaute pikavalikon toiminnoille (linkin kopiointi).
+  onNotify: (msg: string) => void = () => {},
 ): Promise<SegmentsWiring> {
   const segmentStore = new Map<string, Segment>()
   if (talkoolainenCode) {
@@ -127,6 +130,13 @@ export async function wireSegments(
       // T335/V243: korostuskytkin pätkämodaalissa — tila tässä, pilleri sen näkyvä ulospääsy.
       isFocusSegment: (seg) => focusSegmentId === seg.id,
       onToggleFocusSegment: (seg, on) => setFocusSegment(on ? seg : null),
+      // T345: sama rajauskuvio kuin talkoolaisen latauszoomissa (`src/map/segment-fit.ts`) —
+      // yksi zoom-sääntö, ⊥ kahta erilaista "koko pätkää".
+      onShowSegmentOnMap: (seg) => {
+        const markers = markerManagerRef.current?.getAll() ?? initialMarkers
+        fitMapToSegment(map, routes, seg, getMarkersForSegment(seg, markers))
+      },
+      onNotify: (msg) => onNotify(msg),
     },
   )
 

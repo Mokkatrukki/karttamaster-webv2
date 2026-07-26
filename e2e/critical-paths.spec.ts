@@ -801,7 +801,7 @@ test.describe('T335 — merkkien korostus (V243)', () => {
 
     // Pätkäpaneeli on kutistettu oletuksena → avaa otsikosta ja klikkaa pätkää listasta
     await page.locator('.segment-panel-header').click()
-    await page.locator('#segment-list .btn-segment-details-open').first().click()
+    await page.locator('#segment-list .segment-info').first().click()
     const toggle = page.locator('.btn-segment-focus-toggle')
     await expect(toggle).toHaveAttribute('aria-pressed', 'false')
     await toggle.click()
@@ -823,6 +823,60 @@ test.describe('T335 — merkkien korostus (V243)', () => {
     await clear.click()
     await expect(pill).toBeHidden()
     await expect(page.locator('.leaflet-marker-icon.marker-dimmed')).toHaveCount(0)
+  })
+
+  // T345/V250: katselutoiminnot ilman modaalia — ···-pikavalikko.
+  test('järjestäjä: ···-valikosta korostus päälle ILMAN modaalia', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
+    await page.route(/\/api\/segments$/, route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([SEG]) }))
+    await mockMarkers(page, [mk('mk-oma', 'OMA', 65.62), mk('mk-vieras', 'VIERAS', 65.63)])
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await page.locator('.segment-panel-header').click()
+    await page.locator('#segment-list .btn-segment-details-open').first().click()
+    await expect(page.locator('.segment-row-menu')).toBeVisible()
+
+    await page.locator('.segment-row-menu-item', { hasText: 'Korosta' }).click()
+    // Valikko sulkeutuu, modaali EI avaudu, merkit himmenevät
+    await expect(page.locator('.segment-row-menu')).toHaveCount(0)
+    await expect(page.locator('.segment-details-modal')).toHaveCount(0)
+    await expect(page.locator('.leaflet-marker-icon[title="VIERAS"]')).toHaveClass(/marker-dimmed/)
+    await expect(page.locator('#marker-focus-pill')).toBeVisible()
+
+    // Valikko lukee saman tilan → rivi näyttää nyt "päällä"
+    await page.locator('#segment-list .btn-segment-details-open').first().click()
+    await expect(page.locator('.segment-row-menu-item', { hasText: 'Korostus päällä' })).toHaveAttribute('aria-pressed', 'true')
+    await page.keyboard.press('Escape')
+    await expect(page.locator('.segment-row-menu')).toHaveCount(0)
+  })
+
+  test('järjestäjä: ···-valikon "Näytä kartalla" siirtää karttaa', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
+    await page.route(/\/api\/segments$/, route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ ...SEG, startDist: 2000, endDist: 8000 }]) }))
+    await mockMarkers(page, [])
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    const center = () => page.evaluate(() => {
+      const m = (window as unknown as Record<string, unknown>)['__testMap'] as { getCenter(): { lat: number; lng: number } } | undefined
+      const c = m?.getCenter()
+      return c ? `${c.lat.toFixed(4)},${c.lng.toFixed(4)}` : ''
+    })
+    const before = await center()
+
+    await page.locator('.segment-panel-header').click()
+    await page.locator('#segment-list .btn-segment-details-open').first().click()
+    await page.locator('.segment-row-menu-item', { hasText: 'Näytä kartalla' }).click()
+    await page.waitForTimeout(600)
+
+    expect(await center()).not.toBe(before)
   })
 
   test('järjestäjä: ei korostusta oletuksena, pilleri piilossa', async ({ page }) => {

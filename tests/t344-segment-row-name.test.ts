@@ -55,9 +55,12 @@ describe('T344/V250 — pätkärivin nimi avaa lisätiedot', () => {
     expect(document.querySelectorAll('.segment-details-modal-backdrop')).toHaveLength(1)
   })
 
-  it('··· avaa saman modaalin (toinen sisääntulo säilyy)', () => {
+  it('··· säilyy toisena sisääntulona (T345: avaa pikavalikon, ei suoraan modaalia)', () => {
     setup()
     document.querySelector<HTMLButtonElement>('.btn-segment-details-open')!.click()
+    const details = [...document.querySelectorAll<HTMLButtonElement>('.segment-row-menu-item')]
+      .find(b => b.textContent?.includes('Lisätiedot'))!
+    details.click()
     expect(document.querySelector('.segment-details-modal')).not.toBeNull()
   })
 })

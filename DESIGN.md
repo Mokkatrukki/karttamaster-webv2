@@ -346,6 +346,15 @@ Flex-toolbar joka voi ylittää kapean modaalin → `flex-wrap: wrap` (ei vaakal
 - Item: `[nimi flex:1 truncated] [km text-muted] [···]` — ··· avaa SegmentDetailsModal
 - Section-footer: `[+ Luo uusi pätkä]`
 
+**SegmentRowMenu (`.segment-row-menu`, T345/V250):**
+- Avaaja: rivin `···` (`aria-haspopup="menu"`, `aria-expanded`)
+- Rivit järjestyksessä: `🔍 Näytä kartalla` · `◎ Korosta vain tämä pätkä` ↔ `◉ Korostus päällä` (`aria-pressed`, sama tila kuin SegmentDetailsModalin kytkin — T335) · `🔗 Kopioi talkoolaislinkki` (VAIN jos pätkä on jaettu) · `⚙ Lisätiedot & varusteet…`
+- **Ei disabloituja rivejä:** rivi joko toimii tai puuttuu. Harmaa "Kopioi linkki" jakamattomalla pätkällä olisi arvoitus, ei ohje
+- Ulkoasu: `surface-card`, `border-default`, `radius-md`, `box-shadow 0 12px 32px rgba(0,0,0,.28)`; rivit `min-height:44px` (§A), hover `--hover`, päällä oleva rivi `--accent` + bold — tila ei ole pelkkä teksti (V197)
+- Backdrop `.segment-row-menu-backdrop`: **läpinäkyvä** (`background:transparent`, `z-index:3200`) — nappaa ulkoklikin muttei tummenna karttaa; valikko on välitila, ei modaali
+- Sulkeminen: valinta / Esc / ulkoklikki — `createBackdrop` + `registerEscClose` (`modal-helpers.ts`), ei omaa document-kuuntelijaa
+- Ankkurointi: napin alle (`top: rect.bottom+4`), oikea reuna clampattu `max(8px, rect.right - menuWidth)`
+
 **AreaPanel section (T109):**
 - Section-header: `[▼/▶ Alueet (N)]` — ei create-nappia headerissa
 - Item-rivi: `[▶/▼ expand] [nimi button flex:1] [(N) tai ✓] [···]`

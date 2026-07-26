@@ -16,7 +16,7 @@ import { getRole } from '../logic/role'
 import { MarkerDetailModal } from '../ui/marker-detail-modal'
 import { getSegmentForCode, getMarkersForSegment, updateSegment, segmentPrimaryRouteId } from '../logic/segments'
 import type { Segment } from '../logic/segments'
-import { planSegmentZoom } from '../logic/segment-zoom'
+import { fitMapToSegment } from '../map/segment-fit'
 import { firstUnsetMarker, distanceAhead } from '../logic/navigation'
 import { CommentLayer } from '../map/comment-layer'
 import { fetchComments, deleteComment } from '../logic/comments'
@@ -87,30 +87,6 @@ interface MarkersWiringDeps {
   showWarning: (msg: string, ms?: number) => void
   // T232 (B): GPS-navigaattori (luotu map-init.ts:ssä) → talkoolaisen SegmentView-heron GPS-toggle.
   gpsNavigator: GpsNavigator
-}
-
-// T224 (D): latauksessa zoomaa talkoolaisen OMAAN pätkään ("tässä on sun pätkä"), ei koko karttaan.
-// planSegmentZoom päättää fit vs anchor (pitkä pätkä → aloita alkupäästä). Boundit route-slicestä;
-// jos slice tyhjä (reititön/harva data) → fallback pätkän merkkien latlngeihin.
-function fitMapToSegment(map: L.Map, routes: RouteConfig[], seg: Segment, segMarkers: SignMarker[]): void {
-  const plan = planSegmentZoom(seg.startDist, seg.endDist)
-  const latlngs: [number, number][] = []
-  if (plan) {
-    const routeSet = new Set(seg.routeIds ?? [])
-    for (const r of routes) {
-      if (!routeSet.has(r.id)) continue
-      for (const p of r.routePoints) {
-        if (p.distanceFromStart >= plan.startDist && p.distanceFromStart <= plan.endDist) {
-          latlngs.push([p.lat, p.lon])
-        }
-      }
-    }
-  }
-  if (latlngs.length === 0) {
-    for (const m of segMarkers) latlngs.push([m.lat, m.lon])
-  }
-  if (latlngs.length === 1) map.setView(latlngs[0], 15)
-  else if (latlngs.length > 1) map.fitBounds(latlngs, { padding: [40, 40], maxZoom: 16 })
 }
 
 // T85-T105/T140-T152: merkkien sijoitus, tila, ajotila, tarkastusnäkymä ja liittyvä UI.

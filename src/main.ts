@@ -105,6 +105,7 @@ async function init(talkoolainenCode?: string) {
     map, routes, talkoolainenCode, initialMarkers, markerManagerRef,
     () => showWarning('⚠ Pätkän tallennus epäonnistui (muisti täynnä?)', 5000),
     () => showWarning('⚠ Pätkien lataus epäonnistui — päivitä sivu', 0),
+    (msg) => showWarning(msg, 2500),
   )
 
   const { markerManager, driveMode, progressBar, placeMode, markerModal, closeMarkerModal } = wireMarkers(

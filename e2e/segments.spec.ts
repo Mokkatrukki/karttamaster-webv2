@@ -389,7 +389,7 @@ test.describe('T25 — SegmentPanel', () => {
   })
 
   // T77/T199: poisto elää SegmentDetailsModalissa, joka avataan pätkärivin ···-napista
-  // (.btn-segment-details-open, segment-panel.ts:319). Robustoitu deterministiseksi DOM-polulla —
+  // (T344: rivin nimi `.segment-info`; T345: `···` avaa pikavalikon). Robustoitu DOM-polulla —
   // ei enää synteettistä dispatchEvent-klikkiä Leaflet-polylineen (headless-flaky). Ks. muisti flaky-e2e-tests.
   test('pätkän voi poistaa listasta', async ({ page }) => {
     await mockAuthAsJarjestaja(page)

@@ -2502,6 +2502,49 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   border-radius: var(--radius-sm);
 }
 
+/* ── T345/V250: pätkärivin ···-pikavalikko ── */
+
+/* Läpinäkyvä backdrop: nappaa ulkoklikin muttei tummenna karttaa — valikko on kevyt
+   välitila, ei modaali. */
+.segment-row-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3200;
+  background: transparent;
+}
+
+.segment-row-menu {
+  position: fixed;
+  min-width: 220px;
+  padding: 4px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+}
+
+/* DESIGN §A: 44px rivit. Teksti aina mukana — ei pelkkää ikonia (V197). */
+.segment-row-menu-item {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-body);
+  font-size: 13px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.segment-row-menu-item:hover,
+.segment-row-menu-item:focus-visible { background: var(--hover); }
+/* Päällä oleva korostus näkyy myös väreissä, ei vain tekstissä (V197). */
+.segment-row-menu-item[aria-pressed="true"] { color: var(--accent); font-weight: 700; }
+
 /* ── Segment details modal (T69) ── */
 
 .segment-details-modal-backdrop {
