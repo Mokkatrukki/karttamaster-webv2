@@ -357,10 +357,17 @@ export class SegmentPanel {
     li.className = 'segment-item'
     li.dataset.id = seg.id
 
-    const info = document.createElement('span')
+    // T344/V250: nimi on SISÄÄNTULO, ei koriste — DESIGN §K "Item-label: klikkaus = toiminto".
+    // Aiemmin `span` ∴ ~80 % rivin leveydestä oli kuollutta aluetta & ainoa reitti asetuksiin oli
+    // 44px `···`. Klikkikuuntelija on VAIN tässä napissa, ei `li`:ssä — kaksi sisäkkäistä kohdetta
+    // laukaisisi modaalin kahdesti.
+    const info = document.createElement('button')
+    info.type = 'button'
     info.className = 'segment-info'
     const name = seg.displayName ?? `(#${seg.id.slice(0, 6)})`
     info.textContent = name
+    info.setAttribute('aria-label', `Avaa ${name} lisätiedot`)
+    info.addEventListener('click', () => this.detailsModal.open(seg))
 
     const kmSpan = document.createElement('span')
     kmSpan.className = 'segment-km'

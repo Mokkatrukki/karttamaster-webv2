@@ -74,13 +74,15 @@ export class SegmentDetailsModal {
 
     modal.appendChild(this.buildHeader(titleEl, () => this.close()))
 
-    const { body, saveAll } = this.buildBody(seg, titleEl)
+    const { body } = this.buildBody(seg, titleEl)
     // T227: supervision-osio (aktiviteettiloki + massaperuutus) — vain jos pätkälle assignattu koodi
     // (talkoolaisen audit-rivit kantavat segment_code = assignedCode). Async-lataus.
     if (seg.assignedCode) body.appendChild(this.buildAuditSection(seg.assignedCode))
+    // T344/V250: vaaravyöhyke rungon sisällä ENNEN footeria — footerin alle jäävä poisto
+    // luetaan toiseksi dialogiksi.
+    body.appendChild(this.buildDangerZone(seg))
     modal.appendChild(body)
-    modal.appendChild(this.buildSaveFooter(seg, saveAll))
-    modal.appendChild(this.buildDangerZone(seg))
+    modal.appendChild(this.buildCloseFooter())
 
     backdrop.appendChild(modal)
     document.body.appendChild(backdrop)
@@ -115,16 +117,16 @@ export class SegmentDetailsModal {
   private buildBody(
     seg: Segment,
     titleEl: HTMLElement,
-  ): { body: HTMLElement; saveAll: () => void } {
+  ): { body: HTMLElement } {
     const body = document.createElement('div')
     body.className = 'segment-details-modal-body'
 
     // (1) displayName
-    const { section: nameSection, saveDisplayName } = this.buildNameSection(seg, titleEl)
+    const { section: nameSection } = this.buildNameSection(seg, titleEl)
     body.appendChild(nameSection)
 
     // (2) description
-    const { section: descSection, descInput } = this.buildDescSection(seg)
+    const { section: descSection } = this.buildDescSection(seg)
     body.appendChild(descSection)
 
     // (3+4) T199: merkit + varusteet yhtenäisenä listana (ei enää kolmea erillistä osiota)
@@ -142,14 +144,10 @@ export class SegmentDetailsModal {
     // (7) T146: kloonaa seuraavaan vaiheeseen
     body.appendChild(this.buildCloneSection(seg))
 
-    const saveAll = () => {
-      saveDisplayName()
-      const desc = descInput.value.trim() || undefined
-      updateSegment(this.store, seg.id, { description: desc })
-      updateSegmentRemote(seg.id, { description: desc ?? null as unknown as string }).catch(() => {})
-    }
-
-    return { body, saveAll }
+    // T344/V250: EI saveAll-kokoojaa. Nimi tallentuu `blur`illa & kuvaus `change`illä samalla
+    // kutsuparilla kuin varusteet/assign/rajat ∴ dialogissa on yksi tallennusmalli, ei kahta.
+    // Footer ei enää lupaa tallentavansa mitään — se vain sulkee.
+    return { body }
   }
 
   private buildNameSection(
@@ -596,19 +594,21 @@ export class SegmentDetailsModal {
     return section
   }
 
-  private buildSaveFooter(_seg: Segment, saveAll: () => void): HTMLElement {
+  // T344/V250: footer VAIN sulkee. Aiempi "Tallenna muutokset" kattoi 2/8 osiosta ∴ se lupasi
+  // enemmän kuin teki: ✕:stä sulkenut luuli menettäneensä varusteet (⊥ menettänyt) & säilyttäneensä
+  // nimenmuutoksen (⊥ säilyttänyt). Kaikki kentät tallentuvat nyt muutoksesta.
+  private buildCloseFooter(): HTMLElement {
     const footer = document.createElement('div')
     footer.className = 'segment-details-modal-footer'
 
-    const saveBtn = document.createElement('button')
-    saveBtn.className = 'btn-segment-modal-save'
-    saveBtn.textContent = 'Tallenna muutokset'
-    saveBtn.addEventListener('click', () => {
-      saveAll()
+    const doneBtn = document.createElement('button')
+    doneBtn.className = 'btn-segment-modal-save'
+    doneBtn.textContent = 'Valmis'
+    doneBtn.addEventListener('click', () => {
       this.close()
       this.onUpdate()
     })
-    footer.appendChild(saveBtn)
+    footer.appendChild(doneBtn)
     return footer
   }
 

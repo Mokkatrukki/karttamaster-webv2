@@ -2233,9 +2233,17 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   color: var(--text-body);
 }
 
+/* T344/V250: `button` (ei span) — koko nimialue avaa lisätiedot. DESIGN §K: item-label
+   min-height 44px, vasen tasaus, ei nappimaista taustaa (rivi pysyy listana, ei nappirivinä). */
 .segment-info {
   flex: 1;
   min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
   color: var(--text-body);
   font-size: 12px;
   font-weight: 600;
@@ -2243,6 +2251,7 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.segment-info:hover { color: var(--accent); }
 
 .segment-km {
   font-size: 11px;
