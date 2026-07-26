@@ -50,7 +50,7 @@ Leaflet-glue. Ohut kerros kartan päällä. **Testattavuus: Playwright.**
 ## MarkerManager
 **Vastuu:** Merkkien data-hallinta + Leaflet-layer (bearing/rotaatio poistettu T130 — `MarkerInteraction` poistettu kokonaan, se oli olemassa vain kääntöä varten)
 **Käyttäjä:** molemmat
-**Moduuli:** `src/map/markers.ts` (292 riv)
+**Moduuli:** `src/map/markers.ts`
 **Testattavuus:** Playwright
 
 ### Ominaisuudet
@@ -63,6 +63,9 @@ Leaflet-glue. Ohut kerros kartan päällä. **Testattavuus: Playwright.**
 - ✓ `reload(markers)` — korvaa koko merkkilistan + piirtää näkyvät uudelleen (T124-T128: GPKG-tuonnin jälkeen)
 - ✓ `fixOrphanRouteIds()` — B45: korjaa merkit joilla `routeIds:[]` (esim. GPKG-tuonnin uudet merkit, palvelin ei tunne GPX-geometriaa) lähin-reitti-fallbackilla, sama periaate kuin `add()`/V21. Vitest-jsdom-testattu (`tests/gpkg-orphan-markers.test.ts`) real Leaflet-mapilla jsdomissa — ei vaadi Playwrightia tälle logiikalle.
 - ✓ T175/V109: `map.on('zoomend', ...)` skaalaa kaikki markerit `markerScaleForZoom()`-kaavalla (`src/logic/marker-scale.ts`) — CSS `transform: scale()` marker-ikonin sisäwrapperiin (`transform-origin: center bottom`), EI Leafletin omaan position-elementtiin (välttää translate3d-ylikirjoituksen). Uusi marker saa oikean scalen heti luonnissa.
+
+- ✓ T335/V243: `setFocusSegment(seg | undefined, { locked })` — himmentää muut kuin pätkän merkit (`.marker-dimmed`, talkoolaisella lisäksi `.marker-dimmed--locked` = read-only V142). Jäsenyys `src/logic/marker-focus.ts`:stä, ei omaa sääntöä. Fokus lasketaan uusiksi jokaisesta merkkijoukon mutaatiosta (add/remove/reload/updateType) ∴ korostus ei vanhene.
+- ✓ T335: `reapplyElementState(id)` — Leafletin `setIcon` korvaa DOM-elementin ja pudottaa KAIKKI luokat. Yksi paikka palauttaa pending/next-highlight/dimmed/zoom-skaalan; aiemmin `.marker-next-highlight` katosi status-päivityksessä (V178).
 
 ### Tulossa
 - [ ] Vaihda merkin tyyppi jälkikäteen (T38, V17)

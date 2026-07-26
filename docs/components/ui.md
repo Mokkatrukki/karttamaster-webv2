@@ -454,3 +454,20 @@ DOM-komponentit ilman Leafletia. **Testattavuus: Vitest-jsdom.**
 - ✓ "Ei nyt" muistetaan (`km:talkoo:nimi-ohitettu`) → ei jankuta joka latauksella metsässä
 - ✓ Epäonnistunut tallennus ei sulje palkkia (V21)
 - ✓ `POST /api/auth/name` ei katkaise sessiota — kenttätyö jatkuu
+
+## MarkerFocusPill — T335 ✓
+**Vastuu:** korostustilan pysyvä poistumis-affordanssi kartan yläreunassa.
+**Käyttäjä:** järjestäjä (kytkee korostuksen pätkämodaalista)
+**Konteksti:** tila kytketään modaalista joka sulkeutuu heti perään ∴ modaalin sisäinen nappi katoaisi tilan kanssa ja jättäisi himmennetyn kartan ilman ulospääsyä (B131:n umpikuja-luokka, V243). Sama kuvio kuin muokkaustilan pilleri (T308/V219): tila sanoin, ei pelkkä väri.
+**Moduuli:** `src/ui/marker-focus-pill.ts` (markup `index.html` `#marker-focus-pill`)
+**Testattavuus:** Vitest-jsdom (`tests/t335-focus-toggle-pill.test.ts`) + Playwright (`e2e/critical-paths.spec.ts` "merkkien korostus")
+
+### Ominaisuudet
+- ✓ `show(nimi)` / `hide()` / `isVisible()` — `hidden`-attribuutti on totuus, ei CSS-luokka
+- ✓ ✕ kutsuu `onClear` → wiring nollaa tilan (tila EI asu pillerissä eikä localStoragessa)
+- ✓ `destroy()` irrottaa kuuntelijan — re-init ei kasaa kutsuja
+- ✓ Pilleri itse `pointer-events:none` (ei syö kartan tappia), ✕ palauttaa sen napille
+
+### Käyttäjätarkistus
+> Järjestäjä: näen mikä pätkä on korostettuna ja pääsen pois yhdellä klikillä, myös modaalin sulkeuduttua.
+> Talkoolainen: ei näe pilleriä — hänellä korostus on automaatti, ei kytkettävä tila (ei kolmatta valintaa metsässä).
