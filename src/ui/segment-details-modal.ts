@@ -74,10 +74,8 @@ export class SegmentDetailsModal {
 
     modal.appendChild(this.buildHeader(titleEl, () => this.close()))
 
+    // T346: audit-osio elää nyt Jako-ryhmän sisällä (buildBody), ⊥ bodyn loppuun liimattuna.
     const { body } = this.buildBody(seg, titleEl)
-    // T227: supervision-osio (aktiviteettiloki + massaperuutus) — vain jos pätkälle assignattu koodi
-    // (talkoolaisen audit-rivit kantavat segment_code = assignedCode). Async-lataus.
-    if (seg.assignedCode) body.appendChild(this.buildAuditSection(seg.assignedCode))
     // T344/V250: vaaravyöhyke rungon sisällä ENNEN footeria — footerin alle jäävä poisto
     // luetaan toiseksi dialogiksi.
     body.appendChild(this.buildDangerZone(seg))
@@ -121,28 +119,40 @@ export class SegmentDetailsModal {
     const body = document.createElement('div')
     body.className = 'segment-details-modal-body'
 
-    // (1) displayName
-    const { section: nameSection } = this.buildNameSection(seg, titleEl)
-    body.appendChild(nameSection)
+    // T346/V250: viisi ryhmää, ei kahdeksaa irrallista lohkoa. Ryhmä vastaa yhteen kysymykseen
+    // ("mikä pätkä", "mitä siihen kuuluu", "kuka tekee", "miten se näkyy kartalla", "entä seuraava
+    // vaihe") ∴ järjestäjä löytää etsimänsä ilman koko modaalin lukemista.
+    // Ryhmäjako on myös TULEVA MODUULIRAJA (moduuli on ⚠️ pilkkolistalla) — pilkkominen seuraa
+    // näitä rajoja, ⊥ keksi uusia. Osiofunktiot pysyvät koskemattomina: tämä on rakennemuutos,
+    // ⊥ toiminnallisuusmuutos ∴ olemassa olevien testien valitsimet ! pysyä voimassa.
+    const group = (title: string, sections: HTMLElement[]): void => {
+      const heading = document.createElement('p')
+      heading.className = 'segment-details-section-title segment-details-group-title'
+      heading.textContent = title
+      body.appendChild(heading)
+      for (const sec of sections) body.appendChild(sec)
+    }
 
-    // (2) description
-    const { section: descSection } = this.buildDescSection(seg)
-    body.appendChild(descSection)
+    group('Tiedot', [
+      this.buildNameSection(seg, titleEl).section,
+      this.buildDescSection(seg).section,
+    ])
 
-    // (3+4) T199: merkit + varusteet yhtenäisenä listana (ei enää kolmea erillistä osiota)
-    body.appendChild(this.buildMarkersAndEquipmentSection(seg))
+    // T199: merkit + varusteet ovat yksi lista (⊥ kolme osiota kuten ennen T199:ää)
+    group('Sisältö', [this.buildMarkersAndEquipmentSection(seg)])
 
-    // (5) assign link
-    body.appendChild(this.buildAssignSection(seg))
+    // Jako = kenelle pätkä kuuluu & mitä tekijä on tehnyt. Aktiviteettiloki (T227) kuuluu tähän
+    // ryhmään eikä bodyn loppuun: se on assign-tiedon jatke, ⊥ oma saareke.
+    const jako: HTMLElement[] = [this.buildAssignSection(seg)]
+    if (seg.assignedCode) jako.push(this.buildAuditSection(seg.assignedCode))
+    group('Jako', jako)
 
-    // (6) edit points
-    body.appendChild(this.buildEditPointsSection(seg))
+    group('Kartta', [
+      this.buildEditPointsSection(seg),
+      this.buildFocusSection(seg),
+    ])
 
-    // (6b) T335/V243: korosta vain tämä pätkä kartalla
-    body.appendChild(this.buildFocusSection(seg))
-
-    // (7) T146: kloonaa seuraavaan vaiheeseen
-    body.appendChild(this.buildCloneSection(seg))
+    group('Vaiheet', [this.buildCloneSection(seg)])
 
     // T344/V250: EI saveAll-kokoojaa. Nimi tallentuu `blur`illa & kuvaus `change`illä samalla
     // kutsuparilla kuin varusteet/assign/rajat ∴ dialogissa on yksi tallennusmalli, ei kahta.

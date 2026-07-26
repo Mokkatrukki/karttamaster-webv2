@@ -471,3 +471,23 @@ DOM-komponentit ilman Leafletia. **Testattavuus: Vitest-jsdom.**
 ### Käyttäjätarkistus
 > Järjestäjä: näen mikä pätkä on korostettuna ja pääsen pois yhdellä klikillä, myös modaalin sulkeuduttua.
 > Talkoolainen: ei näe pilleriä — hänellä korostus on automaatti, ei kytkettävä tila (ei kolmatta valintaa metsässä).
+
+## SegmentRowMenu — T345 ✓
+**Vastuu:** pätkärivin `···`-pikavalikko — katselutoiminnot ilman modaalia.
+**Käyttäjä:** järjestäjä (desktop, sivupalkki)
+**Konteksti:** ennen T345:tä `···` avasi suoraan lisätiedot-modaalin ∴ "zoomaa tähän pätkään" tai "korosta se" maksoi modaalin avaamisen, vierityksen ja sulkemisen. Valikko on välitila: modaali on yhä yhden klikin päässä.
+**Moduuli:** `src/ui/segment-row-menu.ts`
+**Testattavuus:** Vitest-jsdom (`tests/t345-segment-row-menu.test.ts`) + Playwright (`e2e/critical-paths.spec.ts`)
+
+### Ominaisuudet
+- ✓ Rivit: 🔍 Näytä kartalla · ◎/◉ Korosta vain tämä pätkä · 🔗 Kopioi talkoolaislinkki · ⚙ Lisätiedot & varusteet…
+- ✓ Korostusrivi LUKEE T335-tilan (`isFocused`) — ei omaa lippua joka ajautuisi erilleen modaalin kytkimestä
+- ✓ Ei disabloituja rivejä: jakamattomalla pätkällä ei ole linkkiriviä lainkaan
+- ✓ Sulkeminen: valinta (ENNEN toiminnon ajoa — muuten valikko jäisi modaalin päälle), Esc, ulkoklikki
+- ✓ Läpinäkyvä backdrop: nappaa ulkoklikin muttei tummenna karttaa
+- ✓ Osoitelähde `segmentPath` (`src/logic/segments.ts`) — sama kuin modaalilla, ei toista `/s/<koodi>`-muotoa
+
+### Käyttäjätarkistus
+> Järjestäjä: pääsenkö katsomaan pätkän kartalta ilman että avaan ja suljen asetusdialogin? Kyllä, kaksi klikkiä.
+> Talkoolainen: ei näe sivupalkkia lainkaan (V13).
+
