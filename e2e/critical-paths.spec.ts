@@ -789,6 +789,42 @@ test.describe('T335 — merkkien korostus (V243)', () => {
     await expect(page.locator('.leaflet-marker-icon[title="VIERAS"]')).toBeVisible()
   })
 
+  test('järjestäjä: kytkin päälle → merkit himmenee, pilleri ✕ nollaa (44px touch)', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
+    await page.route(/\/api\/segments$/, route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([SEG]) }))
+    await mockMarkers(page, [mk('mk-oma', 'OMA', 65.62), mk('mk-vieras', 'VIERAS', 65.63)])
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    // Pätkäpaneeli on kutistettu oletuksena → avaa otsikosta ja klikkaa pätkää listasta
+    await page.locator('.segment-panel-header').click()
+    await page.locator('#segment-list .btn-segment-details-open').first().click()
+    const toggle = page.locator('.btn-segment-focus-toggle')
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true')
+
+    // V243: vieras merkki himmenee mutta pysyy kartalla JA klikattavana (järjestäjä ⊥ lukko)
+    await expect(page.locator('.leaflet-marker-icon[title="VIERAS"]')).toHaveClass(/marker-dimmed/)
+    await expect(page.locator('.leaflet-marker-icon[title="VIERAS"]')).not.toHaveClass(/marker-dimmed--locked/)
+
+    // V243: tila jää päälle modaalin sulkeuduttua → pilleri on ulospääsy
+    await page.click('.segment-details-modal-close')
+    const pill = page.locator('#marker-focus-pill')
+    await expect(pill).toBeVisible()
+    await expect(pill).toContainText('Korostus: Fokus-pätkä')
+
+    const clear = page.locator('#btn-marker-focus-clear')
+    const box = await clear.boundingBox()
+    expect(Math.min(box!.width, box!.height)).toBeGreaterThanOrEqual(44) // DESIGN §A
+    await clear.click()
+    await expect(pill).toBeHidden()
+    await expect(page.locator('.leaflet-marker-icon.marker-dimmed')).toHaveCount(0)
+  })
+
   test('järjestäjä: ei korostusta oletuksena, pilleri piilossa', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await mockTemplates(page)

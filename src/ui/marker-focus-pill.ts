@@ -33,8 +33,11 @@ export interface MarkerFocusPillHandle {
   destroy(): void
 }
 
+// DESIGN.md §K MarkerFocus: pillerin teksti on `Korostus: <pätkän nimi>` + erillinen ✕.
+// Ei ikoniprefiksiä — ✕ on jo pillerin oma symboli, ja kaksi symbolia samassa pillerissä
+// kilpailee siitä kumpaa painetaan.
 export function pillText(segmentName: string): string {
-  return `◉ Korostus: ${segmentName}`
+  return `Korostus: ${segmentName}`
 }
 
 export function initMarkerFocusPill(opts: MarkerFocusPillOptions): MarkerFocusPillHandle {

@@ -3931,6 +3931,24 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 }
 .btn--ghost:hover { background: var(--hover); color: var(--text-body); }
 
+/* T335/V243: korostuskytkin istuu modaalin toimintorivien joukkoon → sama muoto kuin
+   naapurinapeilla (.btn-segment-edit-pts-modal), ei leijuvaa inline-nappia. aria-pressed
+   näkyy myös visuaalisesti: päällä = accent-kehys (ei pelkkä tekstinvaihto, V197). */
+.btn-segment-focus-toggle {
+  width: 100%;
+  justify-content: flex-start;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--field-tint);
+  font-size: 12px;
+  cursor: pointer;
+}
+.btn-segment-focus-toggle[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: transparent;
+}
+
 /* === MarkerDetailModal spesifiset === */
 .marker-detail-actions {
   display: flex;
@@ -4975,12 +4993,14 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 /* T335/V243: korostuspilleri = sama kuvio, mutta sen ✕ ON klikattava (poistumis-affordanssi)
    ∴ pointer-events palautetaan napille. Muokkaustilan pilleri voi olla yhtä aikaa näkyvissä
    → pudota korostuspilleri sen alle, ei päälle. */
-.marker-focus-pill { gap: 8px; }
+.marker-focus-pill { gap: 8px; padding: 2px 4px 2px 14px; }
 .marker-focus-pill__clear {
   pointer-events: auto;
-  min-width: 28px;
-  min-height: 28px;
-  padding: 0 6px;
+  /* DESIGN §A: kaikki interaktiiviset 44×44. Pilleri kasvaa napin mukaan — pieni ✕
+     kartan päällä on juuri se jota hanskakäsi ei osu (ja järjestäjäkin käyttää mobiilidraweria). */
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 8px;
   border: none;
   border-radius: 999px;
   background: transparent;

@@ -713,7 +713,7 @@ Kartta avautuu **katselutilassa** joka latauksella; kaikki kartan MUTATOIVAT ele
 - SEGMENT_COLORS (6 väriä, **paletti ei saa sisältää route-värejä** `#f59e0b`/`#8b5cf6`):
   ~~`['#10b981', '#ec4899', '#3b82f6', '#ef4444', '#06b6d4', '#64748b']`~~ **VANHENTUNUT** — todellinen paletti on §C:n 4 väriä `['#2F6FB0', '#7A4E9C', '#0E9594', '#B5476B']` (`src/logic/segments.ts:274`). ⚠ Sääntö "paletti ei saa sisältää route-värejä" on RIKKI: `#2F6FB0` = pätkäväri 1 = `smtb-55`-reittiväri (`route-defs.ts:12`) ∴ pätkä ja reitti näyttävät samalta juuri siinä kohtaa missä ne ovat päällekkäin. Korjataan T304:n paletti-päätöksen yhteydessä (V216), ei erikseen.
 
-### MarkerFocus — fokus-/himmennystila kartalla (`src/map/markers.ts` + `.marker-dimmed`)
+### MarkerFocus — fokus-/himmennystila kartalla (`src/map/markers.ts` + `.marker-dimmed`) ✓ T334/T335
 
 **Konsepti:** yksi primitiivi, kaksi laukaisinta. Fokus = "nämä merkit ovat sinun tehtäväsi nyt"; kaikki muut jäävät näkyviin taustaksi (kartta ei valehtele — merkki on olemassa) mutta lakkaavat kilpailemasta huomiosta. Sama visuaalinen kieli kuin `contextSegmentStyle` (V142) tekee jo pätkäVIIVOILLE.
 
@@ -727,6 +727,7 @@ Kartta avautuu **katselutilassa** joka latauksella; kaikki kartan MUTATOIVAT ele
 - **Klikattavuus:** talkoolainen → himmennetty merkki `pointer-events: none` (V142 read-only; vastaa myös serverin oikeuksia, V93/V150). Järjestäjä → himmennetty merkki **pysyy klikattavana** (hän omistaa kaiken; korostus on lukemisen apu, ei lukko).
 - **Suhde pohjakartan slideriin (T287/V201):** kaksi riippumatonta kontrollia. Merkkien himmennys ⊥ skaalaa slider-arvon mukaan (⊥ kertolaskua) — 30 % pohja + 0.4 merkki on luettava (valkoinen paperi taustalla), 100 % pohja + 0.4 merkki on se raja johon arvo on kalibroitu. Slideri koskee `tilePane`a, fokus `markerPane`a — ⊥ jaettua tilaa.
 - **Toteutus:** CSS-luokka Leafletin `divIcon`-elementtiin (`getElement().classList.toggle('marker-dimmed')`), ⊥ ikonin uudelleenluontia (`createSignIcon`) — uudelleenluonti nollaa `.marker-next-highlight`in ja vilkuttaa koko kartan. `transition: opacity .12s, filter .12s` — riittää pehmentämään, ⊥ hidasta kenttäkäytössä.
+- **Toteutunut (T335):** luokkapari `.marker-dimmed` (himmennys) + `.marker-dimmed--locked` (talkoolaisen read-only) — rooli päätetään wiringissä, ei CSS:ssä arvattuna. Kytkin `.btn.btn--ghost.btn-segment-focus-toggle` (täysleveä, `aria-pressed` näkyy myös accent-kehyksenä, V197). Pilleri `#marker-focus-pill` (`.map-mode-pill`-kuvio) teksti `Korostus: <nimi>` + ✕ 44×44 (§A); pilleri itse `pointer-events:none`, vain ✕ ottaa klikin. Muokkaustilan pilleri on yhtä aikaa näkyvissä → korostuspilleri `top:48px` kun `body[data-map-mode="muokkaus"]`.
 - Käyttäjä: talkoolainen (automaattinen), järjestäjä (kytkin).
 
 ### SegmentCasing — pätkä reitin päällä, kaksi kanavaa (`src/map/segment-overlay.ts`)
