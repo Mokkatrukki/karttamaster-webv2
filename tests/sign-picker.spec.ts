@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest'
 import { positionPicker } from '../src/logic/sign-picker'
 import { createSignIcon } from '../src/map/icons'

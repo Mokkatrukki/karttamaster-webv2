@@ -2,6 +2,7 @@
 // tekstin naapuri inline-rivillä vaan oma sarake, ja joustava keskiosa (.segment-view-next-body,
 // flex:1;min-width:0) syö nimen pituuden vaihtelun. Rakenne todistetaan tässä (Taso 2);
 // pikselisijainti (boundingBox x ±1px) Playwrightissa (e2e/segments.spec.ts).
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest'
 import { SegmentView } from '../src/ui/segment-view'
 import type { Segment } from '../src/logic/segments'

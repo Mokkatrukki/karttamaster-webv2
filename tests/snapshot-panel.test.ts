@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { SnapshotPanel } from '../src/ui/snapshot-panel'
 import type { SnapshotEntry } from '../src/ui/snapshot-panel'

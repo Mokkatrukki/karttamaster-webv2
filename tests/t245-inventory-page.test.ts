@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderInventory, renderForbidden } from '../src/ui/inventory-page'
 import type { InventoryView, InventoryPageCallbacks } from '../src/ui/inventory-page'

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { LeftPanel } from '../src/ui/left-panel'
 import { MarkerDetailModal } from '../src/ui/marker-detail-modal'

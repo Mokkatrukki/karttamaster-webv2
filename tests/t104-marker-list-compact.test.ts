@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderMarkerList } from '../src/ui/marker-list'
 import type { MarkerManager } from '../src/map/markers'

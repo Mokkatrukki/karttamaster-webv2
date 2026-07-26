@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { SignMarker, RoutePoint } from '../src/logic/types'
 
@@ -37,13 +38,14 @@ function fakeMarker(ll: [number, number]): FakeLeafletMarker {
   return fm
 }
 
-vi.mock('leaflet', () => ({
-  default: {
-    marker: (ll: [number, number]) => fakeMarker(ll),
-    DomEvent: { stopPropagation: () => {} },
-  },
-}))
-vi.mock('../src/map/icons', () => ({ createSignIcon: () => ({}) }))
+// V248: jaettu leaflet-mock (isolate:false ⇒ yksi rekisteri, ⊥ omaa tehdasta per tiedosto).
+// Tämän tiedoston oma `fakeMarker` annetaan `setMarkerFactory`illa beforeEachissä.
+vi.mock('leaflet', async () => ({ default: (await import('./helpers/leaflet-mock')).L }))
+import { installLeafletMock, setMarkerFactory } from './helpers/leaflet-mock'
+// V248: `src/map/icons` EI mockata täällä. Jaetussa moduulirekisterissä (isolate:false) tämä
+// tynkä vuotaisi t158/t140/t138/sign-icon-status-testeihin jotka testaavat OIKEAA
+// `createSignIcon`ia ∴ ne saisivat `{}`:n & `.html` olisi undefined. Oikea createSignIcon toimii
+// tässä sellaisenaan: mockattu `L.divIcon` palauttaa opts-olion & fakeMarkerin `setIcon` on no-op.
 
 const enqueue = vi.fn<(input: unknown) => Promise<{ delivered: boolean; status: number | null }>>()
 vi.mock('../src/logic/outbox-instance', () => ({
@@ -96,7 +98,11 @@ async function drag(lm: FakeLeafletMarker, to: [number, number]): Promise<void> 
 }
 
 describe('T309/V220 — dragend + serverin hylkäys', () => {
-  beforeEach(() => { document.body.innerHTML = '' })
+  beforeEach(() => {
+    installLeafletMock()
+    setMarkerFactory((ll) => fakeMarker(ll))
+    document.body.innerHTML = ''
+  })
 
   it('403 → merkin kentät palautetaan, Leaflet-marker takaisin, varoitus näkyy', async () => {
     const { m, lm, onUpdate, onSaveError } = setup(403)

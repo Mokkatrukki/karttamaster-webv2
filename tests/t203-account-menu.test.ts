@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 // T203/V133: tilivalikko — display_name + teemavalitsin (V132) + Kirjaudu ulos.

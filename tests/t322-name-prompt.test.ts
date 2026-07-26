@@ -1,6 +1,7 @@
 // T322/V228: nimipyyntö kesken session. Kenttätyö oli jo käynnissä kun nimi tuli pakolliseksi
 // kirjautumisessa (T317) → vanhat sessiot ovat nimettömiä 7 vrk. Taso 2 Vitest-jsdom.
 // localStorage aina vi.stubGlobal-mockilla (CLAUDE.md, Node v26 -konflikti).
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { buildNamePrompt, needsNamePrompt, LEGACY_NAME } from '../src/ui/name-prompt'
 import { TALKOO_NAME_KEY } from '../src/logic/talkoo-identity'

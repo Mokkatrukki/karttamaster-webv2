@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest'
 import { SegmentView, type SegmentViewActions } from '../src/ui/segment-view'
 import type { Segment } from '../src/logic/segments'

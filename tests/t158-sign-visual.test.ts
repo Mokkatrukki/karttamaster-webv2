@@ -1,14 +1,15 @@
-import { describe, it, expect, vi } from 'vitest'
+// @vitest-environment jsdom
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { signVisual, signVisualParts, compactLabel } from '../src/logic/sign-visual'
 import { signImageSrc, signImageTag } from '../src/logic/sign-images'
 
-vi.mock('leaflet', () => ({
-  default: {
-    divIcon: (opts: { html: string; className: string; iconSize: number[]; iconAnchor: number[] }) => opts,
-  },
-}))
+// V248: jaettu leaflet-mock (isolate:false ⇒ yksi rekisteri, ⊥ omaa tehdasta per tiedosto).
+vi.mock('leaflet', async () => ({ default: (await import('./helpers/leaflet-mock')).L }))
+import { installLeafletMock } from './helpers/leaflet-mock'
 
 import { createSignIcon } from '../src/map/icons'
+
+beforeEach(() => { installLeafletMock() })
 
 describe('T160/V99: compactLabel — kartta-teksti johdettu labelista', () => {
   it('3 ekaa merkkiä isolla', () => {

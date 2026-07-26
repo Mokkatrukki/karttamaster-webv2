@@ -1,6 +1,7 @@
 // T311/V223: /patkat-hubin primary "Kartalle →" omassa sticky-toimintopalkissa alalaidassa.
 // Taso 2 todistaa rakenteen + luokat (palkki on sivun VIIMEINEN lapsi ∴ flow'ssa listan jälkeen →
 // scrollin pohjassa se ei peitä viimeistä pätkäriviä, V157/B101-oppi). Pikselit: Playwright 375px.
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest'
 import { renderPatkatPage } from '../src/ui/patkat-page'
 import type { Segment } from '../src/logic/segments'

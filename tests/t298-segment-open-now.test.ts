@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createSegmentStore, createSegment, type Segment } from '../src/logic/segments'
 import { renderPatkatPage } from '../src/ui/patkat-page'

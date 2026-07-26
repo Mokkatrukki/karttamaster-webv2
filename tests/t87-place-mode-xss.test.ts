@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { PlaceMode } from '../src/ui/place-mode'
 // T307/V218: merkin sijoitus toimii vain muokkaustilassa → testit ajavat muokkaustilassa.

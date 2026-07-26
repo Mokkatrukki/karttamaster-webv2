@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest'
 import { StatusPanel } from '../src/ui/status-panel'
 import type { RouteStatusSummary } from '../src/logic/route-status'

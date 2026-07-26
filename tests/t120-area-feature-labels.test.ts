@@ -1,34 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Mock leaflet before importing AreaOverlay
-vi.mock('leaflet', () => {
-  const makeTooltip = () => ({ getElement: () => null })
-  const makePolygon = () => {
-    const tooltipSpy = vi.fn()
-    const poly = {
-      on: vi.fn().mockReturnThis(),
-      addTo: vi.fn().mockReturnThis(),
-      bindTooltip: tooltipSpy,
-      getTooltip: vi.fn().mockReturnValue(makeTooltip()),
-      remove: vi.fn(),
-    }
-    return poly
-  }
-  const makeMarker = () => ({
-    on: vi.fn().mockReturnThis(),
-    addTo: vi.fn().mockReturnThis(),
-    remove: vi.fn(),
-    getLatLng: vi.fn().mockReturnValue({ lat: 0, lng: 0 }),
-  })
-  return {
-    default: {
-      polygon: vi.fn(() => makePolygon()),
-      marker: vi.fn(() => makeMarker()),
-      divIcon: vi.fn(() => ({})),
-      DomEvent: { stopPropagation: vi.fn() },
-    },
-  }
-})
+// V248: jaettu leaflet-mock (isolate:false ⇒ yksi rekisteri, ⊥ omaa tehdasta per tiedosto).
+// `defaultShape()` tarjoaa saman pinnan kuin entinen paikallinen makePolygon: bindTooltip-spy +
+// getTooltip → { getElement: () => null }.
+vi.mock('leaflet', async () => ({ default: (await import('./helpers/leaflet-mock')).L }))
+import { installLeafletMock } from './helpers/leaflet-mock'
 
 import type { AreaMarker } from '../src/logic/area-types'
 
@@ -66,6 +42,7 @@ function makeMap(zoom = 14) {
 
 describe('T120 — AreaFeature karttanimet', () => {
   beforeEach(() => {
+    installLeafletMock()
     vi.clearAllMocks()
   })
 

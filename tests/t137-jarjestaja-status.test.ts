@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { MarkerDetailModal } from '../src/ui/marker-detail-modal'
 import type { SignMarker } from '../src/logic/types'

@@ -1,6 +1,7 @@
 // T315/V226 (B123): koti-tabit jakavat SAMAN scrollerin (#segment-view) ∴ tab-vaihto nollaa
 // scrollTopin — muuten uusi tabi avautuu keskeltä (edellisen tabin scrollTop jää voimaan).
 // CSS-osuus (viewportiin sidottu korkeus → scrolleri aktivoituu) todistetaan Playwrightissa.
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest'
 import { SegmentKotiTabs } from '../src/ui/segment-koti-tabs'
 

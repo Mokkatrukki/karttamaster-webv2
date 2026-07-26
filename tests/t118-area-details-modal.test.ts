@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { AreaDetailsModal } from '../src/ui/area-details-modal'
 import { createAreaMarker } from '../src/logic/area-types'

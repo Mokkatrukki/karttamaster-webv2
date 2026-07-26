@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { wireGpsButton, gpsButtonLabel } from '../src/app/markers-wiring'
 import { GpsNavigator, type GpsState, type GpsStateListener } from '../src/map/gps-navigator'

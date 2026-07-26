@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { CommentThread, type CommentThreadApi } from '../src/ui/comment-thread'
 import type { Comment, NewComment } from '../src/logic/comments'
