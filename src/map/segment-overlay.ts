@@ -41,6 +41,24 @@ export function contextSegmentStyle(
   }
 }
 
+// T347/V250: nimilappu on pätkän ainoa LUETTAVA kohde kartalla ∴ sen ! olla myös klikattava
+// sisääntulo — muuten käyttäjä osoittaa nimeä eikä mitään tapahdu (klikkaus läpäisee kartalle,
+// Leaflet-tooltip on oletuksena pointer-events:none) & osuma vaatii ~8px viivan klikkausta lapun
+// vierestä. `interactive` on SAMA lippu joka ohjaa polylinen interactivea & click-kytkentää ∴
+// V142-himmennys pitää ilman toista totuutta: vieraan pätkän lappu pysyy läpäisevänä.
+// Klikkiä ⊥ kytketä tooltipiin: Leaflet tekee `addEventParent(this._source)` tooltipin avautuessa
+// (leaflet-src.js:10685) ∴ lapun klikki propagoi polylinelle & olemassa oleva `line.on('click')`
+// hoitaa modaalin. Oma kuuntelija tooltipille = tuplalaukaisu.
+// Testattavuus: Vitest-pure.
+export function segmentLabelOptions(interactive: boolean): L.TooltipOptions {
+  return {
+    permanent: true,
+    className: interactive ? 'segment-label' : 'segment-label segment-label--dim',
+    direction: 'center',
+    interactive,
+  }
+}
+
 export class SegmentOverlay {
   private layers: L.Layer[] = []
   private editMarkers: L.Marker[] = []
@@ -107,11 +125,7 @@ export class SegmentOverlay {
           interactive: style.interactive,
         })
         if (seg.displayName) {
-          line.bindTooltip(seg.displayName + labelSuffix, {
-            permanent: true,
-            className: style.interactive ? 'segment-label' : 'segment-label segment-label--dim',
-            direction: 'center',
-          })
+          line.bindTooltip(seg.displayName + labelSuffix, segmentLabelOptions(style.interactive))
         }
         if (this.onSegmentClick && style.interactive) {
           const clickedSeg = seg

@@ -70,7 +70,10 @@ export async function wireSegments(
     const own = getSegmentForCode(segmentStore, talkoolainenCode)
     segmentOverlay.setContextOwn(own?.id)
   }
-  renderSegmentOverlay()
+  // HUOM: ENSIMMÄINEN render tehdään vasta kuuntelijoiden kytkennän JÄLKEEN (tiedoston lopussa).
+  // Aiemmin se ajettiin tässä, ENNEN `setOnSegmentClick`ia ∴ latauksen viivoille ⊥ syntynyt
+  // klikkikuuntelijaa lainkaan & pätkä avautui vasta jos jokin muu (merkin muutos, phase-vaihto)
+  // sattui renderöimään uudelleen. (B134/T347)
 
   // T307/V218: muokkaustilasta poistuminen sulkee auki olevan rajaeditorin — muuten kahvat
   // jäisivät kartalle raahattaviksi katselutilassa (rinnakkainen mekanismi).
@@ -150,6 +153,10 @@ export async function wireSegments(
       })
     }
   }
+
+  // B134: render vasta nyt — kuuntelijat (klikkaus → modaali) ovat kiinni ∴ ensimmäinenkin
+  // piirretty pätkä & sen nimilappu reagoivat ilman uudelleenrenderiä.
+  renderSegmentOverlay()
 
   return { segmentStore, segmentOverlay, segmentPanel, renderSegmentOverlay, phaseFilteredStore }
 }

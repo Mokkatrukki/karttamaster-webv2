@@ -717,10 +717,29 @@ Kartta avautuu **katselutilassa** joka latauksella; kaikki kartan MUTATOIVAT ele
   - `ei_alkanut` → haalea katko, `opacity: 0.4, weight: 9, dashArray: '1 9'`
 - `update(store, markers)` — tarvitsee merkit progressiin. Kutsutaan sekä segmentin mutaatiosta ETTÄ merkin status-muutoksesta (`main.ts` MarkerManager onUpdate) — muuten kartan status jää jälkeen.
 - tarkastus-vaiheen valmis-pätkä: tooltip-nimeen `✓`
-- DisplayName: pysyvä tooltip `permanent: true`, CSS-class `segment-label`
+- DisplayName: pysyvä tooltip `permanent: true`, CSS-class `segment-label` → oma sopimus **SegmentLabel** alla
 - Aukko (gap): `color: text-muted hex (#94a3b8), weight: 8, opacity: 0.3`
 - SEGMENT_COLORS (6 väriä, **paletti ei saa sisältää route-värejä** `#f59e0b`/`#8b5cf6`):
   ~~`['#10b981', '#ec4899', '#3b82f6', '#ef4444', '#06b6d4', '#64748b']`~~ **VANHENTUNUT** — todellinen paletti on §C:n 4 väriä `['#2F6FB0', '#7A4E9C', '#0E9594', '#B5476B']` (`src/logic/segments.ts:274`). ⚠ Sääntö "paletti ei saa sisältää route-värejä" on RIKKI: `#2F6FB0` = pätkäväri 1 = `smtb-55`-reittiväri (`route-defs.ts:12`) ∴ pätkä ja reitti näyttävät samalta juuri siinä kohtaa missä ne ovat päällekkäin. Korjataan T304:n paletti-päätöksen yhteydessä (V216), ei erikseen.
+
+### SegmentLabel — pätkän nimilappu kartalla (`.segment-label`, `segmentLabelOptions()` `src/map/segment-overlay.ts`) ✓ T347
+
+**Konsepti:** lappu on pätkän ainoa luettava kohde kartalla ∴ se on myös sen sisääntulo. Sama sopimus kuin §K LeftPanel "Item — label: klikkaus = toiminto" (V250) — nimi joka näyttää siltä että sitä luetaan, mutta ei reagoi, on kuollutta pintaa keskellä karttaa.
+
+| Ominaisuus | Arvo |
+|---|---|
+| Tausta | `rgba(15,23,42,0.85)` — **kiinteä navy, ⊥ teemamuuttuja** |
+| Teksti | `#fff` AINA (B106: tausta ei vaihdu teeman mukana ∴ `var(--text-body)` teki lapun lukukelvottomaksi vaaleassa teemassa) |
+| Typo | `11px / 700`, `var(--font-ui)` |
+| Padding | `6px 8px` (~26px korkea lappu) |
+| Reuna | `1px solid rgba(255,255,255,0.15)`, `radius-sm`, `box-shadow 0 2px 8px rgba(0,0,0,0.4)` |
+| Osoitin | `cursor: pointer` **vain** `.segment-label.leaflet-interactive` |
+| Himmeä (`--dim`) | `opacity: .4`, `font-weight: 600`, `pointer-events: none` |
+
+- **Klikattavuus tulee yhdestä lähteestä:** `segmentLabelOptions(style.interactive)` saa saman `interactive`-lipun kuin polyline (`contextSegmentStyle`, V142) ∴ talkoolaisen näkymässä vain oma pätkä on klikattava — muiden lappu on läpäisevä (kaksi lukkoa: Leaflet-optio + `pointer-events:none`).
+- **Klikkiä EI kytketä tooltipiin.** Leaflet tekee `addEventParent(this._source)` tooltipin avautuessa ∴ lapun klikki propagoi polylinelle ja olemassa oleva `line.on('click')` avaa `SegmentDetailsModal`in. Oma kuuntelija lapulle = modaali avautuu kahdesti.
+- **44px-poikkeus (§A/§R) — tietoinen ja kirjattu.** Kartan nimilappu ei täytä 44px-minimiä. Perustelu: 44px-lappu peittäisi naapuripätkän reitin tiheässä ruudukossa (lappu on kartan sisältöä, ei chromea); tämän sisääntulon käyttäjä on **järjestäjä** (desktop + hiiri); talkoolaisen mobiilipolku ei riipu tästä — hänen kontekstilappunsa ovat ei-klikattavia ja oma pätkä avautuu herosta/sivupalkista, jotka täyttävät 44px:n. Poikkeus koskee VAIN karttalappua — ⊥ yleistä sitä muihin komponentteihin.
+- Käyttäjä: järjestäjä.
 
 ### MarkerFocus — fokus-/himmennystila kartalla (`src/map/markers.ts` + `.marker-dimmed`) ✓ T334/T335
 

@@ -80,7 +80,7 @@ server/       ← Hono + Bun + SQLite
 | GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30, T341 (tilakone haetaan/päällä/pois + näkyvät virheet, V247) | critical-paths: "GPS-paikannin" · t341-gps-no-segment | [map.md](docs/components/map.md) |
 | AreaOverlay | `src/map/area-overlay.ts` | ✓ | area-interaction | [map.md](docs/components/map.md) |
 | MapRectEditor | `src/map/map-rect-editor.ts` | ✓ T117 | area-interaction | [map.md](docs/components/map.md) |
-| SegmentOverlay | `src/map/segment-overlay.ts` | ✓ T152, T217 (reititön skip) | segments: "viivatyyli koodaa statuksen"; t217: routeless gap-safety (Taso-1, Playwright post-T216) | [map.md](docs/components/map.md) |
+| SegmentOverlay | `src/map/segment-overlay.ts` | ✓ T152, T217 (reititön skip), T347 (nimilappu klikattava) | segments: "viivatyyli koodaa statuksen"; t217: routeless gap-safety (Taso-1, Playwright post-T216); t347: nimilapun klikkaus + drag-panorointi + V142-dim (`critical-paths.spec.ts`) | [map.md](docs/components/map.md) |
 | MarkerListUI | `src/ui/marker-list.ts` | ✓ T24 | — | [ui.md](docs/components/ui.md) |
 | SegmentRowMenu | `src/ui/segment-row-menu.ts` | ✓ T345 (pätkärivin ···-pikavalikko: kartta/korostus/linkki/lisätiedot, V250) | tests/t345-segment-row-menu.test.ts; critical-paths: "···-valikosta korostus" | [ui.md](docs/components/ui.md) |
 | SegmentFit | `src/map/segment-fit.ts` | ✓ T345 (kartan rajaus yhteen pätkään, jaettu talkoolaisen latauszoomin & järjestäjän "Näytä kartalla" kesken) | critical-paths: "Näytä kartalla siirtää karttaa" | [map.md](docs/components/map.md) |
