@@ -10,6 +10,7 @@ import { getActivePhase } from '../logic/phase-view'
 import type { RouteConfig } from '../logic/multi-route'
 import type { SignMarker } from '../logic/types'
 import { mapMode } from '../logic/map-mode'
+import { initMarkerFocusPill } from '../ui/marker-focus-pill'
 
 export interface SegmentsWiring {
   segmentStore: Map<string, Segment>
@@ -74,6 +75,20 @@ export async function wireSegments(
     if (!mapMode.canDragSegmentBounds() && segmentOverlay.isEditMode()) segmentOverlay.exitEditMode()
   })
 
+  // T335/V243: järjestäjän korostustila. Asuu TÄÄLLÄ eikä modaalissa — modaali tuhoutuu
+  // sulkiessa mutta tila jää päälle, ja poistumis-pilleri on ainoa ulospääsy sen jälkeen.
+  // Ei localStoragea: korostus on hetken työkalu, ei asetus.
+  let focusSegmentId: string | null = null
+  const focusPill = initMarkerFocusPill({ onClear: () => setFocusSegment(null) })
+
+  function setFocusSegment(seg: Segment | null): void {
+    focusSegmentId = seg?.id ?? null
+    // Järjestäjä: himmennetty PYSYY klikattavana (locked=false) — korostus on lukemisen apu.
+    markerManagerRef.current?.setFocusSegment(seg ?? undefined)
+    if (seg) focusPill.show(seg.displayName ?? 'pätkä')
+    else focusPill.hide()
+  }
+
   let tempCreationMarker: L.CircleMarker | null = null
 
   const segmentPanel = new SegmentPanel(
@@ -109,6 +124,9 @@ export async function wireSegments(
       onHideSnapMarkers: () => segmentOverlay.hideCreationSnapMarkers(),
       onSaveError,
       getMarkers: () => markerManagerRef.current?.getAll() ?? [],
+      // T335/V243: korostuskytkin pätkämodaalissa — tila tässä, pilleri sen näkyvä ulospääsy.
+      isFocusSegment: (seg) => focusSegmentId === seg.id,
+      onToggleFocusSegment: (seg, on) => setFocusSegment(on ? seg : null),
     },
   )
 

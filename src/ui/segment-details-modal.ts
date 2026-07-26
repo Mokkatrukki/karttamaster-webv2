@@ -34,6 +34,15 @@ export interface SegmentDetailsCallbacks {
   getMarkers?: () => SignMarker[]
   onEnterEditMode?: (seg: Segment, onSave: (startDist: number, endDist: number) => void) => void
   onExitEditMode?: () => void
+  // T335/V243: kartan korostus vain tähän pätkään. Tila EI asu modaalissa (modaali tuhoutuu
+  // sulkiessa, tila jää päälle) — omistaja on wiring, modaali kysyy ja kytkee.
+  isFocusSegment?: (seg: Segment) => boolean
+  onToggleFocusSegment?: (seg: Segment, on: boolean) => void
+}
+
+// V243/V197: label kertoo NYKYTILAN sanoin (ei pelkkä ikoni/väri). Pois = ◎, päällä = ◉.
+export function focusToggleLabel(on: boolean): string {
+  return on ? '◉ Korostus päällä' : '◎ Korosta vain tämä pätkä'
 }
 
 export class SegmentDetailsModal {
@@ -126,6 +135,9 @@ export class SegmentDetailsModal {
 
     // (6) edit points
     body.appendChild(this.buildEditPointsSection(seg))
+
+    // (6b) T335/V243: korosta vain tämä pätkä kartalla
+    body.appendChild(this.buildFocusSection(seg))
 
     // (7) T146: kloonaa seuraavaan vaiheeseen
     body.appendChild(this.buildCloneSection(seg))
@@ -511,6 +523,31 @@ export class SegmentDetailsModal {
     }
 
     section.appendChild(errorEl)
+    return section
+  }
+
+  // T335/V243: järjestäjän korostuskytkin. Oletus POIS (fokus on hetken työkalu). Modaali ei
+  // sulkeudu klikistä — järjestäjä voi kokeilla ja perua saman tien; poistumis-pilleri (wiring)
+  // vastaa siitä että tila löytyy vielä modaalin sulkeuduttua.
+  private buildFocusSection(seg: Segment): HTMLElement {
+    const section = document.createElement('div')
+    section.className = 'segment-details-modal-section'
+
+    const btn = document.createElement('button')
+    btn.className = 'btn btn--ghost btn-segment-focus-toggle'
+    btn.type = 'button'
+    let on = this.callbacks.isFocusSegment?.(seg) ?? false
+    const sync = (): void => {
+      btn.textContent = focusToggleLabel(on)
+      btn.setAttribute('aria-pressed', String(on))
+    }
+    sync()
+    btn.addEventListener('click', () => {
+      on = !on
+      sync()
+      this.callbacks.onToggleFocusSegment?.(seg, on)
+    })
+    section.appendChild(btn)
     return section
   }
 

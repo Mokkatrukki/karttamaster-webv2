@@ -3340,6 +3340,21 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   50%      { filter: drop-shadow(0 0 8px var(--accent)) drop-shadow(0 0 15px var(--accent)); }
 }
 
+/* T335/V243: fokus-tila HIMMENTÄÄ, ei piilota — merkki näkyy aina, muuten kartta valehtelee
+   (onko naapuripätkän merkki asetettu vai puuttuuko se?). Kaksi kanavaa (alfa + kylläisyys),
+   koska pelkkä 0.4-alfa katoaa ilmakuvasta auringossa 40×48 px:n kokoisesta ikonista —
+   viivojen CONTEXT_DIM_OPACITY 0.22 ei kelpaa merkille (satoja px vs. 40 px).
+   EI kytkeydy pohjakartan sliderin opacityyn (T287/V201, eri pane — ei kertolaskua). */
+.marker-dimmed {
+  opacity: 0.4;
+  filter: grayscale(1);
+  transition: opacity 0.12s, filter 0.12s;
+}
+/* V142: talkoolaisen näkymässä himmennetty on myös read-only. Järjestäjällä himmennetty
+   PYSYY klikattavana — korostus on lukemisen apu, ei lukko ∴ luokkia on kaksi eikä CSS
+   arvaa roolia. */
+.marker-dimmed--locked { pointer-events: none; }
+
 /* ── Segment label (Leaflet tooltip) ── */
 .segment-label {
   background: rgba(15, 23, 42, 0.85);
@@ -4956,6 +4971,26 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 }
 /* `hidden` on totuus (map-mode-toggle.ts) — luokka-display ei saa kumota sitä. */
 .map-mode-pill[hidden] { display: none; }
+
+/* T335/V243: korostuspilleri = sama kuvio, mutta sen ✕ ON klikattava (poistumis-affordanssi)
+   ∴ pointer-events palautetaan napille. Muokkaustilan pilleri voi olla yhtä aikaa näkyvissä
+   → pudota korostuspilleri sen alle, ei päälle. */
+.marker-focus-pill { gap: 8px; }
+.marker-focus-pill__clear {
+  pointer-events: auto;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-body);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.marker-focus-pill__clear:hover { background: var(--surface-raised); }
+body[data-map-mode="muokkaus"] .marker-focus-pill { top: 48px; }
 
 /* Accent-kehys: pseudo-overlay, EI `box-shadow: inset` — Leafletin läpinäkymättömät
    laattapaneelit ovat #map-arean LAPSIA ja peittäisivät inset-varjon. z-index kartta-

@@ -69,6 +69,13 @@
           <!-- T308/V219: pysyvä tilapilleri (sanoin, ei pelkkä väri). Näkyvyys = [hidden]
                map-mode-toggle.ts:stä; accent-kehys = CSS body[data-map-mode="muokkaus"]. -->
           <div id="map-mode-pill" class="map-mode-pill" role="status" hidden>✎ Muokkaustila</div>
+          <!-- T335/V243: korostustilan poistumis-affordanssi. Tila kytketään pätkämodaalista,
+               joka sulkeutuu — ilman pilleriä käyttäjä jäisi himmennettyyn karttaan ilman
+               ulospääsyä (sama umpikuja-luokka kuin B131). -->
+          <div id="marker-focus-pill" class="map-mode-pill marker-focus-pill" role="status" hidden>
+            <span id="marker-focus-pill-label">Korostus</span>
+            <button id="btn-marker-focus-clear" class="marker-focus-pill__clear" type="button" aria-label="Poista korostus">✕</button>
+          </div>
           <div id="status-panel"></div>
 <div id="segment-view-container"></div>
           <button id="btn-to-map">Kartalle →</button>

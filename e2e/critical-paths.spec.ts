@@ -746,3 +746,58 @@ test.describe('Merkin zoom-skaalaus — T175', () => {
     expect(Math.abs(near.outerAnchorY - near.innerAnchorY)).toBeLessThan(2)
   })
 })
+
+// T335/V243 — kartan fokus HIMMENTÄÄ, ei piilota. Talkoolaisella tämä on automaatti: hän
+// näkee oman pätkänsä merkit kirkkaina ja muut haaleina — mutta NÄKEE ne, muuten hän ei tiedä
+// onko naapurin merkki jo asetettu vai puuttuuko se.
+test.describe('T335 — merkkien korostus (V243)', () => {
+  const SEG = {
+    id: 'seg-focus', routeIds: ['smtb-30'], primaryRouteId: 'smtb-30',
+    // Tyhjä km-väli + eksplisiittinen liitos ⇒ jäsenyys on deterministinen eikä riipu siitä
+    // mihin kohtaan GPX-geometriaa testikoordinaatit osuvat (V140-unioni: linkedMarkerIds).
+    startDist: 0, endDist: 0, linkedMarkerIds: ['mk-oma'],
+    assignedCode: 'TEST01', displayName: 'Fokus-pätkä', description: '', equipment: [],
+    phase: 'asettaminen', inspected: false, completed: false,
+  }
+  const mk = (id: string, label: string, lat: number) => ({
+    id, type: 'right', lat, lon: 27.62, distance_from_start: 5000,
+    route_ids: ['smtb-30'], status: 'suunniteltu', location_note: null, color: null,
+    label, icon_id: null, image_id: null, template_id: null, parts_json: null,
+    description: null, images: [], created_by: null,
+  })
+
+  test('talkoolainen: oma merkki kirkas, vieras himmennetty mutta EI piilotettu', async ({ page }) => {
+    await mockAuthAsTalkoolainen(page)
+    await mockTemplates(page)
+    await page.route(/\/api\/segments\/by-code\/TEST01$/, route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SEG) }))
+    await mockMarkers(page, [mk('mk-oma', 'OMA', 65.62), mk('mk-vieras', 'VIERAS', 65.63)])
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/s/TEST01')
+    await page.waitForTimeout(1500)
+    await page.click('#btn-to-map')
+    await page.waitForTimeout(500)
+
+    const icons = page.locator('.leaflet-marker-icon:not(.route-dir-arrow)')
+    await expect(icons).toHaveCount(2)
+    // V243: himmennetty on YHÄ kartalla
+    await expect(page.locator('.leaflet-marker-icon.marker-dimmed')).toHaveCount(1)
+    await expect(page.locator('.leaflet-marker-icon[title="VIERAS"]')).toHaveClass(/marker-dimmed/)
+    await expect(page.locator('.leaflet-marker-icon[title="OMA"]')).not.toHaveClass(/marker-dimmed/)
+    // V142: talkoolaisella himmennetty on myös read-only
+    await expect(page.locator('.leaflet-marker-icon[title="VIERAS"]')).toHaveClass(/marker-dimmed--locked/)
+    await expect(page.locator('.leaflet-marker-icon[title="VIERAS"]')).toBeVisible()
+  })
+
+  test('järjestäjä: ei korostusta oletuksena, pilleri piilossa', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
+    await mockMarkers(page, [mk('mk-a', 'A', 65.62), mk('mk-b', 'B', 65.63)])
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await expect(page.locator('.leaflet-marker-icon.marker-dimmed')).toHaveCount(0)
+    await expect(page.locator('#marker-focus-pill')).toBeHidden()
+  })
+})

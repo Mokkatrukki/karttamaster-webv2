@@ -26,6 +26,9 @@ export interface SegmentPanelCallbacks {
   onHideSnapMarkers?: () => void
   // T148: globaali phase-näkymän suodin — undefined = näytä kaikki (taaksepäin yhteensopiva)
   getActivePhase?: () => Segment['phase']
+  // T335/V243: kartan korostus vain valittuun pätkään — tila asuu wiringissä, paneeli välittää
+  isFocusSegment?: (seg: Segment) => boolean
+  onToggleFocusSegment?: (seg: Segment, on: boolean) => void
 }
 
 export class SegmentPanel {
@@ -76,6 +79,8 @@ export class SegmentPanel {
         getMarkers: callbacks.getMarkers,
         onEnterEditMode: callbacks.onEnterEditMode,
         onExitEditMode: callbacks.onExitEditMode,
+        isFocusSegment: callbacks.isFocusSegment,
+        onToggleFocusSegment: callbacks.onToggleFocusSegment,
       },
     )
 

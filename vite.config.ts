@@ -16,6 +16,7 @@ const ISOLATED = [
   'tests/t140-status-ring-color.test.ts',
   'tests/t158-sign-visual.test.ts',
   'tests/t309-marker-drag-rollback.test.ts',
+  'tests/t335-marker-focus-map.test.ts',
   // (b) moduulitason tila / history / sessionStorage
   'tests/t51-auth-screen.test.ts',
   'tests/t254-talkoolainen-mode.test.ts',

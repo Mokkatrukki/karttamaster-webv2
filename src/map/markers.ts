@@ -20,6 +20,8 @@ import type { MarkerStatus } from '../logic/types'
 import { markerScaleForZoom } from '../logic/marker-scale'
 import { outbox } from '../logic/outbox-instance'
 import { setOutboxSaveErrorHandler } from '../logic/outbox-instance'
+import { focusState } from '../logic/marker-focus'
+import type { TaskMarkerSource } from '../logic/task-markers'
 
 interface RouteRef { id: string; routePoints: RoutePoint[] }
 
@@ -43,6 +45,13 @@ export class MarkerManager {
   private pendingIds = new Set<string>()
   // T256/V178 (R6): pätkän seuraava-merkki-korostus — ikoni hehkuu (.marker-next-highlight).
   private highlightNextId: string | null = null
+  // T335/V243: fokus-tila. `undefined` = ei fokusta (⊥ himmennystä). Jäsenyys lasketaan
+  // `focusState`illa (T334) joka delegoi `resolveTaskMarkers`iin — ⊥ omaa sääntöä tänne.
+  private focusSegment: TaskMarkerSource | undefined = undefined
+  // V142: talkoolaisen näkymässä himmennetty merkki on myös read-only (pointer-events pois);
+  // järjestäjällä himmennetty PYSYY klikattavana — korostus on lukemisen apu, ⊥ lukko.
+  private focusLocked = false
+  private dimmedIds = new Set<string>()
   private map: L.Map
   private routes: RouteRef[]
   private visibleRouteIds: string[]
@@ -120,6 +129,55 @@ export class MarkerManager {
     if (id) {
       this.leafletMarkers.get(id)?.getElement()?.classList.add('marker-next-highlight')
     }
+  }
+
+  // T335/V243: kartan fokus-tila — HIMMENNÄ muut, ⊥ piilota. `undefined` nollaa.
+  // `locked` = himmennetty ei ota klikkejä (talkoolainen, V142).
+  setFocusSegment(segment: TaskMarkerSource | undefined, opts: { locked?: boolean } = {}): void {
+    this.focusSegment = segment
+    this.focusLocked = opts.locked ?? false
+    this.recomputeFocus()
+  }
+
+  /** T335: onko fokus päällä (pilleri kysyy). */
+  hasFocusSegment(): boolean {
+    return this.focusSegment !== undefined
+  }
+
+  // Jäsenyys voi muuttua ilman että fokus muuttuu (merkki lisätään/poistetaan/tyypitetään
+  // uudelleen → markerTypeFilter-osuma) ∴ jokainen merkkijoukon mutaatio kutsuu tämän.
+  private recomputeFocus(): void {
+    this.dimmedIds = new Set()
+    if (this.focusSegment !== undefined) {
+      focusState(this.markers, this.focusSegment).forEach((state, id) => {
+        if (state === 'dim') this.dimmedIds.add(id)
+      })
+    }
+    this.leafletMarkers.forEach((lm, id) => this.applyFocusClass(lm, id))
+  }
+
+  private applyFocusClass(lm: L.Marker, id: string): void {
+    const el = lm.getElement()
+    if (!el) return
+    const dim = this.dimmedIds.has(id)
+    el.classList.toggle('marker-dimmed', dim)
+    el.classList.toggle('marker-dimmed--locked', dim && this.focusLocked)
+  }
+
+  // Leafletin `setIcon` korvaa DOM-elementin ∴ KAIKKI elementtiin kirjoitettu tila (luokat +
+  // zoom-skaala) on sovellettava uudelleen. Yksi paikka, ⊥ neljä kutsupaikkaa jotka unohtavat
+  // eri asioita — `.marker-next-highlight` katosi aiemmin juuri siksi (T256/V178).
+  private reapplyElementState(id: string): void {
+    const lm = this.leafletMarkers.get(id)
+    if (!lm) return
+    const el = lm.getElement()
+    if (el) {
+      el.style.cursor = 'pointer'
+      el.classList.toggle('leaflet-marker-pending', this.pendingIds.has(id))
+      el.classList.toggle('marker-next-highlight', this.highlightNextId === id)
+    }
+    this.applyFocusClass(lm, id)
+    this.applyZoomScale(lm)
   }
 
   // T183/V116: kaikki merkkikirjoitukset reititetään durable-outboxin kautta.
@@ -244,6 +302,7 @@ export class MarkerManager {
     if (marker.routeIds.some((id) => this.visibleRouteIds.includes(id))) {
       this.addLeafletMarker(marker)
     }
+    this.recomputeFocus()
     this.onUpdate()
     return marker
   }
@@ -263,6 +322,7 @@ export class MarkerManager {
         this.addLeafletMarker(m)
       }
     })
+    this.recomputeFocus()
     this.onUpdate()
   }
 
@@ -297,6 +357,7 @@ export class MarkerManager {
     const lm = this.leafletMarkers.get(id)
     if (lm) { lm.remove(); this.leafletMarkers.delete(id) }
     this.markers = this.markers.filter((m) => m.id !== id)
+    this.recomputeFocus()
     this.apiDelete(id)
     this.onUpdate()
   }
@@ -356,7 +417,7 @@ export class MarkerManager {
     if (!m) return
     m.status = transitionStatus(m.status, action)
     const lm = this.leafletMarkers.get(id)
-    if (lm) lm.setIcon(createSignIcon(m.type, m.status, m.color, compactOf(m), m.iconId, signImageSrc(m.imageId ?? m.type), visualPartsOf(m)))
+    if (lm) { lm.setIcon(createSignIcon(m.type, m.status, m.color, compactOf(m), m.iconId, signImageSrc(m.imageId ?? m.type), visualPartsOf(m))); this.reapplyElementState(id) }
     this.apiPut(id, { status: m.status })
     this.onUpdate()
   }
@@ -367,7 +428,7 @@ export class MarkerManager {
       if (!m) return
       m.status = status
       const lm = this.leafletMarkers.get(id)
-      if (lm) lm.setIcon(createSignIcon(m.type, m.status, m.color, compactOf(m), m.iconId, signImageSrc(m.imageId ?? m.type), visualPartsOf(m)))
+      if (lm) { lm.setIcon(createSignIcon(m.type, m.status, m.color, compactOf(m), m.iconId, signImageSrc(m.imageId ?? m.type), visualPartsOf(m))); this.reapplyElementState(id) }
       this.apiPut(id, { status })
     })
     if (ids.length > 0) this.onUpdate()
@@ -386,6 +447,10 @@ export class MarkerManager {
     m.parts = (parts && parts.length > 0) ? parts : undefined
     const lm = this.leafletMarkers.get(id)
     if (lm) lm.setIcon(createSignIcon(newType, m.status, m.color, compactOf(m), m.iconId, signImageSrc(m.imageId ?? newType), visualPartsOf(m)))
+    // T215/V143: templateId muuttui ∴ markerTypeFilter-jäsenyys voi muuttua → laske fokus uusiksi
+    // (kattaa myös setIconin pudottamat luokat, recomputeFocus → applyFocusClass).
+    this.recomputeFocus()
+    this.reapplyElementState(id)
     this.apiPut(id, { type: newType, color: color ?? null, icon_id: iconId ?? null, image_id: imageId ?? null, template_id: templateId ?? null, parts_json: m.parts ? JSON.stringify(m.parts) : null })
     this.onUpdate()
   }
@@ -470,6 +535,9 @@ export class MarkerManager {
     this.applyPendingClass(lm, this.pendingIds.has(m.id))
     // T256/V178: seuraava-merkki-korostus uudelleen jos tämä on korostettu (setIcon/reload korvaa elementin).
     if (this.highlightNextId === m.id) el?.classList.add('marker-next-highlight')
+    // T335/V243: fokus-luokka ! tulla jo renderissä, muuten korostus katoaa jokaisesta
+    // uudelleenpiirrosta (reload/setVisibleRoutes) ja palaisi vasta seuraavasta toggle-kutsusta.
+    this.applyFocusClass(lm, m.id)
 
     // V82: lm.on('click', ...) uses Leaflet's own event system, which suppresses
     // the synthetic click that follows a real drag (Draggable._onUp). A raw DOM

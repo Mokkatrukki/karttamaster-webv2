@@ -194,6 +194,15 @@ export function wireMarkers(
   )
   markerManager.setOnMarkerClick((id) => onOpenMarkerDetail(id))
 
+  // T335/V243: talkoolaisella korostus on AUTOMAATTI, ei kytkin — hän katsoo vain omaa pätkäänsä
+  // (max 2 nappia -periaate: ei kolmatta valintaa metsässä). Sama omistajapäättely kuin
+  // `segmentOverlay.setContextOwn` (segments-wiring) → yksi lähde, ei toisintoa.
+  // locked: himmennetty ei ota klikkejä — talkoolaisen vieras merkki on read-only (V142).
+  if (talkoolainenCode) {
+    const own = getSegmentForCode(segmentStore, talkoolainenCode)
+    if (own) markerManager.setFocusSegment(own, { locked: true })
+  }
+
   // T309/V221: siirron km-akseli = talkoolaisen oman pätkän PRIMARY-reitti (⊥ lähin reitti yli
   // kaikkien) → jaetulla osuudella merkki mitataan samasta reitistä kuin serverin
   // `markerInOwnSegment` ∴ ei putoa pätkästä liikkumatta käytännössä minnekään (B121, B100-oppi).
