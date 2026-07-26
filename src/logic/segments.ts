@@ -281,6 +281,13 @@ export function colorForSegment(id: string): string {
   return SEGMENT_COLORS[Math.abs(hash) % SEGMENT_COLORS.length]
 }
 
+// T348/V96-amend: valmis-tila ohittaa tunnistevärin. Valmiin pätkän identiteetti ⊥ enää kanna
+// tietoa (kukaan ⊥ etsi kartalta "kuka teki tämän loppuun") — status kantaa. Arvo on §C-tokenin
+// `--confirm` peili (vaalea #1F8A50 / Kaamos #2FA35B): Leaflet-polyline ⊥ lue CSS-muuttujaa ∴
+// JS-vakio on pakko, mutta se ! olla YKSI paikka (V132: ⊥ hajota hexiä kutsupaikkoihin).
+// Vihreä sävyperhe on VARATTU tälle kanavalle — SEGMENT_COLORS ⊥ saa sisältää vihreää (T304).
+export const SEGMENT_DONE_COLOR = '#1F8A50'
+
 // T152/V96: viivatyyli kartalla kertoo statuksen — kolme ämpäriä getPhaseProgress-tuloksesta.
 // ei_alkanut = haalea katko, kesken = täysi katko, valmis = ehjä.
 export type SegmentLineState = 'ei_alkanut' | 'kesken' | 'valmis'
@@ -292,6 +299,15 @@ export function segmentLineState(progress: PhaseProgress): SegmentLineState {
   if (progress.total === 0 || progress.done === 0) return 'ei_alkanut'
   if (progress.done >= progress.total) return 'valmis'
   return 'kesken'
+}
+
+// T348/V96-amend: KARTAN viivaväri = tunniste PAITSI valmiina, jolloin status voittaa.
+// `colorForSegment` säilyy erillään & muuttumattomana: sivupalkki/lista käyttää sitä tunnisteena
+// ilman status-kontekstia ∴ pätkän väri listassa ⊥ vaihdu valmistumisesta (rivi & kartta ⊥ saa
+// olla eri mieltä identiteetistä). Stabiilius (poisto ⊥ siirrä värejä) pätee ennallaan
+// kesken/ei_alkanut-tiloissa. Testattavuus: Vitest-pure.
+export function segmentLineColor(id: string, state: SegmentLineState): string {
+  return state === 'valmis' ? SEGMENT_DONE_COLOR : colorForSegment(id)
 }
 
 // V49/V95: overlap = startDist2 < endDist1 && startDist1 < endDist2, vain saman phasen sisällä

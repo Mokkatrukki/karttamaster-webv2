@@ -2,17 +2,21 @@ import L from 'leaflet'
 import { nearestPointIndex } from '../logic/bearing'
 import type { RoutePoint, SignMarker } from '../logic/types'
 import type { Segment, SegmentStore, SegmentLineState } from '../logic/segments'
-import { colorForSegment, segmentLineState, getPhaseProgress, segmentPrimaryRouteId } from '../logic/segments'
+import { segmentLineColor, segmentLineState, getPhaseProgress, segmentPrimaryRouteId } from '../logic/segments'
 
 interface RouteRef { id: string; routePoints: RoutePoint[] }
 
 const GAP_COLOR = '#94a3b8'
 
-// T152/V96: viivatyyli = status. Väri = tunniste (colorForSegment), tyyli näistä.
-const LINE_STATE_STYLE: Record<SegmentLineState, { opacity: number; weight: number; dashArray?: string }> = {
-  valmis:     { opacity: 0.9,  weight: 11 },              // ehjä
-  kesken:     { opacity: 0.85, weight: 11, dashArray: '1 9' }, // täysi katko
-  ei_alkanut: { opacity: 0.4,  weight: 9,  dashArray: '1 9' }, // haalea katko
+// T152/V96: viivatyyli = status. Väri = tunniste (colorForSegment) paitsi valmiina (T348).
+// T348/V252/B135: dashArray oli '1 9' MOLEMMISSA katkotiloissa = 1px viiva 9px aukosta ∴ kuvio
+// hajosi pistesarjaksi joka katosi MML-taustakartan tekstuuriin — kolme tilaa erottui käytännössä
+// vain valmiin ehjyydestä. Nyt viivanpätkä on aukon kokoluokkaa & kolme tilaa erottuu myös
+// AKROMAATTISESTI (ehjä / karkea katko / haalea harva katko), ⊥ vain leveydellä tai värillä.
+export const LINE_STATE_STYLE: Record<SegmentLineState, { opacity: number; weight: number; dashArray?: string }> = {
+  valmis:     { opacity: 0.9,  weight: 11 },                     // ehjä
+  kesken:     { opacity: 0.85, weight: 11, dashArray: '10 8' },  // karkea katko
+  ei_alkanut: { opacity: 0.4,  weight: 9,  dashArray: '6 12' },  // haalea harva katko
 }
 
 export interface ContextLineStyle {
@@ -49,11 +53,18 @@ export function contextSegmentStyle(
 // Klikkiä ⊥ kytketä tooltipiin: Leaflet tekee `addEventParent(this._source)` tooltipin avautuessa
 // (leaflet-src.js:10685) ∴ lapun klikki propagoi polylinelle & olemassa oleva `line.on('click')`
 // hoitaa modaalin. Oma kuuntelija tooltipille = tuplalaukaisu.
+// T348/V96-amend: `done` lisää `--done`-luokan (vihreä reunus, ✓ tulee tekstiin kutsupaikalla).
+// Luokkajonon kokoaminen pysyy TÄSSÄ yhdessä funktiossa ⊥ valu kutsupaikalle. `--dim` & `--done`
+// ⊥ ole toisensa poissulkevia: talkoolaisen konteksti-lappu voi olla valmis (V142 himmennys pätee
+// silti — se on eri kanava kuin status).
 // Testattavuus: Vitest-pure.
-export function segmentLabelOptions(interactive: boolean): L.TooltipOptions {
+export function segmentLabelOptions(interactive: boolean, done = false): L.TooltipOptions {
+  const classes = ['segment-label']
+  if (!interactive) classes.push('segment-label--dim')
+  if (done) classes.push('segment-label--done')
   return {
     permanent: true,
-    className: interactive ? 'segment-label' : 'segment-label segment-label--dim',
+    className: classes.join(' '),
     direction: 'center',
     interactive,
   }
@@ -96,15 +107,19 @@ export class SegmentOverlay {
       }
     }
 
-    // T152/V96: väri = tunniste (stabiili per id), viivatyyli = phase-status
+    // T152/V96: väri = tunniste (stabiili per id), viivatyyli = phase-status.
+    // T348: valmis-tila ohittaa tunnistevärin (segmentLineColor) — status voittaa identiteetin.
     for (const seg of segments) {
-      const color = colorForSegment(seg.id)
       const progress = getPhaseProgress(seg, markers)
       const state = segmentLineState(progress)
+      const color = segmentLineColor(seg.id, state)
+      const done = state === 'valmis'
       // V142: himmennä muut tehtävät talkoolaisen näkymässä; oma säilyy kirkkaana.
       const style = contextSegmentStyle(LINE_STATE_STYLE[state], this.contextOwnId, seg.id)
-      // tarkastus-vaiheen valmis-pätkä saa ✓ tooltipiin
-      const labelSuffix = seg.phase === 'tarkastus' && state === 'valmis' ? ' ✓' : ''
+      // T348/V252/B135: ✓ KAIKISSA phaseissa (ennen: vain tarkastus) & PREFIXINÄ — nimi voi
+      // katketa lapun leveyteen, merkki ⊥ saa. "Valmis" ⊥ saa olla pääteltävissä vain katkon
+      // puuttumisesta: positiivinen tila tarvitsee positiivisen merkin jota etsiä.
+      const labelPrefix = done ? '✓ ' : ''
       // V139: reititön tehtävä ei piirrä reitti-polylinea (T217 tuo oman render-haaran).
       if (!seg.routeIds || seg.startDist === undefined || seg.endDist === undefined) continue
       const segStart = seg.startDist
@@ -125,7 +140,7 @@ export class SegmentOverlay {
           interactive: style.interactive,
         })
         if (seg.displayName) {
-          line.bindTooltip(seg.displayName + labelSuffix, segmentLabelOptions(style.interactive))
+          line.bindTooltip(labelPrefix + seg.displayName, segmentLabelOptions(style.interactive, done))
         }
         if (this.onSegmentClick && style.interactive) {
           const clickedSeg = seg

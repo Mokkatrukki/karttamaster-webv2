@@ -5,7 +5,7 @@
  *           must click "Tallenna" to actually create the segment.
  */
 import { test, expect } from 'playwright/test'
-import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTalkoolainenSegment, mockSegmentWrites } from './helpers/auth'
+import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTalkoolainenSegment, mockSegmentWrites, mockMarkers } from './helpers/auth'
 
 /** Helper: create a segment via 2-click modal flow + Tallenna */
 async function createSegmentViaModal(page: import('playwright/test').Page) {
@@ -437,12 +437,64 @@ test.describe('T25 — SegmentPanel', () => {
 
     await createSegmentViaModal(page)
 
-    // Segmenttikaista renderöi stroke-dasharrayn; reitit + aukot ovat ehjiä (ei dasharrayta)
-    const dashedCount = await page.evaluate(() => {
+    // T348/V252: tarkista ARVO, ei pelkkää olemassaoloa — `toBeTruthy` katkoviivalle on testi
+    // joka ei voi failata (B135: vanha '1 9' oli "katkoviiva" mutta katosi taustakartalle).
+    // ei_alkanut = '6 12' (haalea harva katko). Reitit + aukot ovat ehjiä.
+    const dashPatterns = await page.evaluate(() => {
       const paths = Array.from(document.querySelectorAll<SVGPathElement>('.leaflet-overlay-pane path'))
-      return paths.filter(p => (p.getAttribute('stroke-dasharray') ?? '') !== '').length
+      return paths.map(p => p.getAttribute('stroke-dasharray') ?? '').filter(d => d !== '')
     })
-    expect(dashedCount).toBeGreaterThan(0)
+    expect(dashPatterns.length).toBeGreaterThan(0)
+    expect(dashPatterns).toContain('6 12')
+  })
+
+  // T348/V96-amend/B135: valmis pätkä saa POSITIIVISEN signaalin — vihreä viiva + ✓-lappu.
+  // Ennen: valmis erottui vain katkon PUUTTUMISESTA, ja ✓ vain tarkastus-vaiheessa.
+  // Tässä asettaminen-phase (oletusnäkymä) + kaikki pätkän merkit 'asetettu' → 'valmis'
+  // ∴ testi todistaa nimenomaan sen että ✓ EI enää ole tarkastus-phasen yksinoikeus.
+  test('valmis pätkä = vihreä ehjä viiva + ✓-nimilappu (T348)', async ({ page }) => {
+    const VALMIS_SEGMENT = {
+      id: 'seg-valmis-1', routeIds: ['smtb-30'],
+      startDist: 2000, endDist: 8000,
+      displayName: 'Valmispätkä', equipment: [],
+      phase: 'asettaminen',
+    }
+    await page.route(/\/api\/segments(\?|$)/, r =>
+      r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([VALMIS_SEGMENT]) }))
+    // Wire-muoto on snake_case (vrt. mockTalkoolainenSegment) — camelCase jättää route_ids
+    // normalisoinnissa undefiniksi ja overlay kaatuu ennen renderiä.
+    const doneMarker = (id: string, dist: number) => ({
+      id, type: 'right', lat: 65.62, lon: 27.62, distance_from_start: dist,
+      route_ids: ['smtb-30'], status: 'asetettu', location_note: null, color: null,
+      label: null, icon_id: null, image_id: null, template_id: null, parts_json: null,
+      description: null, images: [], created_by: null,
+    })
+    await mockMarkers(page, [doneMarker('mv1', 3000), doneMarker('mv2', 6000)])
+
+    await mockAuthAsJarjestaja(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    // Lappu: ✓-prefix + --done-luokka
+    const label = page.locator('.segment-label', { hasText: 'Valmispätkä' })
+    await expect(label).toBeVisible()
+    await expect(label).toHaveText('✓ Valmispätkä')
+    await expect(label).toHaveClass(/segment-label--done/)
+
+    // B106: lapun tausta pysyy kiinteänä navynä — vihreä tulee REUNUKSESTA, ei taustasta
+    const bg = await label.evaluate(el => getComputedStyle(el).backgroundColor)
+    expect(bg).toBe('rgba(15, 23, 42, 0.85)')
+
+    // Viiva: confirm-vihreä + ei dasharrayta
+    const doneStroke = await page.evaluate(() => {
+      const paths = Array.from(document.querySelectorAll<SVGPathElement>('.leaflet-overlay-pane path'))
+      return paths
+        .map(p => ({ stroke: (p.getAttribute('stroke') ?? '').toLowerCase(), dash: p.getAttribute('stroke-dasharray') ?? '' }))
+        .find(s => s.stroke === '#1f8a50')
+    })
+    expect(doneStroke).toBeDefined()
+    expect(doneStroke!.dash).toBe('')
   })
 
   // T147: tarkastus-vaiheen pätkäjako (luotu T146:n klooni-mekanismilla) näyttää

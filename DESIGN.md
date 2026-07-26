@@ -711,12 +711,14 @@ Kartta avautuu **katselutilassa** joka latauksella; kaikki kartan MUTATOIVAT ele
 ### SegmentOverlay (Leaflet-layer, `src/map/segment-overlay.ts`)
 - **T152/V96: kaksi visuaalista kanavaa erikseen** — väri = *tunniste* (kuka), viivatyyli = *status* (missä vaiheessa). Järjestäjä lukee molemmat yhdellä silmäyksellä (VISION UX-testi).
 - **Väri = tunniste, stabiili per `segment.id`**: `colorForSegment(id)` (`src/logic/segments.ts`) hashaa id → SEGMENT_COLORS-indeksi. EI lista-indeksi — pätkän poisto ei saa vaihtaa muiden värejä. Törmäys (sama hue) ok, tooltip-nimi erottaa.
-- **Viivatyyli = status** (`segmentLineState(getPhaseProgress(seg, markers))`, kolme ämpäriä):
+- **T348/V96-amend: `valmis` OHITTAA tunnistevärin** — kartan viiva ottaa värinsä `segmentLineColor(id, state)`ista (`src/logic/segments.ts`): valmis → `SEGMENT_DONE_COLOR` = `--confirm`-peili `#1F8A50`, muut → `colorForSegment(id)`. Perustelu: valmiin pätkän identiteetti ei enää kanna tietoa, status kantaa. **Vihreä sävyperhe on varattu tälle kanavalle** — SEGMENT_COLORS ei saa sisältää vihreää (T304-paletti). Sivupalkki/lista käyttää yhä `colorForSegment`ia (tunniste ilman status-kontekstia) ∴ rivin väri ei vaihdu valmistumisesta.
+- **Viivatyyli = status** (`segmentLineState(getPhaseProgress(seg, markers))`, kolme ämpäriä, `LINE_STATE_STYLE` `src/map/segment-overlay.ts`):
   - `valmis` → ehjä, `opacity: 0.9, weight: 11` (ei dashArray)
-  - `kesken` → täysi katko, `opacity: 0.85, weight: 11, dashArray: '1 9'`
-  - `ei_alkanut` → haalea katko, `opacity: 0.4, weight: 9, dashArray: '1 9'`
+  - `kesken` → karkea katko, `opacity: 0.85, weight: 11, dashArray: '10 8'`
+  - `ei_alkanut` → haalea harva katko, `opacity: 0.4, weight: 9, dashArray: '6 12'`
+  - **V252/B135:** viivanpätkä ! olla aukon kokoluokkaa. Vanha `'1 9'` (1px viiva, 9px aukko) MOLEMMISSA katkotiloissa hajosi pistesarjaksi joka katosi maastokartan tekstuuriin ∴ tilat erottuivat käytännössä vain valmiin ehjyydestä. Kolmen tilan ! erottua myös **akromaattisesti** (ehjä / karkea katko / haalea harva katko), ei vain leveydellä tai värillä.
 - `update(store, markers)` — tarvitsee merkit progressiin. Kutsutaan sekä segmentin mutaatiosta ETTÄ merkin status-muutoksesta (`main.ts` MarkerManager onUpdate) — muuten kartan status jää jälkeen.
-- tarkastus-vaiheen valmis-pätkä: tooltip-nimeen `✓`
+- **valmis-pätkä: tooltip-nimeen `✓`-PREFIX kaikissa phaseissa** (T348 — ennen: vain `phase==='tarkastus'`). Nimi voi katketa lapun leveyteen, merkki ei saa ∴ prefix, ei suffix. Positiivinen tila tarvitsee positiivisen merkin: "valmis" ei saa olla pääteltävissä vain katkon PUUTTUMISESTA (V252).
 - DisplayName: pysyvä tooltip `permanent: true`, CSS-class `segment-label` → oma sopimus **SegmentLabel** alla
 - Aukko (gap): `color: text-muted hex (#94a3b8), weight: 8, opacity: 0.3`
 - SEGMENT_COLORS (6 väriä, **paletti ei saa sisältää route-värejä** `#f59e0b`/`#8b5cf6`):
@@ -735,7 +737,9 @@ Kartta avautuu **katselutilassa** joka latauksella; kaikki kartan MUTATOIVAT ele
 | Reuna | `1px solid rgba(255,255,255,0.15)`, `radius-sm`, `box-shadow 0 2px 8px rgba(0,0,0,0.4)` |
 | Osoitin | `cursor: pointer` **vain** `.segment-label.leaflet-interactive` |
 | Himmeä (`--dim`) | `opacity: .4`, `font-weight: 600`, `pointer-events: none` |
+| Valmis (`--done`) ✓ T348 | `border: 2px solid var(--confirm)` + `padding: 5px 7px` (reunan kasvu kompensoitu ∴ osumapinta säilyy) + teksti saa `✓ `-prefixin (`segment-overlay.ts`). **Tausta pysyy kiinteänä navynä & teksti valkoisena** — vihreä tulee VAIN reunuksesta (B106: lapun tausta ei seuraa teemaa ∴ vihreä tausta rikkoisi kontrastisopimuksen) |
 
+- **`--dim` & `--done` eivät ole toisensa poissulkevia** (T348): talkoolaisen konteksti-lappu voi olla valmis ∴ luokkajono kootaan yhdessä paikassa (`segmentLabelOptions(interactive, done)`), ei kutsupaikalla.
 - **Klikattavuus tulee yhdestä lähteestä:** `segmentLabelOptions(style.interactive)` saa saman `interactive`-lipun kuin polyline (`contextSegmentStyle`, V142) ∴ talkoolaisen näkymässä vain oma pätkä on klikattava — muiden lappu on läpäisevä (kaksi lukkoa: Leaflet-optio + `pointer-events:none`).
 - **Klikkiä EI kytketä tooltipiin.** Leaflet tekee `addEventParent(this._source)` tooltipin avautuessa ∴ lapun klikki propagoi polylinelle ja olemassa oleva `line.on('click')` avaa `SegmentDetailsModal`in. Oma kuuntelija lapulle = modaali avautuu kahdesti.
 - **44px-poikkeus (§A/§R) — tietoinen ja kirjattu.** Kartan nimilappu ei täytä 44px-minimiä. Perustelu: 44px-lappu peittäisi naapuripätkän reitin tiheässä ruudukossa (lappu on kartan sisältöä, ei chromea); tämän sisääntulon käyttäjä on **järjestäjä** (desktop + hiiri); talkoolaisen mobiilipolku ei riipu tästä — hänen kontekstilappunsa ovat ei-klikattavia ja oma pätkä avautuu herosta/sivupalkista, jotka täyttävät 44px:n. Poikkeus koskee VAIN karttalappua — ⊥ yleistä sitä muihin komponentteihin.

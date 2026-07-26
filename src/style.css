@@ -3448,6 +3448,14 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
    valehdella klikattavuudesta. (leaflet.css:592 antaa jo pointer-events:auto samalle valitsimelle.) */
 .segment-label.leaflet-interactive { cursor: pointer; }
 .segment-label::before { display: none; }
+/* T348/V96-amend: valmis pätkä saa POSITIIVISEN merkin — vihreä reunus + ✓-prefix (teksti
+   tulee segment-overlay.ts:stä). Tausta pysyy kiinteänä navynä & teksti valkoisena (B106:
+   lapun tausta ⊥ seuraa teemaa ∴ vihreä tausta rikkoisi kontrastisopimuksen). 2px reuna:
+   1px --confirm ⊥ erotu tummaa pilleriä vasten kartan päällä. */
+.segment-label--done {
+  border: 2px solid var(--confirm);
+  padding: 5px 7px; /* 6px 8px − 1px reunan kasvu ∴ lapun ulkomitta & osumapinta säilyy (T347) */
+}
 /* V142: talkoolaisen näkymä — muiden tehtävien nimilaput himmeät (konteksti, ei fokus). */
 .segment-label--dim {
   opacity: 0.4;
