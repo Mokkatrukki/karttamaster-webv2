@@ -52,7 +52,10 @@ server/       ← Hono + Bun + SQLite
 | RoleController | `src/logic/role.ts` | ✓ T12 (V80: rooli backendistä, toggle dead code) | critical-paths: "Rooli backendistä" | [logic.md](docs/components/logic.md) |
 | SituationLogic | `src/logic/situation.ts` *(ei vielä)* | ○ T15 | — | [logic.md](docs/components/logic.md) |
 | NavigationLogic | `src/logic/navigation.ts` | ✓ T16, T327, T328 (pätkäkontekstin funktiot saavat `segment`in ⊥ `routeId`-parametria, V237; drive-funktiot pitävät `routeId`:n — eri omistaja) | tests/navigation.test.ts | [logic.md](docs/components/logic.md) |
-| SegmentOrder | `src/logic/segment-order.ts` | ✓ T328 (pätkä omistaa km-akselin: `segmentKm`/`orderMarkersInSegment`/`displayKm`, suunta phasesta, "ei reitillä" -ryhmä; V237/V238/B129) | tests/segment-order.test.ts | [logic.md](docs/components/logic.md) |
+| SegmentOrder | `src/logic/segment-order.ts` | ✓ T359 (`segmentKm` lukee jäljen akselia kun jälki on, V259; aiemmin T328: pätkä omistaa km-akselin: `segmentKm`/`orderMarkersInSegment`/`displayKm`, suunta phasesta, "ei reitillä" -ryhmä; V237/V238/B129) | tests/segment-order.test.ts | [logic.md](docs/components/logic.md) |
+| SegmentTrack | `src/logic/segment-track.ts` | ✓ T358 (pätkän oma jälki: johto rajoista/ankkureista, kohtisuora etäisyys + km jäljen akselilla; V258/V261. T359–T363 kuluttajat kesken) | tests/segment-track.test.ts | [logic.md](docs/components/logic.md) |
+| SegmentBackfill | `src/logic/segment-backfill.ts` | ✓ T361 (legacy-pätkä saa jäljen rajoistaan kun GPX:t ladattu; ei ylikirjoita, idempotentti; V260) | e2e/segments.spec.ts | [logic.md](docs/components/logic.md) |
+| SegmentMembership | `src/logic/segment-membership.ts` | ✓ T359 (kuka omistaa merkin: lähin jälki voittaa, eksklusiivinen per vaihe, linked/excluded ohittaa geometrian; V259/B143) | tests/segment-membership.test.ts | [logic.md](docs/components/logic.md) |
 | SegmentSync | `src/logic/segment-sync.ts` | ✓ T62 | — | [logic.md](docs/components/logic.md) |
 | AreaTypes | `src/logic/area-types.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
 | AreaGeometry | `src/logic/area-geometry.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
@@ -98,8 +101,8 @@ server/       ← Hono + Bun + SQLite
 | SignLibraryPanel | `src/ui/sign-library-panel.ts` | ✓ T176, T235 (194r lista/grid; modaali irrotettu) | critical-paths: "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
 | SignTemplateModal | `src/ui/sign-template-modal.ts` | ✓ T235 (malli-detalji/muokkaus-modaali, irrotettu SignLibraryPanelista; XSS-escape B19/V44) | (kattaa sign-library-panel-testit) | [ui.md](docs/components/ui.md) |
 | RoleSelector | `src/ui/role-selector.ts` | ✓ T12 (V80: toggle dead code) | critical-paths: "Rooli backendistä" | [ui.md](docs/components/ui.md) |
-| SegmentPanel | `src/ui/segment-panel.ts` | ✓ T344/T345 (rivin nimi = button joka avaa lisätiedot; ··· = SegmentRowMenu) | e2e/segments.spec.ts ".segment-km näyttää status-lukumäärän" | [ui.md](docs/components/ui.md) |
-| SegmentCreationModal | `src/ui/segment-creation-modal.ts` | ✓ T150 | — | [ui.md](docs/components/ui.md) |
+| SegmentPanel | `src/ui/segment-panel.ts` | ✓ T362 (klik-klik-ankkuriketju: reitti lukittuu 1. klikistä & näkyy, haku etenee eteenpäin; B144) | e2e/segments.spec.ts ".segment-km näyttää status-lukumäärän" | [ui.md](docs/components/ui.md) |
+| SegmentCreationModal | `src/ui/segment-creation-modal.ts` | ✓ T362 (polku-tila: ankkurilista + Poista viimeinen + Valmis; DESIGN §K) | — | [ui.md](docs/components/ui.md) |
 | SegmentDetailsModal | `src/ui/segment-details-modal.ts` | ✓ T354/T355/T356 (kolme välilehteä 🎒 Varustelista/Kaikki merkit/Asetukset jaetulla SegmentKotiTabsilla; footer = jaettu modal-footer, secondary "Sulje" + destructive "Poista pätkä"; korostuskytkin headerissa; valmis-toggle T352/V255 Kaikki merkit -tabissa kuten talkoolaisella) · V250 yksi tallennusmalli ⚠️ pilkko: T346:n ryhmät = moduulirajat | tests/t69-segment-details-modal.test.ts, tests/t199-segment-markers-list.test.ts, tests/t344-segment-row-name.test.ts, tests/t346-modal-groups.test.ts, tests/t354-modal-tabs.test.ts, tests/t335-focus-toggle-pill.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | SegmentView | `src/ui/segment-view.ts` | ✓ T228, T218 (dynaaminen keräyslista), T234 (562r koordinaattori; hero irrotettu) | tests/t14-segment-view.test.ts, tests/t224-segment-view.test.ts, tests/t218-collection-list.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | SegmentHero | `src/ui/segment-hero.ts` | ✓ T234 (seuraava-merkki-hero + ◀▶-nav + selectedNavId V159, irrotettu SegmentViewsta), T327 (järjestys pätkän primary-reitin km:llä, V235) | tests/t232-segment-view-hero.test.ts | [ui.md](docs/components/ui.md) |
@@ -129,13 +132,14 @@ server/       ← Hono + Bun + SQLite
 | FeedbackWidget | `src/devtools/feedback-widget.ts` | ✓ devtools | feedback-widget | — |
 | BackendServer | `server/index.ts` | ✓ T41 | — | [backend.md](docs/components/backend.md) |
 | DatabaseLayer | `server/db.ts` | ✓ | — | [backend.md](docs/components/backend.md) |
-| SegmentsAPI | `server/routes/segments.ts` | ✓ T149 | — | [backend.md](docs/components/backend.md) |
+| SegmentsAPI | `server/routes/segments.ts` | ✓ T360 (track + excluded_marker_ids kuljetus; PUT säilyttää jäljen jos patch ei mainitse sitä) | — | [backend.md](docs/components/backend.md) |
 | AuthRoutes | `server/routes/auth.ts` | ✓ T317/T322 (talkoo-login vaatii nimen + POST /api/auth/name kesken session) | — | [backend.md](docs/components/backend.md) |
 | Settings | `server/settings.ts` | ✓ T267 (settings-taulu key-value: talkoo_password_hash + faq_markdown; getSetting/setSetting) | — | [backend.md](docs/components/backend.md) |
 | AdminRoutes | `server/routes/admin.ts` | ✓ T121, T267/T269 (talkoo-salasana + FAQ PUT) | — | [backend.md](docs/components/backend.md) |
 | FaqRoutes | `server/routes/faq.ts` | ✓ T269 (GET /api/faq, ∀ autentikoitu; PUT admin.ts) | — | [backend.md](docs/components/backend.md) |
 | MarkersAPI | `server/routes/markers.ts` | ✓ T226 (kanoninen ownership + audit-kirjaus + created_by) | — | [backend.md](docs/components/backend.md) |
-| MarkerAudit | `server/marker-audit.ts` | ✓ T316 (+ segmentCodeForMarker: pätkä johdetaan merkistä V227) | — | [backend.md](docs/components/backend.md) |
+| MarkerAudit | `server/marker-audit.ts` | ✓ T360 (allSegments + ownerSegmentIds: lähin jälki voittaa, peilaa clientin segment-membershipiä V259; aiemmin T316 segmentCodeForMarker V227) | — | [backend.md](docs/components/backend.md) |
+| TrackGeo | `server/track-geo.ts` | ✓ T360 (kohtisuora piste→jälki-etäisyys, TARKOITUKSELLINEN duplikaatti src/logic/segment-track.ts:stä; V261, oma peilitesti) | — | [backend.md](docs/components/backend.md) |
 | AuditAPI | `server/routes/audit.ts` | ✓ T319 (+ per-rivi-undo /undo/:auditId + GET-suodattimet) | — | [backend.md](docs/components/backend.md) |
 | InventoryAPI | `server/routes/inventory.ts` | ✓ T243 (v2: paikat `inventory_locations`-CRUD + `template_id`-merkkilinkki V165 + location_id-suodatus V166; snapshot-name; V161/V162/V163) | — | [backend.md](docs/components/backend.md) |
 | TemplatesAPI | `server/routes/templates.ts` | ✓ T192 | — | [backend.md](docs/components/backend.md) |

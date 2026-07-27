@@ -158,3 +158,55 @@ describe('T309/V220 — dragend + serverin hylkäys', () => {
     expect(body.route_ids).toEqual(['r1', 'r2'])
   })
 })
+
+// B146/V260-amend: km-akseli kulkee JOKAISEN kirjoituksen mukana, ⊥ vain siirron. Ilman tätä
+// serverin omistajuusportti putoaa eri reitiltä mitattuun skalaariin & talkoolainen saa 403:n
+// merkistä jonka oma näkymä listaa (mitattu 5/26 tuotantomerkistä). Testit ovat TÄSSÄ
+// tiedostossa koska mockit (outbox + Leaflet) ovat jo pystyssä & tiedosto on `ISOLATED`-listalla
+// (CLAUDE.md: uusi mockkaava tiedosto vaatisi listamuutoksen).
+describe('B146 — km-akseli kulkee jokaisen kirjoituksen mukana', () => {
+  beforeEach(() => {
+    installLeafletMock()
+    setMarkerFactory((ll) => fakeMarker(ll))
+    document.body.innerHTML = ''
+  })
+
+  it('statusmuutos kantaa distance_by_routen vaikka mitään ei siirretty', async () => {
+    const { mgr } = setup(200)
+    enqueue.mock.calls.length = 0
+
+    mgr.bulkSetStatus(['m1'], 'asetettu')
+    await new Promise((r) => setTimeout(r, 0))
+
+    const body = JSON.parse((enqueue.mock.calls.at(-1)![0] as { body: string }).body)
+    expect(body.status).toBe('asetettu')
+    // Fixturen alkuperäinen akseli (⊥ siirretty) — sama arvo joka on muistitilassa.
+    expect(body.distance_by_route).toEqual({ r1: [10000], r2: [50000] })
+    // Sijaintikentät EIVÄT ole mukana ∴ serveri ⊥ luokittele tätä siirroksi (audit pysyy statuksena).
+    expect(body.lat).toBeUndefined()
+    expect(body.lon).toBeUndefined()
+    expect(body.distance_from_start).toBeUndefined()
+    expect(body.route_ids).toBeUndefined()
+  })
+
+  it('eksplisiittinen akseli patchissa voittaa muistitilan (siirto kantaa tuoreemman)', async () => {
+    const { lm } = setup(200)
+    await drag(lm, [65.05, 25.05])
+
+    const body = JSON.parse((enqueue.mock.calls.at(-1)![0] as { body: string }).body)
+    // Siirto laskee akselin uudelleen ∴ patchin arvo on tuloksessa, ⊥ kahdesti eikä ylikirjoitettuna.
+    expect(body.distance_by_route).toEqual({ r1: [5000], r2: [45000] })
+  })
+
+  it('merkki jolta akseli puuttuu ei saa kenttää tyhjänä', async () => {
+    const { mgr, m } = setup(200)
+    m.distanceByRoute = undefined
+    enqueue.mock.calls.length = 0
+
+    mgr.bulkSetStatus(['m1'], 'asetettu')
+    await new Promise((r) => setTimeout(r, 0))
+
+    const body = JSON.parse((enqueue.mock.calls.at(-1)![0] as { body: string }).body)
+    expect('distance_by_route' in body).toBe(false)
+  })
+})

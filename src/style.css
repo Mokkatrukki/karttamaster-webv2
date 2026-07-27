@@ -3005,7 +3005,7 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
 
 /* vaihe1/vaihe2: floating bottom-left, no overlay, pass clicks to map */
 .segment-creation-modal-backdrop[data-phase="vaihe1"],
-.segment-creation-modal-backdrop[data-phase="vaihe2"] {
+.segment-creation-modal-backdrop[data-phase="polku"] {
   background: transparent;
   backdrop-filter: none;
   pointer-events: none;
@@ -3110,6 +3110,55 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   color: var(--text-muted);
   text-align: center;
   margin: 0;
+}
+
+/* T362: ankkurilista + polkunapit. Lista on se mikä tekee väärästä klikistä peruttavan —
+   järjestäjä näkee valitun reitin & jokaisen ankkurin km:n ENNEN tallennusta (B144(a)). */
+.segment-creation-route {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.segment-creation-anchors {
+  margin: 0;
+  padding: 0 16px 8px 32px;
+  max-height: 132px;
+  overflow-y: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.segment-creation-anchor {
+  padding: 2px 0;
+  line-height: 1.5;
+}
+
+/* Viimeinen ankkuri on se jota "Poista viimeinen" koskee → se erottuu. */
+.segment-creation-anchor:last-child {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.segment-creation-path-actions {
+  display: flex;
+  gap: 8px;
+  padding: 4px 16px 12px;
+}
+
+.segment-creation-path-actions button {
+  flex: 1;
+  min-height: 44px;
+}
+
+/* Disabloitu nappi ! NÄYTTÄÄ disabloidulta. `.btn--confirm`/`.btn--secondary` ⊥ määrittele
+   :disabled-tilaa ∴ ilman tätä "Valmis" näyttäisi täysin painettavalta yhdellä ankkurilla &
+   klikkaus ⊥ tekisi mitään — kuollutta pintaa (V250-suku). Sama sopimus kuin
+   `.btn-bulk-apply:disabled` (field-tint + text-muted + not-allowed). */
+.segment-creation-path-actions button:disabled {
+  background: var(--field-tint);
+  color: var(--text-muted);
+  border-color: var(--border-default);
+  cursor: not-allowed;
 }
 
 .segment-creation-error {

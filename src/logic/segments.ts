@@ -1,5 +1,6 @@
 import type { SignMarker, MarkerStatus } from './types'
-import { resolveTaskMarkers } from './task-markers'
+import type { SegmentTrack } from './segment-track'
+import { markersForSegment } from './segment-membership'
 import { genId } from './uid'
 
 export interface EquipmentItem {
@@ -19,7 +20,12 @@ export interface Segment {
   startDist?: number
   endDist?: number
   linkedMarkerIds?: string[]   // V140: eksplisiittisesti liitetyt merkit (poimittu kartalta)
+  excludedMarkerIds?: string[] // V259: järjestäjän ohitus — poistaa merkin geometrian yli
   markerTypeFilter?: string    // V140/V143: dynaaminen tyyppisuodatin (templateId-osumat)
+  // T358/T359/V258: pätkän OMA geometria. `startDist`/`endDist` ovat tästä johdettuja
+  // yhteensopivuusarvoja (V260) — jälki on totuus. Puuttuu legacy-pätkältä kunnes T361:n
+  // backfill ajaa; siihen asti jäsenyys putoaa entiseen km-sääntöön (V260-välitila).
+  track?: SegmentTrack
   assignedCode?: string
   // T297/V209: URL-slug — ∀ pätkällä heti luonnista, ei vaadi "jaa linkki" -assignia.
   // Regeneroituu kun displayName muuttuu; vanha slug kuolee (⊥ alias, V209).
@@ -181,6 +187,11 @@ export function cloneSegmentToNextPhase(store: SegmentStore, segment: Segment): 
     primaryRouteId: segment.primaryRouteId,
     startDist: segment.startDist,
     endDist: segment.endDist,
+    // T361/V258 (ck:review H-7): klooni kattaa SAMAN maaston ∴ se perii jäljen. Ilman tätä
+    // tarkastus-/purku-vaiheen pätkä jäisi ikuisesti jäljettömäksi (V260 sallii sen ∴ ⊥ rikki,
+    // mutta se ⊥ koskaan saisi V259:n eksklusiivista jäsenyyttä). Kopio ⊥ jaettu viittaus:
+    // kloonin rajojen muokkaus (T363) ⊥ saa mutatoida alkuperäisen geometriaa.
+    track: segment.track ? segment.track.map(p => ({ ...p })) : undefined,
     displayName: segment.displayName,
     equipment: [],
     phase: targetPhase,
@@ -209,6 +220,9 @@ export function getSegmentForCode(
 export function getSegmentStatusCounts(
   segment: Segment,
   markers: SignMarker[],
+  // V259: eksklusiivisuus vaatii kilpailijat. Ilman niitä lukema putoaa legacy-km-sääntöön
+  // (markersForSegment) — konservatiivinen, ⊥ "kaikki reitin merkit".
+  peers: Segment[] = [],
 ): Record<MarkerStatus, number> {
   const counts: Record<MarkerStatus, number> = {
     suunniteltu: 0,
@@ -217,7 +231,7 @@ export function getSegmentStatusCounts(
     kerätty: 0,
     ei_tarpeen: 0,
   }
-  for (const m of getMarkersForSegment(segment, markers)) {
+  for (const m of getMarkersForSegment(segment, markers, peers)) {
     counts[m.status]++
   }
   return counts
@@ -251,11 +265,11 @@ export type PhaseProgress =
   | { kind: 'count'; done: number; total: number; label: string }
   | { kind: 'boolean'; done: boolean; label: string }
 
-export function getPhaseProgress(segment: Segment, markers: SignMarker[]): PhaseProgress {
+export function getPhaseProgress(segment: Segment, markers: SignMarker[], peers: Segment[] = []): PhaseProgress {
   if (segment.phase === 'tarkastus') {
     return { kind: 'boolean', done: segment.inspected ?? false, label: 'tarkastettu' }
   }
-  const segMarkers = getMarkersForSegment(segment, markers)
+  const segMarkers = getMarkersForSegment(segment, markers, peers)
   const target = COUNT_PHASE_TARGET[segment.phase]
   const done = segMarkers.filter(m => target.doneStatuses.includes(m.status)).length
   return { kind: 'count', done, total: segMarkers.length, label: target.label }
@@ -345,11 +359,19 @@ export function validateNoOverlap(
   return true
 }
 
-// V140: delegoi kanoniseen resolveTaskMarkers:iin — Segment on strukturaalinen TaskMarkerSource.
-// Reittifiltteri (V25) ∪ linkedMarkerIds ∪ markerTypeFilter. Reitilliselle sama tulos kuin ennen.
+// T359/V259: delegoi kanoniseen `markersForSegment`iin (segment-membership.ts).
+// `peers` = saman VAIHEEN muut pätkät (`getSegmentsForPhase`). Ilman niitä eksklusiivisuutta
+// ⊥ voi ratkaista — "kuka omistaa" vaatii kilpailijat ∴ kutsuja jolla on store ! antaa ne.
+// Jäljetön pätkä (V260-välitila) käyttäytyy täsmälleen kuten ennen myös ilman peersejä.
 export function getMarkersForSegment(
   segment: Segment,
   markers: SignMarker[],
+  peers: Segment[] = [],
 ): SignMarker[] {
-  return resolveTaskMarkers(segment, markers)
+  return markersForSegment(segment, markers, peers)
+}
+
+/** Kutsupaikan apuri: pätkän kilpailijat = saman vaiheen pätkät storesta (V259). */
+export function segmentPeers(store: SegmentStore, segment: Segment): Segment[] {
+  return getSegmentsForPhase(store, segment.phase)
 }

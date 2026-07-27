@@ -2,14 +2,27 @@ import { createSegment } from '../logic/segments'
 import { pushSegment } from '../logic/segment-sync'
 import type { Segment, SegmentStore } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
+import type { SegmentTrack } from '../logic/segment-track'
 import { registerEscClose, createBackdrop } from './modal-helpers'
+
+// T362/B144: luonti kerää ANKKUREITA (reitin pisteindeksejä), ⊥ kahta km-lukua. Väliankkurit
+// ratkaisevat kierroksen: haku etenee aina edellisestä indeksistä ∴ edestakainen osuus ⊥ ole arvaus.
+export interface CreationAnchor {
+  idx: number
+  dist: number
+  lat: number
+  lon: number
+}
 
 export type CreationState =
   | { mode: 'idle' }
   | { mode: 'vaihe1' }
-  | { mode: 'vaihe2'; routeId: string; startDist: number }
+  // T362: reitti LUKITTU ensimmäisestä klikistä & näkyvissä (B144(a): hiljainen valinta oli
+  // puolet bugista). `anchors` kasvaa klikeistä; ≥2 → "Valmis" avautuu.
+  | { mode: 'polku'; routeId: string; routeLabel: string; anchors: CreationAnchor[] }
   // T299/V211: primaryRouteId = reitti jota startDist/endDist mittaavat. routeIds = jäsenyys.
-  | { mode: 'tiedot'; routeIds: string[]; primaryRouteId: string; startDist: number; endDist: number }
+  // T362/V258: `track` on pätkän geometrian totuus; startDist/endDist johdetaan siitä.
+  | { mode: 'tiedot'; routeIds: string[]; primaryRouteId: string; startDist: number; endDist: number; track: SegmentTrack }
   // T216/V139: reititön (alue)tehtävä — ei reitti-klikkejä, vaan nimi + kuvaus + valinnainen merkkijoukko
   | { mode: 'reititon' }
 
@@ -38,6 +51,9 @@ export class SegmentCreationModal {
     private readonly getPhase: () => Segment['phase'] = () => 'asettaminen',
     // T216/V140: merkkiliitoksen lähde (eksplisiittinen checklist + tyyppisuodattimen vaihtoehdot)
     private readonly getMarkers: () => SignMarker[] = () => [],
+    // T362: polkutilan napit — paneeli omistaa ankkurit, modaali vain pyytää muutosta.
+    private readonly onUndoAnchor: (() => void) | null = null,
+    private readonly onPathDone: (() => void) | null = null,
   ) {
     this.segmentCounter = store.size
   }
@@ -68,28 +84,25 @@ export class SegmentCreationModal {
     if (!modal) return
     modal.innerHTML = ''
 
-    const inMapPhase = state.mode === 'vaihe1' || state.mode === 'vaihe2'
+    const inMapPhase = state.mode === 'vaihe1' || state.mode === 'polku'
     this.backdrop.dataset.phase = state.mode
     this.backdrop.style.pointerEvents = inMapPhase ? 'none' : 'all'
     modal.style.pointerEvents = 'all'
 
     modal.appendChild(this.buildHeader(state.mode === 'reititon' ? 'Luo aluetehtävä' : 'Luo uusi pätkä'))
 
-    if (state.mode === 'vaihe1' || state.mode === 'vaihe2') {
-      const step = state.mode === 'vaihe1' ? 1 : 2
-      modal.appendChild(this.buildProgress(step))
+    if (state.mode === 'vaihe1' || state.mode === 'polku') {
+      modal.appendChild(this.buildProgress(state.mode === 'vaihe1' ? 1 : 2))
 
       const instruction = document.createElement('p')
       instruction.className = 'segment-creation-instruction'
-      instruction.textContent = step === 1 ? 'Klikkaa kartalta aloituspiste' : 'Klikkaa kartalta lopetuspiste'
+      instruction.textContent =
+        state.mode === 'vaihe1'
+          ? 'Klikkaa kartalta pätkän aloituspiste'
+          : 'Klikkaa reittiä pitkin eteenpäin — lopeta "Valmis"-napilla'
       modal.appendChild(instruction)
 
-      if (state.mode === 'vaihe2') {
-        const info = document.createElement('p')
-        info.className = 'segment-creation-info'
-        info.textContent = `Aloituspiste: ${(state.startDist / 1000).toFixed(1)} km`
-        modal.appendChild(info)
-      }
+      if (state.mode === 'polku') this.appendPathSection(modal, state)
 
       const errorEl = document.createElement('p')
       errorEl.className = 'segment-creation-error'
@@ -98,7 +111,7 @@ export class SegmentCreationModal {
       modal.appendChild(errorEl)
     } else if (state.mode === 'tiedot') {
       modal.appendChild(this.buildProgress(3))
-      this.appendTiedotForm(modal, state.routeIds, state.primaryRouteId, state.startDist, state.endDist)
+      this.appendTiedotForm(modal, state.routeIds, state.primaryRouteId, state.startDist, state.endDist, state.track)
     } else if (state.mode === 'reititon') {
       this.appendReititonForm(modal)
     }
@@ -119,6 +132,55 @@ export class SegmentCreationModal {
     }
     this.unregEsc?.()
     this.unregEsc = null
+  }
+
+  // T362/B144(a): reitti & ankkurien km NÄKYVIIN. Ennen tätä luonti valitsi reitin hiljaa
+  // (3 SMTB-reittiä ≤100 m toisistaan ∴ metrien snap-ero ratkaisi) & järjestäjä näki valinnan
+  // vasta tallennuksen jälkeen kartalta. Näkyvä lista on se mikä tekee virheestä peruttavan.
+  private appendPathSection(modal: HTMLElement, state: Extract<CreationState, { mode: 'polku' }>): void {
+    const route = document.createElement('p')
+    route.className = 'segment-creation-info segment-creation-route'
+    route.dataset.testid = 'creation-route'
+    route.textContent = `Reitti: ${state.routeLabel}`
+    modal.appendChild(route)
+
+    const list = document.createElement('ol')
+    list.className = 'segment-creation-anchors'
+    for (const [i, a] of state.anchors.entries()) {
+      const li = document.createElement('li')
+      li.className = 'segment-creation-anchor'
+      const label = i === 0 ? 'Alku' : i === state.anchors.length - 1 ? 'Loppu' : `Välipiste ${i}`
+      li.textContent = `${label}: ${(a.dist / 1000).toFixed(1)} km`
+      list.appendChild(li)
+    }
+    modal.appendChild(list)
+    // Lista rakennetaan uudelleen joka klikillä ∴ scroll palaisi alkuun & JUURI klikattu ankkuri
+    // jäisi näkymättömiin 6. ankkurista eteenpäin (max-height 132px ≈ 6 riviä). Viimeinen rivi
+    // on se jota "Poista viimeinen" koskee — se ! olla näkyvissä jotta peruutus on tietoinen.
+    list.scrollTop = list.scrollHeight
+
+    const actions = document.createElement('div')
+    actions.className = 'segment-creation-path-actions'
+
+    const undoBtn = document.createElement('button')
+    undoBtn.className = 'btn btn--secondary btn-segment-anchor-undo'
+    undoBtn.textContent = 'Poista viimeinen'
+    // Ensimmäistä ankkuria ⊥ voi poistaa erikseen: ilman sitä reitti ⊥ ole lukittu ∴ tila olisi
+    // "polku ilman reittiä". Peruuta-nappi (header) on se ulospääsy — yksi tapa, ⊥ kaksi.
+    undoBtn.disabled = state.anchors.length < 2
+    undoBtn.addEventListener('click', () => this.onUndoAnchor?.())
+    actions.appendChild(undoBtn)
+
+    const doneBtn = document.createElement('button')
+    doneBtn.className = 'btn btn--confirm btn-segment-path-done'
+    doneBtn.textContent = 'Valmis'
+    // V258: jälki tarvitsee ≥2 ankkuria. Nappi näkyy heti mutta on disabloitu ∴ järjestäjä
+    // näkee mitä puuttuu (⊥ ilmesty yllättäen kesken klikkailun).
+    doneBtn.disabled = state.anchors.length < 2
+    doneBtn.addEventListener('click', () => this.onPathDone?.())
+    actions.appendChild(doneBtn)
+
+    modal.appendChild(actions)
   }
 
   private buildHeader(titleText = 'Luo uusi pätkä'): HTMLElement {
@@ -158,6 +220,7 @@ export class SegmentCreationModal {
     primaryRouteId: string,
     startDist: number,
     endDist: number,
+    track: SegmentTrack,
   ): void {
     const nameSection = document.createElement('div')
     nameSection.className = 'segment-creation-modal-section'
@@ -196,6 +259,9 @@ export class SegmentCreationModal {
       const description = descInput.value.trim() || undefined
       const seg = createSegment(this.store, {
         routeIds, primaryRouteId, startDist, endDist,
+        // T362/V258: jälki syntyy klikatuista ankkureista ∴ pätkä on eksklusiivisen
+        // jäsenyyden (V259) piirissä heti — ⊥ odota T361:n backfilliä.
+        track,
         equipment: [],
         phase: this.getPhase(),
         displayName,

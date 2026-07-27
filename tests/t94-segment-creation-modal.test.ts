@@ -24,6 +24,7 @@ function setup(store?: SegmentStore) {
     onHideSnapMarkers: vi.fn(),
     onFirstPoint: vi.fn(),
     onFirstPointClear: vi.fn(),
+    onNotify: vi.fn(),
   }
 
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) } as Response))
@@ -70,11 +71,11 @@ describe('T94 — pätkäluonti-modal tilakone', () => {
     expect(panel.isCreationMode()).toBe(true)
   })
 
-  it('vaihe1: näyttää ohjetekstin "Klikkaa kartalta aloituspiste"', () => {
+  it('vaihe1: näyttää ohjetekstin aloituspisteestä', () => {
     setup()
     ;(document.querySelector('#btn-segment-create') as HTMLButtonElement).click()
     const modal = document.querySelector('.segment-creation-modal')!
-    expect(modal.textContent).toContain('Klikkaa kartalta aloituspiste')
+    expect(modal.textContent).toContain('Klikkaa kartalta pätkän aloituspiste')
   })
 
   it('peruuta-nappi sulkee modaalin ja palauttaa idle', () => {
@@ -105,44 +106,107 @@ describe('T94 — pätkäluonti-modal tilakone', () => {
     expect(panel.isCreationMode()).toBe(false)
   })
 
-  it('ensimmäinen mapClick siirtää vaihe2:een', () => {
+  // T362/B144: kahden klikin sopimus korvattiin ankkuriketjulla. Vanhat testit kuvasivat
+  // flowta jossa 2. klikki päätti pätkän & km luettiin globaalista lähimmästä pisteestä —
+  // juuri se arvaus jonka B144 kirjaa. Nämä testaavat uutta sopimusta.
+
+  it('ensimmäinen mapClick lukitsee reitin ja NÄYTTÄÄ sen (B144(a))', () => {
     const { panel, callbacks } = setup()
     ;(document.querySelector('#btn-segment-create') as HTMLButtonElement).click()
     panel.onMapClick(65.0, 25.0)
+
     expect(callbacks.onFirstPoint).toHaveBeenCalledOnce()
     const modal = document.querySelector('.segment-creation-modal')!
-    expect(modal.textContent).toContain('Klikkaa kartalta lopetuspiste')
+    // Reitti näkyvissä — hiljainen valinta oli puolet bugista.
+    expect(document.querySelector('[data-testid="creation-route"]')!.textContent).toContain('r1')
+    expect(modal.textContent).toContain('Alku: 0.0 km')
+    expect(modal.textContent).toContain('Klikkaa reittiä pitkin eteenpäin')
   })
 
-  it('toinen mapClick riittävän kaukana siirtää tiedot-vaiheeseen', () => {
+  it('"Valmis" on disabloitu yhdellä ankkurilla, aukeaa toisesta (V258)', () => {
+    const { panel } = setup()
+    ;(document.querySelector('#btn-segment-create') as HTMLButtonElement).click()
+    panel.onMapClick(65.0, 25.0)
+    expect((document.querySelector('.btn-segment-path-done') as HTMLButtonElement).disabled).toBe(true)
+
+    panel.onMapClick(65.2, 25.2)
+    expect((document.querySelector('.btn-segment-path-done') as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('välipisteet näkyvät listassa km:ineen', () => {
+    const { panel } = setup()
+    ;(document.querySelector('#btn-segment-create') as HTMLButtonElement).click()
+    panel.onMapClick(65.0, 25.0)
+    panel.onMapClick(65.1, 25.1)
+    panel.onMapClick(65.2, 25.2)
+
+    const items = [...document.querySelectorAll('.segment-creation-anchor')].map(el => el.textContent)
+    expect(items).toEqual(['Alku: 0.0 km', 'Välipiste 1: 5.0 km', 'Loppu: 10.0 km'])
+  })
+
+  it('"Poista viimeinen" peruu ankkurin — virhe on korjattavissa ilman uutta aloitusta', () => {
+    const { panel } = setup()
+    ;(document.querySelector('#btn-segment-create') as HTMLButtonElement).click()
+    panel.onMapClick(65.0, 25.0)
+    panel.onMapClick(65.1, 25.1)
+    expect(document.querySelectorAll('.segment-creation-anchor')).toHaveLength(2)
+
+    ;(document.querySelector('.btn-segment-anchor-undo') as HTMLButtonElement).click()
+    expect(document.querySelectorAll('.segment-creation-anchor')).toHaveLength(1)
+    // Ensimmäistä ⊥ voi poistaa: ilman sitä reitti ⊥ ole lukittu (Peruuta on se ulospääsy).
+    expect((document.querySelector('.btn-segment-anchor-undo') as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('"Valmis" siirtää tiedot-vaiheeseen', () => {
     const { panel } = setup()
     ;(document.querySelector('#btn-segment-create') as HTMLButtonElement).click()
     panel.onMapClick(65.0, 25.0)
     panel.onMapClick(65.2, 25.2)
-    const modal = document.querySelector('.segment-creation-modal')!
-    expect(modal.textContent).toContain('Tallenna')
+    ;(document.querySelector('.btn-segment-path-done') as HTMLButtonElement).click()
+
+    expect(document.querySelector('.segment-creation-modal')!.textContent).toContain('Tallenna')
   })
 
-  it('toinen mapClick liian lähellä näyttää virheen', () => {
+  it('klikki joka ei osu reitille eteenpäin näyttää virheen (B144(b))', () => {
     const { panel } = setup()
     ;(document.querySelector('#btn-segment-create') as HTMLButtonElement).click()
-    panel.onMapClick(65.0, 25.0)
-    panel.onMapClick(65.0, 25.0) // same point
+    panel.onMapClick(65.2, 25.2) // viimeinen piste — eteenpäin ei ole mitään
+    panel.onMapClick(65.0, 25.0) // TAAKSEPÄIN → ei osumaa
+
     const errorEl = document.querySelector('.segment-creation-error') as HTMLElement
-    expect(errorEl?.hidden).toBe(false)
-    expect(errorEl?.textContent).toContain('liian lähellä')
+    expect(errorEl.hidden).toBe(false)
+    expect(errorEl.textContent).toContain('eteenpäin')
+    // Tila säilyy: ankkuri ⊥ katoa virheellisestä klikistä.
+    expect(document.querySelectorAll('.segment-creation-anchor')).toHaveLength(1)
   })
 
-  it('overlap näyttää virheen', () => {
+  it('päällekkäisyys on VAROITUS ei este (V25/V259)', () => {
     const store = createSegmentStore()
     createSegment(store, { routeIds: ['r1'], startDist: 0, endDist: 6000, equipment: [], phase: 'asettaminen' }, 'existing')
-    const { panel } = setup(store)
+    const { panel, callbacks } = setup(store)
     ;(document.querySelector('#btn-segment-create') as HTMLButtonElement).click()
-    panel.onMapClick(65.0, 25.0) // dist ~0
-    panel.onMapClick(65.1, 25.1) // dist ~5000 — overlaps [0,6000]
-    const errorEl = document.querySelector('.segment-creation-error') as HTMLElement
-    expect(errorEl?.hidden).toBe(false)
-    expect(errorEl?.textContent).toContain('päällekkäin')
+    panel.onMapClick(65.0, 25.0)
+    panel.onMapClick(65.1, 25.1)
+    ;(document.querySelector('.btn-segment-path-done') as HTMLButtonElement).click()
+
+    // Luonti ETENEE — jaettu korridori on laillinen & jäsenyys ratkeaa lähimmällä jäljellä.
+    expect(document.querySelector('.segment-creation-modal')!.textContent).toContain('Tallenna')
+    expect(callbacks.onNotify).toHaveBeenCalledWith(expect.stringContaining('päällekkäin'))
+  })
+
+  it('tallennettu pätkä saa jäljen ankkureista (V258)', () => {
+    const { panel, store } = setup()
+    ;(document.querySelector('#btn-segment-create') as HTMLButtonElement).click()
+    panel.onMapClick(65.0, 25.0)
+    panel.onMapClick(65.2, 25.2)
+    ;(document.querySelector('.btn-segment-path-done') as HTMLButtonElement).click()
+    ;(document.querySelector('.btn-segment-creation-save') as HTMLButtonElement).click()
+
+    const seg = [...store.values()][0]
+    expect(seg.track).toHaveLength(3)
+    expect(seg.track![0].d).toBe(0)
+    expect(seg.startDist).toBe(0)
+    expect(seg.endDist).toBe(10000)
   })
 
   it('tiedot-vaiheessa mapClick ei tee mitään', () => {
@@ -150,7 +214,8 @@ describe('T94 — pätkäluonti-modal tilakone', () => {
     ;(document.querySelector('#btn-segment-create') as HTMLButtonElement).click()
     panel.onMapClick(65.0, 25.0)
     panel.onMapClick(65.2, 25.2)
-    // In tiedot phase
+    ;(document.querySelector('.btn-segment-path-done') as HTMLButtonElement).click()
+
     expect(document.querySelector('.btn-segment-creation-save')).toBeTruthy()
     const beforeHtml = document.querySelector('.segment-creation-modal')!.innerHTML
     panel.onMapClick(65.1, 25.1) // should be ignored

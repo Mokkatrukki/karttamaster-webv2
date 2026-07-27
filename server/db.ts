@@ -308,6 +308,14 @@ function initSchema(db: Database): void {
   // client laskee arvon geometriasta (§C-parkki: vanhaan dataan ei kosketa).
   try { db.exec('ALTER TABLE markers ADD COLUMN distance_by_route TEXT') } catch { /* already exists */ }
 
+  // T360/V258/V260: pätkän OMA geometria (JSON: [{lat,lon,d}]). NULL = legacy → serveri
+  // putoaa km-haaraan (markerInOwnSegment) ∴ välitila on laillinen, ei rikki. Jälki syntyy
+  // clientissä (T361) kun GPX:t ovat latautuneet — EI backfilliä täällä: reittigeometriaa ei
+  // ole kannassa, joten serveri ei voi johtaa sitä (sama syy kuin distance_by_route).
+  try { db.exec('ALTER TABLE segments ADD COLUMN track TEXT') } catch { /* already exists */ }
+  // T360/V259: järjestäjän ohitus — merkki pois pätkästä geometrian yli. NULL = ei ohituksia.
+  try { db.exec('ALTER TABLE segments ADD COLUMN excluded_marker_ids TEXT') } catch { /* already exists */ }
+
   const existing = db.query<{ count: number }, []>(
     "SELECT COUNT(*) as count FROM map_state WHERE key='status'"
   ).get()

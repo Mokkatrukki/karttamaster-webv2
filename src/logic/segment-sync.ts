@@ -62,3 +62,27 @@ export async function fetchAllSegments(): Promise<SegmentsResult> {
     return { ok: false, error: 'network' }
   }
 }
+
+/**
+ * T361/B145/V260-amend: JÄLJEN backfill-push — tarkoituksella outboxin OHI.
+ *
+ * Outbox (V116) takaa että KÄYTTÄJÄN aloittama kirjoitus selviää verkkokatkosta & sivun
+ * päivityksestä. Sen hinta on että 401 nostaa `promptReauth`-overlayn (`main.ts:180`) — oikein
+ * kun käyttäjä juuri kuittasi merkin, VÄÄRIN kun kyse on taustamigraatiosta jota hän ⊥ pyytänyt
+ * (B145: overlay lukitsi koko näkymän pelkästä sivun avaamisesta).
+ *
+ * Jälki ⊥ tarvitse durabiliteettia: se on JOHDETTU arvo (rajat + GPX) joka lasketaan uudelleen
+ * joka latauksella ∴ epäonnistunut push korjautuu itsestään seuraavalla kerralla. Hiljainen
+ * fetch on siis oikea työkalu — ⊥ oikaisu.
+ */
+export async function pushSegmentTrack(id: string, track: Segment['track']): Promise<void> {
+  try {
+    await fetch(`/api/segments/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ track }),
+    })
+  } catch {
+    // Verkkovirhe: ei mitään tehtävää — seuraava lataus johtaa jäljen uudelleen.
+  }
+}
