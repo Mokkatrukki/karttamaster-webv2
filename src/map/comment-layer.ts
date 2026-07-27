@@ -9,11 +9,27 @@ import { renderIconSvg } from '../logic/icon-set'
 // markerit id:n perusteella, lisää uudet, poistaa kadonneet (ei koko layerin uudelleenluontia).
 export class CommentLayer {
   private readonly markers = new Map<string, L.Marker>()
+  private focusActive = false
 
   constructor(
     private readonly map: L.Map,
     private readonly onClick?: (comment: Comment) => void,
   ) {}
+
+  // T237(d)/V243: fokus-tilassa huomio HIMMENEE, ⊥ katoa. Huomiolla ⊥ ole pätkäjäsenyyttä
+  // (V245: jäsenyyden laskeminen tekisi siitä merkin) ∴ fokus on binäärinen: kun jokin pätkä
+  // on korostettu, ∀ huomio on kontekstia. Sama kaksikanavainen himmennys kuin merkeillä
+  // (.marker-dimmed) — pelkkä alfa katoaa ilmakuvasta auringossa.
+  setFocusActive(active: boolean): void {
+    if (this.focusActive === active) return
+    this.focusActive = active
+    for (const marker of this.markers.values()) this.applyFocusClass(marker)
+  }
+
+  private applyFocusClass(marker: L.Marker): void {
+    const el = marker.getElement()
+    if (el) el.classList.toggle('comment-pin-dimmed', this.focusActive)
+  }
 
   // Renderöi vapaa-piste-kommentit. Ei-'point' (marker/segment) sivuutetaan — ne näkyvät
   // kohteensa modaalissa, ei kartalla vapaana pisteenä.
@@ -38,6 +54,9 @@ export class CommentLayer {
       if (this.onClick) marker.on('click', () => this.onClick!(c))
       marker.addTo(this.map)
       this.markers.set(c.id, marker)
+      // Uusi pinni syntyy fokuksen ollessa päällä → himmennys heti, ei vasta seuraavasta
+      // fokusvaihdosta (sama uudelleensovellus-kuvio kuin MarkerManager.applyFocusClass).
+      this.applyFocusClass(marker)
     }
 
     // Poista kadonneet (esim. järjestäjän poisto).

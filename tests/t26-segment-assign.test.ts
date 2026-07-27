@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { SegmentPanel } from '../src/ui/segment-panel'
 import { createSegmentStore, createSegment } from '../src/logic/segments'
@@ -31,7 +32,7 @@ function setup(displayName: string | null = 'Pätkä 1') {
 }
 
 function openModal(container: HTMLElement): void {
-  const detailsBtn = container.querySelector('.btn-segment-details-open') as HTMLButtonElement
+  const detailsBtn = container.querySelector('.segment-info') as HTMLButtonElement
   detailsBtn.click()
 }
 
@@ -83,7 +84,7 @@ describe('T26/T273/T276 — Segment assign flow (Model B, nimi→slug, V192)', (
     new SegmentPanel(container, [], store, vi.fn())
 
     // avaa toinen (jakamaton) pätkä
-    const btns = container.querySelectorAll('.btn-segment-details-open')
+    const btns = container.querySelectorAll('.segment-info')
     ;(btns[btns.length - 1] as HTMLButtonElement).click()
     const saveBtn = document.body.querySelector('.btn-assign-save') as HTMLButtonElement
     saveBtn.click()

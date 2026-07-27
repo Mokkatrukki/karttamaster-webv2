@@ -123,7 +123,7 @@ commentsRoutes.post('/', requireAuth(), async (c) => {
   return c.json(rowToComment(row, db), 201)
 })
 
-// ---- T338/V247: kuvaliite ----
+// ---- T338/V262: kuvaliite ----
 //
 // Portit ovat SERVERISSÄ, ⊥ clientissä. Client pienentää kuvan ennen lähetystä (nopeus +
 // kaista), mutta se on mukavuus — API:a voi kutsua suoraan curlilla ∴ jokainen raja

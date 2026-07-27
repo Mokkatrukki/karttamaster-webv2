@@ -25,11 +25,11 @@ export interface CommentPointModalOptions {
   defaultAuthorName?: () => string | undefined
   /** T338: kuvan liitos. Puuttuu → kuvaosio piilossa. null-paluu = onnistui. */
   uploadImage?: (commentId: string, file: File) => Promise<CommentImageError | null>
-  /** T341/V248: kuittausnapin näkyvyys (järjestäjä+). Oletus false. */
+  /** T364/V263: kuittausnapin näkyvyys (järjestäjä+). Oletus false. */
   canResolve?: () => boolean
 }
 
-// V247: käyttäjälle kerrotaan MIKSI lataus ei mennyt läpi. "Yritä uudelleen" on väärä ohje
+// V262: käyttäjälle kerrotaan MIKSI lataus ei mennyt läpi. "Yritä uudelleen" on väärä ohje
 // kun kiintiö on täynnä — silloin oikea ohje on odottaa.
 const IMAGE_ERROR_TEXT: Record<CommentImageError, string> = {
   rate_limited: '⚠ Liian monta kuvaa peräkkäin — odota hetki (max 2 kuvaa minuutissa).',
@@ -109,7 +109,7 @@ export class CommentPointModal {
     hint.textContent = 'Huomio kiinnittyy valittuun karttapisteeseen. Se ei ole merkki eikä näy tehtävälistoissa.'
     body.appendChild(hint)
 
-    // V248: kategoria yhdellä painalluksella — dropdown on väärä kontrolli hanskat kädessä.
+    // V263: kategoria yhdellä painalluksella — dropdown on väärä kontrolli hanskat kädessä.
     // Valinta vaihtaa myös tekstikentän vihjeen ∴ käyttäjä näkee heti millaista tietoa odotetaan.
     const cats = document.createElement('div')
     cats.className = 'comment-point-cats'
@@ -236,7 +236,7 @@ export class CommentPointModal {
     meta.textContent = [comment.authorName, when].filter(Boolean).join(' · ')
     body.appendChild(meta)
 
-    // V248: tila sanoin, ⊥ pelkkä väri (V197-linja). Kuitattu kertoo KUKA ja MILLOIN —
+    // V263: tila sanoin, ⊥ pelkkä väri (V197-linja). Kuitattu kertoo KUKA ja MILLOIN —
     // "kuka sanoi tämän hoidetuksi" on se kysymys johon halutaan aina vastaus.
     const state = document.createElement('p')
     state.className = isOpenNote(comment) ? 'comment-point-state comment-point-state--open' : 'comment-point-state comment-point-state--done'
@@ -250,7 +250,7 @@ export class CommentPointModal {
     const footer = document.createElement('div')
     footer.className = 'comment-point-modal-footer'
 
-    // V248: kuittaus on järjestäjän koordinointipäätös — talkoolainen ILMOITTAA, järjestäjä KUITTAA.
+    // V263: kuittaus on järjestäjän koordinointipäätös — talkoolainen ILMOITTAA, järjestäjä KUITTAA.
     if (this.opts.canResolve?.()) {
       const open = isOpenNote(comment)
       const resolveBtn = document.createElement('button')
@@ -359,7 +359,7 @@ export class CommentPointModal {
       addBtn.disabled = true
       addBtn.textContent = 'Pienennetään…'
       error.hidden = true
-      // Pienennys ensin (V247): puhelimen 4000px/6 MB kuva → ~1600px/JPEG ∴ lähetys onnistuu
+      // Pienennys ensin (V262): puhelimen 4000px/6 MB kuva → ~1600px/JPEG ∴ lähetys onnistuu
       // heikollakin yhteydellä eikä kanta täyty. Epäonnistuva pienennys palauttaa alkuperäisen.
       void downscaleImage(file)
         .then(({ file: prepared }) => {

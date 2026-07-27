@@ -3,13 +3,15 @@ import type { MarkerManager } from '../map/markers'
 import { SegmentOverlay } from '../map/segment-overlay'
 import { SegmentPanel } from '../ui/segment-panel'
 import { PhaseSwitcher } from '../ui/phase-switcher'
-import { getSegmentsForPhase, getSegmentForCode } from '../logic/segments'
+import { getSegmentsForPhase, getSegmentForCode, getMarkersForSegment } from '../logic/segments'
+import { fitMapToSegment } from '../map/segment-fit'
 import type { Segment } from '../logic/segments'
 import { fetchSegmentByCode, fetchAllSegments } from '../logic/segment-sync'
 import { getActivePhase } from '../logic/phase-view'
 import type { RouteConfig } from '../logic/multi-route'
 import type { SignMarker } from '../logic/types'
 import { mapMode } from '../logic/map-mode'
+import { initMarkerFocusPill } from '../ui/marker-focus-pill'
 
 export interface SegmentsWiring {
   segmentStore: Map<string, Segment>
@@ -28,8 +30,13 @@ export async function wireSegments(
   talkoolainenCode: string | undefined,
   initialMarkers: SignMarker[],
   markerManagerRef: { current: MarkerManager | null },
+  // T237(d)/V243: sama forward-ref-kuvio kuin markerManagerRef — CommentLayer syntyy vasta
+  // markers-wiringissä, mutta fokus-kytkin elää täällä.
+  commentLayerRef: { current: { setFocusActive(active: boolean): void } | null },
   onSaveError: () => void,
   onLoadError: () => void = () => {},
+  // T345: näkyvä palaute pikavalikon toiminnoille (linkin kopiointi).
+  onNotify: (msg: string) => void = () => {},
 ): Promise<SegmentsWiring> {
   const segmentStore = new Map<string, Segment>()
   if (talkoolainenCode) {
@@ -66,13 +73,33 @@ export async function wireSegments(
     const own = getSegmentForCode(segmentStore, talkoolainenCode)
     segmentOverlay.setContextOwn(own?.id)
   }
-  renderSegmentOverlay()
+  // HUOM: ENSIMMÄINEN render tehdään vasta kuuntelijoiden kytkennän JÄLKEEN (tiedoston lopussa).
+  // Aiemmin se ajettiin tässä, ENNEN `setOnSegmentClick`ia ∴ latauksen viivoille ⊥ syntynyt
+  // klikkikuuntelijaa lainkaan & pätkä avautui vasta jos jokin muu (merkin muutos, phase-vaihto)
+  // sattui renderöimään uudelleen. (B134/T347)
 
   // T307/V218: muokkaustilasta poistuminen sulkee auki olevan rajaeditorin — muuten kahvat
   // jäisivät kartalle raahattaviksi katselutilassa (rinnakkainen mekanismi).
   mapMode.onChange(() => {
     if (!mapMode.canDragSegmentBounds() && segmentOverlay.isEditMode()) segmentOverlay.exitEditMode()
   })
+
+  // T335/V243: järjestäjän korostustila. Asuu TÄÄLLÄ eikä modaalissa — modaali tuhoutuu
+  // sulkiessa mutta tila jää päälle, ja poistumis-pilleri on ainoa ulospääsy sen jälkeen.
+  // Ei localStoragea: korostus on hetken työkalu, ei asetus.
+  let focusSegmentId: string | null = null
+  const focusPill = initMarkerFocusPill({ onClear: () => setFocusSegment(null) })
+
+  function setFocusSegment(seg: Segment | null): void {
+    focusSegmentId = seg?.id ?? null
+    // Järjestäjä: himmennetty PYSYY klikattavana (locked=false) — korostus on lukemisen apu.
+    markerManagerRef.current?.setFocusSegment(seg ?? undefined)
+    // T237(d)/V243: huomiot himmenevät korostuksen mukana — eivät katoa (V245: huomiolla ⊥ ole
+    // pätkäjäsenyyttä ∴ fokus on binäärinen, ⊥ per-pätkä-laskenta).
+    commentLayerRef.current?.setFocusActive(seg !== null)
+    if (seg) focusPill.show(seg.displayName ?? 'pätkä')
+    else focusPill.hide()
+  }
 
   let tempCreationMarker: L.CircleMarker | null = null
 
@@ -109,6 +136,16 @@ export async function wireSegments(
       onHideSnapMarkers: () => segmentOverlay.hideCreationSnapMarkers(),
       onSaveError,
       getMarkers: () => markerManagerRef.current?.getAll() ?? [],
+      // T335/V243: korostuskytkin pätkämodaalissa — tila tässä, pilleri sen näkyvä ulospääsy.
+      isFocusSegment: (seg) => focusSegmentId === seg.id,
+      onToggleFocusSegment: (seg, on) => setFocusSegment(on ? seg : null),
+      // T345: sama rajauskuvio kuin talkoolaisen latauszoomissa (`src/map/segment-fit.ts`) —
+      // yksi zoom-sääntö, ⊥ kahta erilaista "koko pätkää".
+      onShowSegmentOnMap: (seg) => {
+        const markers = markerManagerRef.current?.getAll() ?? initialMarkers
+        fitMapToSegment(map, routes, seg, getMarkersForSegment(seg, markers))
+      },
+      onNotify: (msg) => onNotify(msg),
     },
   )
 
@@ -122,6 +159,10 @@ export async function wireSegments(
       })
     }
   }
+
+  // B134: render vasta nyt — kuuntelijat (klikkaus → modaali) ovat kiinni ∴ ensimmäinenkin
+  // piirretty pätkä & sen nimilappu reagoivat ilman uudelleenrenderiä.
+  renderSegmentOverlay()
 
   return { segmentStore, segmentOverlay, segmentPanel, renderSegmentOverlay, phaseFilteredStore }
 }

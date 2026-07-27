@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 
 // T206/V135: yhtenäinen .btn-nappijärjestelmä. Testi lukee style.css:n suoraan ja

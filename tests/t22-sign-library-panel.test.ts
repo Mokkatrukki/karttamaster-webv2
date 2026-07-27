@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { createSignLibrary, SignLibraryPanel } from '../src/ui/sign-library-panel'
 import { createLibrary, createTemplate, listTemplates, type SignLibrary } from '../src/logic/sign-library'

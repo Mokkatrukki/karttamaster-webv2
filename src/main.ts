@@ -66,8 +66,10 @@ async function init(talkoolainenCode?: string) {
   backfillDistanceByRoute(initialMarkers, routes)
 
   const polylines = routes.map(r =>
+    // T304/V216: dashArray = 2. kanava. Jaetulla osuudella ylempi reitti paljastaa aukoistaan
+    // alla kulkevan ∴ päällekkäisyys ei enää piilota reittiä kokonaan.
     L.polyline(r.routePoints.map(p => [p.lat, p.lon] as [number, number]), {
-      color: r.color, weight: 6, opacity: 0.85,
+      color: r.color, weight: 6, opacity: 0.85, dashArray: r.dashArray,
     }).addTo(map)
   )
   map.fitBounds(L.featureGroup(polylines).getBounds(), { padding: [20, 20] })
@@ -93,6 +95,8 @@ async function init(talkoolainenCode?: string) {
   // Ref täytetään markers-wiring.ts:ssä — segments-wiring tarvitsee merkit pätkän
   // status-väritykseen (V96) mutta MarkerManager luodaan vasta sen jälkeen.
   const markerManagerRef: { current: MarkerManager | null } = { current: null }
+  // T237(d)/V243: sama kuvio huomio-kerrokselle — fokus-kytkin on segments-wiringissä.
+  const commentLayerRef: { current: { setFocusActive(active: boolean): void } | null } = { current: null }
 
   // Talkoolaiselle alueet ovat vain kontekstia (noutopisteet/pudotuspisteet) — niiden
   // latausvirhe ei saa peittää pätkänäkymän otsikkoa pysyvällä "päivitä sivu" -bannerilla
@@ -102,16 +106,18 @@ async function init(talkoolainenCode?: string) {
   })
 
   const { segmentStore, segmentOverlay, renderSegmentOverlay, segmentPanel } = await wireSegments(
-    map, routes, talkoolainenCode, initialMarkers, markerManagerRef,
+    map, routes, talkoolainenCode, initialMarkers, markerManagerRef, commentLayerRef,
     () => showWarning('⚠ Pätkän tallennus epäonnistui (muisti täynnä?)', 5000),
     () => showWarning('⚠ Pätkien lataus epäonnistui — päivitä sivu', 0),
+    (msg) => showWarning(msg, 2500),
   )
 
-  const { markerManager, driveMode, progressBar, placeMode, markerModal, closeMarkerModal } = wireMarkers(
+  const { markerManager, driveMode, progressBar, placeMode, markerModal, closeMarkerModal, commentLayer } = wireMarkers(
     map, routes, polylines, initialMarkers, talkoolainenCode,
     { segmentStore, renderSegmentOverlay, segmentPanel, showWarning, gpsNavigator },
   )
   markerManagerRef.current = markerManager
+  commentLayerRef.current = commentLayer
   activeMarkerManager = markerManager
 
   // Map events

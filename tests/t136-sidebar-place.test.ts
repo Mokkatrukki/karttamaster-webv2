@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { SignLibraryPanel } from '../src/ui/sign-library-panel'
 import { PlaceMode } from '../src/ui/place-mode'

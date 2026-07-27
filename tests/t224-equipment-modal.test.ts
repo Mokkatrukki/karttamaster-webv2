@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest'
 import { EquipmentModal } from '../src/ui/equipment-modal'
 import type { Segment, EquipmentItem } from '../src/logic/segments'

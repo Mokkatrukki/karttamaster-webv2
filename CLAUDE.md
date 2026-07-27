@@ -68,10 +68,30 @@ karttamaster-pm    →  karttamaster-spec   →  karttamaster-       →  kartta
 | `/karttamaster-testaaja` | → `/karttamaster-ux` jos UX-ongelma (touch/kontrasti/mobiili) |
 | `/ck:build` | → `/ck:backprop` jos testi hajoaa |
 
+## Testiympäristö (T342/V248)
+
+**Uusi testitiedosto saa `node`-ympäristön.** DOM:ia tarvitseva tiedosto tarvitsee docblockin
+ENNEN importteja:
+
+```typescript
+// @vitest-environment jsdom
+```
+
+Ilman sitä DOM-testi kaatuu `ReferenceError: document` — äänekkäästi, ei hiljaa. Tämä on
+tarkoituksellista: jsdom maksaa ~0.74 s/tiedosto eikä puhtaan logiikan pidä maksaa sitä.
+Myös epäsuora DOM-riippuvuus lasketaan (esim. `src/logic/gpx.ts` käyttää `DOMParser`ia).
+
+`vi.mock(…)` jaetussa moduulirekisterissä sitoo moduulin kaikille tiedostoille → tiedosto joka
+mockkaa kuuluu `vite.config.ts`:n `ISOLATED`-listalle. Lista on näkyvä; sen kasvu on signaali.
+Leafletia mockkaavat käyttävät jaettua `tests/helpers/leaflet-mock.ts`:ää, eivät omaa tehdasta.
+
 ## localStorage-mock (Node v26 conflict)
 
 localStorage-testeissä aina `vi.stubGlobal`-mock — natiivi localStorage konfliktoi Node v26:ssa.
 Pohja: `/karttamaster-testaaja` → "localStorage-mock" (ainoa koti, ei kopioita tänne).
+
+Siivousta EI tarvitse kirjoittaa: `unstubGlobals: true` (`vite.config.ts`) palauttaa globaalit
+ennen jokaista testiä. `vi.unstubAllGlobals()` afterEachissä on turha (ei haitallinen).
 
 ## Arkkitehtuurirajat
 

@@ -1,5 +1,6 @@
 // T317/V228: nimi hub-kirjautumisessa. Taso 1 (talkoo-identity) + Taso 2 (AuthScreen-lomake).
 // localStorage aina vi.stubGlobal-mockilla — natiivi konfliktoi Node v26:ssa (CLAUDE.md).
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   isValidTalkooName,

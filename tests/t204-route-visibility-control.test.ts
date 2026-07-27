@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { RouteVisibilityControl } from '../src/map/route-visibility-control'
 import type { RouteConfig } from '../src/logic/multi-route'

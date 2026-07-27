@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 // V132/T202: teema on käyttäjän valittavissa, persistoituu localStorageen (V5-pattern),

@@ -746,3 +746,231 @@ test.describe('Merkin zoom-skaalaus — T175', () => {
     expect(Math.abs(near.outerAnchorY - near.innerAnchorY)).toBeLessThan(2)
   })
 })
+
+// T335/V243 — kartan fokus HIMMENTÄÄ, ei piilota. Talkoolaisella tämä on automaatti: hän
+// näkee oman pätkänsä merkit kirkkaina ja muut haaleina — mutta NÄKEE ne, muuten hän ei tiedä
+// onko naapurin merkki jo asetettu vai puuttuuko se.
+test.describe('T335 — merkkien korostus (V243)', () => {
+  const SEG = {
+    id: 'seg-focus', routeIds: ['smtb-30'], primaryRouteId: 'smtb-30',
+    // Tyhjä km-väli + eksplisiittinen liitos ⇒ jäsenyys on deterministinen eikä riipu siitä
+    // mihin kohtaan GPX-geometriaa testikoordinaatit osuvat (V140-unioni: linkedMarkerIds).
+    startDist: 0, endDist: 0, linkedMarkerIds: ['mk-oma'],
+    assignedCode: 'TEST01', displayName: 'Fokus-pätkä', description: '', equipment: [],
+    phase: 'asettaminen', inspected: false, completed: false,
+  }
+  const mk = (id: string, label: string, lat: number) => ({
+    id, type: 'right', lat, lon: 27.62, distance_from_start: 5000,
+    route_ids: ['smtb-30'], status: 'suunniteltu', location_note: null, color: null,
+    label, icon_id: null, image_id: null, template_id: null, parts_json: null,
+    description: null, images: [], created_by: null,
+  })
+
+  test('talkoolainen: oma merkki kirkas, vieras himmennetty mutta EI piilotettu', async ({ page }) => {
+    await mockAuthAsTalkoolainen(page)
+    await mockTemplates(page)
+    await page.route(/\/api\/segments\/by-code\/TEST01$/, route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SEG) }))
+    await mockMarkers(page, [mk('mk-oma', 'OMA', 65.62), mk('mk-vieras', 'VIERAS', 65.63)])
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/s/TEST01')
+    await page.waitForTimeout(1500)
+    await page.click('#btn-to-map')
+    await page.waitForTimeout(500)
+
+    const icons = page.locator('.leaflet-marker-icon:not(.route-dir-arrow)')
+    await expect(icons).toHaveCount(2)
+    // V243: himmennetty on YHÄ kartalla
+    await expect(page.locator('.leaflet-marker-icon.marker-dimmed')).toHaveCount(1)
+    await expect(page.locator('.leaflet-marker-icon[title="VIERAS"]')).toHaveClass(/marker-dimmed/)
+    await expect(page.locator('.leaflet-marker-icon[title="OMA"]')).not.toHaveClass(/marker-dimmed/)
+    // V142: talkoolaisella himmennetty on myös read-only
+    await expect(page.locator('.leaflet-marker-icon[title="VIERAS"]')).toHaveClass(/marker-dimmed--locked/)
+    await expect(page.locator('.leaflet-marker-icon[title="VIERAS"]')).toBeVisible()
+  })
+
+  test('järjestäjä: kytkin päälle → merkit himmenee, pilleri ✕ nollaa (44px touch)', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
+    await page.route(/\/api\/segments$/, route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([SEG]) }))
+    await mockMarkers(page, [mk('mk-oma', 'OMA', 65.62), mk('mk-vieras', 'VIERAS', 65.63)])
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    // Pätkäpaneeli on kutistettu oletuksena → avaa otsikosta ja klikkaa pätkää listasta
+    await page.locator('.segment-panel-header').click()
+    await page.locator('#segment-list .segment-info').first().click()
+    const toggle = page.locator('.btn-segment-focus-toggle')
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true')
+
+    // V243: vieras merkki himmenee mutta pysyy kartalla JA klikattavana (järjestäjä ⊥ lukko)
+    await expect(page.locator('.leaflet-marker-icon[title="VIERAS"]')).toHaveClass(/marker-dimmed/)
+    await expect(page.locator('.leaflet-marker-icon[title="VIERAS"]')).not.toHaveClass(/marker-dimmed--locked/)
+
+    // V243: tila jää päälle modaalin sulkeuduttua → pilleri on ulospääsy
+    await page.click('.segment-details-modal-close')
+    const pill = page.locator('#marker-focus-pill')
+    await expect(pill).toBeVisible()
+    await expect(pill).toContainText('Korostus: Fokus-pätkä')
+
+    const clear = page.locator('#btn-marker-focus-clear')
+    const box = await clear.boundingBox()
+    expect(Math.min(box!.width, box!.height)).toBeGreaterThanOrEqual(44) // DESIGN §A
+    await clear.click()
+    await expect(pill).toBeHidden()
+    await expect(page.locator('.leaflet-marker-icon.marker-dimmed')).toHaveCount(0)
+  })
+
+  // T345/V250: katselutoiminnot ilman modaalia — ···-pikavalikko.
+  test('järjestäjä: ···-valikosta korostus päälle ILMAN modaalia', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
+    await page.route(/\/api\/segments$/, route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([SEG]) }))
+    await mockMarkers(page, [mk('mk-oma', 'OMA', 65.62), mk('mk-vieras', 'VIERAS', 65.63)])
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await page.locator('.segment-panel-header').click()
+    await page.locator('#segment-list .btn-segment-details-open').first().click()
+    await expect(page.locator('.segment-row-menu')).toBeVisible()
+
+    await page.locator('.segment-row-menu-item', { hasText: 'Korosta' }).click()
+    // Valikko sulkeutuu, modaali EI avaudu, merkit himmenevät
+    await expect(page.locator('.segment-row-menu')).toHaveCount(0)
+    await expect(page.locator('.segment-details-modal')).toHaveCount(0)
+    await expect(page.locator('.leaflet-marker-icon[title="VIERAS"]')).toHaveClass(/marker-dimmed/)
+    await expect(page.locator('#marker-focus-pill')).toBeVisible()
+
+    // Valikko lukee saman tilan → rivi näyttää nyt "päällä"
+    await page.locator('#segment-list .btn-segment-details-open').first().click()
+    await expect(page.locator('.segment-row-menu-item', { hasText: 'Korostus päällä' })).toHaveAttribute('aria-pressed', 'true')
+    await page.keyboard.press('Escape')
+    await expect(page.locator('.segment-row-menu')).toHaveCount(0)
+  })
+
+  test('järjestäjä: ···-valikon "Näytä kartalla" siirtää karttaa', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
+    await page.route(/\/api\/segments$/, route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ ...SEG, startDist: 2000, endDist: 8000 }]) }))
+    await mockMarkers(page, [])
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    const center = () => page.evaluate(() => {
+      const m = (window as unknown as Record<string, unknown>)['__testMap'] as { getCenter(): { lat: number; lng: number } } | undefined
+      const c = m?.getCenter()
+      return c ? `${c.lat.toFixed(4)},${c.lng.toFixed(4)}` : ''
+    })
+    const before = await center()
+
+    await page.locator('.segment-panel-header').click()
+    await page.locator('#segment-list .btn-segment-details-open').first().click()
+    await page.locator('.segment-row-menu-item', { hasText: 'Näytä kartalla' }).click()
+    await page.waitForTimeout(600)
+
+    expect(await center()).not.toBe(before)
+  })
+
+  test('järjestäjä: ei korostusta oletuksena, pilleri piilossa', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
+    await mockMarkers(page, [mk('mk-a', 'A', 65.62), mk('mk-b', 'B', 65.63)])
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await expect(page.locator('.leaflet-marker-icon.marker-dimmed')).toHaveCount(0)
+    await expect(page.locator('#marker-focus-pill')).toBeHidden()
+  })
+})
+
+// T347/V250 — pätkän nimilappu kartalla on klikattava sisääntulo. Lappu on ainoa luettava kohde:
+// jos se ei reagoi, käyttäjä joutuu osumaan ~8px viivaan lapun VIERESTÄ.
+test.describe('T347 — pätkän nimilappu kartalla', () => {
+  const SEG = {
+    id: 'seg-label', routeIds: ['smtb-30'], primaryRouteId: 'smtb-30',
+    startDist: 2000, endDist: 8000, linkedMarkerIds: [],
+    assignedCode: 'LBL01', displayName: 'Lappupätkä', description: '', equipment: [],
+    phase: 'asettaminen', inspected: false, completed: false,
+  }
+
+  test('järjestäjä: klikkaus nimilapun päältä avaa modaalin KERRAN', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
+    await page.route(/\/api\/segments$/, route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([SEG]) }))
+    await mockMarkers(page, [])
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    const label = page.locator('.segment-label', { hasText: 'Lappupätkä' })
+    await expect(label).toBeVisible()
+    // Leaflet merkitsee interaktiivisen tooltipin → pointer-events:auto + cursor:pointer
+    await expect(label).toHaveClass(/leaflet-interactive/)
+
+    await label.click()
+    await expect(page.locator('.segment-details-modal')).toHaveCount(1)
+    await expect(page.locator('.segment-details-modal')).toContainText('Lappupätkä')
+  })
+
+  test('järjestäjä: drag lapun päältä panoroi karttaa eikä avaa modaalia', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
+    await page.route(/\/api\/segments$/, route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([SEG]) }))
+    await mockMarkers(page, [])
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    const center = () => page.evaluate(() => {
+      const m = (window as unknown as Record<string, unknown>)['__testMap'] as { getCenter(): { lat: number; lng: number } } | undefined
+      const c = m?.getCenter()
+      return c ? `${c.lat.toFixed(4)},${c.lng.toFixed(4)}` : ''
+    })
+    const before = await center()
+
+    const box = await page.locator('.segment-label', { hasText: 'Lappupätkä' }).boundingBox()
+    await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(box!.x + box!.width / 2 - 160, box!.y + box!.height / 2 - 120, { steps: 12 })
+    await page.mouse.up()
+    await page.waitForTimeout(600)
+
+    expect(await center()).not.toBe(before)
+    await expect(page.locator('.segment-details-modal')).toHaveCount(0)
+  })
+
+  test('talkoolainen: vieraan pätkän lappu ei ole klikattava (V142)', async ({ page }) => {
+    await mockAuthAsTalkoolainen(page)
+    await mockTemplates(page)
+    await page.route(/\/api\/segments\/by-code\/LBL01$/, route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SEG) }))
+    await page.route(/\/api\/segments$/, route =>
+      route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify([SEG, { ...SEG, id: 'seg-vieras', assignedCode: 'OTHER', displayName: 'Vieraspätkä', startDist: 9000, endDist: 14000 }]),
+      }))
+    await mockMarkers(page, [])
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/s/LBL01')
+    await page.waitForTimeout(1500)
+    await page.click('#btn-to-map')
+    await page.waitForTimeout(500)
+
+    const vieras = page.locator('.segment-label', { hasText: 'Vieraspätkä' })
+    if (await vieras.count() > 0) {
+      await expect(vieras).toHaveClass(/segment-label--dim/)
+      await expect(vieras).not.toHaveClass(/leaflet-interactive/)
+    }
+  })
+})

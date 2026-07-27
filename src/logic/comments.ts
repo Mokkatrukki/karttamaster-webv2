@@ -18,12 +18,12 @@ export interface Comment {
   createdAt: string
   /** T338: kuva-URL:t (`/api/comments/:id/images/:imageId`). Sama muoto kuin SignMarker.images. */
   images?: string[]
-  /** T341/V248: kuittausleima. Puuttuu ⇒ työ on AVOIN. ⊥ ole merkin status (V9/V245). */
+  /** T364/V263: kuittausleima. Puuttuu ⇒ työ on AVOIN. ⊥ ole merkin status (V9/V245). */
   resolvedAt?: string
   resolvedBy?: string
 }
 
-// T341/V248: huomion KATEGORIA. Talkoolainen valitsee hanskat kädessä yhdellä painalluksella —
+// T364/V263: huomion KATEGORIA. Talkoolainen valitsee hanskat kädessä yhdellä painalluksella —
 // dropdown on väärä kontretti kentällä. Kategoria talletetaan olemassa olevaan `iconId`-kenttään
 // ∴ ⊥ skeemamuutosta, & se näkyy heti sekä kartalla (CommentPin) että listassa.
 export interface NoteCategory {
@@ -121,7 +121,7 @@ export async function postComment(input: NewComment): Promise<Comment | null> {
 
 // T338: liitä kuva huomioon. ∀ autentikoitu (V13/V246) — backend gate hoitaa auktorisoinnin.
 // Palauttaa virhekoodin tai null jos onnistui: kutsuja erottaa taajuusrajan (429) muusta,
-// koska "yritä uudelleen" on väärä ohje kun kiintiö on täynnä (V247).
+// koska "yritä uudelleen" on väärä ohje kun kiintiö on täynnä (V262).
 export type CommentImageError = 'rate_limited' | 'too_large' | 'invalid_type' | 'failed'
 
 export async function addCommentImage(commentId: string, file: File): Promise<CommentImageError | null> {
@@ -142,7 +142,7 @@ export async function addCommentImage(commentId: string, file: File): Promise<Co
   }
 }
 
-// T341/V248: kuittaa työ tehdyksi (tai palauta avoimeksi). Järjestäjä+ — backend gate.
+// T364/V263: kuittaa työ tehdyksi (tai palauta avoimeksi). Järjestäjä+ — backend gate.
 export async function resolveComment(id: string, resolved: boolean): Promise<Comment | null> {
   try {
     const resp = await fetch(`/api/comments/${encodeURIComponent(id)}/resolve`, {

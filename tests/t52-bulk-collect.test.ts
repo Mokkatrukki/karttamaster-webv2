@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { bulkCollect } from '../src/logic/segment-actions'
 import { SegmentView } from '../src/ui/segment-view'

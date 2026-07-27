@@ -1,12 +1,12 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('leaflet', () => ({
-  default: {
-    divIcon: (opts: { html: string; className: string; iconSize: number[]; iconAnchor: number[] }) => opts,
-  },
-}))
+// V248: jaettu leaflet-mock (isolate:false ⇒ yksi rekisteri, ⊥ omaa tehdasta per tiedosto).
+vi.mock('leaflet', async () => ({ default: (await import('./helpers/leaflet-mock')).L }))
+import { installLeafletMock } from './helpers/leaflet-mock'
 
 import { createSignIcon } from '../src/map/icons'
+
+beforeEach(() => { installLeafletMock() })
 
 function getHtml(type: Parameters<typeof createSignIcon>[0], status: Parameters<typeof createSignIcon>[1]): string {
   const icon = createSignIcon(type, status) as unknown as { html: string }

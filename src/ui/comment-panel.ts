@@ -62,7 +62,7 @@ export class CommentPanel {
   private render(): void {
     this.listEl.innerHTML = ''
 
-    // V248: laskuri kertoo AVOIMET, ⊥ kaikkia. Järjestäjä kysyy "montako työtä on tekemättä" —
+    // V263: laskuri kertoo AVOIMET, ⊥ kaikkia. Järjestäjä kysyy "montako työtä on tekemättä" —
     // kokonaismäärä kasvaa ikuisesti eikä vastaa siihen kysymykseen.
     const open = this.comments.filter(isOpenNote)
     const done = this.comments.filter(c => !isOpenNote(c))

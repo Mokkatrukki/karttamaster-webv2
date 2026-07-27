@@ -16,6 +16,8 @@ import {
   cloneSegmentToNextPhase,
   NEXT_PHASE,
   colorForSegment,
+  segmentLineColor,
+  SEGMENT_DONE_COLOR,
   segmentLineState,
   SEGMENT_COLORS,
   type Segment,
@@ -481,6 +483,38 @@ describe('segments', () => {
     })
   })
 
+  // T348/V96-amend/B135: kartan viivaväri = tunniste PAITSI valmiina — silloin status voittaa.
+  describe('segmentLineColor (V96-amend, T348)', () => {
+    it('valmis → confirm-vihreä riippumatta id:stä', () => {
+      for (const id of ['a', 'xyz', 'seg-1', crypto.randomUUID(), '']) {
+        expect(segmentLineColor(id, 'valmis')).toBe(SEGMENT_DONE_COLOR)
+      }
+    })
+
+    it('kesken & ei_alkanut → identtinen colorForSegmentin kanssa (tunniste säilyy)', () => {
+      for (const id of ['a', 'xyz', 'seg-1', crypto.randomUUID()]) {
+        expect(segmentLineColor(id, 'kesken')).toBe(colorForSegment(id))
+        expect(segmentLineColor(id, 'ei_alkanut')).toBe(colorForSegment(id))
+      }
+    })
+
+    it('sama id + eri state → eri väri (status on oma kanavansa)', () => {
+      expect(segmentLineColor('seg-1', 'valmis')).not.toBe(segmentLineColor('seg-1', 'kesken'))
+    })
+
+    it('vihreä on VARATTU statukselle — tunnistepaletti ei sisällä sitä (T304-rajoite)', () => {
+      expect(SEGMENT_COLORS).not.toContain(SEGMENT_DONE_COLOR)
+    })
+
+    it('V96-ydin: poisto ei siirrä jäljelle jäävien kesken-värejä', () => {
+      const a = createSegment(store, { ...baseSegment, startDist: 0, endDist: 1000 }, 'seg-a')
+      const b = createSegment(store, { ...baseSegment, startDist: 2000, endDist: 3000 }, 'seg-b')
+      const before = segmentLineColor(b.id, 'kesken')
+      deleteSegment(store, a.id)
+      expect(segmentLineColor(b.id, 'kesken')).toBe(before)
+    })
+  })
+
   describe('segmentLineState (V96)', () => {
     const count = (done: number, total: number): PhaseProgress => ({ kind: 'count', done, total, label: 'asetettu' })
 
@@ -501,6 +535,29 @@ describe('segments', () => {
     })
     it('tarkastus inspected=true → valmis', () => {
       expect(segmentLineState({ kind: 'boolean', done: true, label: 'tarkastettu' })).toBe('valmis')
+    })
+
+    // T353/V256 (B142): kuittaus voittaa laskurin — talkoolainen on paikan päällä.
+    describe('completed voittaa merkkilaskurin (T353/V256)', () => {
+      it('kuitattu + 0/5 asetettu → valmis (⊥ ei_alkanut)', () => {
+        expect(segmentLineState(count(0, 5), true)).toBe('valmis')
+      })
+      it('kuitattu + 2/5 asetettu → valmis (⊥ kesken)', () => {
+        expect(segmentLineState(count(2, 5), true)).toBe('valmis')
+      })
+      it('kuitattu + ei merkkejä → valmis', () => {
+        expect(segmentLineState(count(0, 0), true)).toBe('valmis')
+      })
+      it('⊥ kuitattu → laskuri ratkaisee ennallaan', () => {
+        expect(segmentLineState(count(2, 5), false)).toBe('kesken')
+        expect(segmentLineState(count(5, 5), false)).toBe('valmis')
+      })
+      it('oletusarvo (parametri puuttuu) = ⊥ kuitattu — vanhat kutsupaikat ennallaan', () => {
+        expect(segmentLineState(count(2, 5))).toBe('kesken')
+      })
+      it('kuitattu tarkastus-phase (inspected=false) → valmis', () => {
+        expect(segmentLineState({ kind: 'boolean', done: false, label: 'tarkastettu' }, true)).toBe('valmis')
+      })
     })
   })
 })

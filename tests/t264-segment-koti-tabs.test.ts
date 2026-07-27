@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest'
 import { SegmentKotiTabs } from '../src/ui/segment-koti-tabs'
 
@@ -52,5 +53,47 @@ describe('T264 — SegmentKotiTabs (koti-välilehdet)', () => {
     expect(tabs.root.querySelector<HTMLElement>('.segment-koti-panel[data-tab="merkit"]')!.hidden).toBe(false)
     expect(merkitBtn.classList.contains('is-active')).toBe(true)
     expect(merkitBtn.getAttribute('aria-selected')).toBe('true')
+  })
+
+  // T354/V257: sama komponentti palvelee järjestäjän pätkämodaalia — scrolleri on eri elementti.
+  // Yleistys on parametri, ⊥ roolihaara sisällä.
+  it('oletusscrolleri on #segment-view (talkoolaispolku ennallaan)', () => {
+    const host = document.createElement('div')
+    host.id = 'segment-view'
+    document.body.appendChild(host)
+    const tabs = new SegmentKotiTabs([
+      { id: 'varuste', label: 'V', els: [el('a')] },
+      { id: 'merkit', label: 'M', els: [el('b')] },
+    ])
+    host.appendChild(tabs.root)
+    host.scrollTop = 120
+    tabs.root.querySelector<HTMLButtonElement>('.segment-koti-tab[data-tab="merkit"]')!.click()
+    expect(host.scrollTop).toBe(0)
+  })
+
+  it('scrollerSelector-parametri ohjaa scroll-nollauksen toiseen kuoreen', () => {
+    const host = document.createElement('div')
+    host.className = 'segment-details-modal-body'
+    document.body.appendChild(host)
+    const tabs = new SegmentKotiTabs(
+      [
+        { id: 'varuste', label: 'V', els: [el('a')] },
+        { id: 'merkit', label: 'M', els: [el('b')] },
+      ],
+      { scrollerSelector: '.segment-details-modal-body' },
+    )
+    host.appendChild(tabs.root)
+    host.scrollTop = 200
+    tabs.root.querySelector<HTMLButtonElement>('.segment-koti-tab[data-tab="merkit"]')!.click()
+    expect(host.scrollTop).toBe(0)
+  })
+
+  it('initial-tab toimii sekä merkkijonona että optiona (yhteensopivuus)', () => {
+    const defs = () => [
+      { id: 'varuste', label: 'V', els: [el('a')] },
+      { id: 'merkit', label: 'M', els: [el('b')] },
+    ]
+    expect(new SegmentKotiTabs(defs(), 'merkit').getActive()).toBe('merkit')
+    expect(new SegmentKotiTabs(defs(), { initial: 'merkit' }).getActive()).toBe('merkit')
   })
 })

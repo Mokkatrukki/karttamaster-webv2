@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MarkerDetailModal } from '../src/ui/marker-detail-modal'
 import { openImageLightbox, openLightbox } from '../src/ui/image-lightbox'

@@ -5,7 +5,7 @@
  *           must click "Tallenna" to actually create the segment.
  */
 import { test, expect } from 'playwright/test'
-import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTalkoolainenSegment, mockSegmentWrites } from './helpers/auth'
+import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTalkoolainenSegment, mockSegmentWrites, mockMarkers } from './helpers/auth'
 
 /** Helper: create a segment via 2-click modal flow + Tallenna */
 async function createSegmentViaModal(page: import('playwright/test').Page) {
@@ -328,6 +328,9 @@ test.describe('T25 — SegmentPanel', () => {
 
   test('T56b — "Muokkaa pisteitä" -nappi näkyy SegmentDetailsModalissa (siirretty T77-modaaliin)', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
+    // E2E-NOTES juurisyy 1: ilman kirjoitusmockia luonti-POST → 401 → #auth-screen.open kaappaa
+    // klikit. Assertio oli aiemmin pelkkä toBeVisible ∴ puute ei näkynyt; tab-klikki paljasti sen.
+    await mockSegmentWrites(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -340,6 +343,9 @@ test.describe('T25 — SegmentPanel', () => {
       if (last) last.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
     await page.waitForTimeout(400)
+
+    // T354/V257: rajojen muokkaus asuu Asetukset-tabissa → tabi ensin, ⊥ kaivaa piilotettua panelia.
+    await page.click('.segment-details-modal-tabs .segment-koti-tab[data-tab="asetukset"]')
 
     const editBtn = page.locator('.btn-segment-edit-pts-modal')
     await expect(editBtn).toBeVisible()
@@ -389,7 +395,7 @@ test.describe('T25 — SegmentPanel', () => {
   })
 
   // T77/T199: poisto elää SegmentDetailsModalissa, joka avataan pätkärivin ···-napista
-  // (.btn-segment-details-open, segment-panel.ts:319). Robustoitu deterministiseksi DOM-polulla —
+  // (T344: rivin nimi `.segment-info`; T345: `···` avaa pikavalikon). Robustoitu DOM-polulla —
   // ei enää synteettistä dispatchEvent-klikkiä Leaflet-polylineen (headless-flaky). Ks. muisti flaky-e2e-tests.
   test('pätkän voi poistaa listasta', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
@@ -410,6 +416,54 @@ test.describe('T25 — SegmentPanel', () => {
     await page.click('.btn-segment-delete-modal')
 
     await expect(page.locator('.segment-empty')).toBeVisible()
+  })
+
+  // T354/V257: modaalin välilehdet kapealla ruudulla. Kolme tabia EI saa taittua kahdelle riville
+  // — taittunut tabipalkki syö modaalin korkeudesta ja siirtää sisältöä datan mukana.
+  // T355/T356 samassa ajossa: footer on jaettu modal-footer ja korostuskytkin headerissa.
+  test('T354 — modaalin 3 tabia mahtuvat 390px-ruudulle, tab-vaihto toimii', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockSegmentWrites(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await createSegmentViaModal(page)
+    await expect(page.locator('.segment-details-modal')).toBeVisible()
+
+    // Kapea ruutu VASTA modaalin auettua — luontiflow tarvitsee kartan leveyden.
+    await page.setViewportSize({ width: 390, height: 780 })
+    await page.waitForTimeout(300)
+
+    const tabs = page.locator('.segment-details-modal-tabs .segment-koti-tab')
+    await expect(tabs).toHaveCount(3)
+
+    // Yksi rivi = kaikilla sama y-koordinaatti.
+    const tops = await tabs.evaluateAll(els => els.map(e => Math.round(e.getBoundingClientRect().top)))
+    expect(new Set(tops).size).toBe(1)
+
+    // Tabipalkki mahtuu modaalin leveyteen (⊥ vaakascrollia).
+    const bar = page.locator('.segment-details-modal-tabs .segment-koti-tabbar')
+    const fits = await bar.evaluate(el => el.scrollWidth <= el.clientWidth + 1)
+    expect(fits).toBe(true)
+
+    // T357: oletustabi = Asetukset; merkit-tab piilossa kunnes klikataan.
+    await expect(page.locator('.segment-koti-panel[data-tab="asetukset"]')).toBeVisible()
+    await expect(page.locator('.segment-koti-panel[data-tab="merkit"]')).toBeHidden()
+    await page.click('.segment-details-modal-tabs .segment-koti-tab[data-tab="merkit"]')
+    await expect(page.locator('.segment-koti-panel[data-tab="merkit"]')).toBeVisible()
+    await expect(page.locator('.segment-koti-panel[data-tab="asetukset"]')).toBeHidden()
+
+    // T356: korostuskytkin headerissa, ✕ edelleen 44px.
+    await expect(page.locator('.segment-details-modal-header .btn-segment-focus-toggle')).toBeVisible()
+    const closeBox = await page.locator('.segment-details-modal-close').boundingBox()
+    expect(closeBox!.width).toBeGreaterThanOrEqual(44)
+    expect(closeBox!.height).toBeGreaterThanOrEqual(44)
+
+    // T355: footer = secondary Sulje + destructive-rivi, ei primarya.
+    await expect(page.locator('.segment-details-modal .modal-footer .modal-btn-secondary')).toHaveText('Sulje')
+    await expect(page.locator('.segment-details-modal .modal-btn-primary')).toHaveCount(0)
+    await expect(page.locator('.segment-details-modal .modal-footer .modal-btn-destructive')).toHaveText('Poista pätkä')
   })
 
   // T141/B61/V88: main.ts wiring regression guard — T95 died silently this exact way (B60).
@@ -437,12 +491,64 @@ test.describe('T25 — SegmentPanel', () => {
 
     await createSegmentViaModal(page)
 
-    // Segmenttikaista renderöi stroke-dasharrayn; reitit + aukot ovat ehjiä (ei dasharrayta)
-    const dashedCount = await page.evaluate(() => {
+    // T348/V252: tarkista ARVO, ei pelkkää olemassaoloa — `toBeTruthy` katkoviivalle on testi
+    // joka ei voi failata (B135: vanha '1 9' oli "katkoviiva" mutta katosi taustakartalle).
+    // ei_alkanut = '6 12' (haalea harva katko). Reitit + aukot ovat ehjiä.
+    const dashPatterns = await page.evaluate(() => {
       const paths = Array.from(document.querySelectorAll<SVGPathElement>('.leaflet-overlay-pane path'))
-      return paths.filter(p => (p.getAttribute('stroke-dasharray') ?? '') !== '').length
+      return paths.map(p => p.getAttribute('stroke-dasharray') ?? '').filter(d => d !== '')
     })
-    expect(dashedCount).toBeGreaterThan(0)
+    expect(dashPatterns.length).toBeGreaterThan(0)
+    expect(dashPatterns).toContain('6 12')
+  })
+
+  // T348/V96-amend/B135: valmis pätkä saa POSITIIVISEN signaalin — vihreä viiva + ✓-lappu.
+  // Ennen: valmis erottui vain katkon PUUTTUMISESTA, ja ✓ vain tarkastus-vaiheessa.
+  // Tässä asettaminen-phase (oletusnäkymä) + kaikki pätkän merkit 'asetettu' → 'valmis'
+  // ∴ testi todistaa nimenomaan sen että ✓ EI enää ole tarkastus-phasen yksinoikeus.
+  test('valmis pätkä = vihreä ehjä viiva + ✓-nimilappu (T348)', async ({ page }) => {
+    const VALMIS_SEGMENT = {
+      id: 'seg-valmis-1', routeIds: ['smtb-30'],
+      startDist: 2000, endDist: 8000,
+      displayName: 'Valmispätkä', equipment: [],
+      phase: 'asettaminen',
+    }
+    await page.route(/\/api\/segments(\?|$)/, r =>
+      r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([VALMIS_SEGMENT]) }))
+    // Wire-muoto on snake_case (vrt. mockTalkoolainenSegment) — camelCase jättää route_ids
+    // normalisoinnissa undefiniksi ja overlay kaatuu ennen renderiä.
+    const doneMarker = (id: string, dist: number) => ({
+      id, type: 'right', lat: 65.62, lon: 27.62, distance_from_start: dist,
+      route_ids: ['smtb-30'], status: 'asetettu', location_note: null, color: null,
+      label: null, icon_id: null, image_id: null, template_id: null, parts_json: null,
+      description: null, images: [], created_by: null,
+    })
+    await mockMarkers(page, [doneMarker('mv1', 3000), doneMarker('mv2', 6000)])
+
+    await mockAuthAsJarjestaja(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    // Lappu: ✓-prefix + --done-luokka
+    const label = page.locator('.segment-label', { hasText: 'Valmispätkä' })
+    await expect(label).toBeVisible()
+    await expect(label).toHaveText('✓ Valmispätkä')
+    await expect(label).toHaveClass(/segment-label--done/)
+
+    // B106: lapun tausta pysyy kiinteänä navynä — vihreä tulee REUNUKSESTA, ei taustasta
+    const bg = await label.evaluate(el => getComputedStyle(el).backgroundColor)
+    expect(bg).toBe('rgba(15, 23, 42, 0.85)')
+
+    // Viiva: confirm-vihreä + ei dasharrayta
+    const doneStroke = await page.evaluate(() => {
+      const paths = Array.from(document.querySelectorAll<SVGPathElement>('.leaflet-overlay-pane path'))
+      return paths
+        .map(p => ({ stroke: (p.getAttribute('stroke') ?? '').toLowerCase(), dash: p.getAttribute('stroke-dasharray') ?? '' }))
+        .find(s => s.stroke === '#1f8a50')
+    })
+    expect(doneStroke).toBeDefined()
+    expect(doneStroke!.dash).toBe('')
   })
 
   // T147: tarkastus-vaiheen pätkäjako (luotu T146:n klooni-mekanismilla) näyttää

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import L from 'leaflet'
 import { MarkerManager } from '../src/map/markers'

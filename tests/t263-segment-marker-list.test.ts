@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest'
 import { SegmentMarkerList } from '../src/ui/segment-marker-list'
 import type { SignMarker } from '../src/logic/types'

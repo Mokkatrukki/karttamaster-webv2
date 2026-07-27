@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest'
 import { contextSegmentStyle, CONTEXT_DIM_OPACITY } from '../src/map/segment-overlay'
 

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { SegmentPanel } from '../src/ui/segment-panel'
 import { createSegmentStore } from '../src/logic/segments'

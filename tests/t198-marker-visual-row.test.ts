@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, afterEach } from 'vitest'
 import { buildMarkerVisual } from '../src/ui/marker-visual-row'
 import { signImageIds } from '../src/logic/sign-images'

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { SegmentEquipment } from '../src/ui/segment-equipment'
 import { loadChecked, checkKeyForType, checkKeyForItem } from '../src/logic/varustarkastus'

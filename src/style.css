@@ -29,7 +29,19 @@
   --accent-text:  #ffffff;
   --accent-hover: #D8441F;
 
-  /* Confirm (vihreä) — talkoolaisen kuittausnappula */
+  /* KARTTAPINTA-TOKENIT (V253) — nämä EIVÄT saa esiintyä [data-theme]-lohkoissa.
+     Karttapinnan grafiikan kontrasti on kalibroitu POHJAKARTTAA vasten, ei sovelluksen
+     chromea vasten, & pohjakartta ei vaihdu teeman mukana. Lisäksi Leaflet-vektorit saavat
+     värinsä JS:stä joka ei näe CSS-muuttujaa ∴ jokainen teemariippuvainen token karttapinnalla
+     luo parin joka hajoaa teemanvaihdossa (B136: viiva #1F8A50 vs lappu #2FA35B Kaamoksessa). */
+  --segment-done:  #1F8A50; /* JS-peili: SEGMENT_DONE_COLOR (src/logic/segments.ts) */
+  --marker-glow:   #F2542D; /* seuraava-merkki + pending-pulssi (T350). Sama sävy kuin --accent
+                               NYT, mutta eri elinkaari: hehku piirtyy pohjakartan päälle ∴ se
+                               kalibroidaan karttaa vasten, ⊥ chromea. Kaamoksen aksentin
+                               kirkastaminen ⊥ saa siirtää hehkua. */
+
+  /* Confirm (vihreä) — talkoolaisen kuittausnappula. CHROME-token: vaihtuu teeman mukana
+     ∴ EI saa käyttää karttapinnalla (käytä --segment-done). */
   --confirm:       #1F8A50;
   --confirm-hover: #196E40;
   --confirm-text:  #ffffff;
@@ -624,7 +636,9 @@ button {
 .route-vis-row.route-hidden { opacity: 0.45; }
 .route-vis-row:disabled { cursor: default; }
 .route-vis-row .route-vis-label { flex: 1; }
-.route-vis-dot { width: 14px; height: 14px; border-radius: 999px; flex-shrink: 0; }
+/* T304/V216: väripallosta VIIVASWATCH — kuvio (2. kanava) ei mahdu 14px palloon.
+   Leveä + matala = sama muoto kuin kartan viiva ∴ legenda vastaa karttaa. */
+.route-vis-dot { width: 26px; height: 5px; border-radius: 2px; flex-shrink: 0; }
 .route-vis-eye { display: inline-flex; color: var(--text-muted); flex-shrink: 0; }
 
 /* T286: suuntanuolet — divIcon ilman Leafletin oletustaustaa/reunaa. */
@@ -676,9 +690,10 @@ button {
 }
 
 .tab-color-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+  /* T304/V216: sama viivaswatch kuin reittivalitsimessa, pienempänä (drive-nappi). */
+  width: 16px;
+  height: 4px;
+  border-radius: 2px;
   flex-shrink: 0;
 }
 
@@ -1020,14 +1035,15 @@ button {
   border-radius: 4px;
   padding: 1px 5px;
 }
-/* Kartan pending-merkki: pulssaava amber-rengas. Ei laske opacitya (aurinko/kontrasti). */
-.leaflet-marker-pending { filter: drop-shadow(0 0 0 var(--accent)); animation: marker-pending-pulse 1.4s ease-in-out infinite; }
+/* Kartan pending-merkki: pulssaava amber-rengas. Ei laske opacitya (aurinko/kontrasti).
+   T350/V253: --marker-glow (karttapinta-token), EI --accent — hehku on kartan päällä. */
+.leaflet-marker-pending { filter: drop-shadow(0 0 0 var(--marker-glow)); animation: marker-pending-pulse 1.4s ease-in-out infinite; }
 @keyframes marker-pending-pulse {
-  0%, 100% { filter: drop-shadow(0 0 2px var(--accent)); }
-  50%      { filter: drop-shadow(0 0 7px var(--accent)); }
+  0%, 100% { filter: drop-shadow(0 0 2px var(--marker-glow)); }
+  50%      { filter: drop-shadow(0 0 7px var(--marker-glow)); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .leaflet-marker-pending { animation: none; filter: drop-shadow(0 0 4px var(--accent)); }
+  .leaflet-marker-pending { animation: none; filter: drop-shadow(0 0 4px var(--marker-glow)); }
 }
 .marker-item .marker-icon { font-size: 13px; font-weight: 700; flex-shrink: 0; min-width: 28px; text-align: center; }
 .marker-item .marker-km { color: var(--text-meta); font-size: 11px; flex-shrink: 0; }
@@ -1968,6 +1984,12 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   color: var(--text-muted);
 }
 
+/* T351/V254: done-rivin valmis-toggle. Rivi itse pysyy matalana (T228) — nappi on ainoa
+   painava elementti siinä, koska se on talkoolaisen VIIMEINEN askel (B140). */
+.segment-view-next--done .segment-view-complete-btn {
+  margin-top: 8px;
+}
+
 /* T228: done-tila = matala rivi ilman accent-kortti-korostusta → kartta esiin.
    Passiivinen "kaikki asetettu" ei kilpaile kartan kanssa (VISION kartta=päänavigointi). */
 .segment-view-next--done {
@@ -2256,9 +2278,17 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   color: var(--text-body);
 }
 
+/* T344/V250: `button` (ei span) — koko nimialue avaa lisätiedot. DESIGN §K: item-label
+   min-height 44px, vasen tasaus, ei nappimaista taustaa (rivi pysyy listana, ei nappirivinä). */
 .segment-info {
   flex: 1;
   min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
   color: var(--text-body);
   font-size: 12px;
   font-weight: 600;
@@ -2266,11 +2296,23 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.segment-info:hover { color: var(--accent); }
 
 .segment-km {
   font-size: 11px;
   font-weight: 400;
   color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* T353/V256 (B142): talkoolaisen kuittaus pätkärivillä — oma merkintä laskurin VIERESSÄ, ⊥ sen
+   tilalla. Sivupalkki on chromea (V253) ∴ teematokenit sallittuja; --confirm on sama vihreä jolla
+   valmis-toggle piirretään ∴ kuittaus & sen nappi puhuvat samaa väriä. */
+.segment-kuitattu {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--confirm);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -2516,6 +2558,49 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   border-radius: var(--radius-sm);
 }
 
+/* ── T345/V250: pätkärivin ···-pikavalikko ── */
+
+/* Läpinäkyvä backdrop: nappaa ulkoklikin muttei tummenna karttaa — valikko on kevyt
+   välitila, ei modaali. */
+.segment-row-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3200;
+  background: transparent;
+}
+
+.segment-row-menu {
+  position: fixed;
+  min-width: 220px;
+  padding: 4px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+}
+
+/* DESIGN §A: 44px rivit. Teksti aina mukana — ei pelkkää ikonia (V197). */
+.segment-row-menu-item {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-body);
+  font-size: 13px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.segment-row-menu-item:hover,
+.segment-row-menu-item:focus-visible { background: var(--hover); }
+/* Päällä oleva korostus näkyy myös väreissä, ei vain tekstissä (V197). */
+.segment-row-menu-item[aria-pressed="true"] { color: var(--accent); font-weight: 700; }
+
 /* ── Segment details modal (T69) ── */
 
 .segment-details-modal-backdrop {
@@ -2545,16 +2630,23 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
 .segment-details-modal-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 4px;
   padding: 12px 16px 10px;
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
 }
 
+/* T356: otsikko on ainoa joustava elementti headerissa — 340px-modaalissa se typistyy, ⊥ kytkin
+   eikä ✕ kutistu (44px on kosketuskoko, ei neuvoteltava). */
 .segment-details-modal-title {
   color: var(--text-body);
   font-size: 14px;
   font-weight: 700;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .segment-details-modal-close {
@@ -2584,10 +2676,54 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   gap: 14px;
 }
 
+/* T346/V250: ryhmäotsikko — sama 11px uppercase -kieli kuin sivupalkin osioilla. Viivan
+   tehtävä on ryhmitellä, ei koristella ∴ ohut yläviiva vain ryhmien VÄLIIN (ensimmäinen ei). */
+.segment-details-section-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.segment-details-group-title {
+  padding-top: 10px;
+  border-top: 1px solid var(--border-card);
+}
+.segment-details-modal-body > .segment-details-group-title:first-child,
+/* T354: ryhmäotsikot elävät nyt Asetukset-panelin sisällä → ensimmäisen yläviiva pois sieltä. */
+.segment-details-modal-tabs .segment-koti-panel > .segment-details-group-title:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+/* T354: bodyn gap siirtyy panelille — body kantaa vain tabikuoren. */
+.segment-details-modal-tabs .segment-koti-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 0;
+}
+.segment-details-modal-tabs .segment-koti-panel[hidden] { display: none; }
+
 .segment-details-modal-section {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* T352/V255: järjestäjän valmis-toggle. Nappi täysleveä kuten muutkin modaalin toiminnot;
+   status kertoo nykytilan sanoin (V197) & kantaa myös epäonnistuneen tallennuksen viestin. */
+.segment-details-complete-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--confirm);
+  margin: 0;
+}
+
+.btn-segment-complete-toggle {
+  width: 100%;
+  justify-content: center;
 }
 
 .segment-assign-modal-row {
@@ -2644,32 +2780,37 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   color: var(--text-body);
 }
 
+/* T354/V257: sama tabikomponentti kuin talkoolaisen kotinäkymässä, modaalin sisällä.
+   Tabipalkki on sticky bodyn yläreunassa — pitkä Asetukset-tab ei saa vierittää välilehtiä
+   pois näkyvistä (paikan pitää pysyä paikallaan). Tausta on läpinäkymätön: alta liukuva
+   sisältö ei sotke luettavuutta. */
+.segment-details-modal-tabs .segment-koti-tabbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0 0 10px;
+  background: var(--surface-card);
+}
+
+.segment-details-markers-empty {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin: 4px 0;
+}
+
+/* T355: footer noudattaa jaettua .modal-footer-patternia (DESIGN.md §Modal footer) — layout,
+   padding ja reunaviiva tulevat sieltä. Modaalikohtaista jää vain flex-shrink (kuori on
+   flex-column + overflow:hidden ∴ footer ⊥ saa kutistua bodyn painaessa).
+   Poistettu: .btn-segment-modal-save (confirm-primary joka vain sulki = V250-valhe). */
 .segment-details-modal-footer {
-  padding: 12px 20px;
-  border-top: 1px solid var(--border-subtle);
-}
-
-.btn-segment-modal-save {
-  background: var(--confirm);
-  color: var(--confirm-text);
-  border: none;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 600;
-  min-height: 44px;
-  width: 100%;
-  cursor: pointer;
-}
-
-.btn-segment-modal-save:hover {
-  background: var(--confirm-hover);
+  flex-shrink: 0;
 }
 
 /* T227: supervision — per-pätkä aktiviteettiloki + massaperuutus (järjestäjä). */
+/* T346: osio elää Jako-ryhmän sisällä → ryhmäotsikko hoitaa erottelun, oma yläviiva olisi
+   tuplaerotin (& sisennys 20px rikkoi bodyn 16px-rytmin). */
 .segment-audit-section {
-  padding: 8px 20px 4px;
-  border-top: 1px solid var(--border-default);
-  margin-top: 8px;
+  padding: 0;
 }
 
 .segment-audit-list {
@@ -2720,11 +2861,8 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   cursor: default;
 }
 
-.segment-modal-danger-zone {
-  padding: 4px 20px 12px;
-  display: flex;
-  justify-content: flex-end;
-}
+/* T355: vaaravyöhyke on nyt footerin destructive-RIVI (.modal-footer-destructive hoitaa
+   keskityksen) — ⊥ oikealle tasattu blokki rungon lopussa. */
 
 .btn-segment-delete-modal {
   background: transparent;
@@ -3359,8 +3497,31 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   animation: marker-next-glow 1.4s ease-in-out infinite;
 }
 @keyframes marker-next-glow {
-  0%, 100% { filter: drop-shadow(0 0 3px var(--accent)) drop-shadow(0 0 5px var(--accent)); }
-  50%      { filter: drop-shadow(0 0 8px var(--accent)) drop-shadow(0 0 15px var(--accent)); }
+  0%, 100% { filter: drop-shadow(0 0 3px var(--marker-glow)) drop-shadow(0 0 5px var(--marker-glow)); }
+  50%      { filter: drop-shadow(0 0 8px var(--marker-glow)) drop-shadow(0 0 15px var(--marker-glow)); }
+}
+
+/* T335/V243: fokus-tila HIMMENTÄÄ, ei piilota — merkki näkyy aina, muuten kartta valehtelee
+   (onko naapuripätkän merkki asetettu vai puuttuuko se?). Kaksi kanavaa (alfa + kylläisyys),
+   koska pelkkä 0.4-alfa katoaa ilmakuvasta auringossa 40×48 px:n kokoisesta ikonista —
+   viivojen CONTEXT_DIM_OPACITY 0.22 ei kelpaa merkille (satoja px vs. 40 px).
+   EI kytkeydy pohjakartan sliderin opacityyn (T287/V201, eri pane — ei kertolaskua). */
+.marker-dimmed {
+  opacity: 0.4;
+  filter: grayscale(1);
+  transition: opacity 0.12s, filter 0.12s;
+}
+/* V142: talkoolaisen näkymässä himmennetty on myös read-only. Järjestäjällä himmennetty
+   PYSYY klikattavana — korostus on lukemisen apu, ei lukko ∴ luokkia on kaksi eikä CSS
+   arvaa roolia. */
+.marker-dimmed--locked { pointer-events: none; }
+
+/* T237(d)/V243: huomio-pinni himmenee fokus-tilassa samalla kahdella kanavalla kuin merkki.
+   Pysyy klikattavana: huomio on lukemisen kohde, ⊥ pätkän omistama työ (V245). */
+.comment-pin-dimmed {
+  opacity: 0.4;
+  filter: grayscale(1);
+  transition: opacity 0.12s, filter 0.12s;
 }
 
 /* ── Segment label (Leaflet tooltip) ── */
@@ -3373,12 +3534,28 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   font-size: 11px;
   font-weight: 700;
   font-family: var(--font-ui);
-  padding: 2px 6px;
+  /* T347: lappu on klikattava sisääntulo ∴ osumapinta kasvaa 17px → ~26px. 44px-sääntöä (§A) EI
+     täytetä — kirjattu poikkeus (DESIGN.md §K SegmentLabel): 44px-lappu peittäisi naapuripätkän
+     reitin tiheässä ruudukossa, & tämän sisääntulon käyttäjä on järjestäjä (desktop+hiiri). */
+  padding: 6px 8px;
   border-radius: var(--radius-sm);
   white-space: nowrap;
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
+/* T347: osoitin VAIN kun Leaflet on merkinnyt lapun interaktiiviseksi — himmeä lappu ⊥ saa
+   valehdella klikattavuudesta. (leaflet.css:592 antaa jo pointer-events:auto samalle valitsimelle.) */
+.segment-label.leaflet-interactive { cursor: pointer; }
 .segment-label::before { display: none; }
+/* T348/V96-amend: valmis pätkä saa POSITIIVISEN merkin — vihreä reunus + ✓-prefix (teksti
+   tulee segment-overlay.ts:stä). Tausta pysyy kiinteänä navynä & teksti valkoisena (B106:
+   lapun tausta ⊥ seuraa teemaa ∴ vihreä tausta rikkoisi kontrastisopimuksen). 2px reuna:
+   1px --confirm ⊥ erotu tummaa pilleriä vasten kartan päällä. */
+.segment-label--done {
+  /* B136/V253: --segment-done, EI --confirm. Lappu istuu kiinteällä navyllä (B106) kartan
+     päällä ∴ se on karttapintaa: reunuksen ! täsmätä viivan JS-väriin joka ei vaihdu teemasta. */
+  border: 2px solid var(--segment-done);
+  padding: 5px 7px; /* 6px 8px − 1px reunan kasvu ∴ lapun ulkomitta & osumapinta säilyy (T347) */
+}
 /* V142: talkoolaisen näkymä — muiden tehtävien nimilaput himmeät (konteksti, ei fokus). */
 .segment-label--dim {
   opacity: 0.4;
@@ -3853,7 +4030,7 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 .btn-status-primary, .btn-status-secondary, .btn-bulk-collect,
 .btn-mark-inspected, .btn-snapshot-create, .btn-snapshot-download,
 .btn-snapshot-restore, .btn-snapshot-restore-file, .btn-segment-create,
-.btn-segment-modal-save, .btn-segment-creation-save, .btn-segment-creation-cancel,
+.btn-segment-creation-save, .btn-segment-creation-cancel,
 .btn-segment-delete, .btn-segment-edit-pts, .btn-segment-edit-pts-modal,
 .btn-segment-clone-phase, .btn-segment-details-toggle, .btn-assign-save,
 .btn-assign-edit, .btn-copy-url, .btn-equipment-add, .btn-equipment-remove,
@@ -3888,13 +4065,13 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 .btn--confirm,
 .btn-bulk-apply:not(:disabled), .btn-bulk-checkin-aseta:not(:disabled),
 .btn-status-primary, .btn-bulk-collect, .btn-mark-inspected,
-.btn-segment-modal-save, .btn-segment-creation-save, .modal-btn-primary {
+.btn-segment-creation-save, .modal-btn-primary {
   background: var(--confirm);
   color: var(--confirm-text);
 }
 .btn--confirm:hover,
 .btn-status-primary:hover, .btn-bulk-collect:hover,
-.btn-mark-inspected:hover, .btn-segment-modal-save:hover, .modal-btn-primary:hover {
+.btn-mark-inspected:hover, .modal-btn-primary:hover {
   background: var(--confirm-hover);
 }
 
@@ -3938,6 +4115,28 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   border: none;
 }
 .btn--ghost:hover { background: var(--hover); color: var(--text-body); }
+
+/* T335/V243 → T356: korostuskytkin asuu modaalin HEADERISSA otsikon ja ✕:n välissä (tilakytkin,
+   ei asetusrivi). aria-pressed näkyy myös visuaalisesti: päällä = accent-kehys (ei pelkkä
+   tekstinvaihto, V197). Ei kutistu: otsikko typistyy ensin (min-width:0 + ellipsis alla). */
+.btn-segment-focus-toggle {
+  flex: 0 0 auto;
+  justify-content: center;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--field-tint);
+  font-size: 12px;
+  min-height: 44px;
+  padding: 0 10px;
+  margin-right: 6px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.btn-segment-focus-toggle[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: transparent;
+}
 
 /* === MarkerDetailModal spesifiset === */
 .marker-detail-actions {
@@ -4980,6 +5179,28 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 /* `hidden` on totuus (map-mode-toggle.ts) — luokka-display ei saa kumota sitä. */
 .map-mode-pill[hidden] { display: none; }
 
+/* T335/V243: korostuspilleri = sama kuvio, mutta sen ✕ ON klikattava (poistumis-affordanssi)
+   ∴ pointer-events palautetaan napille. Muokkaustilan pilleri voi olla yhtä aikaa näkyvissä
+   → pudota korostuspilleri sen alle, ei päälle. */
+.marker-focus-pill { gap: 8px; padding: 2px 4px 2px 14px; }
+.marker-focus-pill__clear {
+  pointer-events: auto;
+  /* DESIGN §A: kaikki interaktiiviset 44×44. Pilleri kasvaa napin mukaan — pieni ✕
+     kartan päällä on juuri se jota hanskakäsi ei osu (ja järjestäjäkin käyttää mobiilidraweria). */
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-body);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.marker-focus-pill__clear:hover { background: var(--surface-raised); }
+body[data-map-mode="muokkaus"] .marker-focus-pill { top: 48px; }
+
 /* Accent-kehys: pseudo-overlay, EI `box-shadow: inset` — Leafletin läpinäkymättömät
    laattapaneelit ovat #map-arean LAPSIA ja peittäisivät inset-varjon. z-index kartta-
    paneelien ja talkoolaisen hero-alapalkin (1000) päälle, pilleri (1600) sen yli. */
@@ -5000,7 +5221,7 @@ body[data-map-mode="muokkaus"] #map-area::after {
   display: none;
 }
 
-/* === Huomiot (T237/T338/T340, V245–V247) ==================================
+/* === Huomiot (T237/T338/T340, V245, V246, V262) ==================================
    Huomio ⊥ ole merkki: kartalla pyöreä kupla (comment-layer.ts), listassa oma rivinsä,
    modaalissa oma kuorensa. Erottelu on MUODOSSA ⊥ värissä (DESIGN.md §K CommentPin). */
 

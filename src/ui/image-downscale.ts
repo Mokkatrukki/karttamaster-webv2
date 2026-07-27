@@ -1,4 +1,4 @@
-// T338/V247: kuvan pienennys ENNEN lähetystä. Puhelimen kamerakuva on 3–8 MB ja 4000px leveä —
+// T338/V262: kuvan pienennys ENNEN lähetystä. Puhelimen kamerakuva on 3–8 MB ja 4000px leveä —
 // karttahuomion todisteeksi riittää murto-osa. Pienennys on NOPEUS + KAISTA (talkoolainen
 // metsässä, heikko yhteys, akku), EI turvatoimi: serverin portit (koko/mime/taajuus) ovat
 // oikea suoja, koska API:a voi kutsua ohi clientin.

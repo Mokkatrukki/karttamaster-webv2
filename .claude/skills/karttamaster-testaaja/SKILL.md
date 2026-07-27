@@ -109,6 +109,13 @@ beforeEach(() => {
 })
 ```
 
+Siivous tulee ilmaiseksi: `unstubGlobals: true` (`vite.config.ts`, T342/V248) palauttaa globaalit
+ennen jokaista testiä ∴ `vi.unstubAllGlobals()` afterEachissä on turha (ei haitallinen).
+
+**Ympäristö:** oletus on `node`. Jos testi koskee DOM:ia — myös epäsuorasti (esim. `src/logic/gpx.ts`
+→ `DOMParser`) — lisää ENNEN importteja `// @vitest-environment jsdom`, muuten tulee
+`ReferenceError: document`.
+
 ### Taso 2: Vitest + jsdom (DOM ilman selainta)
 **Milloin:** komponentti elää `src/ui/` — DOM-rakenne tai event-logiikka tärkeä, ei Leafletia.
 

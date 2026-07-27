@@ -16,14 +16,13 @@ import { getRole } from '../logic/role'
 import { MarkerDetailModal } from '../ui/marker-detail-modal'
 import { getSegmentForCode, getMarkersForSegment, updateSegment, segmentPrimaryRouteId } from '../logic/segments'
 import type { Segment } from '../logic/segments'
-import { planSegmentZoom } from '../logic/segment-zoom'
+import { fitMapToSegment } from '../map/segment-fit'
 import { firstUnsetMarker, distanceAhead } from '../logic/navigation'
 import { CommentLayer } from '../map/comment-layer'
 import { fetchComments, addCommentImage } from '../logic/comments'
 import { CommentPointModal } from '../ui/comment-point-modal'
 import { CommentPanel } from '../ui/comment-panel'
-
-import type { GpsNavigator } from '../map/gps-navigator'
+import type { GpsNavigator, GpsState } from '../map/gps-navigator'
 import { updateSegmentRemote } from '../logic/segment-sync'
 import { outbox, setOutboxChangeHandler } from '../logic/outbox-instance'
 import type { RouteConfig } from '../logic/multi-route'
@@ -42,6 +41,37 @@ export function syncMapModeToBody(state: MapModeState = mapMode): () => void {
   return state.onChange(apply)
 }
 
+// T341/V247: talkoolaisen GPS-napin label yhdestä paikasta — hero (`.segment-view-gps-btn`) ja
+// yläpalkin ⋯ (`#btn-tk-gps`) lukevat SAMAN GpsNavigator-tilan. Kaksi labelia = kaksi totuutta.
+export function gpsButtonLabel(state: GpsState): string {
+  if (state === 'päällä') return '📍 GPS päällä'
+  if (state === 'haetaan') return '📍 Haetaan…'
+  return '📍 GPS'
+}
+
+// T341/V247 (fix B133): GPS-toggle kytketään ROOLIN perusteella, EI pätkän olemassaolon.
+// Oma sijainti on laitteen tieto ∴ jos tämä elää `if (seg)`-lohkon sisällä, nappi renderöityy
+// kuuntelijatta aina kun pätkää ei löydy (lataus kaatui / koodilla ei pätkää) → klikkaus ei tee
+// mitään eikä mikään kerro siitä. Paikannusvirhe ei myöskään saa olla hiljainen (V247).
+export function wireGpsButton(
+  gps: Pick<GpsNavigator, 'start' | 'stop' | 'getState'>,
+  showWarning: (msg: string, ms?: number) => void,
+): (state: GpsState, msg?: string) => void {
+  const sync = (state: GpsState, msg?: string): void => {
+    document.querySelectorAll<HTMLElement>('#btn-tk-gps, .segment-view-gps-btn').forEach(btn => {
+      btn.textContent = gpsButtonLabel(state)
+      btn.classList.toggle('gps-active', state !== 'pois')
+    })
+    if (msg) showWarning(`⚠ ${msg}`, 5000)
+  }
+  document.getElementById('btn-tk-gps')?.addEventListener('click', () => {
+    if (gps.getState() !== 'pois') { gps.stop(); sync('pois'); return }
+    gps.start(sync)
+  })
+  sync(gps.getState())
+  return sync
+}
+
 export interface MarkersWiring {
   markerManager: MarkerManager
   driveMode: DriveMode
@@ -50,6 +80,8 @@ export interface MarkersWiring {
   placeMode: PlaceMode
   markerModal: HTMLElement
   closeMarkerModal: () => void
+  // T237(d)/V243: main.ts kytkee tämän segments-wiringin fokus-refiin.
+  commentLayer: CommentLayer
 }
 
 interface MarkersWiringDeps {
@@ -59,30 +91,6 @@ interface MarkersWiringDeps {
   showWarning: (msg: string, ms?: number) => void
   // T232 (B): GPS-navigaattori (luotu map-init.ts:ssä) → talkoolaisen SegmentView-heron GPS-toggle.
   gpsNavigator: GpsNavigator
-}
-
-// T224 (D): latauksessa zoomaa talkoolaisen OMAAN pätkään ("tässä on sun pätkä"), ei koko karttaan.
-// planSegmentZoom päättää fit vs anchor (pitkä pätkä → aloita alkupäästä). Boundit route-slicestä;
-// jos slice tyhjä (reititön/harva data) → fallback pätkän merkkien latlngeihin.
-function fitMapToSegment(map: L.Map, routes: RouteConfig[], seg: Segment, segMarkers: SignMarker[]): void {
-  const plan = planSegmentZoom(seg.startDist, seg.endDist)
-  const latlngs: [number, number][] = []
-  if (plan) {
-    const routeSet = new Set(seg.routeIds ?? [])
-    for (const r of routes) {
-      if (!routeSet.has(r.id)) continue
-      for (const p of r.routePoints) {
-        if (p.distanceFromStart >= plan.startDist && p.distanceFromStart <= plan.endDist) {
-          latlngs.push([p.lat, p.lon])
-        }
-      }
-    }
-  }
-  if (latlngs.length === 0) {
-    for (const m of segMarkers) latlngs.push([m.lat, m.lon])
-  }
-  if (latlngs.length === 1) map.setView(latlngs[0], 15)
-  else if (latlngs.length > 1) map.fitBounds(latlngs, { padding: [40, 40], maxZoom: 16 })
 }
 
 // T85-T105/T140-T152: merkkien sijoitus, tila, ajotila, tarkastusnäkymä ja liittyvä UI.
@@ -166,6 +174,15 @@ export function wireMarkers(
   )
   markerManager.setOnMarkerClick((id) => onOpenMarkerDetail(id))
 
+  // T335/V243: talkoolaisella korostus on AUTOMAATTI, ei kytkin — hän katsoo vain omaa pätkäänsä
+  // (max 2 nappia -periaate: ei kolmatta valintaa metsässä). Sama omistajapäättely kuin
+  // `segmentOverlay.setContextOwn` (segments-wiring) → yksi lähde, ei toisintoa.
+  // locked: himmennetty ei ota klikkejä — talkoolaisen vieras merkki on read-only (V142).
+  if (talkoolainenCode) {
+    const own = getSegmentForCode(segmentStore, talkoolainenCode)
+    if (own) markerManager.setFocusSegment(own, { locked: true })
+  }
+
   // T309/V221: siirron km-akseli = talkoolaisen oman pätkän PRIMARY-reitti (⊥ lähin reitti yli
   // kaikkien) → jaetulla osuudella merkki mitataan samasta reitistä kuin serverin
   // `markerInOwnSegment` ∴ ei putoa pätkästä liikkumatta käytännössä minnekään (B121, B100-oppi).
@@ -203,6 +220,10 @@ export function wireMarkers(
   markerManager.setPendingKeys(outbox.pendingResourceKeys())
 
   if (talkoolainenCode) {
+    // T341/V247 (B133): GPS ENNEN pätkähakua — oma sijainti ei riipu pätkästä. Jos tämä
+    // siirtyy `if (seg)`:n sisään, talkoolainen jää ilman GPS:ää aina kun pätkä puuttuu.
+    const syncGpsLabel = wireGpsButton(gpsNavigator, showWarning)
+
     const seg = getSegmentForCode(segmentStore, talkoolainenCode)
     if (seg) {
       // T230/V93 + T257/R8: pätkän valmiiksi-merkintä. Jaettu SegmentView-heron (onComplete)
@@ -294,10 +315,14 @@ export function wireMarkers(
           // T232 (B)/V156: GPS-toggle. Ohjaa GpsNavigatoria (T30, oma sijainti) — ERILLINEN
           // driveModesta. Palauttaa uuden aktiivitilan napin ilmeeseen. R8: GPS myös yläpalkin ⋯:ssä.
           onToggleGps: () => {
-            if (gpsNavigator.isActive()) { gpsNavigator.stop(); return false }
-            gpsNavigator.start(); return true
+            if (gpsNavigator.isActive()) { gpsNavigator.stop(); syncGpsLabel('pois'); return false }
+            gpsNavigator.start(syncGpsLabel)
+            return gpsNavigator.isActive()
           },
           isGpsActive: () => gpsNavigator.isActive(),
+          // T341/V247: hero-nappi lukee saman tilan kuin ⋯-nappi — "Haetaan…" ennen ensimmäistä
+          // fixiä, ei valheellista "GPS päällä" (B133).
+          gpsLabel: () => gpsButtonLabel(gpsNavigator.getState()),
           // T232 (F)/V159: hero:n valittu merkki (◀▶-selailu/reconcile) → synkkaa kartan korostus.
           // null = ei valittua (done/väärä phase) → tyhjennä. Korostus SEURAA valintaa, ei suoraan
           // firstUnsetMarkeria (estää "highlight osoittaa eri merkkiin kuin hero" -epäjohdonmukaisuuden).
@@ -331,18 +356,11 @@ export function wireMarkers(
       applyDraggable()
 
       // T257/R8/V179: talkoolaisen yläpalkin ⋯-toiminnot (VISION "GPS ym ylävalikkoon").
-      // Karttamoodissa hero-chrome minimaali (T255) → GPS/Lisää merkki/Merkitse valmiiksi ⋯:ssä.
-      // Sama polku kuin hero (gpsNavigator, openAddMarkerPicker, applyComplete).
-      const btnTkGps = document.getElementById('btn-tk-gps')
-      const syncGpsLabel = () => { if (btnTkGps) btnTkGps.textContent = gpsNavigator.isActive() ? '📍 GPS päällä' : '📍 GPS' }
-      btnTkGps?.addEventListener('click', () => {
-        if (gpsNavigator.isActive()) gpsNavigator.stop(); else gpsNavigator.start()
-        syncGpsLabel()
-      })
-      syncGpsLabel()
-
+      // Karttamoodissa hero-chrome minimaali (T255) → Lisää merkki ⋯:ssä.
+      // GPS kytkettiin jo ylempänä (T341/V247) — se ei tarvitse pätkää, tämä tarvitsee.
+      // T351/V254 (B140): "Merkitse pätkä valmiiksi" EI enää täällä — se on hero:n done-rivillä
+      // (`segment-hero.ts`, `actions.onComplete` → applyComplete). Yksi sisääntulo per rooli.
       document.getElementById('btn-tk-add-marker')?.addEventListener('click', openAddMarkerPicker)
-
       // T237/V245: huomio kartan keskelle. ⊥ vaadi muokkaustilaa toisin kuin merkin lisäys:
       // huomio ⊥ mutatoi merkkidataa eikä voi vahingossa siirtää mitään — muokkaustilan portti
       // (V218) suojaa merkkejä, ⊥ havaintoja. Talkoolaisen kynnys jättää huomio ! olla matala.
@@ -350,19 +368,6 @@ export function wireMarkers(
         const c = map.getCenter()
         commentModal.openCreate(c.lat, c.lng)
       })
-
-      const btnTkComplete = document.getElementById('btn-tk-complete')
-      const syncCompleteLabel = () => {
-        const cur = getSegmentForCode(segmentStore, talkoolainenCode)
-        if (btnTkComplete) btnTkComplete.textContent = (cur?.completed ?? false)
-          ? '↩ Merkitse keskeneräiseksi' : '✓ Merkitse pätkä valmiiksi'
-      }
-      btnTkComplete?.addEventListener('click', () => {
-        const cur = getSegmentForCode(segmentStore, talkoolainenCode)
-        applyComplete(!(cur?.completed ?? false))
-        syncCompleteLabel()
-      })
-      syncCompleteLabel()
     }
   }
 
@@ -510,7 +515,7 @@ export function wireMarkers(
   const commentModal = new CommentPointModal({
     onChanged: () => refreshPointComments(),
     canDelete: () => getRole() === 'järjestäjä',
-    // T341/V248: kuittaus on järjestäjän koordinointipäätös — talkoolainen ilmoittaa.
+    // T364/V263: kuittaus on järjestäjän koordinointipäätös — talkoolainen ilmoittaa.
     canResolve: () => getRole() === 'järjestäjä',
     uploadImage: (id, file) => addCommentImage(id, file),
   })
@@ -528,6 +533,12 @@ export function wireMarkers(
       })
     : null
 
+  // T335/V243 + T237(d): talkoolaisella korostus on AUTOMAATTI (rivi ~181) ∴ myös huomiot
+  // ovat hänelle kontekstia heti latauksessa — sama tila kuin merkeillä, ei kahta totuutta.
+  if (talkoolainenCode && getSegmentForCode(segmentStore, talkoolainenCode)) {
+    commentLayer.setFocusActive(true)
+  }
+
   const refreshPointComments = () => {
     void fetchComments('point').then((rows) => {
       if (!rows) return
@@ -537,5 +548,5 @@ export function wireMarkers(
   }
   refreshPointComments()
 
-  return { markerManager, driveMode, routeBar, progressBar, placeMode, markerModal, closeMarkerModal }
+  return { markerManager, driveMode, routeBar, progressBar, placeMode, markerModal, closeMarkerModal, commentLayer }
 }

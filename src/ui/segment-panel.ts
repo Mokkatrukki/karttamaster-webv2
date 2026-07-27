@@ -6,12 +6,14 @@ import {
   getPhaseProgress,
   formatPhaseProgress,
   getSegmentsForPhase,
+  segmentPath,
 } from '../logic/segments'
 import type { SegmentStore, Segment } from '../logic/segments'
 import { SHARED_THRESHOLD_M, type RouteConfig } from '../logic/multi-route'
 import type { SignMarker } from '../logic/types'
 import { SegmentCreationModal, type CreationState } from './segment-creation-modal'
 import { SegmentDetailsModal } from './segment-details-modal'
+import { openSegmentRowMenu } from './segment-row-menu'
 
 export interface SegmentPanelCallbacks {
   onFirstPoint?: (lat: number, lon: number) => void
@@ -26,6 +28,13 @@ export interface SegmentPanelCallbacks {
   onHideSnapMarkers?: () => void
   // T148: globaali phase-näkymän suodin — undefined = näytä kaikki (taaksepäin yhteensopiva)
   getActivePhase?: () => Segment['phase']
+  // T335/V243: kartan korostus vain valittuun pätkään — tila asuu wiringissä, paneeli välittää
+  isFocusSegment?: (seg: Segment) => boolean
+  onToggleFocusSegment?: (seg: Segment, on: boolean) => void
+  // T345: rajaa kartta pätkään (`···` → Näytä kartalla). Puuttuu → riviä ei näytetä valikossa.
+  onShowSegmentOnMap?: (seg: Segment) => void
+  // T345: näkyvä palaute (linkin kopiointi). Puuttuu → hiljainen onnistuminen.
+  onNotify?: (msg: string) => void
 }
 
 export class SegmentPanel {
@@ -76,6 +85,8 @@ export class SegmentPanel {
         getMarkers: callbacks.getMarkers,
         onEnterEditMode: callbacks.onEnterEditMode,
         onExitEditMode: callbacks.onExitEditMode,
+        isFocusSegment: callbacks.isFocusSegment,
+        onToggleFocusSegment: callbacks.onToggleFocusSegment,
       },
     )
 
@@ -352,10 +363,17 @@ export class SegmentPanel {
     li.className = 'segment-item'
     li.dataset.id = seg.id
 
-    const info = document.createElement('span')
+    // T344/V250: nimi on SISÄÄNTULO, ei koriste — DESIGN §K "Item-label: klikkaus = toiminto".
+    // Aiemmin `span` ∴ ~80 % rivin leveydestä oli kuollutta aluetta & ainoa reitti asetuksiin oli
+    // 44px `···`. Klikkikuuntelija on VAIN tässä napissa, ei `li`:ssä — kaksi sisäkkäistä kohdetta
+    // laukaisisi modaalin kahdesti.
+    const info = document.createElement('button')
+    info.type = 'button'
     info.className = 'segment-info'
     const name = seg.displayName ?? `(#${seg.id.slice(0, 6)})`
     info.textContent = name
+    info.setAttribute('aria-label', `Avaa ${name} lisätiedot`)
+    info.addEventListener('click', () => this.detailsModal.open(seg))
 
     const kmSpan = document.createElement('span')
     kmSpan.className = 'segment-km'
@@ -367,14 +385,45 @@ export class SegmentPanel {
       : ''
     kmSpan.title = `${kmRange}${formatStatusCounts(getSegmentStatusCounts(seg, markers))}`
 
+    // T353/V256 (B142): talkoolaisen kuittaus omana merkintänään — EI laskurin tilalla. Ne voivat
+    // olla eri mieltä (kuitattu vaikka merkkejä kesken, tai kaikki asetettu mutta ⊥ kuitattu) &
+    // järjestäjä tarvitsee molemmat: laskuri kertoo mitä kartalla on, kuittaus kertoo mitä
+    // talkoolainen sanoo. Ristiriita on TIETOA, ⊥ virhe jota pitäisi piilottaa.
+    const doneMark = document.createElement('span')
+    doneMark.className = 'segment-kuitattu'
+    doneMark.textContent = '✓ Kuitattu'
+    doneMark.title = 'Talkoolainen on merkinnyt pätkän valmiiksi'
+    doneMark.hidden = !(seg.completed ?? false)
+
+    // T345/V250: `···` avaa pikavalikon, ei enää suoraan modaalia — katselutoiminnot (zoom,
+    // korostus, linkki) eivät saa kulkea modaalin kautta. Modaali on valikon viimeinen rivi.
     const detailsBtn = document.createElement('button')
     detailsBtn.className = 'btn-segment-details-open'
-    detailsBtn.setAttribute('aria-label', `Avaa ${name} asetukset`)
+    detailsBtn.setAttribute('aria-label', `${name} — toiminnot`)
+    detailsBtn.setAttribute('aria-haspopup', 'menu')
+    detailsBtn.setAttribute('aria-expanded', 'false')
     detailsBtn.textContent = '···'
-    detailsBtn.addEventListener('click', () => this.detailsModal.open(seg))
+    detailsBtn.addEventListener('click', () => {
+      openSegmentRowMenu(detailsBtn, {
+        onShowOnMap: this.callbacks.onShowSegmentOnMap
+          ? () => this.callbacks.onShowSegmentOnMap?.(seg)
+          : undefined,
+        isFocused: this.callbacks.isFocusSegment
+          ? () => this.callbacks.isFocusSegment?.(seg) ?? false
+          : undefined,
+        onToggleFocus: this.callbacks.onToggleFocusSegment
+          ? (on) => this.callbacks.onToggleFocusSegment?.(seg, on)
+          : undefined,
+        // V250: sama osoitelähde kuin modaalilla (`segmentPath`) — ⊥ toista `/s/<koodi>`-muotoa.
+        shareUrl: segmentPath(this.store.get(seg.id) ?? seg),
+        onOpenDetails: () => this.detailsModal.open(seg),
+        onNotify: this.callbacks.onNotify,
+      })
+    })
 
     li.appendChild(info)
     li.appendChild(kmSpan)
+    li.appendChild(doneMark)
     li.appendChild(detailsBtn)
     return li
   }

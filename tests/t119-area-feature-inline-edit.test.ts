@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { AreaPanel } from '../src/ui/area-panel'
 import type { AreaMarker } from '../src/logic/area-types'

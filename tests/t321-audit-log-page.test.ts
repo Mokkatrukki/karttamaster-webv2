@@ -1,5 +1,6 @@
 // T321: /loki-näkymä (Taso 2 Vitest-jsdom). Renderöinti, suodattimet, peruutus-flow ja
 // virheviestit. Verkko mockataan — endpointit on katettu Bun-tasolla (server/audit-undo.test.ts).
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderAuditLogPage } from '../src/ui/audit-log-page'
 import type { AuditEntry } from '../src/logic/audit-sync'

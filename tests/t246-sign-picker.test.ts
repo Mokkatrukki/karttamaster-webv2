@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderSignPicker, type SignPickerCallbacks } from '../src/ui/inventory-page'
 

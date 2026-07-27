@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest'
 import { computeGapRanges } from '../src/map/segment-overlay'
 import type { Segment } from '../src/logic/segments'

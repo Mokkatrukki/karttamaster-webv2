@@ -2,18 +2,30 @@ import L from 'leaflet'
 import { nearestPointIndex } from '../logic/bearing'
 import type { RoutePoint, SignMarker } from '../logic/types'
 import type { Segment, SegmentStore, SegmentLineState } from '../logic/segments'
-import { colorForSegment, segmentLineState, getPhaseProgress, segmentPrimaryRouteId } from '../logic/segments'
+import { segmentLineColor, segmentLineState, getPhaseProgress, segmentPrimaryRouteId } from '../logic/segments'
+import { segmentLayerStyles } from '../logic/segment-style'
 
-interface RouteRef { id: string; routePoints: RoutePoint[] }
+// T336: casing tarvitsee reitin VÄRIN sisukseen. Valinnainen ∴ vanhat kutsupaikat & testit
+// (jotka antavat vain geometrian) toimivat ennallaan — ilman väriä piirtyy yksi viiva.
+interface RouteRef { id: string; routePoints: RoutePoint[]; color?: string }
 
 const GAP_COLOR = '#94a3b8'
 
-// T152/V96: viivatyyli = status. Väri = tunniste (colorForSegment), tyyli näistä.
-const LINE_STATE_STYLE: Record<SegmentLineState, { opacity: number; weight: number; dashArray?: string }> = {
-  valmis:     { opacity: 0.9,  weight: 11 },              // ehjä
-  kesken:     { opacity: 0.85, weight: 11, dashArray: '1 9' }, // täysi katko
-  ei_alkanut: { opacity: 0.4,  weight: 9,  dashArray: '1 9' }, // haalea katko
+// T152/V96: viivatyyli = status. Väri = tunniste (colorForSegment) paitsi valmiina (T348).
+// T348/V252/B135: dashArray oli '1 9' MOLEMMISSA katkotiloissa = 1px viiva 9px aukosta ∴ kuvio
+// hajosi pistesarjaksi joka katosi MML-taustakartan tekstuuriin — kolme tilaa erottui käytännössä
+// vain valmiin ehjyydestä. Nyt viivanpätkä on aukon kokoluokkaa & kolme tilaa erottuu myös
+// AKROMAATTISESTI (ehjä / karkea katko / haalea harva katko), ⊥ vain leveydellä tai värillä.
+export const LINE_STATE_STYLE: Record<SegmentLineState, { opacity: number; weight: number; dashArray?: string }> = {
+  valmis:     { opacity: 0.9,  weight: 11 },                     // ehjä
+  kesken:     { opacity: 0.85, weight: 11, dashArray: '10 8' },  // karkea katko
+  ei_alkanut: { opacity: 0.7,  weight: 9,  dashArray: '6 12' },  // harva katko, kevyin
 }
+// UX-audit 2026-07-27: ei_alkanut oli `opacity 0.4` = efektiivinen kontrasti 1.79:1 vaaleaa
+// MML-taustaa vasten (WCAG non-text min 3:1) ∴ "ei aloitettu" katosi kirkkaassa — & juuri se on
+// tila jonka järjestäjän ! bongata kartalta (kuka ⊥ ole aloittanut). 0.7 = 3.0:1. Hierarkia ⊥
+// katoa: valmis/kesken/ei_alkanut erottuvat yhä kuviolla ('' / '10 8' / '6 12'), leveydellä
+// (11/11/9) & alfalla (.9/.85/.7) ∴ kevein on yhä kevein, muttei näkymätön.
 
 export interface ContextLineStyle {
   opacity: number
@@ -38,6 +50,31 @@ export function contextSegmentStyle(
     weight: Math.max(base.weight - 4, 5),
     dashArray: base.dashArray,
     interactive: false,
+  }
+}
+
+// T347/V250: nimilappu on pätkän ainoa LUETTAVA kohde kartalla ∴ sen ! olla myös klikattava
+// sisääntulo — muuten käyttäjä osoittaa nimeä eikä mitään tapahdu (klikkaus läpäisee kartalle,
+// Leaflet-tooltip on oletuksena pointer-events:none) & osuma vaatii ~8px viivan klikkausta lapun
+// vierestä. `interactive` on SAMA lippu joka ohjaa polylinen interactivea & click-kytkentää ∴
+// V142-himmennys pitää ilman toista totuutta: vieraan pätkän lappu pysyy läpäisevänä.
+// Klikkiä ⊥ kytketä tooltipiin: Leaflet tekee `addEventParent(this._source)` tooltipin avautuessa
+// (leaflet-src.js:10685) ∴ lapun klikki propagoi polylinelle & olemassa oleva `line.on('click')`
+// hoitaa modaalin. Oma kuuntelija tooltipille = tuplalaukaisu.
+// T348/V96-amend: `done` lisää `--done`-luokan (vihreä reunus, ✓ tulee tekstiin kutsupaikalla).
+// Luokkajonon kokoaminen pysyy TÄSSÄ yhdessä funktiossa ⊥ valu kutsupaikalle. `--dim` & `--done`
+// ⊥ ole toisensa poissulkevia: talkoolaisen konteksti-lappu voi olla valmis (V142 himmennys pätee
+// silti — se on eri kanava kuin status).
+// Testattavuus: Vitest-pure.
+export function segmentLabelOptions(interactive: boolean, done = false): L.TooltipOptions {
+  const classes = ['segment-label']
+  if (!interactive) classes.push('segment-label--dim')
+  if (done) classes.push('segment-label--done')
+  return {
+    permanent: true,
+    className: classes.join(' '),
+    direction: 'center',
+    interactive,
   }
 }
 
@@ -78,15 +115,21 @@ export class SegmentOverlay {
       }
     }
 
-    // T152/V96: väri = tunniste (stabiili per id), viivatyyli = phase-status
+    // T152/V96: väri = tunniste (stabiili per id), viivatyyli = phase-status.
+    // T348: valmis-tila ohittaa tunnistevärin (segmentLineColor) — status voittaa identiteetin.
     for (const seg of segments) {
-      const color = colorForSegment(seg.id)
       const progress = getPhaseProgress(seg, markers)
-      const state = segmentLineState(progress)
+      // T353/V256 (B142): talkoolaisen kuittaus (`completed`) voittaa merkkilaskurin — ilman tätä
+      // eksplisiittinen "pätkä valmis" ⊥ näkynyt kartalla lainkaan.
+      const state = segmentLineState(progress, seg.completed)
+      const color = segmentLineColor(seg.id, state)
+      const done = state === 'valmis'
       // V142: himmennä muut tehtävät talkoolaisen näkymässä; oma säilyy kirkkaana.
       const style = contextSegmentStyle(LINE_STATE_STYLE[state], this.contextOwnId, seg.id)
-      // tarkastus-vaiheen valmis-pätkä saa ✓ tooltipiin
-      const labelSuffix = seg.phase === 'tarkastus' && state === 'valmis' ? ' ✓' : ''
+      // T348/V252/B135: ✓ KAIKISSA phaseissa (ennen: vain tarkastus) & PREFIXINÄ — nimi voi
+      // katketa lapun leveyteen, merkki ⊥ saa. "Valmis" ⊥ saa olla pääteltävissä vain katkon
+      // puuttumisesta: positiivinen tila tarvitsee positiivisen merkin jota etsiä.
+      const labelPrefix = done ? '✓ ' : ''
       // V139: reititön tehtävä ei piirrä reitti-polylinea (T217 tuo oman render-haaran).
       if (!seg.routeIds || seg.startDist === undefined || seg.endDist === undefined) continue
       const segStart = seg.startDist
@@ -100,28 +143,39 @@ export class SegmentOverlay {
         if (!route) continue
         const pts = sliceRoutePoints(route.routePoints, segStart, segEnd)
         if (pts.length < 2) continue
-        const line = L.polyline(pts, {
-          color, weight: style.weight, opacity: style.opacity,
-          dashArray: style.dashArray, lineCap: 'round',
-          // V142: muut tehtävät read-only — Leaflet ei kaappaa klikkiä (menee kartalle läpi).
+        // T336/V244/B137: casing — pätkäväri reunaksi, valkoinen erotin, reitin väri sisukseksi.
+        // Piirtojärjestys on merkitsevä (Leaflet: myöhempi päälle) ∴ tyylit tulevat valmiiksi
+        // järjestettynä puhtaalta funktiolta. Kaikki kerrokset samaan this.layers-listaan ⇒
+        // clear() poistaa parin/kolmikon, ⊥ jätä orpoa viivaa kartalle.
+        const layerStyles = segmentLayerStyles({
+          segmentColor: color,
+          routeColor: route.color,
+          base: { opacity: style.opacity, weight: style.weight, dashArray: style.dashArray },
           interactive: style.interactive,
         })
-        if (seg.displayName) {
-          line.bindTooltip(seg.displayName + labelSuffix, {
-            permanent: true,
-            className: style.interactive ? 'segment-label' : 'segment-label segment-label--dim',
-            direction: 'center',
+        let line: L.Polyline | undefined
+        for (const ls of layerStyles) {
+          const pl = L.polyline(pts, {
+            color: ls.color, weight: ls.weight, opacity: ls.opacity,
+            dashArray: ls.dashArray, lineCap: 'round',
+            // V142 + T336: VAIN casing ottaa klikin. Sisus/erotin non-interactive ∴ klikki
+            // läpäisee niistä alle casingiin — muuten kolme kerrosta = kolme kuuntelijaa.
+            interactive: ls.interactive,
           })
+          pl.addTo(this.map)
+          this.layers.push(pl)
+          if (ls.interactive) line = pl
         }
-        if (this.onSegmentClick && style.interactive) {
+        if (line && seg.displayName) {
+          line.bindTooltip(labelPrefix + seg.displayName, segmentLabelOptions(style.interactive, done))
+        }
+        if (line && this.onSegmentClick && style.interactive) {
           const clickedSeg = seg
           line.on('click', (e: L.LeafletMouseEvent) => {
             L.DomEvent.stopPropagation(e)
             this.onSegmentClick!(clickedSeg)
           })
         }
-        line.addTo(this.map)
-        this.layers.push(line)
       }
     }
   }

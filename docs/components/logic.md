@@ -213,6 +213,31 @@ interface Segment {
 
 ---
 
+## MarkerFocus — T334 ✓
+**Vastuu:** kumpaan joukkoon merkki kuuluu kun kartalla on fokus-pätkä: `'focus'` vai `'dim'`.
+**Käyttäjä:** molemmat (primitiivi — talkoolaisella automaatti, järjestäjällä kytkin)
+**Moduuli:** `src/logic/marker-focus.ts`
+**Testattavuus:** Vitest-pure (`tests/marker-focus.test.ts`)
+
+### Rajapinta
+```typescript
+type FocusState = 'focus' | 'dim'
+focusState(markers: SignMarker[], focusSegment: TaskMarkerSource | undefined): Map<string, FocusState>
+isFocused(state: Map<string, FocusState>, markerId: string): boolean
+```
+
+### Ominaisuudet
+- ✓ `focusSegment === undefined` ⇒ ∀ merkki `'focus'` (ei fokusta = ei himmennystä)
+- ✓ Jäsenyys delegoi `resolveTaskMarkers`iin (V140) — reittifiltteri ∪ linkedMarkerIds ∪ markerTypeFilter
+- ✓ Tyhjä pätkä ⇒ kaikki `'dim'`, ei heittoa; tuntematon id `isFocused`issa ⇒ true
+- ✓ Jokainen merkki saa tilan — V243:n "himmennä, älä piilota" alkaa jo täältä: joukosta ei putoa ketään
+
+### Käyttäjätarkistus
+> Talkoolainen: oman pätkän merkit erottuvat, naapurin merkit näkyvät silti (tiedän onko ne asetettu).
+> Järjestäjä: sama sääntö kuin merkkilistan suodatuksessa — ei toista jäsenyystotuutta.
+
+---
+
 ## TaskMarkers *(tulossa — T214)*
 **Vastuu:** Tehtävän merkkijoukon kanoninen resolvointi — yksi funktio Segment + AreaMarker
 **Käyttäjä:** molemmat (järjestäjä liittää, talkoolainen näkee resolvoidut)

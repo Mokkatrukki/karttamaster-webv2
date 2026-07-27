@@ -161,17 +161,20 @@ DOM-komponentit ilman Leafletia. **Testattavuus: Vitest-jsdom.**
 ## SegmentDetailsModal
 **Vastuu:** Pätkän täydet asetukset — nimi, kuvaus, merkit, varustelista, talkoolaisen linkki, pisteiden muokkaus, poisto
 **Käyttäjä:** järjestäjä
-**Moduuli:** `src/ui/segment-details-modal.ts` (490 riv, seurattava — lähellä pilkkorajaa)
+**Moduuli:** `src/ui/segment-details-modal.ts` (~740 riv, ⚠️ pilkkolistalla — T354:n tabijako = tuleva moduuliraja)
 **Testattavuus:** Vitest-jsdom
 
 ### Ominaisuudet
+- ✓ **Kolme välilehteä (T354/V257):** `🎒 Varustelista` (oletus) · `Kaikki merkit` · `Asetukset` (nimi+linkki, kuvaus, jako+loki, rajat, kloonaus). Runko on jaettu `SegmentKotiTabs` — sama komponentti kuin talkoolaisen kotinäkymässä, `scrollerSelector`-parametrilla modaalin bodyyn.
+- ✓ **Footer = jaettu modal-footer (T355):** secondary `Sulje` + destructive `Poista pätkä`. Ei primarya — kentät tallentuvat muutoksesta (V250).
+- ✓ **Korostuskytkin headerissa (T356)** otsikon ja ✕:n välissä; tila asuu wiringissä (T335/V243), poistumis-pilleri vastaa näkyvyydestä modaalin sulkeuduttua.
 - ✓ Nimen muokkaus (blur/Enter tallentaa, päivittää modaalin otsikon reaaliaikaisesti)
 - ✓ Järjestäjän ohjeet -tekstialue (change tallentaa)
 - ✓ Pätkän merkit -lista (km + tyyppi + statusbadge), näkyy vain jos merkkejä on
 - ✓ Varustelista: automaattinen laskuri merkkityypeittäin + manuaaliset rivit (määrä + nimi, lisää/poista)
 - ✓ Talkoolaisen linkki: näyttää/generoi `assignedCode`-koodin, kopiointinappi, "Muuta"-nappi poistaa koodin (`DELETE /api/admin/codes/:code`)
 - ✓ "Muokkaa pisteitä kartalla" -nappi sulkee modaalin ja siirtää `segmentOverlay.enterEditMode`-tilaan
-- ✓ Danger zone: "Poista pätkä" (confirm, poistaa myös backendistä)
+- ✓ Poisto: footerin destructive-rivi "Poista pätkä" (confirm, poistaa myös backendistä) — T355 siirsi sen rungon vaaravyöhykkeestä footeriin
 - ✓ Kaikki muutokset synkronoidaan backendiin (`updateSegmentRemote`/`deleteSegmentRemote`)
 
 ### Käyttäjätarkistus
@@ -454,3 +457,40 @@ DOM-komponentit ilman Leafletia. **Testattavuus: Vitest-jsdom.**
 - ✓ "Ei nyt" muistetaan (`km:talkoo:nimi-ohitettu`) → ei jankuta joka latauksella metsässä
 - ✓ Epäonnistunut tallennus ei sulje palkkia (V21)
 - ✓ `POST /api/auth/name` ei katkaise sessiota — kenttätyö jatkuu
+
+## MarkerFocusPill — T335 ✓
+**Vastuu:** korostustilan pysyvä poistumis-affordanssi kartan yläreunassa.
+**Käyttäjä:** järjestäjä (kytkee korostuksen pätkämodaalista)
+**Konteksti:** tila kytketään modaalista joka sulkeutuu heti perään ∴ modaalin sisäinen nappi katoaisi tilan kanssa ja jättäisi himmennetyn kartan ilman ulospääsyä (B131:n umpikuja-luokka, V243). Sama kuvio kuin muokkaustilan pilleri (T308/V219): tila sanoin, ei pelkkä väri.
+**Moduuli:** `src/ui/marker-focus-pill.ts` (markup `index.html` `#marker-focus-pill`)
+**Testattavuus:** Vitest-jsdom (`tests/t335-focus-toggle-pill.test.ts`) + Playwright (`e2e/critical-paths.spec.ts` "merkkien korostus")
+
+### Ominaisuudet
+- ✓ `show(nimi)` / `hide()` / `isVisible()` — `hidden`-attribuutti on totuus, ei CSS-luokka
+- ✓ ✕ kutsuu `onClear` → wiring nollaa tilan (tila EI asu pillerissä eikä localStoragessa)
+- ✓ `destroy()` irrottaa kuuntelijan — re-init ei kasaa kutsuja
+- ✓ Pilleri itse `pointer-events:none` (ei syö kartan tappia), ✕ palauttaa sen napille
+
+### Käyttäjätarkistus
+> Järjestäjä: näen mikä pätkä on korostettuna ja pääsen pois yhdellä klikillä, myös modaalin sulkeuduttua.
+> Talkoolainen: ei näe pilleriä — hänellä korostus on automaatti, ei kytkettävä tila (ei kolmatta valintaa metsässä).
+
+## SegmentRowMenu — T345 ✓
+**Vastuu:** pätkärivin `···`-pikavalikko — katselutoiminnot ilman modaalia.
+**Käyttäjä:** järjestäjä (desktop, sivupalkki)
+**Konteksti:** ennen T345:tä `···` avasi suoraan lisätiedot-modaalin ∴ "zoomaa tähän pätkään" tai "korosta se" maksoi modaalin avaamisen, vierityksen ja sulkemisen. Valikko on välitila: modaali on yhä yhden klikin päässä.
+**Moduuli:** `src/ui/segment-row-menu.ts`
+**Testattavuus:** Vitest-jsdom (`tests/t345-segment-row-menu.test.ts`) + Playwright (`e2e/critical-paths.spec.ts`)
+
+### Ominaisuudet
+- ✓ Rivit: 🔍 Näytä kartalla · ◎/◉ Korosta vain tämä pätkä · 🔗 Kopioi talkoolaislinkki · ⚙ Lisätiedot & varusteet…
+- ✓ Korostusrivi LUKEE T335-tilan (`isFocused`) — ei omaa lippua joka ajautuisi erilleen modaalin kytkimestä
+- ✓ Ei disabloituja rivejä: jakamattomalla pätkällä ei ole linkkiriviä lainkaan
+- ✓ Sulkeminen: valinta (ENNEN toiminnon ajoa — muuten valikko jäisi modaalin päälle), Esc, ulkoklikki
+- ✓ Läpinäkyvä backdrop: nappaa ulkoklikin muttei tummenna karttaa
+- ✓ Osoitelähde `segmentPath` (`src/logic/segments.ts`) — sama kuin modaalilla, ei toista `/s/<koodi>`-muotoa
+
+### Käyttäjätarkistus
+> Järjestäjä: pääsenkö katsomaan pätkän kartalta ilman että avaan ja suljen asetusdialogin? Kyllä, kaksi klikkiä.
+> Talkoolainen: ei näe sivupalkkia lainkaan (V13).
+

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 
 // T71: CSS token-migraatio — semanttiset tokeninimet, kaksi teemaa

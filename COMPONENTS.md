@@ -44,6 +44,7 @@ server/       ← Hono + Bun + SQLite
 | MarkerStatus | `src/logic/marker-status.ts` | ✓ T10 | — | [logic.md](docs/components/logic.md) |
 | SegmentManager | `src/logic/segments.ts` | ✓ T153 | — | [logic.md](docs/components/logic.md) |
 | TaskMarkers | `src/logic/task-markers.ts` | ✓ T214 | — | [logic.md](docs/components/logic.md) |
+| MarkerFocus | `src/logic/marker-focus.ts` | ✓ T334 (focusState: fokus/dim per merkki, jäsenyys TaskMarkersista V243) | tests/marker-focus.test.ts | [logic.md](docs/components/logic.md) |
 | InventoryLogic | `src/logic/inventory.ts` | ✓ T244 (v2: ehdollinen name V161 + resolveItemName V165 + adjustQty + InventoryLocation; T241 validate/build) | — | [logic.md](docs/components/logic.md) |
 | InventoryUndoLogic | `src/logic/inventory-undo.ts` | ✓ T252 (UndoAction-tyyppi + describeUndo toast-teksti, client-only V172) | — | [logic.md](docs/components/logic.md) |
 | VarustarkastusLogic | `src/logic/varustarkastus.ts` | ✓ T258/R2 (talkoolaisen "otin nämä" checkoff, client-only localStorage per pätkä V180) | tests/t258-varustarkastus.test.ts | [logic.md](docs/components/logic.md) |
@@ -72,15 +73,18 @@ server/       ← Hono + Bun + SQLite
 | SegmentZoom | `src/logic/segment-zoom.ts` | ✓ T224 (planSegmentZoom: fit vs anchor pätkän latauksessa) | tests/t224-segment-zoom.test.ts | [logic.md](docs/components/logic.md) |
 | SignIcon | `src/map/icons.ts` | ✓ T172 | critical-paths: "toolbar-dropdown", "yhdistelmämerkki" | [map.md](docs/components/map.md) |
 | DriveMode | `src/map/drive.ts` | ✓ | critical-paths: "Drive mode" | [map.md](docs/components/map.md) |
-| MarkerManager | `src/map/markers.ts` | ✓ T222 (setDraggablePredicate: vain oman pätkän merkit raahattavia talkoolaiselle, V150) | critical-paths: "Merkki kartalle", "Drag-to-move", "Merkin zoom-skaalaus", "tallennus epäonnistuu" | [map.md](docs/components/map.md) |
+| MarkerManager | `src/map/markers.ts` | ✓ T335 (setFocusSegment: himmennä muut kuin pätkän merkit, V243; reapplyElementState kokoaa setIconin pudottamat luokat) | critical-paths: "Merkki kartalle", "Drag-to-move", "Merkin zoom-skaalaus", "tallennus epäonnistuu", "merkkien korostus" | [map.md](docs/components/map.md) |
 | RouteBar | `src/map/route-bar.ts` | ✓ (T224: piilotettu talkoolaiselta, `#route-bar` hidden) | — | [map.md](docs/components/map.md) |
 | BasemapDimControl | `src/map/basemap-dim-control.ts` | ✓ T287 (pohjan näkyvyys-slider ⋯-valikossa, tilePane-opacity, V201) | — | [map.md](docs/components/map.md) |
 | ~~NextMarkerHighlight~~ | POISTETTU T256/R6 | accent-rengas → ikoni-hehku (`MarkerManager.setNextHighlight` + `.marker-next-highlight` CSS-glow, V178) | — | — |
-| GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30 | critical-paths: "GPS-paikannin" | [map.md](docs/components/map.md) |
+| GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30, T341 (tilakone haetaan/päällä/pois + näkyvät virheet, V262) | critical-paths: "GPS-paikannin" · t341-gps-no-segment | [map.md](docs/components/map.md) |
 | AreaOverlay | `src/map/area-overlay.ts` | ✓ | area-interaction | [map.md](docs/components/map.md) |
 | MapRectEditor | `src/map/map-rect-editor.ts` | ✓ T117 | area-interaction | [map.md](docs/components/map.md) |
-| SegmentOverlay | `src/map/segment-overlay.ts` | ✓ T152, T217 (reititön skip) | segments: "viivatyyli koodaa statuksen"; t217: routeless gap-safety (Taso-1, Playwright post-T216) | [map.md](docs/components/map.md) |
+| SegmentOverlay | `src/map/segment-overlay.ts` | ✓ T152, T217 (reititön skip), T347 (nimilappu klikattava), T348 (valmis = vihreä + ✓-lappu) | segments: "viivatyyli koodaa statuksen" (dashArray-ARVO, V252) + "valmis pätkä = vihreä ehjä viiva + ✓-nimilappu (T348)"; t217: routeless gap-safety (Taso-1, Playwright post-T216); t347: nimilapun klikkaus + drag-panorointi + V142-dim (`critical-paths.spec.ts`); t349: karttapinnan teemariippumattomuus — sama näkymä light+dark, värit identtiset (`t349-map-surface-theme.spec.ts`, V253); t336: casing 3 kerrosta (Taso-1 `t336-segment-casing.test.ts`) | [map.md](docs/components/map.md) |
 | MarkerListUI | `src/ui/marker-list.ts` | ✓ T24 | — | [ui.md](docs/components/ui.md) |
+| SegmentRowMenu | `src/ui/segment-row-menu.ts` | ✓ T345 (pätkärivin ···-pikavalikko: kartta/korostus/linkki/lisätiedot, V250) | tests/t345-segment-row-menu.test.ts; critical-paths: "···-valikosta korostus" | [ui.md](docs/components/ui.md) |
+| SegmentFit | `src/map/segment-fit.ts` | ✓ T345 (kartan rajaus yhteen pätkään, jaettu talkoolaisen latauszoomin & järjestäjän "Näytä kartalla" kesken) | critical-paths: "Näytä kartalla siirtää karttaa" | [map.md](docs/components/map.md) |
+| MarkerFocusPill | `src/ui/marker-focus-pill.ts` | ✓ T335 (korostustilan poistumis-affordanssi kartalla, V243/V219-kuvio) | tests/t335-focus-toggle-pill.test.ts; critical-paths: "merkkien korostus" | [ui.md](docs/components/ui.md) |
 | ProgressBar | `src/ui/progress-bar.ts` | ✓ | critical-paths: "Drive mode" | [ui.md](docs/components/ui.md) |
 | PlaceMode | `src/ui/place-mode.ts` | ✓ T172 | critical-paths: "Merkki kartalle", "dblclick", "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
 | AppController | `src/main.ts` | ✓ T155 | critical-paths: kaikki | [ui.md](docs/components/ui.md) |
@@ -93,15 +97,15 @@ server/       ← Hono + Bun + SQLite
 | SignLibraryPanel | `src/ui/sign-library-panel.ts` | ✓ T176, T235 (194r lista/grid; modaali irrotettu) | critical-paths: "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
 | SignTemplateModal | `src/ui/sign-template-modal.ts` | ✓ T235 (malli-detalji/muokkaus-modaali, irrotettu SignLibraryPanelista; XSS-escape B19/V44) | (kattaa sign-library-panel-testit) | [ui.md](docs/components/ui.md) |
 | RoleSelector | `src/ui/role-selector.ts` | ✓ T12 (V80: toggle dead code) | critical-paths: "Rooli backendistä" | [ui.md](docs/components/ui.md) |
-| SegmentPanel | `src/ui/segment-panel.ts` | ✓ T148 | e2e/segments.spec.ts ".segment-km näyttää status-lukumäärän" | [ui.md](docs/components/ui.md) |
+| SegmentPanel | `src/ui/segment-panel.ts` | ✓ T344/T345 (rivin nimi = button joka avaa lisätiedot; ··· = SegmentRowMenu) | e2e/segments.spec.ts ".segment-km näyttää status-lukumäärän" | [ui.md](docs/components/ui.md) |
 | SegmentCreationModal | `src/ui/segment-creation-modal.ts` | ✓ T150 | — | [ui.md](docs/components/ui.md) |
-| SegmentDetailsModal | `src/ui/segment-details-modal.ts` | ✓ T146,T199,T227 (supervision: aktiviteettiloki + massaperuutus) ⚠️ pilkko | tests/t69-segment-details-modal.test.ts, tests/t199-segment-markers-list.test.ts | [ui.md](docs/components/ui.md) |
+| SegmentDetailsModal | `src/ui/segment-details-modal.ts` | ✓ T354/T355/T356 (kolme välilehteä 🎒 Varustelista/Kaikki merkit/Asetukset jaetulla SegmentKotiTabsilla; footer = jaettu modal-footer, secondary "Sulje" + destructive "Poista pätkä"; korostuskytkin headerissa; valmis-toggle T352/V255 Kaikki merkit -tabissa kuten talkoolaisella) · V250 yksi tallennusmalli ⚠️ pilkko: T346:n ryhmät = moduulirajat | tests/t69-segment-details-modal.test.ts, tests/t199-segment-markers-list.test.ts, tests/t344-segment-row-name.test.ts, tests/t346-modal-groups.test.ts, tests/t354-modal-tabs.test.ts, tests/t335-focus-toggle-pill.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | SegmentView | `src/ui/segment-view.ts` | ✓ T228, T218 (dynaaminen keräyslista), T234 (562r koordinaattori; hero irrotettu) | tests/t14-segment-view.test.ts, tests/t224-segment-view.test.ts, tests/t218-collection-list.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | SegmentHero | `src/ui/segment-hero.ts` | ✓ T234 (seuraava-merkki-hero + ◀▶-nav + selectedNavId V159, irrotettu SegmentViewsta), T327 (järjestys pätkän primary-reitin km:llä, V235) | tests/t232-segment-view-hero.test.ts | [ui.md](docs/components/ui.md) |
 | EquipmentModal | `src/ui/equipment-modal.ts` | ✓ T224/C (talkoolaisen varustelista tilavana modaalina) | tests/t224-equipment-modal.test.ts | [ui.md](docs/components/ui.md) |
 | SegmentEquipment | `src/ui/segment-equipment.ts` | ✓ T262/V182 (KOTI-inline-varustelista + varustarkastus-checkoff; hero kartta-only; "Muokkaa"→EquipmentModal) | tests/t262-segment-equipment.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | SegmentMarkerList | `src/ui/segment-marker-list.ts` | ✓ T263/V183, T264 (KOTI "Kaikki merkit" -tab, ryhmitelty asetetut/asettamatta/ei tarpeen; rivi→MarkerDetailModal) | tests/t263-segment-marker-list.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
-| SegmentKotiTabs | `src/ui/segment-koti-tabs.ts` | ✓ T264/V184 (koti-välilehdet: Varustelista·Kaikki merkit·Kommentit; korvaa "Lisää ⋯" -accordionin) | tests/t264-segment-koti-tabs.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
+| SegmentKotiTabs | `src/ui/segment-koti-tabs.ts` | ✓ T264/V184 (koti-välilehdet: Varustelista·Kaikki merkit·Kommentit) · T354/V257 JAETTU: sama komponentti myös järjestäjän SegmentDetailsModalissa, scrollerSelector-parametri erottaa kuoret — ⊥ toista tabitoteutusta | tests/t264-segment-koti-tabs.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | PhaseSwitcher | `src/ui/phase-switcher.ts` | ✓ T148,T180 (stopPropagation, B80) | e2e/t180-phase-switcher-menu.spec.ts | [ui.md](docs/components/ui.md) |
 | AuthScreen | `src/ui/auth-screen.ts` | ✓ T51, T272 (Model B: talkoolainen=yleissalasana, deep-link pending→login→avaa pätkä) | critical-paths: "yleissalasana" | [ui.md](docs/components/ui.md) |
 | AuditLogPage | `src/ui/audit-log-page.ts` | ✓ T332 (vahvistus selviää uudelleenlatauksesta V241/B130), T321 (globaali loki + per-rivi undo, /loki) | e2e/t321-audit-log.spec.ts, tests/t321-audit-log-page.test.ts | [ui.md](docs/components/ui.md) |
@@ -112,7 +116,7 @@ server/       ← Hono + Bun + SQLite
 | ModalHelpers | `src/ui/modal-helpers.ts` | ✓ T172 | — | [ui.md](docs/components/ui.md) |
 | MarkerVisualRow | `src/ui/marker-visual-row.ts` | ✓ T198 | tests/t198-marker-visual-row.test.ts | [ui.md](docs/components/ui.md) |
 | ImageLightbox | `src/ui/image-lightbox.ts` | ✓ T337 (jaettu kuori: valokuvat + kylttivisuaali, V246/B132) | tests/t337-image-lightbox.test.ts | [ui.md](docs/components/ui.md) |
-| ImageDownscale | `src/ui/image-downscale.ts` | ✓ T338 (canvas-pienennys 1600px/JPEG ennen lähetystä, V247) | tests/t237-comment-point-modal.test.ts | [ui.md](docs/components/ui.md) |
+| ImageDownscale | `src/ui/image-downscale.ts` | ✓ T338 (canvas-pienennys 1600px/JPEG ennen lähetystä, V262) | tests/t237-comment-point-modal.test.ts | [ui.md](docs/components/ui.md) |
 | CommentPointModal | `src/ui/comment-point-modal.ts` | ✓ T237/T338 (huomion luonti kartalta + katselu + kuvat + poisto, V245) | tests/t237-comment-point-modal.test.ts | [ui.md](docs/components/ui.md) |
 | CommentPanel | `src/ui/comment-panel.ts` | ✓ T340 (järjestäjän sivupalkin Huomiot-lista, V245) | tests/t237-comment-point-modal.test.ts | [ui.md](docs/components/ui.md) |
 | Toast | `src/ui/toast.ts` | ✓ T253 (jaettu "Kumoa"-toast, client-only undo V172; auto-dismiss, yksi kerrallaan, 44px §R) | tests/t253-toast.test.ts | [ui.md](docs/components/ui.md) |
@@ -179,7 +183,7 @@ Lippu ilman toimenpidettä on hukkaa: ⚠️-tason lippu → varmista pilkko-§T
 |---|---|---|
 | `src/ui/sign-library-panel.ts` | ✓ T235 | PILKOTTU 2026-07-10: modaali → `sign-template-modal.ts` (729r); panel 194r lista/grid |
 | `src/ui/segment-view.ts` | ✓ T234 | PILKOTTU 2026-07-10: hero → `segment-hero.ts` (248r); view 562r koordinaattori |
-| `src/ui/segment-details-modal.ts` | ⚠️ | monta vastuuta: nimi/kuvaus/merkit/varusteet/assign/editpts/klooni/poisto |
+| `src/ui/segment-details-modal.ts` | ⚠️ | monta vastuuta. T346 päätti moduulirajat: Tiedot / Sisältö / Jako / Kartta / Vaiheet — pilkkominen seuraa näitä, ei keksi uusia. T354 teki rajat NÄKYVIKSI (Sisältö = kaksi tabia, loput Asetukset-tabin sisäotsikoita) ∴ pilkko-§T voi seurata tabijakoa suoraan |
 | `src/ui/area-panel.ts` | ⚠️ | ylittää 400 riv -kynnyksen (analysoi 2026-07-04) |
 | `src/ui/inventory-page.ts` | ⚠️ | suurin UI-moduuli; vastuut eriytyneet: read/edit-viewMode + paikkatabit + add-form + undo-toast (analysoi 2026-07-25) |
 | `src/map/markers.ts` | evaluoitu → KEEP | T236 2026-07-10: API-glue JO eriytetty V116-outboxiin; reconcile/addImage ovat domain-mutaattoreita → irrotus jakaisi totuuslähteen. Ei pilkota. |
