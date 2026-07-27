@@ -126,13 +126,14 @@ server/       ← Hono + Bun + SQLite
 | FeedbackWidget | `src/devtools/feedback-widget.ts` | ✓ devtools | feedback-widget | — |
 | BackendServer | `server/index.ts` | ✓ T41 | — | [backend.md](docs/components/backend.md) |
 | DatabaseLayer | `server/db.ts` | ✓ | — | [backend.md](docs/components/backend.md) |
-| SegmentsAPI | `server/routes/segments.ts` | ✓ T149 | — | [backend.md](docs/components/backend.md) |
+| SegmentsAPI | `server/routes/segments.ts` | ✓ T360 (track + excluded_marker_ids kuljetus; PUT säilyttää jäljen jos patch ei mainitse sitä) | — | [backend.md](docs/components/backend.md) |
 | AuthRoutes | `server/routes/auth.ts` | ✓ T317/T322 (talkoo-login vaatii nimen + POST /api/auth/name kesken session) | — | [backend.md](docs/components/backend.md) |
 | Settings | `server/settings.ts` | ✓ T267 (settings-taulu key-value: talkoo_password_hash + faq_markdown; getSetting/setSetting) | — | [backend.md](docs/components/backend.md) |
 | AdminRoutes | `server/routes/admin.ts` | ✓ T121, T267/T269 (talkoo-salasana + FAQ PUT) | — | [backend.md](docs/components/backend.md) |
 | FaqRoutes | `server/routes/faq.ts` | ✓ T269 (GET /api/faq, ∀ autentikoitu; PUT admin.ts) | — | [backend.md](docs/components/backend.md) |
 | MarkersAPI | `server/routes/markers.ts` | ✓ T226 (kanoninen ownership + audit-kirjaus + created_by) | — | [backend.md](docs/components/backend.md) |
-| MarkerAudit | `server/marker-audit.ts` | ✓ T316 (+ segmentCodeForMarker: pätkä johdetaan merkistä V227) | — | [backend.md](docs/components/backend.md) |
+| MarkerAudit | `server/marker-audit.ts` | ✓ T360 (allSegments + ownerSegmentIds: lähin jälki voittaa, peilaa clientin segment-membershipiä V259; aiemmin T316 segmentCodeForMarker V227) | — | [backend.md](docs/components/backend.md) |
+| TrackGeo | `server/track-geo.ts` | ✓ T360 (kohtisuora piste→jälki-etäisyys, TARKOITUKSELLINEN duplikaatti src/logic/segment-track.ts:stä; V261, oma peilitesti) | — | [backend.md](docs/components/backend.md) |
 | AuditAPI | `server/routes/audit.ts` | ✓ T319 (+ per-rivi-undo /undo/:auditId + GET-suodattimet) | — | [backend.md](docs/components/backend.md) |
 | InventoryAPI | `server/routes/inventory.ts` | ✓ T243 (v2: paikat `inventory_locations`-CRUD + `template_id`-merkkilinkki V165 + location_id-suodatus V166; snapshot-name; V161/V162/V163) | — | [backend.md](docs/components/backend.md) |
 | TemplatesAPI | `server/routes/templates.ts` | ✓ T192 | — | [backend.md](docs/components/backend.md) |

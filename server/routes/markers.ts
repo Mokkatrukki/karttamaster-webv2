@@ -4,7 +4,7 @@ import type { Database } from 'bun:sqlite'
 import type { AuthEnv } from '../middleware/auth'
 import { requireAuth, requireRole } from '../middleware/auth'
 import type { SessionData } from '../types'
-import { ownSegments, markerInOwnSegment, logMarkerAudit, type AuditAction } from '../marker-audit'
+import { ownSegments, allSegments, markerInOwnSegment, logMarkerAudit, type AuditAction } from '../marker-audit'
 
 export const markersRoutes = new Hono<AuthEnv>()
 
@@ -106,12 +106,15 @@ markersRoutes.post('/', requireAuth(), async (c) => {
   // T306/V217: koodillinen legacy-sessio pitää pätkärajansa; kooditon (yleissalasana) saa asettaa ∀.
   if (!isOrganizer && !isCodelessTalkoo(session)) {
     const segs = ownSegments(db, session)
+    // T360/V259: eksklusiivisuus ratkeaa KAIKKIEN pätkien kesken ∴ ehdokasjoukko mukaan.
     const mayPlace = markerInOwnSegment(segs, {
+      lat: body.lat,
+      lon: body.lon,
       routeIds: body.route_ids,
       distFromStart: body.distance_from_start,
       distByRoute: body.distance_by_route ?? null,
       templateId: body.template_id,
-    })
+    }, allSegments(db))
     if (!mayPlace) return c.json({ error: 'forbidden' }, 403)
   }
 
@@ -218,14 +221,17 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
     const bound = !isCodelessTalkoo(session)
     // (b) V150a: olemassa olevan merkin PITÄÄ kuulua talkoolaisen pätkään (kanoninen unioni:
     //     route+dist ∪ linked ∪ typeFilter) — koskee MYÖS status/location_note-kenttiä.
-    if (bound && !markerInOwnSegment(segs, { id, routeIds: existingRoutes, distFromStart: existing.distance_from_start, distByRoute: parseDistByRoute(existing.distance_by_route), templateId: existing.template_id })) {
+    const all = allSegments(db)
+    if (bound && !markerInOwnSegment(segs, { id, lat: existing.lat, lon: existing.lon, routeIds: existingRoutes, distFromStart: existing.distance_from_start, distByRoute: parseDistByRoute(existing.distance_by_route), templateId: existing.template_id }, all)) {
       return c.json({ error: 'forbidden' }, 403)
     }
     // (c) V150b: siirto ei saa raahata merkkiä ulos omasta pätkästä — uusi sijainti range-tarkistus.
     if (bound && moveFields.some((f) => f in body)) {
       const newDist = body.distance_from_start ?? existing.distance_from_start
       const newRoutes = body.route_ids ?? existingRoutes
-      if (!markerInOwnSegment(segs, { id, routeIds: newRoutes, distFromStart: newDist, distByRoute: body.distance_by_route ?? parseDistByRoute(existing.distance_by_route), templateId: existing.template_id })) {
+      // V150b/V259: siirron kohde arvioidaan UUDELLA sijainnilla — jäljen etäisyys lasketaan
+      // siitä mihin merkki on menossa, ⊥ mistä se lähti.
+      if (!markerInOwnSegment(segs, { id, lat: body.lat ?? existing.lat, lon: body.lon ?? existing.lon, routeIds: newRoutes, distFromStart: newDist, distByRoute: body.distance_by_route ?? parseDistByRoute(existing.distance_by_route), templateId: existing.template_id }, all)) {
         return c.json({ error: 'forbidden' }, 403)
       }
     }
@@ -323,7 +329,7 @@ markersRoutes.delete('/:id', requireAuth(), (c) => {
     // T225/V151: (a) merkki omalla pätkällä JA (b) oma itse-luoma (created_by = talkoolainen_code).
     const existingRoutes = existing.route_ids ? (JSON.parse(existing.route_ids) as string[]) : []
     const segs = ownSegments(db, session)
-    const owns = markerInOwnSegment(segs, { id, routeIds: existingRoutes, distFromStart: existing.distance_from_start, distByRoute: parseDistByRoute(existing.distance_by_route), templateId: existing.template_id })
+    const owns = markerInOwnSegment(segs, { id, lat: existing.lat, lon: existing.lon, routeIds: existingRoutes, distFromStart: existing.distance_from_start, distByRoute: parseDistByRoute(existing.distance_by_route), templateId: existing.template_id }, allSegments(db))
     // T306/V217: koodittomalla sessiolla created_by = display_name ("Talkoolainen") ∴ itse-luotu-ehto
     // vertaa siihen, ja pätkäsidos (owns) ei päde. SEURAUS jonka käyttäjä hyväksyi 2026-07-25:
     // poisto-oikeus kattaa kaikki talkoolaisten luomat merkit (ei hierarkiaa). Järjestäjän merkit

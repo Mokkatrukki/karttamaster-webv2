@@ -20,7 +20,9 @@ interface SegmentRow {
   inspection_note: string | null
   completed: number
   linked_marker_ids: string | null
+  excluded_marker_ids: string | null
   marker_type_filter: string | null
+  track: string | null
   updated_at: string
 }
 
@@ -46,7 +48,11 @@ function rowToSegment(row: SegmentRow) {
     completed: !!row.completed,
     // V140: reitittömän tehtävän merkkiliitos — eksplisiittiset id:t + dynaaminen tyyppisuodatin.
     linkedMarkerIds: row.linked_marker_ids ? (JSON.parse(row.linked_marker_ids) as string[]) : undefined,
+    // T360/V259: järjestäjän ohitus — merkki pois pätkästä geometrian yli.
+    excludedMarkerIds: row.excluded_marker_ids ? (JSON.parse(row.excluded_marker_ids) as string[]) : undefined,
     markerTypeFilter: row.marker_type_filter ?? undefined,
+    // T360/V258: pätkän oma jälki. NULL = legacy → client johtaa sen rajoista (T361).
+    track: row.track ? (JSON.parse(row.track) as { lat: number; lon: number; d: number }[]) : undefined,
   }
 }
 
@@ -81,15 +87,17 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
     inspectionNote?: string
     completed?: boolean
     linkedMarkerIds?: string[]
+    excludedMarkerIds?: string[]
     markerTypeFilter?: string
+    track?: { lat: number; lon: number; d: number }[]
   }>()
 
   const id = body.id ?? randomUUID()
   const now = new Date().toISOString()
 
   db.run(
-    `INSERT INTO segments (id, route_ids, primary_route_id, start_dist, end_dist, assigned_code, slug, display_name, description, equipment, phase, inspected, inspection_note, completed, linked_marker_ids, marker_type_filter, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO segments (id, route_ids, primary_route_id, start_dist, end_dist, assigned_code, slug, display_name, description, equipment, phase, inspected, inspection_note, completed, linked_marker_ids, excluded_marker_ids, marker_type_filter, track, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        route_ids = excluded.route_ids,
        primary_route_id = excluded.primary_route_id,
@@ -105,7 +113,9 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
        inspection_note = excluded.inspection_note,
        completed = excluded.completed,
        linked_marker_ids = excluded.linked_marker_ids,
+       excluded_marker_ids = excluded.excluded_marker_ids,
        marker_type_filter = excluded.marker_type_filter,
+       track = excluded.track,
        updated_at = excluded.updated_at`,
     [
       id,
@@ -126,7 +136,10 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
       body.completed ? 1 : 0,
       // V140: merkkiliitos — tyhjä/puuttuva → null (ei tallenna tyhjää taulukkoa)
       body.linkedMarkerIds != null && body.linkedMarkerIds.length > 0 ? JSON.stringify(body.linkedMarkerIds) : null,
+      body.excludedMarkerIds != null && body.excludedMarkerIds.length > 0 ? JSON.stringify(body.excludedMarkerIds) : null,
       body.markerTypeFilter ?? null,
+      // T360/V258: jälki on pätkän geometrian totuus — tyhjä jälki tallentuu null:ina (legacy-tila).
+      body.track != null && body.track.length > 0 ? JSON.stringify(body.track) : null,
       now,
     ],
   )
@@ -155,7 +168,9 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
     inspectionNote: string
     completed: boolean
     linkedMarkerIds: string[]
+    excludedMarkerIds: string[]
     markerTypeFilter: string | null
+    track: { lat: number; lon: number; d: number }[]
   }>>()
 
   const existing = db.query<SegmentRow, [string]>('SELECT * FROM segments WHERE id = ?').get(id)
@@ -185,6 +200,10 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
         startDist: raw.startDist,
         endDist: raw.endDist,
         equipment: raw.equipment,
+        // T360/T363/V258: rajamuokkaus kentällä johtaa JÄLJEN uudelleen ∴ jäljen ! olla samassa
+        // sallitussa joukossa kuin rajat. Muuten talkoolaisen siirto tallentaisi rajat mutta
+        // jättäisi vanhan jäljen → jäsenyys (V259) jäisi vastaamaan rajaa jota ei enää ole.
+        track: raw.track,
       }
 
   const now = new Date().toISOString()
@@ -192,7 +211,8 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
     `UPDATE segments SET
       route_ids = ?, primary_route_id = ?, start_dist = ?, end_dist = ?, assigned_code = ?, slug = ?,
       display_name = ?, description = ?, equipment = ?, phase = ?,
-      inspected = ?, inspection_note = ?, completed = ?, linked_marker_ids = ?, marker_type_filter = ?, updated_at = ?
+      inspected = ?, inspection_note = ?, completed = ?, linked_marker_ids = ?, excluded_marker_ids = ?,
+      marker_type_filter = ?, track = ?, updated_at = ?
      WHERE id = ?`,
     [
       'routeIds' in body && body.routeIds ? JSON.stringify(body.routeIds) : existing.route_ids,
@@ -212,7 +232,13 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
       'linkedMarkerIds' in body
         ? (body.linkedMarkerIds && body.linkedMarkerIds.length > 0 ? JSON.stringify(body.linkedMarkerIds) : null)
         : existing.linked_marker_ids,
+      'excludedMarkerIds' in body
+        ? (body.excludedMarkerIds && body.excludedMarkerIds.length > 0 ? JSON.stringify(body.excludedMarkerIds) : null)
+        : existing.excluded_marker_ids,
       'markerTypeFilter' in body ? (body.markerTypeFilter ?? null) : existing.marker_type_filter,
+      // T360/V258: `'track' in body` ⊥ `body.track ?? existing` — patch joka EI mainitse jälkeä
+      // säilyttää sen, mutta eksplisiittinen tyhjä jälki nollaa sen (paluu legacy-tilaan).
+      'track' in body ? (body.track && body.track.length > 0 ? JSON.stringify(body.track) : null) : existing.track,
       now,
       id,
     ],
