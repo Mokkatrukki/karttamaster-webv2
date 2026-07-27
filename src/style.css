@@ -2283,6 +2283,17 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   flex-shrink: 0;
 }
 
+/* T353/V256 (B139): talkoolaisen kuittaus pätkärivillä — oma merkintä laskurin VIERESSÄ, ⊥ sen
+   tilalla. Sivupalkki on chromea (V253) ∴ teematokenit sallittuja; --confirm on sama vihreä jolla
+   valmis-toggle piirretään ∴ kuittaus & sen nappi puhuvat samaa väriä. */
+.segment-kuitattu {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--confirm);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .segment-empty {
   padding: 8px 10px;
   color: var(--text-meta);

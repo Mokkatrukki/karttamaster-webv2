@@ -385,6 +385,16 @@ export class SegmentPanel {
       : ''
     kmSpan.title = `${kmRange}${formatStatusCounts(getSegmentStatusCounts(seg, markers))}`
 
+    // T353/V256 (B139): talkoolaisen kuittaus omana merkintänään — EI laskurin tilalla. Ne voivat
+    // olla eri mieltä (kuitattu vaikka merkkejä kesken, tai kaikki asetettu mutta ⊥ kuitattu) &
+    // järjestäjä tarvitsee molemmat: laskuri kertoo mitä kartalla on, kuittaus kertoo mitä
+    // talkoolainen sanoo. Ristiriita on TIETOA, ⊥ virhe jota pitäisi piilottaa.
+    const doneMark = document.createElement('span')
+    doneMark.className = 'segment-kuitattu'
+    doneMark.textContent = '✓ Kuitattu'
+    doneMark.title = 'Talkoolainen on merkinnyt pätkän valmiiksi'
+    doneMark.hidden = !(seg.completed ?? false)
+
     // T345/V250: `···` avaa pikavalikon, ei enää suoraan modaalia — katselutoiminnot (zoom,
     // korostus, linkki) eivät saa kulkea modaalin kautta. Modaali on valikon viimeinen rivi.
     const detailsBtn = document.createElement('button')
@@ -413,6 +423,7 @@ export class SegmentPanel {
 
     li.appendChild(info)
     li.appendChild(kmSpan)
+    li.appendChild(doneMark)
     li.appendChild(detailsBtn)
     return li
   }

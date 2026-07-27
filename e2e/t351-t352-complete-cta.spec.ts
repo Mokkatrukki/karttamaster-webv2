@@ -70,6 +70,49 @@ test.describe('T351 — talkoolaisen valmis-toggle hero:ssa', () => {
   })
 })
 
+test.describe('T353 — kuittaus näkyy järjestäjän tilannekuvassa (B139)', () => {
+  test('kuitattu pätkä = vihreä ehjä viiva + ✓-lappu VAIKKA merkit kesken', async ({ page }) => {
+    const keskenMarker = { ...doneMarker, status: 'suunniteltu' }
+    await mockAuthAsJarjestaja(page)
+    await page.route(/\/api\/segments(\?|$)/, r =>
+      r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ ...SEG, completed: true }]) }))
+    await mockMarkers(page, [keskenMarker])
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    // Kartta: kuittaus voittaa laskurin (0/1 asetettu, silti valmis-viiva).
+    const doneStroke = await page.evaluate(() => {
+      const paths = Array.from(document.querySelectorAll<SVGPathElement>('.leaflet-overlay-pane path'))
+      return paths
+        .map(p => ({ stroke: (p.getAttribute('stroke') ?? '').toLowerCase(), dash: p.getAttribute('stroke-dasharray') ?? '' }))
+        .find(s => s.stroke === '#1f8a50')
+    })
+    expect(doneStroke).toBeDefined()
+    expect(doneStroke!.dash).toBe('')
+    await expect(page.locator('.segment-label', { hasText: 'E2E-pätkä' })).toHaveText('✓ E2E-pätkä')
+
+    // Lista: kuittaus omana merkintänään, laskuri EI korvaudu (ristiriita näkyviin).
+    await page.locator('.segment-panel-header').click()
+    await page.waitForTimeout(200)
+    await expect(page.locator('.segment-kuitattu')).toBeVisible()
+    await expect(page.locator('.segment-km')).toHaveText('0/1 asetettu')
+  })
+
+  test('kuittaamaton pätkä → ⊥ kuittausmerkintää listassa', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await page.route(/\/api\/segments(\?|$)/, r =>
+      r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([SEG]) }))
+    await mockMarkers(page, [doneMarker])
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+    await page.locator('.segment-panel-header').click()
+    await page.waitForTimeout(200)
+    await expect(page.locator('.segment-kuitattu')).toBeHidden()
+  })
+})
+
 test.describe('T352 — järjestäjän valmis-toggle pätkämodaalissa', () => {
   test('modaalista voi kuitata pätkän valmiiksi (⊥ ⋯-valikkoa järjestäjälle)', async ({ page }) => {
     await mockAuthAsJarjestaja(page)

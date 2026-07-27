@@ -536,6 +536,29 @@ describe('segments', () => {
     it('tarkastus inspected=true → valmis', () => {
       expect(segmentLineState({ kind: 'boolean', done: true, label: 'tarkastettu' })).toBe('valmis')
     })
+
+    // T353/V256 (B139): kuittaus voittaa laskurin — talkoolainen on paikan päällä.
+    describe('completed voittaa merkkilaskurin (T353/V256)', () => {
+      it('kuitattu + 0/5 asetettu → valmis (⊥ ei_alkanut)', () => {
+        expect(segmentLineState(count(0, 5), true)).toBe('valmis')
+      })
+      it('kuitattu + 2/5 asetettu → valmis (⊥ kesken)', () => {
+        expect(segmentLineState(count(2, 5), true)).toBe('valmis')
+      })
+      it('kuitattu + ei merkkejä → valmis', () => {
+        expect(segmentLineState(count(0, 0), true)).toBe('valmis')
+      })
+      it('⊥ kuitattu → laskuri ratkaisee ennallaan', () => {
+        expect(segmentLineState(count(2, 5), false)).toBe('kesken')
+        expect(segmentLineState(count(5, 5), false)).toBe('valmis')
+      })
+      it('oletusarvo (parametri puuttuu) = ⊥ kuitattu — vanhat kutsupaikat ennallaan', () => {
+        expect(segmentLineState(count(2, 5))).toBe('kesken')
+      })
+      it('kuitattu tarkastus-phase (inspected=false) → valmis', () => {
+        expect(segmentLineState({ kind: 'boolean', done: false, label: 'tarkastettu' }, true)).toBe('valmis')
+      })
+    })
   })
 })
 

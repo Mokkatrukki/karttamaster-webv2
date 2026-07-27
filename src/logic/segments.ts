@@ -298,7 +298,12 @@ export const SEGMENT_DONE_COLOR = '#1F8A50'
 // ei_alkanut = haalea katko, kesken = täysi katko, valmis = ehjä.
 export type SegmentLineState = 'ei_alkanut' | 'kesken' | 'valmis'
 
-export function segmentLineState(progress: PhaseProgress): SegmentLineState {
+// T353/V256 (B139): `completed` VOITTAA merkkilaskurin. Talkoolaisen eksplisiittinen kuittaus on
+// vahvempi tieto kuin johdettu laskuri — hän on paikan päällä & tietää onko pätkä oikeasti hoidettu
+// (suunnitelmasta voi puuttua merkkejä tai olla liikaa). Ennen tätä lipulla ⊥ ollut yhtään lukijaa
+// nappien labelien ulkopuolella ∴ kuittaus ⊥ näkynyt järjestäjälle missään.
+export function segmentLineState(progress: PhaseProgress, completed = false): SegmentLineState {
+  if (completed) return 'valmis'
   if (progress.kind === 'boolean') {
     return progress.done ? 'valmis' : 'ei_alkanut'
   }
