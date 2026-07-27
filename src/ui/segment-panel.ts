@@ -86,6 +86,8 @@ export class SegmentPanel {
       () => this.render(),
       {
         getMarkers: callbacks.getMarkers,
+        // T363: modaali johtaa jäljen rajamuokkauksessa — reitit tulevat paneelilta.
+        getRoutes: () => this.routes,
         onEnterEditMode: callbacks.onEnterEditMode,
         onExitEditMode: callbacks.onExitEditMode,
         isFocusSegment: callbacks.isFocusSegment,

@@ -15,6 +15,7 @@ import { calcAllRouteStatus } from '../logic/route-status'
 import { getRole } from '../logic/role'
 import { MarkerDetailModal } from '../ui/marker-detail-modal'
 import { getSegmentForCode, getMarkersForSegment, updateSegment, segmentPrimaryRouteId, segmentPeers } from '../logic/segments'
+import { boundsPatch } from '../logic/segment-backfill'
 import type { Segment } from '../logic/segments'
 import { fitMapToSegment } from '../map/segment-fit'
 import { firstUnsetMarker, distanceAhead } from '../logic/navigation'
@@ -284,9 +285,13 @@ export function wireMarkers(
           // T78/V43: talkoolainen muokkaa oman pätkän rajoja kentällä. Server sallii (V93:
           // talkoolainen_code === assigned_code). Päivitä store + backend + kartta + näkymä.
           onEditBounds: (startDist, endDist) => {
-            const updatedSeg = updateSegment(segmentStore, seg.id, { startDist, endDist })
+            // T363/V258: rajat & JÄLKI muuttuvat yhdessä. Jälki ⊥ saa jäädä jälkeen — muuten
+            // jäsenyys (V259) vastaisi rajaa jota ⊥ enää ole & talkoolainen näkisi merkkejä
+            // jotka hän juuri rajasi pois (tai päinvastoin).
+            const patch = boundsPatch(seg, routes, startDist, endDist)
+            const updatedSeg = updateSegment(segmentStore, seg.id, patch)
             const flagErr = () => showWarning('⚠ Pätkän rajojen tallennus epäonnistui — yritä uudelleen', 5000)
-            updateSegmentRemote(seg.id, { startDist, endDist })
+            updateSegmentRemote(seg.id, patch)
               .then(ok => { if (!ok) flagErr() })
               .catch(() => flagErr())
             if (updatedSeg) {

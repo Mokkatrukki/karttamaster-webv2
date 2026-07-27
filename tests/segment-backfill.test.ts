@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { buildRoutePoints } from '../src/logic/bearing'
-import { backfillSegmentTracks } from '../src/logic/segment-backfill'
+import { backfillSegmentTracks, boundsPatch } from '../src/logic/segment-backfill'
 import { createSegmentStore, createSegment, cloneSegmentToNextPhase } from '../src/logic/segments'
 import { deriveTrackFromBounds, trackLengthM } from '../src/logic/segment-track'
 import type { Segment, SegmentStore } from '../src/logic/segments'
@@ -82,8 +82,8 @@ describe('T361/V260 — legacy-pätkä saa jäljen rajoistaan', () => {
   it('ohittaa rajat jotka eivät osu reitille — tyhjä jälki jäisi valheeksi', () => {
     const store = storeWith([
       { id: 'ulkona', routeIds: ['r1'], primaryRouteId: 'r1', startDist: 90000, endDist: 95000 },
-      // T358:n sopimusepäjatkuvuus: ristikkäiset rajat → tyhjä siivu. Jälki jää pois ∴
-      // pätkä pysyy V260-legacy-haarassa eikä näytä migroidulta tyhjänä.
+      // T363: ristikkäiset rajat torjutaan VARTIJALLA ennen `deriveTrackFromBounds`ia (joka
+      // heittää) ∴ rikkinäinen legacy-rivi jää V260-km-haaraan eikä kaada koko backfilliä.
       { id: 'ristiin', routeIds: ['r1'], primaryRouteId: 'r1', startDist: 700, endDist: 200 },
     ])
 
@@ -147,5 +147,60 @@ describe('T361/V258 — vaihekloonaus perii jäljen (ck:review H-7)', () => {
     clone.track![0].lat = 0
 
     expect(orig.track![0].lat).not.toBe(0)
+  })
+})
+
+describe('T363/V258 — rajojen muokkaus johtaa jäljen uudelleen', () => {
+  const r1 = route('r1')
+  const seg = { routeIds: ['r1'], primaryRouteId: 'r1' }
+
+  it('palauttaa rajat JA jäljen samasta johtofunktiosta', () => {
+    const patch = boundsPatch(seg, [r1], r1.routePoints[2].distanceFromStart, r1.routePoints[7].distanceFromStart)
+
+    expect(patch.startDist).toBe(r1.routePoints[2].distanceFromStart)
+    expect(patch.endDist).toBe(r1.routePoints[7].distanceFromStart)
+    expect(patch.track).toHaveLength(6)
+    expect(patch.track![0].d).toBe(0)
+  })
+
+  it('jälki vastaa uusia rajoja — ei jää jälkeen vanhoista', () => {
+    const wide = boundsPatch(seg, [r1], 0, r1.routePoints[9].distanceFromStart)
+    const narrow = boundsPatch(seg, [r1], 0, r1.routePoints[3].distanceFromStart)
+
+    expect(trackLengthM(narrow.track!)).toBeLessThan(trackLengthM(wide.track!))
+    expect(trackLengthM(narrow.track!)).toBeCloseTo(r1.routePoints[3].distanceFromStart, 0)
+  })
+
+  it('ristikkäiset rajat → ei jälkeä, ei heittoa (kutsuja on jo validoinut UI:ssa)', () => {
+    const patch = boundsPatch(seg, [r1], 700, 200)
+
+    expect(patch.track).toBeUndefined()
+    expect(patch.startDist).toBe(700)
+  })
+
+  it('tuntematon reitti → rajat ilman jälkeä (pätkä jää V260-km-haaraan)', () => {
+    const patch = boundsPatch({ routeIds: ['ei-ole'], primaryRouteId: 'ei-ole' }, [r1], 0, 500)
+
+    expect(patch.track).toBeUndefined()
+  })
+})
+
+describe('T363/T358 — deriveTrackFromBounds heittää ristikkäisistä rajoista', () => {
+  const r1 = route('r1')
+
+  it('sisarfunktiot käsittelevät saman virheluokan samoin', () => {
+    // `buildTrackFromAnchors` heitti jo ei-monotonisesta ankkurista; hiljainen tyhjä jälki
+    // olisi ollut pahempi: se näyttäisi migroidulta muttei omistaisi mitään merkkiä (V259).
+    expect(() => deriveTrackFromBounds(r1.routePoints, 700, 200)).toThrow(/must be </)
+    expect(() => deriveTrackFromBounds(r1.routePoints, 500, 500)).toThrow(/must be </)
+  })
+
+  it('backfill ohittaa rikkinäisen rivin eikä kaadu', () => {
+    const store = storeWith([
+      { id: 'ristiin', routeIds: ['r1'], primaryRouteId: 'r1', startDist: 700, endDist: 200 },
+      { id: 'ok', routeIds: ['r1'], primaryRouteId: 'r1', startDist: 0, endDist: 500 },
+    ])
+
+    expect(backfillSegmentTracks(store, [r1]).map(s => s.id)).toEqual(['ok'])
   })
 })

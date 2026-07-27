@@ -46,6 +46,15 @@ export function deriveTrackFromBounds(
   startDist: number,
   endDist: number,
 ): SegmentTrack {
+  // T363: ristikkäiset rajat HEITTÄVÄT — sama sopimus kuin `buildTrackFromAnchors`illa. Ennen
+  // tätä tulos oli hiljainen TYHJÄ jälki: sisarfunktiot käsittelivät saman virheluokan eri
+  // tavalla, & rajamuokkaus kentällä (T363) olisi voinut tallentaa pätkän joka menettää KAIKKI
+  // merkkinsä hiljaa (V259: tyhjä jälki ⊥ omista mitään). Kutsuja joka voi saada käyttäjältä
+  // ristikkäiset rajat ! tarkistaa ne ENNEN kutsua — hiljainen käännös (min/max) olisi arvaus
+  // siitä kumpi luku oli väärin.
+  if (startDist >= endDist) {
+    throw new Error(`V258: startDist (${startDist}) must be < endDist (${endDist})`)
+  }
   return rebase(
     routePoints.filter(p => p.distanceFromStart >= startDist && p.distanceFromStart <= endDist),
   )

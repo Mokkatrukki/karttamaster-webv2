@@ -1,6 +1,7 @@
 import type { Segment, SegmentStore } from './segments'
 import { segmentPrimaryRouteId } from './segments'
 import { deriveTrackFromBounds } from './segment-track'
+import type { SegmentTrack } from './segment-track'
 import type { RoutePoint } from './types'
 
 // T361/V258/V260: LEGACY-PÄTKÄ SAA JÄLJEN.
@@ -33,6 +34,9 @@ export function backfillSegmentTracks(store: SegmentStore, routes: RouteGeometry
   for (const seg of store.values()) {
     if (seg.track && seg.track.length > 0) continue
     if (seg.startDist === undefined || seg.endDist === undefined) continue
+    // T363: `deriveTrackFromBounds` heittää ristikkäisistä rajoista ∴ tarkista ENNEN kutsua.
+    // Rikkinäinen legacy-rivi ⊥ saa kaataa koko backfilliä — se jää V260-km-haaraan.
+    if (seg.startDist >= seg.endDist) continue
 
     const routeId = segmentPrimaryRouteId(seg)
     if (routeId === undefined) continue
@@ -49,4 +53,32 @@ export function backfillSegmentTracks(store: SegmentStore, routes: RouteGeometry
   }
 
   return changed
+}
+
+/**
+ * T363/V258: rajojen muutos → uusi jälki SAMASTA johtofunktiosta kuin backfill & legacy-migraatio.
+ * V258 vaatii yhden johtotavan: kolme kopiota ajautuisi erilleen & pätkän maasto riippuisi siitä
+ * kuka sen viimeksi tallensi.
+ *
+ * Palauttaa patchin jonka kutsuja antaa `updateSegment`ille & serverille SELLAISENAAN — jälki ⊥
+ * saa jäädä pois kummastakaan, muuten jäsenyys (V259) vastaisi rajaa jota ⊥ enää ole.
+ * `track: undefined` = reittiä ⊥ löydy tai siivu on liian lyhyt → pätkä jää V260-km-haaraan
+ * (⊥ tyhjää jälkeä kantaan: se näyttäisi migroidulta muttei omistaisi mitään).
+ */
+export function boundsPatch(
+  segment: Pick<Segment, 'routeIds' | 'primaryRouteId'>,
+  routes: RouteGeometry[],
+  startDist: number,
+  endDist: number,
+): { startDist: number; endDist: number; track?: SegmentTrack } {
+  const base = { startDist, endDist }
+  if (startDist >= endDist) return base
+
+  const routeId = segmentPrimaryRouteId(segment)
+  if (routeId === undefined) return base
+  const route = routes.find(r => r.id === routeId)
+  if (!route || route.routePoints.length === 0) return base
+
+  const track = deriveTrackFromBounds(route.routePoints, startDist, endDist)
+  return track.length < 2 ? base : { ...base, track }
 }

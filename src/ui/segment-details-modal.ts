@@ -1,4 +1,5 @@
 import { updateSegment, deleteSegment, getMarkersForSegment, cloneSegmentToNextPhase, NEXT_PHASE, generateSegmentSlug, segmentPath, segmentPeers } from '../logic/segments'
+import { boundsPatch } from '../logic/segment-backfill'
 import { updateSegmentRemote, deleteSegmentRemote, pushSegment } from '../logic/segment-sync'
 import type { Segment, SegmentStore, EquipmentItem } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
@@ -35,6 +36,8 @@ const TYPE_LABELS: Record<string, string> = {
 export interface SegmentDetailsCallbacks {
   getMarkers?: () => SignMarker[]
   onEnterEditMode?: (seg: Segment, onSave: (startDist: number, endDist: number) => void) => void
+  // T363: reittigeometria jäljen johtamiseen (V258). Puuttuu → jälki jää ennalleen (V260).
+  getRoutes?: () => { id: string; routePoints: { lat: number; lon: number; distanceFromStart: number }[] }[]
   onExitEditMode?: () => void
   // T335/V243: kartan korostus vain tähän pätkään. Tila EI asu modaalissa (modaali tuhoutuu
   // sulkiessa, tila jää päälle) — omistaja on wiring, modaali kysyy ja kytkee.
@@ -672,8 +675,11 @@ export class SegmentDetailsModal {
     btn.addEventListener('click', () => {
       this.close()
       this.callbacks.onEnterEditMode?.(seg, (startDist, endDist) => {
-        updateSegment(this.store, seg.id, { startDist, endDist })
-        updateSegmentRemote(seg.id, { startDist, endDist }).catch(() => {})
+        // T363/V258: sama johtofunktio kuin talkoolaisen kenttämuokkauksessa — rajat & jälki
+        // liikkuvat yhdessä riippumatta siitä kumpi rooli niitä siirtää.
+        const patch = boundsPatch(seg, this.callbacks.getRoutes?.() ?? [], startDist, endDist)
+        updateSegment(this.store, seg.id, patch)
+        updateSegmentRemote(seg.id, patch).catch(() => {})
         this.onRender()
         this.onUpdate()
       })

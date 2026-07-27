@@ -736,6 +736,18 @@ test.describe('T25 — SegmentPanel', () => {
     await page.waitForTimeout(500)
 
     expect(segPuts.length).toBeGreaterThan(0)
-    expect(segPuts[0]).toMatchObject({ startDist: 0, endDist: 15000 })
+    const patch = segPuts[0] as { startDist: number; endDist: number; track?: { d: number }[] }
+    expect(patch).toMatchObject({ startDist: 0, endDist: 15000 })
+
+    // T363/V258: rajat & JÄLKI liikkuvat yhdessä. Jos jälki jäisi jälkeen, jäsenyys (V259)
+    // vastaisi rajaa jota ⊥ enää ole — talkoolainen näkisi merkkejä jotka hän juuri rajasi pois.
+    expect(Array.isArray(patch.track)).toBe(true)
+    expect(patch.track!.length).toBeGreaterThan(1)
+    expect(patch.track![0].d).toBe(0)
+    // smtb-30 on 4.6 km ∴ 15 km raja typistyy reitin loppuun — jälki kertoo TODELLISEN pituuden,
+    // ⊥ pyydettyä `endDist − startDist`iä (V258: pituus on jäljen viimeinen `d`).
+    const trackLen = patch.track![patch.track!.length - 1].d
+    expect(trackLen).toBeGreaterThan(4000)
+    expect(trackLen).toBeLessThan(5000)
   })
 })
