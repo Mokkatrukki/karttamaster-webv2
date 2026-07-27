@@ -4241,6 +4241,16 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   flex: 1;
 }
 
+/* T371/V267: laskuri (`(3)`) — korvaa area-panelin inline `style.cssText`in.
+   Ei uppercase/bold: luku ei ole otsikko vaan mittari (DESIGN.md §K count = 11px text-meta). */
+.left-panel-section-header .section-header-count {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: normal;
+  color: var(--text-meta);
+  flex-shrink: 0;
+}
+
 .area-drag-handle {
   background: var(--surface-card, #1e293b);
   border: 2px solid #3b82f6;

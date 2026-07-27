@@ -336,14 +336,16 @@ Flex-toolbar joka voi ylittää kapean modaalin → `flex-wrap: wrap` (ei vaakal
 
 **Sisältö (`#left-panel-content`):** `flex column`, `overflow-y: auto`, piilotetaan `hidden`-attribuutilla kun kiinni
 
-**Section pattern (V61) — kaikki osiot noudattavat:**
+**Section pattern (V61) — kaikki osiot noudattavat.** Header EI kirjoiteta käsin: `createSectionHeader`
+(`src/ui/section-header.ts`, T371/V267) on ainoa toteutus. Käsin kirjoitettu kopio ajautuu inline-tyyleihin
+(niin kävi AreaPanelille) ja jää ilman näppäimistökuuntelijaa vaikka `role="button"` lupaa sen.
 
 | Osa | Elementti | Tyyli |
 |-----|-----------|-------|
 | Header | `.left-panel-section-header` | `cursor:pointer; display:flex; align-items:center; padding:8px 10px; border-bottom:1px solid border-subtle` |
 | Toggle-ikoni | `▼/▶` | `11px text-muted flex-shrink:0 mr:6px` — ▼ auki, ▶ kiinni |
 | Nimi | `span` | `11px uppercase text-muted letter-spacing:0.06em flex:1` |
-| Count | `span` | `11px text-meta` — sulkuihin esim. `(3)` |
+| Count | `span.section-header-count` | `11px text-meta, font-weight:400, letter-spacing:normal` — sulkuihin esim. `(3)`. Luku ei peri otsikon uppercase/boldia: se on mittari ⊥ otsikko |
 | Item-rivit | `.left-panel-item` | `display:flex; align-items:center; min-height:44px; border-bottom:1px solid border-card` |
 | Item — label | `button tai span` | `flex:1; min-height:44px; text-align:left` — klikkaus = toiminto |
 | Item — actions | `[···]` | `min-width:44px; min-height:44px; color:text-muted` — avaa modal |

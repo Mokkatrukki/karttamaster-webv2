@@ -7,6 +7,7 @@ import {
 } from '../logic/sign-library'
 import { buildMarkerVisual, type MarkerVisualInput } from './marker-visual-row'
 import { SignTemplateModal } from './sign-template-modal'
+import { createSectionHeader } from './section-header'
 
 // T200: SignTemplate ei kanna 'type'-kenttää jota buildMarkerVisual käyttää top-level-kuva-avaimena
 // (signImageSrc(marker.type)) — SignTemplaten kuva-avainkonventio on t.imageId ?? t.id, ei type-pohjainen.
@@ -71,20 +72,16 @@ export class SignLibraryPanel {
     const others = all.filter(t => !t.favorite).sort(byLabel)
     this.container.innerHTML = ''
 
-    // Section header
-    const sectionHeader = document.createElement('div')
-    sectionHeader.className = 'left-panel-section-header'
-    sectionHeader.setAttribute('role', 'button')
-    sectionHeader.setAttribute('aria-expanded', String(!this.collapsed))
-    sectionHeader.innerHTML = `
-      <span class="section-header-toggle">${this.collapsed ? '▶' : '▼'}</span>
-      <span class="section-header-name">Merkkikirjasto</span>
-    `
-    sectionHeader.addEventListener('click', () => {
-      this.collapsed = !this.collapsed
-      this.render()
+    // Section header (T371/V267: jaettu apuri, ei oma template)
+    const sectionHeader = createSectionHeader({
+      name: 'Merkkikirjasto',
+      collapsed: this.collapsed,
+      onToggle: () => {
+        this.collapsed = !this.collapsed
+        this.render()
+      },
     })
-    this.container.appendChild(sectionHeader)
+    this.container.appendChild(sectionHeader.el)
 
     if (this.collapsed) { this.bindEvents(); return }
 

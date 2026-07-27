@@ -98,7 +98,8 @@ server/       ← Hono + Bun + SQLite
 | AreasWiring | `src/app/areas-wiring.ts` | ✓ T155 | area-interaction | [ui.md](docs/components/ui.md) |
 | SegmentsWiring | `src/app/segments-wiring.ts` | ✓ T155 | e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | MarkersWiring | `src/app/markers-wiring.ts` | ✓ T182,T224 (zoom-to-segment, alapalkki piilotettu, next-highlight, gps-drive-panel poistettu) | critical-paths: "Merkki kartalle", "Drive mode", "tallennus epäonnistuu" | [ui.md](docs/components/ui.md) |
-| SignLibraryPanel | `src/ui/sign-library-panel.ts` | ✓ T176, T235 (194r lista/grid; modaali irrotettu) | critical-paths: "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
+| SectionHeader | `src/ui/section-header.ts` | ✓ T371 (left-panelin section-headerin AINOA toteutus, V267 — 3 kopiota poistettu; kuluttajat: SignLibraryPanel, SegmentPanel, AreaPanel) | tests/t371-section-header.test.ts | [ui.md](docs/components/ui.md) |
+| SignLibraryPanel | `src/ui/sign-library-panel.ts` | ✓ T176, T235 (194r lista/grid; modaali irrotettu), T371 (header jaetusta apurista) | critical-paths: "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
 | SignTemplateModal | `src/ui/sign-template-modal.ts` | ✓ T235 (malli-detalji/muokkaus-modaali, irrotettu SignLibraryPanelista; XSS-escape B19/V44) | (kattaa sign-library-panel-testit) | [ui.md](docs/components/ui.md) |
 | RoleSelector | `src/ui/role-selector.ts` | ✓ T12 (V80: toggle dead code) | critical-paths: "Rooli backendistä" | [ui.md](docs/components/ui.md) |
 | SegmentPanel | `src/ui/segment-panel.ts` | ✓ T362 (klik-klik-ankkuriketju: reitti lukittuu 1. klikistä & näkyy, haku etenee eteenpäin; B144) | e2e/segments.spec.ts ".segment-km näyttää status-lukumäärän" | [ui.md](docs/components/ui.md) |

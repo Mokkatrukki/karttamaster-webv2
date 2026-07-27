@@ -3,6 +3,7 @@ import type { AreaMarker, AreaFeature } from '../logic/area-types'
 import { AreaDetailsModal } from './area-details-modal'
 import { openFeatureColorPicker } from './feature-color-picker'
 import { genId } from '../logic/uid'
+import { createSectionHeader, type SectionHeader } from './section-header'
 
 const FEATURE_COLORS_FIRST = '#4ade80'
 
@@ -23,6 +24,7 @@ export class AreaPanel {
 
   private readonly listEl: HTMLUListElement
   private readonly sectionEl: HTMLElement
+  private readonly header: SectionHeader
 
   constructor(
     container: HTMLElement,
@@ -35,40 +37,28 @@ export class AreaPanel {
       onAreaDelete: (id) => this.deleteArea(id),
     })
 
-    const { section, list } = this.build()
+    const { section, list, header } = this.build()
     this.sectionEl = section
     this.listEl = list
+    this.header = header
     container.appendChild(section)
     this.render()
   }
 
-  private build(): { section: HTMLElement; list: HTMLUListElement } {
+  private build(): { section: HTMLElement; list: HTMLUListElement; header: SectionHeader } {
     const section = document.createElement('div')
     section.className = 'left-panel-section area-section'
 
-    const header = document.createElement('div')
-    header.className = 'left-panel-section-header'
-    header.setAttribute('role', 'button')
-    header.setAttribute('tabindex', '0')
-
-    const toggleIcon = document.createElement('span')
-    toggleIcon.className = 'section-toggle-icon'
-    toggleIcon.textContent = '▶'
-    toggleIcon.style.cssText =
-      'font-size:11px;color:var(--text-muted);flex-shrink:0;margin-right:6px'
-
-    const titleSpan = document.createElement('span')
-    titleSpan.style.cssText =
-      'font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);flex:1'
-    titleSpan.textContent = 'Alueet'
-
-    const countSpan = document.createElement('span')
-    countSpan.className = 'area-section-count'
-    countSpan.style.cssText = 'font-size:11px;color:var(--text-meta)'
-    countSpan.textContent = '(0)'
-
-    header.append(toggleIcon, titleSpan, countSpan)
-    header.addEventListener('click', () => this.toggleCollapse())
+    // T371/V267: jaettu apuri. Poisti kolme inline `style.cssText`-riviä — ne olivat olemassa
+    // vain siksi että tämä paneeli keksi oman `.section-toggle-icon`-luokan jota ei ole
+    // style.css:ssä ∴ teemanvaihto ei tavoittanut niitä.
+    const header = createSectionHeader({
+      name: 'Alueet',
+      collapsed: this.collapsed,
+      count: '(0)',
+      countClass: 'area-section-count',
+      onToggle: () => this.toggleCollapse(),
+    })
 
     const list = document.createElement('ul')
     list.className = 'area-list'
@@ -83,15 +73,14 @@ export class AreaPanel {
       'width:100%;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);color:var(--text-muted);font-size:12px;cursor:pointer'
     footer.addEventListener('click', () => this.startAddFlow())
 
-    section.append(header, list, footer)
-    return { section, list }
+    section.append(header.el, list, footer)
+    return { section, list, header }
   }
 
   private toggleCollapse(): void {
     this.collapsed = !this.collapsed
-    const icon = this.sectionEl.querySelector('.section-toggle-icon') as HTMLElement
     const footer = this.sectionEl.querySelector('.btn-area-add') as HTMLElement
-    icon.textContent = this.collapsed ? '▶' : '▼'
+    this.header.setCollapsed(this.collapsed)
     this.listEl.hidden = this.collapsed
     footer.hidden = this.collapsed
   }
@@ -107,8 +96,7 @@ export class AreaPanel {
 
   render(): void {
     this.listEl.innerHTML = ''
-    const countEl = this.sectionEl.querySelector('.area-section-count') as HTMLElement
-    countEl.textContent = `(${this.areas.length})`
+    this.header.setCount(`(${this.areas.length})`)
 
     for (const area of this.areas) {
       const isExpanded = this.expandedAreas.has(area.id)

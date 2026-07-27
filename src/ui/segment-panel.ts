@@ -16,6 +16,7 @@ import type { SignMarker } from '../logic/types'
 import { SegmentCreationModal, type CreationState } from './segment-creation-modal'
 import { SegmentDetailsModal } from './segment-details-modal'
 import { openSegmentRowMenu } from './segment-row-menu'
+import { createSectionHeader, type SectionHeader } from './section-header'
 
 export interface SegmentPanelCallbacks {
   onFirstPoint?: (lat: number, lon: number) => void
@@ -42,8 +43,8 @@ export interface SegmentPanelCallbacks {
 export class SegmentPanel {
   private readonly statusEl: HTMLElement
   private readonly listEl: HTMLUListElement
-  private readonly titleEl: HTMLElement
-  private readonly toggleBtn: HTMLElement
+  // T371/V267: header on jaetun apurin kahva (nimi+count yhtenä stringinä, kuten ennen).
+  private readonly header: SectionHeader
   private state: CreationState = { mode: 'idle' }
   private collapsed = true
   private readonly creationModal: SegmentCreationModal
@@ -56,11 +57,10 @@ export class SegmentPanel {
     private readonly onUpdate: () => void,
     private readonly callbacks: SegmentPanelCallbacks = {},
   ) {
-    const { panel, statusEl, listEl, titleEl, toggleBtn } = this.build()
+    const { panel, statusEl, listEl, header } = this.build()
     this.statusEl = statusEl
     this.listEl = listEl
-    this.titleEl = titleEl
-    this.toggleBtn = toggleBtn
+    this.header = header
     container.appendChild(panel)
 
     this.creationModal = new SegmentCreationModal(
@@ -271,8 +271,8 @@ export class SegmentPanel {
 
   private applyCollapsed(): void {
     const count = this.store.size
-    this.titleEl.textContent = `Reittipätkät (${count})`
-    this.toggleBtn.textContent = this.collapsed ? '▶' : '▼'
+    this.header.setName(`Reittipätkät (${count})`)
+    this.header.setCollapsed(this.collapsed)
     this.listEl.hidden = this.collapsed
     if (this.collapsed) this.statusEl.hidden = true
   }
@@ -281,30 +281,25 @@ export class SegmentPanel {
     panel: HTMLElement
     statusEl: HTMLElement
     listEl: HTMLUListElement
-    titleEl: HTMLElement
-    toggleBtn: HTMLElement
+    header: SectionHeader
   } {
     const panel = document.createElement('div')
     panel.id = 'segment-panel'
 
-    const header = document.createElement('div')
-    header.className = 'segment-panel-header left-panel-section-header'
-    header.addEventListener('click', () => {
-      this.collapsed = !this.collapsed
-      this.render()
+    // T371/V267: jaettu apuri. `.segment-panel-header` säilyy lisäluokkana (testiselektori),
+    // samoin `.btn-segment-toggle` toggle-spanissa.
+    const header = createSectionHeader({
+      name: 'Reittipätkät (0)',
+      collapsed: true,
+      toggleClass: 'btn-segment-toggle',
+      onToggle: () => {
+        this.collapsed = !this.collapsed
+        this.render()
+      },
     })
+    header.el.classList.add('segment-panel-header')
 
-    const toggleBtn = document.createElement('span')
-    toggleBtn.className = 'btn-segment-toggle section-header-toggle'
-    toggleBtn.textContent = '▶'
-    header.appendChild(toggleBtn)
-
-    const titleEl = document.createElement('span')
-    titleEl.className = 'section-header-name'
-    titleEl.textContent = 'Reittipätkät (0)'
-    header.appendChild(titleEl)
-
-    panel.appendChild(header)
+    panel.appendChild(header.el)
 
     const statusEl = document.createElement('div')
     statusEl.className = 'segment-panel-status'
@@ -316,7 +311,7 @@ export class SegmentPanel {
     listEl.className = 'segment-list'
     panel.appendChild(listEl)
 
-    return { panel, statusEl, listEl, titleEl, toggleBtn }
+    return { panel, statusEl, listEl, header }
   }
 
   private enterCreationMode(): void {
