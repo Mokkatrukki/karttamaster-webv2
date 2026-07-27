@@ -781,13 +781,24 @@ Kartta avautuu **katselutilassa** joka latauksella; kaikki kartan MUTATOIVAT ele
 - **Toteutunut (T335):** luokkapari `.marker-dimmed` (himmennys) + `.marker-dimmed--locked` (talkoolaisen read-only) — rooli päätetään wiringissä, ei CSS:ssä arvattuna. Kytkin `.btn.btn--ghost.btn-segment-focus-toggle` (täysleveä, `aria-pressed` näkyy myös accent-kehyksenä, V197). Pilleri `#marker-focus-pill` (`.map-mode-pill`-kuvio) teksti `Korostus: <nimi>` + ✕ 44×44 (§A); pilleri itse `pointer-events:none`, vain ✕ ottaa klikin. Muokkaustilan pilleri on yhtä aikaa näkyvissä → korostuspilleri `top:48px` kun `body[data-map-mode="muokkaus"]`.
 - Käyttäjä: talkoolainen (automaattinen), järjestäjä (kytkin).
 
-### SegmentCasing — pätkä reitin päällä, kaksi kanavaa (`src/map/segment-overlay.ts`)
+### SegmentCasing — pätkä reitin päällä, kaksi kanavaa (`src/map/segment-overlay.ts` + `src/logic/segment-style.ts`) ✓ T336
 
-- **Ongelma:** pätkä piirtyy nyt yhtenä `weight: 11` -viivana reitin PÄÄLLE ∴ reitti-identiteetti (mikä reitti tämä on) katoaa juuri pätkän kohdalta, ja jos pätkäväri sattuu olemaan sama kuin reittiväri (`#2F6FB0`, ks. yllä) pätkää ei erota lainkaan.
-- **Sopimus:** casing-kuvio — kaksi polylineä samalle geometrialle: **alempi = pätkäväri `weight: 15`**, **päällä = reitin oma väri `weight: 9`** ⇒ sisus kertoo reitin, ~3px reuna molemmin puolin kertoo pätkän. Reuna on itsenäinen kanava ∴ toimii myös värisokealle (leveysero) ja auringossa (kaksi reunaa, ei yksi sävy).
-- Viivatyyli = status (V96) siirtyy **casingiin** (dashArray/opacity `LINE_STATE_STYLE`), sisusviiva pysyy ehjänä — muuten katkoviiva paljastaisi pohjakartan ja koko kuvio hajoaisi.
-- Talkoolaisen ei-oma pätkä: ⊥ casingia lainkaan (nykyinen ohut himmeä viiva, `contextSegmentStyle`) — casing on korostuksen kieli, sitä ⊥ anneta taustalle.
-- **Riippuvuus:** vaatii että `SEGMENT_COLORS ∩ ROUTE-värit = ∅` ja että pätkäväri saa ≥3:1 kontrastin sisusvärinsä kanssa. Kumpikaan ei päde nyt ∴ **kalibroidaan T304:n (V216) paletti-päätöksessä, ⊥ erikseen** — muuten sama paletti säädetään kahdesti.
+**Ongelma:** pätkä piirtyi yhtenä `weight: 11` -viivana reitin PÄÄLLE ∴ reitti-identiteetti katosi juuri pätkän kohdalta — ja jos pätkäväri sattui olemaan sama kuin reittiväri, pätkää ei erottanut lainkaan.
+
+**Sopimus — kolme viivaa samalle geometrialle, piirtojärjestyksessä:**
+
+| Kerros | Väri | `weight` | Näkyvä osuus | Kantaa |
+|---|---|---|---|---|
+| casing | pätkäväri (`segmentLineColor`, T348) | 15 | 2px/puoli | tunniste + **status** (`dashArray`, `opacity`) |
+| erotin | `#FFFFFF` | 11 | 1px/puoli | kontrastin kummallekin |
+| sisus | reitin väri (`ROUTE_DEFS` ← `segmentPrimaryRouteId`) | 9 | 9px | mikä reitti tämä on |
+
+- **Erotin ei ole koriste (B137).** Ilman sitä reunus ja sisus ovat vierekkäin, jolloin V244 vaati niiden väliltä ≥3:1 — ehto joka osoittautui **ylimääritellyksi**: reittiväri on lukittu kaistaan jonka toisessa päässä on taustakartan kontrasti ja toisessa reittipillerin tekstin kontrasti, eikä mikään pätkäpaletti täytä 3:1:tä kaikille pareille (mitattu huonoin **2.19**). Valkoista vasten kumpikin saa ≥3.4:1 (reitit 3.40–5.23, pätkät 11.49–11.64). Halo on ohut tarkoituksella — paksuna se lukisi valkoisena viivana kartalla.
+- **Statuskieli elää casingissa**, sisus pysyy ehjänä: katkoviivainen sisus paljastaisi pohjakartan keskeltä viivaa ja hajottaisi kuvion.
+- **Vain casing ottaa klikin.** Erotin ja sisus ovat `interactive: false` ∴ klikki läpäisee niistä alle — kolme kerrosta ei saa olla kolme kuuntelijaa (T347:n opetus). Nimilappu sidotaan samaan casing-viivaan.
+- **Reititön tehtävä (V139)** ja **talkoolaisen himmennetty konteksti-pätkä (V142)** → yksi viiva kuten ennen: edellisellä ei ole sisusta jota kehystää, jälkimmäiselle ei anneta korostuksen kieltä.
+- Tyylit tulevat puhtaalta `segmentLayerStyles()`-funktiolta (`src/logic/segment-style.ts`) valmiiksi järjestettynä — Leaflet vain soveltaa. Kaikki kerrokset samaan `this.layers`-listaan ⇒ `clear()` poistaa kolmikon, ei jätä orpoa viivaa.
+
 
 
 **Regressiosuoja (V88):** `getSegmentStatusCounts()` (src/logic/segments.ts) yksikkötestaus ei riitä — T95 hävisi juuri koska pelkkä logiikkatesti jäi vihreäksi vaikka kutsupaikka katosi UI:sta. Pakollinen lisäksi: Vitest-jsdom-testi joka rakentaa oikean `main.ts`-wiring-polun (ei eristettyä komponenttia) ja tarkistaa että `#segment-status-bar` DOM-teksti sisältää oikean lukumäärän segmentStoren mutaation jälkeen. Tulevat refaktorit jotka koskevat `#map-area`-lasten järjestystä tai `SegmentPanel`/`segment-view`-riviä eivät saa läpäistä testejä jos tämä kutsu putoaa pois.

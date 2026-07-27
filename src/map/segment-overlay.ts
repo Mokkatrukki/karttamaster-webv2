@@ -3,8 +3,11 @@ import { nearestPointIndex } from '../logic/bearing'
 import type { RoutePoint, SignMarker } from '../logic/types'
 import type { Segment, SegmentStore, SegmentLineState } from '../logic/segments'
 import { segmentLineColor, segmentLineState, getPhaseProgress, segmentPrimaryRouteId } from '../logic/segments'
+import { segmentLayerStyles } from '../logic/segment-style'
 
-interface RouteRef { id: string; routePoints: RoutePoint[] }
+// T336: casing tarvitsee reitin VÄRIN sisukseen. Valinnainen ∴ vanhat kutsupaikat & testit
+// (jotka antavat vain geometrian) toimivat ennallaan — ilman väriä piirtyy yksi viiva.
+interface RouteRef { id: string; routePoints: RoutePoint[]; color?: string }
 
 const GAP_COLOR = '#94a3b8'
 
@@ -138,24 +141,39 @@ export class SegmentOverlay {
         if (!route) continue
         const pts = sliceRoutePoints(route.routePoints, segStart, segEnd)
         if (pts.length < 2) continue
-        const line = L.polyline(pts, {
-          color, weight: style.weight, opacity: style.opacity,
-          dashArray: style.dashArray, lineCap: 'round',
-          // V142: muut tehtävät read-only — Leaflet ei kaappaa klikkiä (menee kartalle läpi).
+        // T336/V244/B137: casing — pätkäväri reunaksi, valkoinen erotin, reitin väri sisukseksi.
+        // Piirtojärjestys on merkitsevä (Leaflet: myöhempi päälle) ∴ tyylit tulevat valmiiksi
+        // järjestettynä puhtaalta funktiolta. Kaikki kerrokset samaan this.layers-listaan ⇒
+        // clear() poistaa parin/kolmikon, ⊥ jätä orpoa viivaa kartalle.
+        const layerStyles = segmentLayerStyles({
+          segmentColor: color,
+          routeColor: route.color,
+          base: { opacity: style.opacity, weight: style.weight, dashArray: style.dashArray },
           interactive: style.interactive,
         })
-        if (seg.displayName) {
+        let line: L.Polyline | undefined
+        for (const ls of layerStyles) {
+          const pl = L.polyline(pts, {
+            color: ls.color, weight: ls.weight, opacity: ls.opacity,
+            dashArray: ls.dashArray, lineCap: 'round',
+            // V142 + T336: VAIN casing ottaa klikin. Sisus/erotin non-interactive ∴ klikki
+            // läpäisee niistä alle casingiin — muuten kolme kerrosta = kolme kuuntelijaa.
+            interactive: ls.interactive,
+          })
+          pl.addTo(this.map)
+          this.layers.push(pl)
+          if (ls.interactive) line = pl
+        }
+        if (line && seg.displayName) {
           line.bindTooltip(labelPrefix + seg.displayName, segmentLabelOptions(style.interactive, done))
         }
-        if (this.onSegmentClick && style.interactive) {
+        if (line && this.onSegmentClick && style.interactive) {
           const clickedSeg = seg
           line.on('click', (e: L.LeafletMouseEvent) => {
             L.DomEvent.stopPropagation(e)
             this.onSegmentClick!(clickedSeg)
           })
         }
-        line.addTo(this.map)
-        this.layers.push(line)
       }
     }
   }
