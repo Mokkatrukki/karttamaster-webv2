@@ -1,7 +1,9 @@
 import { nearestPointIndex, haversineDistance } from '../logic/bearing'
+import { buildTrackFromAnchors, nextAnchorIndex, type AnchorHit } from '../logic/segment-track'
 import {
   validateNoOverlap,
   getSegmentStatusCounts,
+  segmentPeers,
   formatStatusCounts,
   getPhaseProgress,
   formatPhaseProgress,
@@ -75,6 +77,8 @@ export class SegmentPanel {
       },
       () => this.creationPhase(),
       () => this.callbacks.getMarkers?.() ?? [],
+      () => this.undoAnchor(),
+      () => this.finishPath(),
     )
 
     this.detailsModal = new SegmentDetailsModal(
@@ -83,6 +87,8 @@ export class SegmentPanel {
       () => this.render(),
       {
         getMarkers: callbacks.getMarkers,
+        // T363: modaali johtaa jäljen rajamuokkauksessa — reitit tulevat paneelilta.
+        getRoutes: () => this.routes,
         onEnterEditMode: callbacks.onEnterEditMode,
         onExitEditMode: callbacks.onExitEditMode,
         isFocusSegment: callbacks.isFocusSegment,
@@ -120,76 +126,100 @@ export class SegmentPanel {
   }
 
   onMapClick(lat: number, lon: number): void {
-    // reititön/tiedot/idle eivät ota kartta-klikkejä (vain reitin piste-poiminta vaihe1/vaihe2)
-    if (this.state.mode !== 'vaihe1' && this.state.mode !== 'vaihe2') return
-    const resolved = this.resolveClick(lat, lon)
-    if (!resolved) return
-    this.receivePoint(resolved.routeId, resolved.distanceFromStart, resolved.lat, resolved.lon)
+    // reititön/tiedot/idle eivät ota kartta-klikkejä (vain reitin piste-poiminta vaihe1/polku)
+    if (this.state.mode !== 'vaihe1' && this.state.mode !== 'polku') return
+    this.receivePoint(lat, lon)
   }
 
-  onSnapClick(routeId: string, dist: number, lat: number, lon: number): void {
-    if (this.state.mode !== 'vaihe1' && this.state.mode !== 'vaihe2') return
-    this.receivePoint(routeId, dist, lat, lon)
+  onSnapClick(_routeId: string, _dist: number, lat: number, lon: number): void {
+    // T362: snap-markerin routeId/dist ⊥ ohita ankkurilogiikkaa — sama eteenpäin-haku ratkaisee
+    // kierroksen myös snapissa. Muuten snap olisi takaovi jolla B144 palaisi.
+    if (this.state.mode !== 'vaihe1' && this.state.mode !== 'polku') return
+    this.receivePoint(lat, lon)
   }
 
   openDetailsModal(seg: Segment): void {
     this.detailsModal.open(seg)
   }
 
-  private receivePoint(routeId: string, dist: number, lat: number, lon: number): void {
+  // T362/B144: klikki → ANKKURI. Ensimmäinen lukitsee reitin (& näyttää sen), seuraavat haetaan
+  // edellisestä indeksistä ETEENPÄIN ∴ edestakainen osuus ⊥ ole arvaus.
+  private receivePoint(lat: number, lon: number): void {
     if (this.state.mode === 'vaihe1') {
-      this.state = { mode: 'vaihe2', routeId, startDist: dist }
-      this.callbacks.onFirstPoint?.(lat, lon)
+      const first = this.resolveClick(lat, lon)
+      if (!first) return
+      const route = this.routes.find(r => r.id === first.routeId)
+      this.state = {
+        mode: 'polku',
+        routeId: first.routeId,
+        routeLabel: route?.label ?? first.routeId,
+        anchors: [first.hit],
+      }
+      this.callbacks.onFirstPoint?.(first.hit.lat, first.hit.lon)
       this.creationModal.updatePhase(this.state)
       return
     }
 
-    if (this.state.mode === 'vaihe2') {
-      const first = this.state
-      // T299/V211/B114: klikki 2:n km ! lukea PRIMARY-reitistä (= klikki 1:n reitti), ei siitä
-      // reitistä johon se sattui snappaamaan. 3 SMTB-reittiä kulkee samaa polkua ≤100 m ∴ ennen
-      // tätä klikki 2 saattoi tuoda km:n eri geometriasta → Math.min/max vertasi reitin A km 12.4
-      // ja reitin B km 47.1 → intervalli ei vastannut kumpaakaan → pätkä keräsi random-merkit.
-      const secondDist = this.distOnRoute(first.routeId, lat, lon)
-      if (secondDist === null) {
-        this.creationModal.setError('Toinen piste ei ole samalla reitillä — klikkaa reitin varrelta')
+    if (this.state.mode === 'polku') {
+      const st = this.state
+      const route = this.routes.find(r => r.id === st.routeId)
+      if (!route) return
+      const last = st.anchors[st.anchors.length - 1]
+      // +1: sama piste kahdesti ⊥ ole ankkuri (buildTrackFromAnchors vaatii aidon kasvun).
+      const hit = nextAnchorIndex(route.routePoints, lat, lon, last.idx + 1, SHARED_THRESHOLD_M)
+      if (!hit) {
+        this.creationModal.setError(
+          `Ei osumaa reitillä ${st.routeLabel} eteenpäin — klikkaa reittiviivan varrelta`,
+        )
         return
       }
-
-      const startDist = Math.min(first.startDist, secondDist)
-      const endDist = Math.max(first.startDist, secondDist)
-
-      if (endDist - startDist < 1) {
-        this.creationModal.setError('Pisteet liian lähellä — klikkaa kauempaa')
-        return
-      }
-
-      if (!validateNoOverlap(this.store, first.routeId, startDist, endDist, this.creationPhase())) {
-        this.creationModal.setError('Pätkä menee päällekkäin — valitse eri pisteet')
-        return
-      }
-
-      this.state = {
-        mode: 'tiedot',
-        routeIds: this.sharedRouteIds(first.routeId, startDist, endDist),
-        primaryRouteId: first.routeId,
-        startDist,
-        endDist,
-      }
-      this.callbacks.onFirstPointClear?.()
-      this.callbacks.onHideSnapMarkers?.()
+      this.state = { ...st, anchors: [...st.anchors, hit] }
       this.creationModal.updatePhase(this.state)
     }
   }
 
-  // T299/V211: paljonko km:ää annetulla reitillä, kun kartalta klikattiin (lat,lon).
-  // null = klikki ei ole tämän reitin varrella (>SHARED_THRESHOLD_M) ∴ km olisi arvaus.
-  private distOnRoute(routeId: string, lat: number, lon: number): number | null {
-    const route = this.routes.find(r => r.id === routeId)
-    if (!route || route.routePoints.length === 0) return null
-    const pt = route.routePoints[nearestPointIndex(route.routePoints, lat, lon)]
-    if (haversineDistance(pt, { lat, lon }) > SHARED_THRESHOLD_M) return null
-    return pt.distanceFromStart
+  /** T362: "Poista viimeinen" — ankkurit ovat paneelin tilaa, modaali vain pyytää. */
+  private undoAnchor(): void {
+    if (this.state.mode !== 'polku' || this.state.anchors.length < 2) return
+    this.state = { ...this.state, anchors: this.state.anchors.slice(0, -1) }
+    this.creationModal.updatePhase(this.state)
+  }
+
+  /** T362/V258: "Valmis" — ankkureista jälki, jäljestä rajat. */
+  private finishPath(): void {
+    if (this.state.mode !== 'polku' || this.state.anchors.length < 2) return
+    const st = this.state
+    const route = this.routes.find(r => r.id === st.routeId)
+    if (!route) return
+
+    const anchors = st.anchors
+    const track = buildTrackFromAnchors(route.routePoints, anchors.map(a => a.idx))
+    const startDist = anchors[0].dist
+    const endDist = anchors[anchors.length - 1].dist
+
+    if (endDist - startDist < 1) {
+      this.creationModal.setError('Pätkä on liian lyhyt — klikkaa kauempaa')
+      return
+    }
+
+    // T362/V25/V259: päällekkäisyys on VAROITUS ⊥ este. Jaettu korridori on laillinen (V25) &
+    // jäsenyys ratkeaa nyt lähimmällä jäljellä (V259) ∴ luontieste torjuisi oikeita pätkiä.
+    // Saman primaryn päällekkäisyys on silti todennäköinen virhe → kerro se ääneen.
+    if (!validateNoOverlap(this.store, st.routeId, startDist, endDist, this.creationPhase())) {
+      this.callbacks.onNotify?.('Huom: pätkä menee päällekkäin toisen kanssa samalla reitillä')
+    }
+
+    this.state = {
+      mode: 'tiedot',
+      routeIds: this.sharedRouteIds(st.routeId, startDist, endDist),
+      primaryRouteId: st.routeId,
+      startDist,
+      endDist,
+      track,
+    }
+    this.callbacks.onFirstPointClear?.()
+    this.callbacks.onHideSnapMarkers?.()
+    this.creationModal.updatePhase(this.state)
   }
 
   // T299/V25/V211: pätkän jäsenreitit = ne jotka kulkevat pätkän MATKALLA primaryn rinnalla
@@ -219,30 +249,24 @@ export class SegmentPanel {
     return ids
   }
 
-  private resolveClick(
-    lat: number,
-    lon: number,
-  ): { routeId: string; distanceFromStart: number; lat: number; lon: number } | null {
-    let bestRouteId = ''
+  // T362: ensimmäinen klikki — lähin reitti yli kaikkien, ILMAN kynnystä (snap, kuten ennen).
+  // Kynnys tässä olisi väärä: klikki reittiviivan vierestä ⊥ tuottaisi mitään & käyttäjä jäisi
+  // ilman palautetta. Valinta ⊥ ole enää hiljainen — modaali näyttää reitin nimen & ankkurin
+  // km:n (B144(a)) ∴ väärä snap on NÄHTÄVISSÄ & peruttavissa. Jatkoklikeillä kynnys ON
+  // (SHARED_THRESHOLD_M) koska niillä on virheteksti joka kertoo mitä tapahtui.
+  private resolveClick(lat: number, lon: number): { routeId: string; hit: AnchorHit } | null {
+    let best: { routeId: string; hit: AnchorHit } | null = null
     let bestDist = Infinity
-    let bestDistFromStart = 0
-    let bestLat = 0
-    let bestLon = 0
     for (const route of this.routes) {
-      const idx = nearestPointIndex(route.routePoints, lat, lon)
-      const pt = route.routePoints[idx]
-      const d = haversineDistance(pt, { lat, lon })
+      const hit = nextAnchorIndex(route.routePoints, lat, lon, 0, Infinity)
+      if (!hit) continue
+      const d = haversineDistance({ lat: hit.lat, lon: hit.lon }, { lat, lon })
       if (d < bestDist) {
         bestDist = d
-        bestRouteId = route.id
-        bestDistFromStart = pt.distanceFromStart
-        bestLat = pt.lat
-        bestLon = pt.lon
+        best = { routeId: route.id, hit }
       }
     }
-    return bestRouteId
-      ? { routeId: bestRouteId, distanceFromStart: bestDistFromStart, lat: bestLat, lon: bestLon }
-      : null
+    return best
   }
 
   private applyCollapsed(): void {
@@ -378,12 +402,14 @@ export class SegmentPanel {
     const kmSpan = document.createElement('span')
     kmSpan.className = 'segment-km'
     const markers = this.callbacks.getMarkers?.() ?? []
-    kmSpan.textContent = formatPhaseProgress(getPhaseProgress(seg, markers))
+    // V259: rivin lukema ! olla eksklusiivinen — ilman kilpailijoita se putoaisi legacy-sääntöön.
+    const peers = segmentPeers(this.store, seg)
+    kmSpan.textContent = formatPhaseProgress(getPhaseProgress(seg, markers, peers))
     // V139: reitittömällä tehtävällä ei km-aluetta.
     const kmRange = seg.startDist !== undefined && seg.endDist !== undefined
       ? `${(seg.startDist / 1000).toFixed(1)}–${(seg.endDist / 1000).toFixed(1)} km · `
       : ''
-    kmSpan.title = `${kmRange}${formatStatusCounts(getSegmentStatusCounts(seg, markers))}`
+    kmSpan.title = `${kmRange}${formatStatusCounts(getSegmentStatusCounts(seg, markers, peers))}`
 
     // T353/V256 (B142): talkoolaisen kuittaus omana merkintänään — EI laskurin tilalla. Ne voivat
     // olla eri mieltä (kuitattu vaikka merkkejä kesken, tai kaikki asetettu mutta ⊥ kuitattu) &

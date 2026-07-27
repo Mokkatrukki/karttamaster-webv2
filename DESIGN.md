@@ -422,8 +422,12 @@ Flex-toolbar joka voi ylittää kapean modaalin → `flex-wrap: wrap` (ei vaakal
 - Otsikko-rivi: "Luo uusi pätkä" `text-primary 14px bold`, ✕-nappi `aria-label:"Peruuta"` `min-height:44px min-width:44px`
 - Sulkeminen: ✕-nappi / Escape / backdrop-klikki → `cancelCreation()` → palaa idle
 - Tilakone:
-  - **vaihe1:** progress (●○○), "Klikkaa kartalta aloituspiste" — kartta crosshair-cursor, snap-markerit näkyvissä
-  - **vaihe2:** progress (●●○), "Klikkaa kartalta lopetuspiste" + aloituspiste km-info
+  - **vaihe1:** progress (●○○), "Klikkaa kartalta pätkän aloituspiste" — kartta crosshair-cursor, snap-markerit näkyvissä
+  - **polku (T362, korvaa vaihe2:n):** progress (●●○), "Klikkaa reittiä pitkin eteenpäin — lopeta \"Valmis\"-napilla".
+    - `.segment-creation-route` — **valittu reitti NÄKYVISSÄ** (`text-primary`, bold). Ei koristetta: 3 SMTB-reittiä kulkee ≤100 m toisistaan ja luonti valitsi reitin aiemmin hiljaa (B144(a)) — näkyvä reitti on se mikä tekee väärästä valinnasta havaittavan.
+    - `.segment-creation-anchors` (`<ol>`, `max-height:132px; overflow-y:auto`, 12px `text-muted`) + `.segment-creation-anchor` -rivit: "Alku: 0.0 km" · "Välipiste 1: 5.0 km" · "Loppu: 10.0 km". Viimeinen rivi `text-primary` bold — se on se jota "Poista viimeinen" koskee, & lista **skrollataan loppuun joka renderissä** (lista rakentuu uudelleen klikeistä ∴ 6. ankkurista eteenpäin juuri klikattu jäisi muuten fold-rajan alle).
+    - `.segment-creation-path-actions`: "Poista viimeinen" (`.btn--secondary`) + "Valmis" (`.btn--confirm`), molemmat `flex:1` `min-height:44px`. **Disabloitu tila on PAKKO merkitä näkyviin** (`field-tint` + `text-muted` + `cursor:not-allowed`, sama sopimus kuin `.btn-bulk-apply:disabled`) — jaetut `.btn--confirm`/`.btn--secondary` ⊥ määrittele `:disabled`-tilaa ∴ ilman omaa sääntöä nappi näyttäisi painettavalta & klikkaus ⊥ tekisi mitään (V250: kuollut pinta). **Molemmat disabloituvat <2 ankkurilla** — napit näkyvät heti mutta kertovat mitä puuttuu, ⊥ ilmesty yllättäen kesken klikkailun. Ensimmäistä ankkuria ⊥ voi poistaa: ilman sitä reitti ⊥ ole lukittu ∴ Peruuta (✕) on se ulospääsy — yksi tapa, ⊥ kaksi.
+    - Backdrop `[data-phase="polku"]`: läpinäkyvä & `pointer-events:none` (kuten vaihe1) — kartta on klikattava modaalin ali.
   - **tiedot:** progress (●●●), nimi-input + kuvaus-textarea + footer
 - Footer-napit: Tallenna (`confirm`-tausta, `min-height:44px`), Peruuta (`field-tint`, `min-height:44px`)
 - Tallenna luo segmentin ja sulkee modaalin — ei auto-save (käyttäjä vahvistaa)

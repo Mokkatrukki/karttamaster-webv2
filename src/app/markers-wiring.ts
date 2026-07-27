@@ -14,7 +14,8 @@ import { StatusPanel } from '../ui/status-panel'
 import { calcAllRouteStatus } from '../logic/route-status'
 import { getRole } from '../logic/role'
 import { MarkerDetailModal } from '../ui/marker-detail-modal'
-import { getSegmentForCode, getMarkersForSegment, updateSegment, segmentPrimaryRouteId } from '../logic/segments'
+import { getSegmentForCode, getMarkersForSegment, updateSegment, segmentPrimaryRouteId, segmentPeers } from '../logic/segments'
+import { boundsPatch } from '../logic/segment-backfill'
 import type { Segment } from '../logic/segments'
 import { fitMapToSegment } from '../map/segment-fit'
 import { firstUnsetMarker, distanceAhead } from '../logic/navigation'
@@ -128,7 +129,7 @@ export function wireMarkers(
     if (!talkoolainenCode) return undefined
     const seg = getSegmentForCode(segmentStore, talkoolainenCode)
     if (!seg) return undefined
-    return new Set(getMarkersForSegment(seg, markerManager.getAll()).map(m => m.id))
+    return new Set(getMarkersForSegment(seg, markerManager.getAll(), segmentPeers(segmentStore, seg)).map(m => m.id))
   }
 
   // Forward declaration — modaali luodaan vasta markerManagerin jälkeen
@@ -148,7 +149,7 @@ export function wireMarkers(
     if (segmentView) {
       const seg = talkoolainenCode ? getSegmentForCode(segmentStore, talkoolainenCode) : undefined
       if (seg) {
-        const segMarkers = getMarkersForSegment(seg, markerManager.getAll())
+        const segMarkers = getMarkersForSegment(seg, markerManager.getAll(), segmentPeers(segmentStore, seg))
         // T232 (F)/V159: segmentView.update() → renderNext → onNavigate synkkaa kartan korostuksen
         // hero:n VALITTUUN merkkiin (◀▶-selailu huomioiden). EI erillistä updateNextHighlightia tässä
         // — se osoittaisi aina firstUnsetMarkeriin ja ohittaisi selatun valinnan (epäjohdonmukainen).
@@ -176,7 +177,7 @@ export function wireMarkers(
   // locked: himmennetty ei ota klikkejä — talkoolaisen vieras merkki on read-only (V142).
   if (talkoolainenCode) {
     const own = getSegmentForCode(segmentStore, talkoolainenCode)
-    if (own) markerManager.setFocusSegment(own, { locked: true })
+    if (own) markerManager.setFocusSegment(own, { locked: true, peers: segmentPeers(segmentStore, own) })
   }
 
   // T309/V221: siirron km-akseli = talkoolaisen oman pätkän PRIMARY-reitti (⊥ lähin reitti yli
@@ -232,7 +233,7 @@ export function wireMarkers(
           .catch(() => flagErr())
         if (updatedSeg) {
           renderSegmentOverlay()
-          segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
+          segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll(), segmentPeers(segmentStore, updatedSeg)), updatedSeg)
         }
       }
       // T232/E + T257/R8: "Lisää merkki" — sign-picker kartan keskelle (POST omalle pätkälle V149).
@@ -260,7 +261,7 @@ export function wireMarkers(
           updateSegmentRemote(seg.id, { inspected, inspectionNote: note || undefined })
             .then(ok => { if (!ok) flagInspectError() })
             .catch(() => flagInspectError())
-          if (updatedSeg) segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
+          if (updatedSeg) segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll(), segmentPeers(segmentStore, updatedSeg)), updatedSeg)
         },
         {
           // "Seuraava merkki" -ohjaus: aseta/ohita etenee pätkän merkit järjestyksessä (V9/V3).
@@ -284,14 +285,18 @@ export function wireMarkers(
           // T78/V43: talkoolainen muokkaa oman pätkän rajoja kentällä. Server sallii (V93:
           // talkoolainen_code === assigned_code). Päivitä store + backend + kartta + näkymä.
           onEditBounds: (startDist, endDist) => {
-            const updatedSeg = updateSegment(segmentStore, seg.id, { startDist, endDist })
+            // T363/V258: rajat & JÄLKI muuttuvat yhdessä. Jälki ⊥ saa jäädä jälkeen — muuten
+            // jäsenyys (V259) vastaisi rajaa jota ⊥ enää ole & talkoolainen näkisi merkkejä
+            // jotka hän juuri rajasi pois (tai päinvastoin).
+            const patch = boundsPatch(seg, routes, startDist, endDist)
+            const updatedSeg = updateSegment(segmentStore, seg.id, patch)
             const flagErr = () => showWarning('⚠ Pätkän rajojen tallennus epäonnistui — yritä uudelleen', 5000)
-            updateSegmentRemote(seg.id, { startDist, endDist })
+            updateSegmentRemote(seg.id, patch)
               .then(ok => { if (!ok) flagErr() })
               .catch(() => flagErr())
             if (updatedSeg) {
               renderSegmentOverlay()
-              segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
+              segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll(), segmentPeers(segmentStore, updatedSeg)), updatedSeg)
               // T222/V150: rajat muuttuivat → oma merkki-setti muuttuu → päivitä raahattavuus.
               applyDraggable()
             }
@@ -304,7 +309,7 @@ export function wireMarkers(
             updateSegmentRemote(seg.id, { equipment })
               .then(ok => { if (!ok) flagErr() })
               .catch(() => flagErr())
-            if (updatedSeg) segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll()), updatedSeg)
+            if (updatedSeg) segmentView?.update(getMarkersForSegment(updatedSeg, markerManager.getAll(), segmentPeers(segmentStore, updatedSeg)), updatedSeg)
           },
           // T230/V93: talkoolainen merkitsee pätkän valmiiksi (asettaminen/purku). Jaettu applyComplete (R8).
           onComplete: applyComplete,
@@ -335,7 +340,7 @@ export function wireMarkers(
           onCollectMarker: (id, collected) => markerManager.bulkSetStatus([id], collected ? 'kerätty' : 'suunniteltu'),
         },
       )
-      const segMarkers0 = getMarkersForSegment(seg, markerManager.getAll())
+      const segMarkers0 = getMarkersForSegment(seg, markerManager.getAll(), segmentPeers(segmentStore, seg))
       segmentView.update(segMarkers0)
       // T224 (D): "tässä on sun pätkä" — zoomaa pätkään heti latauksessa.
       fitMapToSegment(map, routes, seg, segMarkers0)

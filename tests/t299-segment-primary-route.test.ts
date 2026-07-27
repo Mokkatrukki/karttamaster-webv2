@@ -59,7 +59,13 @@ function errorText(container: HTMLElement): string {
   return el && !el.hidden ? (el.textContent ?? '') : ''
 }
 
+// T362: klikit keräävät ankkureita ∴ polku ! päättää "Valmis"-napilla ennen tallennusta.
+function finishPath(): void {
+  document.querySelector<HTMLElement>('.btn-segment-path-done')?.click()
+}
+
 function savedSegment(store: SegmentStore) {
+  finishPath()
   const btn = document.querySelector<HTMLElement>('.btn-segment-creation-save')
   btn?.click()
   return Array.from(store.values())[0]
@@ -100,12 +106,15 @@ describe('T299/B114 — pätkän km mitataan yhdestä reitistä', () => {
     expect(seg.endDist).not.toBe(45000)
   })
 
-  it('klikki 2 kaukana primary-reitistä → virhe, ei pätkää', () => {
+  // T362/B144(b): snap-markerin routeId ⊥ enää ohita ankkurilogiikkaa — jos se ohittaisi, se
+  // olisi takaovi jolla väärän reitin km palaisi. Klikki joka ⊥ osu LUKITTUUN reittiin
+  // eteenpäin torjutaan riippumatta siitä minkä reitin snap-markeria klikattiin.
+  it('klikki 2 kaukana lukitusta reitistä → virhe, ei pätkää', () => {
     const { panel, store, container } = setup()
     panel.onSnapClick('r1', 0, 65.0, 25.0)
     panel.onSnapClick('r3', 9000, 66.5, 27.0)
 
-    expect(errorText(container)).toMatch(/samalla reitillä/i)
+    expect(errorText(container)).toMatch(/eteenpäin/i)
     expect(store.size).toBe(0)
   })
 

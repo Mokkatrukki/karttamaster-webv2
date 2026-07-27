@@ -3,11 +3,13 @@ import type { MarkerManager } from '../map/markers'
 import { SegmentOverlay } from '../map/segment-overlay'
 import { SegmentPanel } from '../ui/segment-panel'
 import { PhaseSwitcher } from '../ui/phase-switcher'
-import { getSegmentsForPhase, getSegmentForCode, getMarkersForSegment } from '../logic/segments'
+import { getSegmentsForPhase, getSegmentForCode, getMarkersForSegment, segmentPeers } from '../logic/segments'
 import { fitMapToSegment } from '../map/segment-fit'
 import type { Segment } from '../logic/segments'
-import { fetchSegmentByCode, fetchAllSegments } from '../logic/segment-sync'
+import { fetchSegmentByCode, fetchAllSegments, pushSegmentTrack } from '../logic/segment-sync'
+import { backfillSegmentTracks } from '../logic/segment-backfill'
 import { getActivePhase } from '../logic/phase-view'
+import { getRole } from '../logic/role'
 import type { RouteConfig } from '../logic/multi-route'
 import type { SignMarker } from '../logic/types'
 import { mapMode } from '../logic/map-mode'
@@ -46,6 +48,25 @@ export async function wireSegments(
       for (const seg of result.segments) segmentStore.set(seg.id, seg)
     } else {
       onLoadError()
+    }
+  }
+
+  // T361/V258/V260: legacy-pätkä saa jäljen heti kun GPX:t ovat ladattu (routes on jo tässä).
+  // Johdettu jälki on SAMA siivu jonka kartta piirtää ∴ maasto ⊥ muutu — vain esitys.
+  const backfilled = backfillSegmentTracks(segmentStore, routes)
+
+  // B145/V260-amend: SIVULATAUS ⊥ SAA OLLA KIRJOITUS. Push vain järjestäjältä — pätkän
+  // geometria on järjestäjän dataa (V13/V93) & taustakirjoitus jota käyttäjä ⊥ pyytänyt voi
+  // 401:llä laukaista `promptReauth`-overlayn (`main.ts:180`) joka lukitsee koko näkymän.
+  // Talkoolaiselle metsässä se on V18-luokan vika. Turvallista koska V260:n välitila on jo
+  // laillinen: jäljetön pätkä toimii km-haarassa ∴ push odottaa siihen asti kun joku jolla on
+  // oikeus avaa näkymän. Jälki on silti MUISTISSA ∴ tämän istunnon jäsenyys on jo uuden säännön
+  // mukainen — vain serverin kopio jää odottamaan.
+  if (getRole() !== 'talkoolainen') {
+    for (const seg of backfilled) {
+      // B145: outboxin OHI — johdettu arvo ⊥ tarvitse durabiliteettia & taustakirjoitus ⊥ saa
+      // nostaa reauth-overlaytä. Epäonnistuminen korjautuu seuraavalla latauksella.
+      void pushSegmentTrack(seg.id, seg.track)
     }
   }
 
@@ -90,7 +111,8 @@ export async function wireSegments(
   function setFocusSegment(seg: Segment | null): void {
     focusSegmentId = seg?.id ?? null
     // Järjestäjä: himmennetty PYSYY klikattavana (locked=false) — korostus on lukemisen apu.
-    markerManagerRef.current?.setFocusSegment(seg ?? undefined)
+    // V259: korostus käyttää samaa eksklusiivista jäsenyyttä kuin lista → anna kilpailijat.
+    markerManagerRef.current?.setFocusSegment(seg ?? undefined, seg ? { peers: getSegmentsForPhase(segmentStore, seg.phase) } : {})
     if (seg) focusPill.show(seg.displayName ?? 'pätkä')
     else focusPill.hide()
   }
@@ -109,6 +131,14 @@ export async function wireSegments(
         tempCreationMarker = L.circleMarker([lat, lon], {
           radius: 9, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.85, weight: 2,
           className: 'segment-creation-marker',
+          // B147: Leafletin circleMarker on INTERAKTIIVINEN oletuksena ∴ 18px kiekko söi kartan
+          // click-eventin & seuraava ankkuriklikki katosi hiljaa (⊥ ankkuria, ⊥ virhetekstiä).
+          // Ennen T362:ta oire oli piilossa: flow tarvitsi yhden lisäklikin joka tehtiin kaukana.
+          // Klik-klik klikkaa reittiä PITKIN ∴ peräkkäiset pisteet ovat pienellä zoomilla
+          // pikselien päässä toisistaan. Tämä markeri on PALAUTE ⊥ kohde — se ⊥ ota klikkejä.
+          // (Snap-markerit `segment-overlay.ts:213` pysyvät interaktiivisina: niillä on oma
+          // click-handler & ne ON tarkoitettu klikattaviksi.)
+          interactive: false,
         }).addTo(map)
       },
       onFirstPointClear: () => {
@@ -137,7 +167,7 @@ export async function wireSegments(
       // yksi zoom-sääntö, ⊥ kahta erilaista "koko pätkää".
       onShowSegmentOnMap: (seg) => {
         const markers = markerManagerRef.current?.getAll() ?? initialMarkers
-        fitMapToSegment(map, routes, seg, getMarkersForSegment(seg, markers))
+        fitMapToSegment(map, routes, seg, getMarkersForSegment(seg, markers, segmentPeers(segmentStore, seg)))
       },
       onNotify: (msg) => onNotify(msg),
     },

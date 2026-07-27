@@ -7,7 +7,49 @@
 import { test, expect } from 'playwright/test'
 import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTalkoolainenSegment, mockSegmentWrites, mockMarkers } from './helpers/auth'
 
-/** Helper: create a segment via 2-click modal flow + Tallenna */
+/**
+ * T362: klikkaa OIKEITA reittipisteitä. Aiemmin testit klikkasivat reittipolun bounding boxin
+ * sisältä — piste joka ⊥ ole viivalla. Se toimi kun luonti snappasi molemmat klikit & lajitteli
+ * ne min/max:lla, eli juuri sen arvauksen varassa jonka B144 kirjaa. Ankkuriketju etenee
+ * reittiä pitkin ∴ klikkien ! osua reitille oikeasti.
+ */
+async function routePointPositions(
+  page: import('playwright/test').Page,
+  fractions: number[],
+): Promise<{ x: number; y: number }[]> {
+  return page.evaluate((fracs) => {
+    const map = (window as unknown as Record<string, unknown>)['__testMap'] as {
+      eachLayer(fn: (l: unknown) => void): void
+      latLngToContainerPoint(ll: unknown): { x: number; y: number }
+    }
+    let latlngs: unknown[] | null = null
+    map.eachLayer((l) => {
+      const layer = l as { getLatLngs?: () => unknown[] }
+      if (!latlngs && typeof layer.getLatLngs === 'function') {
+        const pts = layer.getLatLngs()
+        if (Array.isArray(pts) && pts.length > 10) latlngs = pts
+      }
+    })
+    if (!latlngs) throw new Error('route polyline not found')
+    const pts = latlngs as unknown[]
+    return fracs.map((f) => {
+      const ll = pts[Math.round((pts.length - 1) * f)]
+      const p = map.latLngToContainerPoint(ll)
+      return { x: Math.round(p.x), y: Math.round(p.y) }
+    })
+  }, fractions)
+}
+
+/** Klikkaa kartalta annetut reittipisteet järjestyksessä. */
+async function clickRoutePoints(page: import('playwright/test').Page, fractions: number[]): Promise<void> {
+  const positions = await routePointPositions(page, fractions)
+  for (const position of positions) {
+    await page.click('#map', { position })
+    await page.waitForTimeout(250)
+  }
+}
+
+/** Helper: create a segment via anchor-chain modal flow + Valmis + Tallenna (T362) */
 async function createSegmentViaModal(page: import('playwright/test').Page) {
   // T73: panel collapsed by default — expand before touching its footer button
   await page.locator('.segment-panel-header').click()
@@ -15,18 +57,11 @@ async function createSegmentViaModal(page: import('playwright/test').Page) {
   await page.click('#btn-segment-create')
   await page.waitForTimeout(200)
 
-  const routePath = page.locator('.leaflet-overlay-pane path').first()
-  const routeBox = await routePath.boundingBox()
-  const mapBox = await page.locator('#map').boundingBox()
-  if (!routeBox || !mapBox) throw new Error('route path or map not found')
+  await clickRoutePoints(page, [0.20, 0.60])
 
-  const midY = Math.round(routeBox.y + routeBox.height * 0.5 - mapBox.y)
-  await page.click('#map', { position: { x: Math.round(routeBox.x + routeBox.width * 0.20 - mapBox.x), y: midY } })
+  // T362: ankkuriketju päätetään "Valmis"-napilla, sitten tiedot-vaihe
+  await page.click('.btn-segment-path-done')
   await page.waitForTimeout(300)
-  await page.click('#map', { position: { x: Math.round(routeBox.x + routeBox.width * 0.60 - mapBox.x), y: midY } })
-  await page.waitForTimeout(300)
-
-  // T94: now in 'tiedot' phase — click Tallenna to confirm
   await page.click('.btn-segment-creation-save')
   await page.waitForTimeout(400)
 }
@@ -232,23 +267,27 @@ test.describe('T25 — SegmentPanel', () => {
 
     // T94: luontimodaali avautuu heti
     await expect(page.locator('[data-testid="creation-modal"]')).toBeVisible()
-    await expect(page.locator('.segment-creation-modal')).toContainText('Klikkaa kartalta aloituspiste')
+    await expect(page.locator('.segment-creation-modal')).toContainText('Klikkaa kartalta pätkän aloituspiste')
 
-    const routePath = page.locator('.leaflet-overlay-pane path').first()
-    const routeBox = await routePath.boundingBox()
-    expect(routeBox).not.toBeNull()
-    const mapBox = await page.locator('#map').boundingBox()
-    expect(mapBox).not.toBeNull()
+    // T362: klikit osuvat OIKEILLE reittipisteille (ks. clickRoutePoints)
+    const [p1, p2] = await routePointPositions(page, [0.20, 0.60])
 
-    const midY = Math.round(routeBox!.y + routeBox!.height * 0.5 - mapBox!.y)
-
-    // Ensimmäinen klikkaus — vaihe2
-    await page.click('#map', { position: { x: Math.round(routeBox!.x + routeBox!.width * 0.20 - mapBox!.x), y: midY } })
+    // T362: ensimmäinen klikkaus LUKITSEE reitin ja näyttää sen (B144(a))
+    await page.click('#map', { position: p1 })
     await page.waitForTimeout(300)
-    await expect(page.locator('.segment-creation-modal')).toContainText('Klikkaa kartalta lopetuspiste')
+    await expect(page.locator('.segment-creation-modal')).toContainText('Klikkaa reittiä pitkin eteenpäin')
+    await expect(page.locator('[data-testid="creation-route"]')).toContainText('Reitti:')
+    await expect(page.locator('.segment-creation-anchor')).toHaveCount(1)
+    // Yhdellä ankkurilla polkua ei voi päättää
+    await expect(page.locator('.btn-segment-path-done')).toBeDisabled()
 
-    // Toinen klikkaus — tiedot-vaihe
-    await page.click('#map', { position: { x: Math.round(routeBox!.x + routeBox!.width * 0.60 - mapBox!.x), y: midY } })
+    // Toinen klikkaus — "Valmis" aukeaa
+    await page.click('#map', { position: p2 })
+    await page.waitForTimeout(300)
+    await expect(page.locator('.segment-creation-anchor')).toHaveCount(2)
+    await expect(page.locator('.btn-segment-path-done')).toBeEnabled()
+
+    await page.click('.btn-segment-path-done')
     await page.waitForTimeout(300)
     await expect(page.locator('.btn-segment-creation-save')).toBeVisible()
 
@@ -266,6 +305,53 @@ test.describe('T25 — SegmentPanel', () => {
     expect(await kmSpan.getAttribute('title')).toContain('km')
   })
 
+  test('T362 — klik-klik-pätkä välipisteillä: ankkurilista, peruutus, jälki tallentuu', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    const posted: Record<string, unknown>[] = []
+    await page.route(/\/api\/segments$/, route => {
+      if (route.request().method() === 'POST') {
+        posted.push(route.request().postDataJSON())
+        return route.fulfill({ status: 201, contentType: 'application/json', body: '{}' })
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+    })
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await page.locator('.segment-panel-header').click()
+    await page.waitForTimeout(200)
+    await page.click('#btn-segment-create')
+    await page.waitForTimeout(200)
+
+    // Alku + kaksi välipistettä + loppu — neljä ankkuria reittiä pitkin
+    await clickRoutePoints(page, [0.20, 0.35, 0.50, 0.65])
+    await expect(page.locator('.segment-creation-anchor')).toHaveCount(4)
+    await expect(page.locator('.segment-creation-anchor').nth(1)).toContainText('Välipiste 1')
+    await expect(page.locator('.segment-creation-anchor').last()).toContainText('Loppu')
+
+    // "Poista viimeinen" → 3 ankkuria, viimeinen on taas "Loppu"
+    await page.click('.btn-segment-anchor-undo')
+    await page.waitForTimeout(200)
+    await expect(page.locator('.segment-creation-anchor')).toHaveCount(3)
+    await expect(page.locator('.segment-creation-anchor').last()).toContainText('Loppu')
+
+    await page.click('.btn-segment-path-done')
+    await page.waitForTimeout(200)
+    await page.click('.btn-segment-creation-save')
+    await page.waitForTimeout(500)
+
+    // V258: tallennettu pätkä kantaa JÄLJEN, ei vain kahta km-lukua
+    expect(posted.length).toBeGreaterThan(0)
+    const body = posted[0] as { track?: { lat: number; lon: number; d: number }[]; startDist: number; endDist: number }
+    expect(Array.isArray(body.track)).toBe(true)
+    expect(body.track!.length).toBeGreaterThan(2)
+    expect(body.track![0].d).toBe(0)
+    // Jäljen pituus vastaa rajoja (johdettu samasta ankkuriketjusta)
+    const trackLen = body.track![body.track!.length - 1].d
+    expect(Math.abs(trackLen - (body.endDist - body.startDist))).toBeLessThan(5)
+  })
+
   test('T56a — ensimmäisen klikkauksen jälkeen circleMarker kartalla (T94)', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
@@ -279,19 +365,45 @@ test.describe('T25 — SegmentPanel', () => {
 
     await expect(page.locator('.segment-creation-marker')).toHaveCount(0)
 
-    const routePath = page.locator('.leaflet-overlay-pane path').first()
-    const routeBox = await routePath.boundingBox()
-    const mapBox = await page.locator('#map').boundingBox()
+    await clickRoutePoints(page, [0.20])
 
-    await page.click('#map', { position: {
-      x: Math.round(routeBox!.x + routeBox!.width * 0.20 - mapBox!.x),
-      y: Math.round(routeBox!.y + routeBox!.height * 0.5 - mapBox!.y),
-    }})
+    // T362: ensimmäinen ankkuri → polkutila + circleMarker kartalle
+    await expect(page.locator('.segment-creation-modal')).toContainText('Klikkaa reittiä pitkin eteenpäin')
+    await expect(page.locator('.segment-creation-marker')).toHaveCount(1)
+  })
+
+  // B147: ankkurimarkeri on PALAUTE ⊥ klikkikohde. Leafletin circleMarker on interaktiivinen
+  // oletuksena ∴ 18px kiekko söi seuraavan ankkuriklikin hiljaa — ⊥ ankkuria, ⊥ virhetekstiä.
+  test('B147 — ankkurimarkeri ei syö seuraavaa klikkiä', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await page.locator('.segment-panel-header').click()
+    await page.waitForTimeout(200)
+    await page.click('#btn-segment-create')
+    await page.waitForTimeout(200)
+
+    const marker = page.locator('.segment-creation-marker')
+    await clickRoutePoints(page, [0.20])
+    await expect(marker).toHaveCount(1)
+
+    // Leaflet merkitsee klikattavat vektorit `leaflet-interactive`-luokalla → sen puuttuminen
+    // on se mitattava sopimus (⊥ pelkkä "klikki näytti toimivan").
+    await expect(marker).not.toHaveClass(/leaflet-interactive/)
+
+    // Klikki markerin PÄÄLTÄ menee kartalle asti: uusi ankkuri TAI virheteksti — ⊥ hiljaisuus.
+    const box = (await marker.boundingBox())!
+    const mapBox = (await page.locator('#map').boundingBox())!
+    await page.click('#map', {
+      position: { x: Math.round(box.x + box.width / 2 - mapBox.x), y: Math.round(box.y + box.height / 2 - mapBox.y) },
+    })
     await page.waitForTimeout(300)
 
-    // T94: modal now shows vaihe2 instruction
-    await expect(page.locator('.segment-creation-modal')).toContainText('Klikkaa kartalta lopetuspiste')
-    await expect(page.locator('.segment-creation-marker')).toHaveCount(1)
+    const anchors = await page.locator('.segment-creation-anchor').count()
+    const errVisible = await page.locator('.segment-creation-error').isVisible()
+    expect(anchors > 1 || errVisible).toBe(true)
   })
 
   test('T56a — Esc peruuttaa luonnin ja sulkee modaalin (T94)', async ({ page }) => {
@@ -585,10 +697,14 @@ test.describe('T25 — SegmentPanel', () => {
       displayName: 'Asetuspätkä', equipment: [],
       phase: 'asettaminen', assignedCode: 'ASET01',
     }
-    // Kaksi suunniteltu-merkkiä — 'late' ensin listalla mutta 'early' on pienin distanceFromStart.
+    // Kaksi suunniteltu-merkkiä — 'late' ensin listalla mutta 'early' on lähempänä pätkän alkua.
+    // T361/V259: koordinaatit ovat OIKEILTA smtb-30-reittipisteiltä (982 m & 2994 m). Ennen
+    // T358–T361:tä tässä oli lat 63.0/27.0 — ~290 km reitistä — ja järjestys tuli keksitystä
+    // `distance_from_start`-skalaarista. Jäljen akselilla (V259) km lasketaan GEOMETRIASTA ∴
+    // fixture jonka merkit eivät ole reitillä ei enää mittaa mitään todellista.
     const MARKERS = [
-      { id: 'late', type: 'right', lat: 63.1, lon: 27.1, distance_from_start: 9000, route_ids: ['smtb-30'], status: 'suunniteltu' },
-      { id: 'early', type: 'left', lat: 63.0, lon: 27.0, distance_from_start: 3000, route_ids: ['smtb-30'], status: 'suunniteltu' },
+      { id: 'late', type: 'right', lat: 65.622415, lon: 27.627049, distance_from_start: 2994, route_ids: ['smtb-30'], status: 'suunniteltu' },
+      { id: 'early', type: 'left', lat: 65.609487, lon: 27.623375, distance_from_start: 982, route_ids: ['smtb-30'], status: 'suunniteltu' },
     ]
     const putCalls: { url: string; body: unknown }[] = []
     await page.route('/api/segments/by-code/ASET01', r =>
@@ -611,9 +727,10 @@ test.describe('T25 — SegmentPanel', () => {
     // T262/V182: hero on kartta-moodin ohjaus (koti näyttää varustelistan) → siirry kartalle.
     await page.click('#btn-to-map')
 
-    // Hero näkyy ja osoittaa ensimmäiseen merkkiin (early, 3.0 km)
+    // Hero näkyy ja osoittaa ensimmäiseen merkkiin (early). V259: lukema on matka PÄTKÄN
+    // jälkeä pitkin — pätkä alkaa reitin alusta (startDist 0) ∴ 1.0 km on sama kuin reitin km.
     await expect(page.locator('.segment-view-next')).toBeVisible()
-    await expect(page.locator('.segment-view-next-meta')).toHaveText('3.0 km')
+    await expect(page.locator('.segment-view-next-meta')).toHaveText('1.0 km')
     await expect(page.locator('.segment-view-progress-text')).toHaveText('0/2 asetettu')
 
     // Aseta → PUT juuri 'early'-merkille statuksella asetettu
@@ -653,6 +770,18 @@ test.describe('T25 — SegmentPanel', () => {
     await page.waitForTimeout(500)
 
     expect(segPuts.length).toBeGreaterThan(0)
-    expect(segPuts[0]).toMatchObject({ startDist: 0, endDist: 15000 })
+    const patch = segPuts[0] as { startDist: number; endDist: number; track?: { d: number }[] }
+    expect(patch).toMatchObject({ startDist: 0, endDist: 15000 })
+
+    // T363/V258: rajat & JÄLKI liikkuvat yhdessä. Jos jälki jäisi jälkeen, jäsenyys (V259)
+    // vastaisi rajaa jota ⊥ enää ole — talkoolainen näkisi merkkejä jotka hän juuri rajasi pois.
+    expect(Array.isArray(patch.track)).toBe(true)
+    expect(patch.track!.length).toBeGreaterThan(1)
+    expect(patch.track![0].d).toBe(0)
+    // smtb-30 on 4.6 km ∴ 15 km raja typistyy reitin loppuun — jälki kertoo TODELLISEN pituuden,
+    // ⊥ pyydettyä `endDist − startDist`iä (V258: pituus on jäljen viimeinen `d`).
+    const trackLen = patch.track![patch.track!.length - 1].d
+    expect(trackLen).toBeGreaterThan(4000)
+    expect(trackLen).toBeLessThan(5000)
   })
 })
