@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest'
+import { readdirSync, readFileSync } from 'node:fs'
 import { createSectionHeader } from '../src/ui/section-header'
 
 describe('T371 — jaettu section-header (V61, V267)', () => {
@@ -78,6 +79,17 @@ describe('T371 — jaettu section-header (V61, V267)', () => {
     const h = createSectionHeader({ name: 'X', collapsed: true, onToggle })
     h.el.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', cancelable: true }))
     expect(onToggle).not.toHaveBeenCalled()
+  })
+
+  // V267:n ydin: apurin OLEMASSAOLO ei riitä, sen ohi ei saa mennä. Ilman tätä testiä
+  // neljäs käsin kirjoitettu header syntyisi hiljaa — juuri niin pattern rapautui kerran jo.
+  it('yksikään src/ui/-tiedosto ei rakenna omaa section-headeria (V267)', () => {
+    const rikkojat = readdirSync('src/ui')
+      .filter(f => f.endsWith('.ts') && f !== 'section-header.ts')
+      .filter(f => readFileSync(`src/ui/${f}`, 'utf8')
+        .split('\n')
+        .some(rivi => rivi.includes("'left-panel-section-header'") || rivi.includes('"left-panel-section-header"')))
+    expect(rikkojat, 'käytä createSectionHeaderia (src/ui/section-header.ts)').toEqual([])
   })
 
   it('ei inline-tyylejä — luokat elävät style.css:ssä (V267)', () => {
