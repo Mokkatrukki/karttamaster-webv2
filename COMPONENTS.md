@@ -74,6 +74,7 @@ server/       ← Hono + Bun + SQLite
 | SignIcon | `src/map/icons.ts` | ✓ T172 | critical-paths: "toolbar-dropdown", "yhdistelmämerkki" | [map.md](docs/components/map.md) |
 | DriveMode | `src/map/drive.ts` | ✓ | critical-paths: "Drive mode" | [map.md](docs/components/map.md) |
 | MarkerManager | `src/map/markers.ts` | ✓ T335 (setFocusSegment: himmennä muut kuin pätkän merkit, V243; reapplyElementState kokoaa setIconin pudottamat luokat) | critical-paths: "Merkki kartalle", "Drag-to-move", "Merkin zoom-skaalaus", "tallennus epäonnistuu", "merkkien korostus" | [map.md](docs/components/map.md) |
+| CommentLayer | `src/map/comment-layer.ts` | ✓ T221/T237 (point-huomioiden pinnit, diff-render; `setFocusActive`: himmennä fokus-tilassa, ⊥ piilota — V243/V245) | tests/t237-comment-focus-dim.test.ts, e2e/t237-huomio.spec.ts | [map.md](docs/components/map.md) |
 | RouteBar | `src/map/route-bar.ts` | ✓ (T224: piilotettu talkoolaiselta, `#route-bar` hidden) | — | [map.md](docs/components/map.md) |
 | BasemapDimControl | `src/map/basemap-dim-control.ts` | ✓ T287 (pohjan näkyvyys-slider ⋯-valikossa, tilePane-opacity, V201) | — | [map.md](docs/components/map.md) |
 | ~~NextMarkerHighlight~~ | POISTETTU T256/R6 | accent-rengas → ikoni-hehku (`MarkerManager.setNextHighlight` + `.marker-next-highlight` CSS-glow, V178) | — | — |
@@ -141,7 +142,7 @@ server/       ← Hono + Bun + SQLite
 | AreasAPI | `server/routes/areas.ts` | ✓ | area-interaction | [backend.md](docs/components/backend.md) |
 | DevFeedbackAPI | `server/routes/devfeedback.ts` | ✓ | — | [backend.md](docs/components/backend.md) |
 | CronRoutes | `server/routes/cron.ts` | ✓ T163 | — | [backend.md](docs/components/backend.md) |
-| CommentsAPI | `server/routes/comments.ts` | ~ T221 (backend: comments-taulu + GET/POST/DELETE; UI-slice kesken) | — | [backend.md](docs/components/backend.md) |
+| CommentsAPI | `server/routes/comments.ts` | ✓ T221/T338 (comments-taulu + GET/POST/DELETE + kuvaliite `comment_images`, rajat V262) | — | [backend.md](docs/components/backend.md) |
 | GpkgGeoJSON | `server/gpkg/geojson.ts` | ✓ T124 | — | [backend.md](docs/components/backend.md) |
 | GpkgConvert | `server/gpkg/convert.ts` | ✓ T125 | — | [backend.md](docs/components/backend.md) |
 | GpkgRoutes | `server/routes/gpkg.ts` | ✓ T126 | — | [backend.md](docs/components/backend.md) |
