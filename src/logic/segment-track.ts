@@ -159,3 +159,41 @@ export function distanceToTrackM(track: SegmentTrack, lat: number, lon: number):
 export function kmAlongTrackM(track: SegmentTrack, lat: number, lon: number): number | null {
   return nearestOnTrack(track, lat, lon)?.d ?? null
 }
+
+/** Klikin osuma reitille: piste-INDEKSI (⊥ km) + sen km & koordinaatit näyttöä varten. */
+export interface AnchorHit {
+  idx: number
+  dist: number
+  lat: number
+  lon: number
+}
+
+/**
+ * T362/B144: klikin ankkuri reitillä — lähin piste `fromIdx`:stä ETEENPÄIN, ≤`thresholdM`.
+ * `null` = klikki ⊥ osu reitin jäljellä olevaan osaan.
+ *
+ * Miksi eteenpäin: `nearestPointIndex` etsii GLOBAALIN minimin ∴ edestakaisella osuudella se
+ * palauttaa väärän kierroksen pisteen (B144(b): klikki 20.69 km kohtaan sai km 18.85).
+ * Kun haku alkaa edellisestä ankkurista, kierros ⊥ ole arvaus vaan seuraus siitä mitä käyttäjä
+ * on jo osoittanut. ENSIMMÄINEN ankkuri (`fromIdx = 0`) on yhä globaali — sille ⊥ ole aiempaa
+ * kontekstia ∴ UI ! NÄYTTÄÄ valittu km (B144(a)) jotta käyttäjä voi perua sen itse.
+ */
+export function nextAnchorIndex(
+  routePoints: RoutePoint[],
+  lat: number,
+  lon: number,
+  fromIdx: number,
+  thresholdM: number,
+): AnchorHit | null {
+  let best: AnchorHit | null = null
+  let bestDist = Infinity
+  for (let i = Math.max(0, fromIdx); i < routePoints.length; i++) {
+    const p = routePoints[i]
+    const d = haversineDistance(p, { lat, lon })
+    if (d <= thresholdM && d < bestDist) {
+      bestDist = d
+      best = { idx: i, dist: p.distanceFromStart, lat: p.lat, lon: p.lon }
+    }
+  }
+  return best
+}
