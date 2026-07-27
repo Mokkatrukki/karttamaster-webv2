@@ -74,6 +74,9 @@ Segmenttipaletti (pätkät, valkoiselle kartalle): `#2F6FB0` (sininen) · `#7A4E
 | Token | Arvo | JS-peili | Käyttö |
 |---|---|---|---|
 | `--segment-done` | `#1F8A50` | `SEGMENT_DONE_COLOR` (`src/logic/segments.ts`) | valmis-pätkän viiva + nimilapun reunus |
+| `--marker-glow` | `#F2542D` | — | seuraava-merkin hehku (`.marker-next-highlight`) + pending-pulssi (`.leaflet-marker-pending`) |
+
+Rekisteri on testattu: `e2e/t349-map-surface-theme.spec.ts` iteroi tämän taulukon tokenit molemmilla teemoilla ja vaatii identtiset arvot. Uusi karttapinta-token → lisää se sekä tähän taulukkoon että testin `MAP_SURFACE_TOKENS`-listaan.
 
 Sääntö: karttapinta-token määritellään **vain `:root`issa** — `[data-theme="dark"]` ei ylikirjoita sitä. Poikkeus säännöstä "väri tulee tokenista": elementti joka kantaa oman läpinäkymättömän pintansa kartan päällä (`.map-mode-pill`, `#marker-focus-pill`, kontrollit) on chromea ja saa seurata teemaa — se ei lue kontrastiaan pohjakarttaa vasten. Testattava vain teemakierroksella (`e2e/t349-map-surface-theme.spec.ts`): vaaleassa vika on näkymätön.
 

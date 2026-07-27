@@ -77,6 +77,26 @@ test.describe('T349/V253 — karttapinta on teemariippumaton', () => {
     expect(dark.strokes).toEqual(light.strokes)
   })
 
+  // T350: karttapinta-tokenien rekisteri. Jos joku lisää tokenin [data-theme]-lohkoon,
+  // tämä hajoaa — riippumatta siitä onko kyseinen elementti juuri nyt näkyvissä ruudulla.
+  test('kaikki karttapinta-tokenit identtiset teemojen välillä (V253)', async ({ page }) => {
+    const MAP_SURFACE_TOKENS = ['--segment-done', '--marker-glow']
+    const read = () => page.evaluate((tokens: string[]) => {
+      const root = getComputedStyle(document.documentElement)
+      return Object.fromEntries(tokens.map(t => [t, root.getPropertyValue(t).trim()]))
+    }, MAP_SURFACE_TOKENS)
+
+    await loadWithTheme(page, 'light')
+    const light = await read()
+    await loadWithTheme(page, 'dark')
+    const dark = await read()
+
+    for (const t of MAP_SURFACE_TOKENS) {
+      expect(light[t], `${t} puuttuu :root'ista`).not.toBe('')
+      expect(dark[t], `${t} on ylikirjoitettu [data-theme="dark"]:ssa — karttapinta ei saa vaihtua teemasta`).toBe(light[t])
+    }
+  })
+
   test('nimilapun reunus seuraa --segment-done -tokenia, EI --confirmia', async ({ page }) => {
     await loadWithTheme(page, 'dark')
     const tokens = await page.evaluate(() => {

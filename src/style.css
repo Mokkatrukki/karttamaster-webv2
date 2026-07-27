@@ -35,6 +35,10 @@
      värinsä JS:stä joka ei näe CSS-muuttujaa ∴ jokainen teemariippuvainen token karttapinnalla
      luo parin joka hajoaa teemanvaihdossa (B136: viiva #1F8A50 vs lappu #2FA35B Kaamoksessa). */
   --segment-done:  #1F8A50; /* JS-peili: SEGMENT_DONE_COLOR (src/logic/segments.ts) */
+  --marker-glow:   #F2542D; /* seuraava-merkki + pending-pulssi (T350). Sama sävy kuin --accent
+                               NYT, mutta eri elinkaari: hehku piirtyy pohjakartan päälle ∴ se
+                               kalibroidaan karttaa vasten, ⊥ chromea. Kaamoksen aksentin
+                               kirkastaminen ⊥ saa siirtää hehkua. */
 
   /* Confirm (vihreä) — talkoolaisen kuittausnappula. CHROME-token: vaihtuu teeman mukana
      ∴ EI saa käyttää karttapinnalla (käytä --segment-done). */
@@ -1005,14 +1009,15 @@ button {
   border-radius: 4px;
   padding: 1px 5px;
 }
-/* Kartan pending-merkki: pulssaava amber-rengas. Ei laske opacitya (aurinko/kontrasti). */
-.leaflet-marker-pending { filter: drop-shadow(0 0 0 var(--accent)); animation: marker-pending-pulse 1.4s ease-in-out infinite; }
+/* Kartan pending-merkki: pulssaava amber-rengas. Ei laske opacitya (aurinko/kontrasti).
+   T350/V253: --marker-glow (karttapinta-token), EI --accent — hehku on kartan päällä. */
+.leaflet-marker-pending { filter: drop-shadow(0 0 0 var(--marker-glow)); animation: marker-pending-pulse 1.4s ease-in-out infinite; }
 @keyframes marker-pending-pulse {
-  0%, 100% { filter: drop-shadow(0 0 2px var(--accent)); }
-  50%      { filter: drop-shadow(0 0 7px var(--accent)); }
+  0%, 100% { filter: drop-shadow(0 0 2px var(--marker-glow)); }
+  50%      { filter: drop-shadow(0 0 7px var(--marker-glow)); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .leaflet-marker-pending { animation: none; filter: drop-shadow(0 0 4px var(--accent)); }
+  .leaflet-marker-pending { animation: none; filter: drop-shadow(0 0 4px var(--marker-glow)); }
 }
 .marker-item .marker-icon { font-size: 13px; font-weight: 700; flex-shrink: 0; min-width: 28px; text-align: center; }
 .marker-item .marker-km { color: var(--text-meta); font-size: 11px; flex-shrink: 0; }
@@ -3415,8 +3420,8 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   animation: marker-next-glow 1.4s ease-in-out infinite;
 }
 @keyframes marker-next-glow {
-  0%, 100% { filter: drop-shadow(0 0 3px var(--accent)) drop-shadow(0 0 5px var(--accent)); }
-  50%      { filter: drop-shadow(0 0 8px var(--accent)) drop-shadow(0 0 15px var(--accent)); }
+  0%, 100% { filter: drop-shadow(0 0 3px var(--marker-glow)) drop-shadow(0 0 5px var(--marker-glow)); }
+  50%      { filter: drop-shadow(0 0 8px var(--marker-glow)) drop-shadow(0 0 15px var(--marker-glow)); }
 }
 
 /* T335/V243: fokus-tila HIMMENTÄÄ, ei piilota — merkki näkyy aina, muuten kartta valehtelee
