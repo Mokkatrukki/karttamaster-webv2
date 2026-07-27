@@ -715,7 +715,8 @@ Kartta avautuu **katselutilassa** joka latauksella; kaikki kartan MUTATOIVAT ele
 - **Viivatyyli = status** (`segmentLineState(getPhaseProgress(seg, markers))`, kolme ämpäriä, `LINE_STATE_STYLE` `src/map/segment-overlay.ts`):
   - `valmis` → ehjä, `opacity: 0.9, weight: 11` (ei dashArray)
   - `kesken` → karkea katko, `opacity: 0.85, weight: 11, dashArray: '10 8'`
-  - `ei_alkanut` → haalea harva katko, `opacity: 0.4, weight: 9, dashArray: '6 12'`
+  - `ei_alkanut` → harva katko, kevyin, `opacity: 0.7, weight: 9, dashArray: '6 12'`
+  - **Alfa-alaraja (UX-audit 2026-07-27):** kartan viivan efektiivinen kontrasti vaaleaa MML-taustaa (`#F2F0EA`) vasten ≥ 3:1 (WCAG non-text). `opacity 0.4` antoi `#7A4E9C`:lle 1.79:1 ∴ "ei aloitettu" katosi kirkkaassa — ja se on juuri se tila jonka järjestäjän pitää bongata. 0.7 = 3.0:1. Mitatut: valmis 3.83, kesken 3.57, ei_alkanut 3.0.
   - **V252/B135:** viivanpätkä ! olla aukon kokoluokkaa. Vanha `'1 9'` (1px viiva, 9px aukko) MOLEMMISSA katkotiloissa hajosi pistesarjaksi joka katosi maastokartan tekstuuriin ∴ tilat erottuivat käytännössä vain valmiin ehjyydestä. Kolmen tilan ! erottua myös **akromaattisesti** (ehjä / karkea katko / haalea harva katko), ei vain leveydellä tai värillä.
 - `update(store, markers)` — tarvitsee merkit progressiin. Kutsutaan sekä segmentin mutaatiosta ETTÄ merkin status-muutoksesta (`main.ts` MarkerManager onUpdate) — muuten kartan status jää jälkeen.
 - **valmis-pätkä: tooltip-nimeen `✓`-PREFIX kaikissa phaseissa** (T348 — ennen: vain `phase==='tarkastus'`). Nimi voi katketa lapun leveyteen, merkki ei saa ∴ prefix, ei suffix. Positiivinen tila tarvitsee positiivisen merkin: "valmis" ei saa olla pääteltävissä vain katkon PUUTTUMISESTA (V252).

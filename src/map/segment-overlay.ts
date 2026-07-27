@@ -16,8 +16,13 @@ const GAP_COLOR = '#94a3b8'
 export const LINE_STATE_STYLE: Record<SegmentLineState, { opacity: number; weight: number; dashArray?: string }> = {
   valmis:     { opacity: 0.9,  weight: 11 },                     // ehjä
   kesken:     { opacity: 0.85, weight: 11, dashArray: '10 8' },  // karkea katko
-  ei_alkanut: { opacity: 0.4,  weight: 9,  dashArray: '6 12' },  // haalea harva katko
+  ei_alkanut: { opacity: 0.7,  weight: 9,  dashArray: '6 12' },  // harva katko, kevyin
 }
+// UX-audit 2026-07-27: ei_alkanut oli `opacity 0.4` = efektiivinen kontrasti 1.79:1 vaaleaa
+// MML-taustaa vasten (WCAG non-text min 3:1) ∴ "ei aloitettu" katosi kirkkaassa — & juuri se on
+// tila jonka järjestäjän ! bongata kartalta (kuka ⊥ ole aloittanut). 0.7 = 3.0:1. Hierarkia ⊥
+// katoa: valmis/kesken/ei_alkanut erottuvat yhä kuviolla ('' / '10 8' / '6 12'), leveydellä
+// (11/11/9) & alfalla (.9/.85/.7) ∴ kevein on yhä kevein, muttei näkymätön.
 
 export interface ContextLineStyle {
   opacity: number
