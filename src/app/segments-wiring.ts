@@ -3,7 +3,7 @@ import type { MarkerManager } from '../map/markers'
 import { SegmentOverlay } from '../map/segment-overlay'
 import { SegmentPanel } from '../ui/segment-panel'
 import { PhaseSwitcher } from '../ui/phase-switcher'
-import { getSegmentsForPhase, getSegmentForCode, getMarkersForSegment } from '../logic/segments'
+import { getSegmentsForPhase, getSegmentForCode, getMarkersForSegment, segmentPeers } from '../logic/segments'
 import { fitMapToSegment } from '../map/segment-fit'
 import type { Segment } from '../logic/segments'
 import { fetchSegmentByCode, fetchAllSegments } from '../logic/segment-sync'
@@ -137,7 +137,7 @@ export async function wireSegments(
       // yksi zoom-sääntö, ⊥ kahta erilaista "koko pätkää".
       onShowSegmentOnMap: (seg) => {
         const markers = markerManagerRef.current?.getAll() ?? initialMarkers
-        fitMapToSegment(map, routes, seg, getMarkersForSegment(seg, markers))
+        fitMapToSegment(map, routes, seg, getMarkersForSegment(seg, markers, segmentPeers(segmentStore, seg)))
       },
       onNotify: (msg) => onNotify(msg),
     },

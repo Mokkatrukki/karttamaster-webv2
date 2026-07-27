@@ -1,6 +1,7 @@
 import type { Segment } from './segments'
 import { segmentPrimaryRouteId } from './segments'
 import { distancesForRoute } from './marker-distance'
+import { kmAlongTrackM } from './segment-track'
 import type { SignMarker } from './types'
 
 // T328/V237/V238: PÄTKÄ OMISTAA KM-AKSELIN.
@@ -42,9 +43,17 @@ const PHASE_DIRECTION: Record<Segment['phase'], 1 | -1> = {
  * VALITSEE oikean — aiempi "pienin ehdokas" oli arvaus joka osui väärään kierrokseen.
  */
 export function segmentKm(
-  marker: Pick<SignMarker, 'distanceByRoute' | 'distanceFromStart'>,
-  segment: Pick<Segment, 'primaryRouteId' | 'routeIds' | 'startDist' | 'endDist'>,
+  marker: Pick<SignMarker, 'distanceByRoute' | 'distanceFromStart' | 'lat' | 'lon'>,
+  segment: Pick<Segment, 'primaryRouteId' | 'routeIds' | 'startDist' | 'endDist' | 'track'>,
 ): number | null {
+  // T359/V259: jälki on akseli kun se on. Lukema = matka pätkän OMAA jälkeä pitkin ∴ se on
+  // samasta lähteestä kuin jäsenyys (V259 lähin-voittaa) — ennen tätä järjestys luki reitin
+  // km-akselia & jäsenyys jälkeä, mikä on B129:n suku (näyttö & järjestys eri akselilta).
+  // Merkin lat/lon on totuus (V212) ∴ ehdokaslistoja ⊥ tarvita: jäljellä on vain yksi lähin kohta.
+  if (segment.track && segment.track.length > 0) {
+    return kmAlongTrackM(segment.track, marker.lat, marker.lon)
+  }
+
   // V139: reititön pätkä (aluetehtävä) — ei km-akselia, ei järjestystä.
   if (segment.startDist === undefined || segment.endDist === undefined) return null
 
@@ -71,7 +80,7 @@ export function segmentKm(
  */
 export function orderMarkersInSegment(
   markers: SignMarker[],
-  segment: Pick<Segment, 'primaryRouteId' | 'routeIds' | 'startDist' | 'endDist' | 'phase'> | null,
+  segment: Pick<Segment, 'primaryRouteId' | 'routeIds' | 'startDist' | 'endDist' | 'phase' | 'track'> | null,
 ): SegmentOrder {
   const byScalar = (a: SignMarker, b: SignMarker): number => a.distanceFromStart - b.distanceFromStart
   if (segment === null) return { onRoute: [], offRoute: [...markers].sort(byScalar) }
@@ -98,8 +107,8 @@ export function orderMarkersInSegment(
  * 25.18 km kohdalla, koska näyttö luki skalaarin ja järjestys akselin.
  */
 export function displayKm(
-  marker: Pick<SignMarker, 'distanceByRoute' | 'distanceFromStart'>,
-  segment: Pick<Segment, 'primaryRouteId' | 'routeIds' | 'startDist' | 'endDist'> | null,
+  marker: Pick<SignMarker, 'distanceByRoute' | 'distanceFromStart' | 'lat' | 'lon'>,
+  segment: Pick<Segment, 'primaryRouteId' | 'routeIds' | 'startDist' | 'endDist' | 'track'> | null,
 ): number {
   if (segment === null) return marker.distanceFromStart
   return segmentKm(marker, segment) ?? marker.distanceFromStart

@@ -1,4 +1,4 @@
-import { updateSegment, deleteSegment, getMarkersForSegment, cloneSegmentToNextPhase, NEXT_PHASE, generateSegmentSlug, segmentPath } from '../logic/segments'
+import { updateSegment, deleteSegment, getMarkersForSegment, cloneSegmentToNextPhase, NEXT_PHASE, generateSegmentSlug, segmentPath, segmentPeers } from '../logic/segments'
 import { updateSegmentRemote, deleteSegmentRemote, pushSegment } from '../logic/segment-sync'
 import type { Segment, SegmentStore, EquipmentItem } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
@@ -296,7 +296,7 @@ export class SegmentDetailsModal {
     section.className = 'segment-details-modal-section'
 
     const allMarkers = this.callbacks.getMarkers?.() ?? []
-    const segMarkers = getMarkersForSegment(seg, allMarkers)
+    const segMarkers = getMarkersForSegment(seg, allMarkers, segmentPeers(this.store, seg))
 
     if (segMarkers.length === 0) {
       // T354: tyhjätila, ⊥ katoava tabi. Tabi joka häviää datan mukana siirtää naapureita ∴
