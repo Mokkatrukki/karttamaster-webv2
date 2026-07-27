@@ -445,7 +445,9 @@ Flex-toolbar joka voi ylittää kapean modaalin → `flex-wrap: wrap` (ei vaakal
   `aria-pressed` + `[aria-pressed="true"]` = accent-kehys. Kytkin on karttaan heti vaikuttava TILAKYTKIN ∴ se ei kuulu välilehden taakse.
 - Sulkeminen: ✕-nappi / Escape / backdrop-klikki — auto-save on change, ei hylkäysdialogi
 - **Välilehdet (T354/V257):** runko on `SegmentKotiTabs` — SAMA komponentti kuin talkoolaisen kotinäkymässä, ei toista toteutusta.
-  Kolme tabia: `🎒 Varustelista` (oletus) · `Kaikki merkit` · `Asetukset`. Tabipalkki `position:sticky; top:0` bodyn sisällä,
+  Kolme tabia (T357-järjestys): `Asetukset` (oletus) · `🎒 Varustelista` · `Kaikki merkit` — järjestäjä avaa modaalin
+  hallitakseen pätkää, ei selatakseen varusteita; oletus tulee tab-arraysta (`tabs[0]`), ei erillisestä `initial`ista.
+  Tabipalkki `position:sticky; top:0` bodyn sisällä,
   `surface-card`-tausta (läpinäkymätön — alta liukuva sisältö ei sotke). Panelin sisäinen rytmi `flex-column; gap:14px`.
   Modaali antaa komponentille `scrollerSelector: '.segment-details-modal-body'` → tab-vaihto nollaa scrollTopin (T315/V226).
   Merkitön pätkä: `Kaikki merkit` näyttää tyhjätilan (`.segment-details-markers-empty`) — **tabi ei katoa** datan mukana.

@@ -46,14 +46,15 @@ describe('T354/V257 — pätkämodaalin välilehdet', () => {
   })
   afterEach(() => { document.body.innerHTML = '' })
 
-  it('kolme tabia oikeassa järjestyksessä, oletus = Varustelista', () => {
+  // T357: Asetukset ensin ∴ myös oletustabi (SegmentKotiTabs avaa tabs[0]:n).
+  it('kolme tabia oikeassa järjestyksessä, oletus = Asetukset', () => {
     openModal()
-    expect(tabButtons().map(b => b.dataset.tab)).toEqual(['varuste', 'merkit', 'asetukset'])
-    expect(tabButtons()[0].textContent).toContain('Varustelista')
+    expect(tabButtons().map(b => b.dataset.tab)).toEqual(['asetukset', 'varuste', 'merkit'])
+    expect(tabButtons()[0].textContent).toContain('Asetukset')
     expect(tabButtons()[0].getAttribute('aria-selected')).toBe('true')
-    expect(panel('varuste').hidden).toBe(false)
+    expect(panel('asetukset').hidden).toBe(false)
+    expect(panel('varuste').hidden).toBe(true)
     expect(panel('merkit').hidden).toBe(true)
-    expect(panel('asetukset').hidden).toBe(true)
   })
 
   it('varusteet ja merkit ovat ERI paneleissa', () => {
@@ -69,10 +70,13 @@ describe('T354/V257 — pätkämodaalin välilehdet', () => {
 
   it('tab-klikkaus vaihtaa näkyvän panelin', () => {
     openModal({}, [marker('m1', 500)])
-    tabButtons()[1].click()
-    expect(panel('varuste').hidden).toBe(true)
+    // Valinta data-tabilla ⊥ indeksillä: järjestys on PM-päätös (T357) joka voi muuttua,
+    // tab-vaihdon sopimus ⊥ muutu sen mukana.
+    const merkitBtn = tabButtons().find(b => b.dataset.tab === 'merkit')!
+    merkitBtn.click()
+    expect(panel('asetukset').hidden).toBe(true)
     expect(panel('merkit').hidden).toBe(false)
-    expect(tabButtons()[1].getAttribute('aria-selected')).toBe('true')
+    expect(merkitBtn.getAttribute('aria-selected')).toBe('true')
     expect(tabButtons()[0].getAttribute('aria-selected')).toBe('false')
   })
 

@@ -447,12 +447,12 @@ test.describe('T25 — SegmentPanel', () => {
     const fits = await bar.evaluate(el => el.scrollWidth <= el.clientWidth + 1)
     expect(fits).toBe(true)
 
-    // Oletustabi = Varustelista; merkit-tab piilossa kunnes klikataan.
-    await expect(page.locator('.segment-koti-panel[data-tab="varuste"]')).toBeVisible()
+    // T357: oletustabi = Asetukset; merkit-tab piilossa kunnes klikataan.
+    await expect(page.locator('.segment-koti-panel[data-tab="asetukset"]')).toBeVisible()
     await expect(page.locator('.segment-koti-panel[data-tab="merkit"]')).toBeHidden()
-    await tabs.nth(1).click()
+    await page.click('.segment-details-modal-tabs .segment-koti-tab[data-tab="merkit"]')
     await expect(page.locator('.segment-koti-panel[data-tab="merkit"]')).toBeVisible()
-    await expect(page.locator('.segment-koti-panel[data-tab="varuste"]')).toBeHidden()
+    await expect(page.locator('.segment-koti-panel[data-tab="asetukset"]')).toBeHidden()
 
     // T356: korostuskytkin headerissa, ✕ edelleen 44px.
     await expect(page.locator('.segment-details-modal-header .btn-segment-focus-toggle')).toBeVisible()

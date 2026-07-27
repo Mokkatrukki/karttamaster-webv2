@@ -159,20 +159,25 @@ export class SegmentDetailsModal {
       this.buildCloneSection(seg),
     )
 
-    // T352/V255 (B141) + T354: valmis-toggle on `Kaikki merkit` -tabissa — SAMA paikka kuin
+    // T352/V255 (B141) + T354 + T357: valmis-toggle on `Kaikki merkit` -tabissa — SAMA paikka kuin
     // talkoolaisen kotinäkymässä (`segment-view.ts` merkit-tab: markerList + completeSection).
     // Järjestäjän AINOA sisääntulo valmis-tilaan (⋯-valikko on `data-role-hide="järjestäjä"` &
-    // SegmentView kytketään vain talkoolaispolussa) ∴ se ⊥ saa haudata itseään kolmanteen tabiin;
-    // & kaksi roolia ⊥ saa löytää samaa toimintoa eri paikasta (V236-henki).
+    // SegmentView kytketään vain talkoolaispolussa). T357:n järjestyksessä merkit on KOLMAS tabi
+    // & se on hyväksytty (PM-päätös 2026-07-27): kaksi roolia ⊥ saa löytää samaa toimintoa eri
+    // paikasta (V236-henki) > tabi-indeksi. Talkoolaisen sisääntulo ⊥ ole tabin varassa (V254:
+    // heron done-rivi) ∴ syvyys on järjestäjän desktop-ongelma ⊥ metsässä-ongelma.
     const merkit: HTMLElement[] = [this.buildMarkersSection(seg)]
     const completeSection = this.buildCompleteSection(seg)
     if (completeSection) merkit.push(completeSection)
 
     const tabs = new SegmentKotiTabs(
+      // T357: Asetukset ENSIN ∴ myös oletustabi (SegmentKotiTabs avaa tabs[0]:n kun `initial`
+      // puuttuu). Tarkoitettu: järjestäjä avaa modaalin hallitakseen pätkää, ⊥ selatakseen
+      // varusteita. `initial`ia ⊥ anneta — kaksi totuutta järjestyksestä ajautuisi erilleen.
       [
+        { id: 'asetukset', label: 'Asetukset', els: asetukset },
         { id: 'varuste', label: '🎒 Varustelista', els: [this.buildEquipmentSection(seg)] },
         { id: 'merkit', label: 'Kaikki merkit', els: merkit },
-        { id: 'asetukset', label: 'Asetukset', els: asetukset },
       ],
       // Modaalin body on oma scrollerinsa — ilman tätä tab-vaihto ⊥ nollaisi scrollTopia ja
       // uusi tabi avautuisi keskeltä (T315/V226 katoaisi hiljaa).
