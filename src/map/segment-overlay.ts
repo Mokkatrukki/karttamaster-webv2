@@ -119,7 +119,7 @@ export class SegmentOverlay {
     // T348: valmis-tila ohittaa tunnistevärin (segmentLineColor) — status voittaa identiteetin.
     for (const seg of segments) {
       const progress = getPhaseProgress(seg, markers)
-      // T353/V256 (B139): talkoolaisen kuittaus (`completed`) voittaa merkkilaskurin — ilman tätä
+      // T353/V256 (B142): talkoolaisen kuittaus (`completed`) voittaa merkkilaskurin — ilman tätä
       // eksplisiittinen "pätkä valmis" ⊥ näkynyt kartalla lainkaan.
       const state = segmentLineState(progress, seg.completed)
       const color = segmentLineColor(seg.id, state)

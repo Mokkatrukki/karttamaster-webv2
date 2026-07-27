@@ -385,7 +385,7 @@ export class SegmentPanel {
       : ''
     kmSpan.title = `${kmRange}${formatStatusCounts(getSegmentStatusCounts(seg, markers))}`
 
-    // T353/V256 (B139): talkoolaisen kuittaus omana merkintänään — EI laskurin tilalla. Ne voivat
+    // T353/V256 (B142): talkoolaisen kuittaus omana merkintänään — EI laskurin tilalla. Ne voivat
     // olla eri mieltä (kuitattu vaikka merkkejä kesken, tai kaikki asetettu mutta ⊥ kuitattu) &
     // järjestäjä tarvitsee molemmat: laskuri kertoo mitä kartalla on, kuittaus kertoo mitä
     // talkoolainen sanoo. Ristiriita on TIETOA, ⊥ virhe jota pitäisi piilottaa.

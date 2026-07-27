@@ -86,7 +86,7 @@ export class SegmentHero {
         ? '<span class="segment-view-next-done-title">Ei merkkejä tällä pätkällä</span>'
         : '<span class="segment-view-next-done-title">✓ Kaikki asetettu 🎉</span>'
       this.el.appendChild(done)
-      // T351/V254 (B137): valmiussignaali & sen kuittaus SAMASSA näkymässä. Ennen tätä nappi oli
+      // T351/V254 (B140): valmiussignaali & sen kuittaus SAMASSA näkymässä. Ennen tätä nappi oli
       // vain "Kaikki merkit" -tabin pohjalla + yläpalkin ⋯:ssä ∴ talkoolaisen VIIMEINEN askel
       // metsässä vaati tabinvaihdon tai valikon. total===0 ("Ei merkkejä") ⊥ saa nappia — tyhjä
       // pätkä ⊥ ole valmiussignaali. Sanamuoto & tokenit = SegmentView.renderCompleteSection (T230).

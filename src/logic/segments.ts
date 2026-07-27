@@ -298,7 +298,7 @@ export const SEGMENT_DONE_COLOR = '#1F8A50'
 // ei_alkanut = haalea katko, kesken = täysi katko, valmis = ehjä.
 export type SegmentLineState = 'ei_alkanut' | 'kesken' | 'valmis'
 
-// T353/V256 (B139): `completed` VOITTAA merkkilaskurin. Talkoolaisen eksplisiittinen kuittaus on
+// T353/V256 (B142): `completed` VOITTAA merkkilaskurin. Talkoolaisen eksplisiittinen kuittaus on
 // vahvempi tieto kuin johdettu laskuri — hän on paikan päällä & tietää onko pätkä oikeasti hoidettu
 // (suunnitelmasta voi puuttua merkkejä tai olla liikaa). Ennen tätä lipulla ⊥ ollut yhtään lukijaa
 // nappien labelien ulkopuolella ∴ kuittaus ⊥ näkynyt järjestäjälle missään.

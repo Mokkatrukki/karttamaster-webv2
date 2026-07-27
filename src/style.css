@@ -1962,7 +1962,7 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
 }
 
 /* T351/V254: done-rivin valmis-toggle. Rivi itse pysyy matalana (T228) — nappi on ainoa
-   painava elementti siinä, koska se on talkoolaisen VIIMEINEN askel (B137). */
+   painava elementti siinä, koska se on talkoolaisen VIIMEINEN askel (B140). */
 .segment-view-next--done .segment-view-complete-btn {
   margin-top: 8px;
 }
@@ -2283,7 +2283,7 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   flex-shrink: 0;
 }
 
-/* T353/V256 (B139): talkoolaisen kuittaus pätkärivillä — oma merkintä laskurin VIERESSÄ, ⊥ sen
+/* T353/V256 (B142): talkoolaisen kuittaus pätkärivillä — oma merkintä laskurin VIERESSÄ, ⊥ sen
    tilalla. Sivupalkki on chromea (V253) ∴ teematokenit sallittuja; --confirm on sama vihreä jolla
    valmis-toggle piirretään ∴ kuittaus & sen nappi puhuvat samaa väriä. */
 .segment-kuitattu {

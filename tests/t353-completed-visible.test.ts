@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// T353/V256 (B139): talkoolaisen kuittaus (`Segment.completed`) näkyviin järjestäjän
+// T353/V256 (B142): talkoolaisen kuittaus (`Segment.completed`) näkyviin järjestäjän
 // tilannekuvaan. Ennen tätä lipulla ⊥ ollut yhtään lukijaa nappien labelien ulkopuolella:
 // pätkälistan laskuri & kartan viiva johdettiin pelkästään MERKKIEN statuksista.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'

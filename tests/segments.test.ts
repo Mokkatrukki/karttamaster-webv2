@@ -537,7 +537,7 @@ describe('segments', () => {
       expect(segmentLineState({ kind: 'boolean', done: true, label: 'tarkastettu' })).toBe('valmis')
     })
 
-    // T353/V256 (B139): kuittaus voittaa laskurin — talkoolainen on paikan päällä.
+    // T353/V256 (B142): kuittaus voittaa laskurin — talkoolainen on paikan päällä.
     describe('completed voittaa merkkilaskurin (T353/V256)', () => {
       it('kuitattu + 0/5 asetettu → valmis (⊥ ei_alkanut)', () => {
         expect(segmentLineState(count(0, 5), true)).toBe('valmis')

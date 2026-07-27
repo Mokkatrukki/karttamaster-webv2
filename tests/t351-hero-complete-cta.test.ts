@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// T351/V254 (B137): valmis-toggle hero:n done-rivillä. Ennen tätä valmiussignaali ("✓ Kaikki
+// T351/V254 (B140): valmis-toggle hero:n done-rivillä. Ennen tätä valmiussignaali ("✓ Kaikki
 // asetettu") ja sen kuittaus olivat eri näkymissä (Kaikki merkit -tabin pohja + yläpalkin ⋯)
 // ∴ talkoolaisen viimeinen askel metsässä vaati tabinvaihdon tai valikon.
 import { describe, it, expect, beforeEach, vi } from 'vitest'

@@ -349,7 +349,7 @@ export function wireMarkers(
       // T257/R8/V179: talkoolaisen yläpalkin ⋯-toiminnot (VISION "GPS ym ylävalikkoon").
       // Karttamoodissa hero-chrome minimaali (T255) → Lisää merkki ⋯:ssä.
       // GPS kytkettiin jo ylempänä (T341/V247) — se ei tarvitse pätkää, tämä tarvitsee.
-      // T351/V254 (B137): "Merkitse pätkä valmiiksi" EI enää täällä — se on hero:n done-rivillä
+      // T351/V254 (B140): "Merkitse pätkä valmiiksi" EI enää täällä — se on hero:n done-rivillä
       // (`segment-hero.ts`, `actions.onComplete` → applyComplete). Yksi sisääntulo per rooli.
       document.getElementById('btn-tk-add-marker')?.addEventListener('click', openAddMarkerPicker)
     }

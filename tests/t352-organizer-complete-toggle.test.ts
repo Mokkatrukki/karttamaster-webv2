@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// T352/V255 (B138): järjestäjän valmis-toggle pätkän modaalissa. Ennen tätä järjestäjällä ⊥ ollut
+// T352/V255 (B141): järjestäjän valmis-toggle pätkän modaalissa. Ennen tätä järjestäjällä ⊥ ollut
 // yhtään reittiä kuitata pätkää valmiiksi: ⋯-valikko on data-role-hide="järjestäjä" & SegmentView
 // (jossa toggle asui) kytketään vain talkoolaispolussa.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'

@@ -143,7 +143,7 @@ export class SegmentDetailsModal {
 
     // Jako = kenelle pätkä kuuluu & mitä tekijä on tehnyt. Aktiviteettiloki (T227) kuuluu tähän
     // ryhmään eikä bodyn loppuun: se on assign-tiedon jatke, ⊥ oma saareke.
-    // T352/V255 (B138): valmis-toggle kuuluu Jako-ryhmään — "mitä tekijä on tehnyt". Järjestäjän
+    // T352/V255 (B141): valmis-toggle kuuluu Jako-ryhmään — "mitä tekijä on tehnyt". Järjestäjän
     // AINOA sisääntulo pätkän valmis-tilaan (⋯-valikko on `data-role-hide="järjestäjä"` & SegmentView
     // kytketään vain talkoolaispolussa) ∴ ilman tätä järjestäjä ⊥ voi kuitata soittaneen talkoolaisen
     // puolesta eikä perua virhekuittausta.
@@ -543,7 +543,7 @@ export class SegmentDetailsModal {
   // T335/V243: järjestäjän korostuskytkin. Oletus POIS (fokus on hetken työkalu). Modaali ei
   // sulkeudu klikistä — järjestäjä voi kokeilla ja perua saman tien; poistumis-pilleri (wiring)
   // vastaa siitä että tila löytyy vielä modaalin sulkeuduttua.
-  // T352/V255 (B138): järjestäjän valmis-toggle. Sama kirjoituspolku kuin talkoolaisella
+  // T352/V255 (B141): järjestäjän valmis-toggle. Sama kirjoituspolku kuin talkoolaisella
   // (`markers-wiring.ts` applyComplete): updateSegment + updateSegmentRemote + onRender/onUpdate
   // ∴ pätkäviiva vihertyy heti (T348) & kaksi roolia ⊥ ajaudu eri tilaan. null = ei näytetä:
   // valmis-tila koskee vain asettamista/purkua (tarkastus käyttää inspect-osiota, T230/T147).

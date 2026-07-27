@@ -1,5 +1,5 @@
 /**
- * T351/V254 (B137) + T352/V255 (B138) — "merkitse pätkä valmiiksi" -sisääntulot.
+ * T351/V254 (B140) + T352/V255 (B141) — "merkitse pätkä valmiiksi" -sisääntulot.
  * T351: talkoolaisen valmis-toggle hero:n done-rivillä; ⋯-valikon duplikaatti poistettu.
  * T352: järjestäjän valmis-toggle pätkämodaalissa (ennen: ⊥ mitään reittiä).
  */
@@ -33,7 +33,7 @@ test.describe('T351 — talkoolaisen valmis-toggle hero:ssa', () => {
     await page.click('#btn-to-map')
     await page.waitForTimeout(500)
 
-    // Done-rivi + sen nappi samassa näkymässä (B137: ennen erillään).
+    // Done-rivi + sen nappi samassa näkymässä (B140: ennen erillään).
     await expect(page.locator('.segment-view-next-done-title')).toContainText('Kaikki asetettu')
     const heroBtn = page.locator('.segment-hero-complete-btn')
     await expect(heroBtn).toBeVisible()
@@ -70,7 +70,7 @@ test.describe('T351 — talkoolaisen valmis-toggle hero:ssa', () => {
   })
 })
 
-test.describe('T353 — kuittaus näkyy järjestäjän tilannekuvassa (B139)', () => {
+test.describe('T353 — kuittaus näkyy järjestäjän tilannekuvassa (B142)', () => {
   test('kuitattu pätkä = vihreä ehjä viiva + ✓-lappu VAIKKA merkit kesken', async ({ page }) => {
     const keskenMarker = { ...doneMarker, status: 'suunniteltu' }
     await mockAuthAsJarjestaja(page)
@@ -129,7 +129,7 @@ test.describe('T352 — järjestäjän valmis-toggle pätkämodaalissa', () => {
     await page.waitForTimeout(1500)
 
     // Talkoolaisen ⋯-toiminnot piilossa järjestäjältä (data-role-hide) — juuri siksi
-    // järjestäjä tarvitsee modaalin sisääntulon (B138).
+    // järjestäjä tarvitsee modaalin sisääntulon (B141).
     await expect(page.locator('#tk-menu-actions')).toBeHidden()
 
     await page.locator('.segment-panel-header').click()
