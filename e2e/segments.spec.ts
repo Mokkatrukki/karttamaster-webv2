@@ -585,10 +585,14 @@ test.describe('T25 — SegmentPanel', () => {
       displayName: 'Asetuspätkä', equipment: [],
       phase: 'asettaminen', assignedCode: 'ASET01',
     }
-    // Kaksi suunniteltu-merkkiä — 'late' ensin listalla mutta 'early' on pienin distanceFromStart.
+    // Kaksi suunniteltu-merkkiä — 'late' ensin listalla mutta 'early' on lähempänä pätkän alkua.
+    // T361/V259: koordinaatit ovat OIKEILTA smtb-30-reittipisteiltä (982 m & 2994 m). Ennen
+    // T358–T361:tä tässä oli lat 63.0/27.0 — ~290 km reitistä — ja järjestys tuli keksitystä
+    // `distance_from_start`-skalaarista. Jäljen akselilla (V259) km lasketaan GEOMETRIASTA ∴
+    // fixture jonka merkit eivät ole reitillä ei enää mittaa mitään todellista.
     const MARKERS = [
-      { id: 'late', type: 'right', lat: 63.1, lon: 27.1, distance_from_start: 9000, route_ids: ['smtb-30'], status: 'suunniteltu' },
-      { id: 'early', type: 'left', lat: 63.0, lon: 27.0, distance_from_start: 3000, route_ids: ['smtb-30'], status: 'suunniteltu' },
+      { id: 'late', type: 'right', lat: 65.622415, lon: 27.627049, distance_from_start: 2994, route_ids: ['smtb-30'], status: 'suunniteltu' },
+      { id: 'early', type: 'left', lat: 65.609487, lon: 27.623375, distance_from_start: 982, route_ids: ['smtb-30'], status: 'suunniteltu' },
     ]
     const putCalls: { url: string; body: unknown }[] = []
     await page.route('/api/segments/by-code/ASET01', r =>
@@ -611,9 +615,10 @@ test.describe('T25 — SegmentPanel', () => {
     // T262/V182: hero on kartta-moodin ohjaus (koti näyttää varustelistan) → siirry kartalle.
     await page.click('#btn-to-map')
 
-    // Hero näkyy ja osoittaa ensimmäiseen merkkiin (early, 3.0 km)
+    // Hero näkyy ja osoittaa ensimmäiseen merkkiin (early). V259: lukema on matka PÄTKÄN
+    // jälkeä pitkin — pätkä alkaa reitin alusta (startDist 0) ∴ 1.0 km on sama kuin reitin km.
     await expect(page.locator('.segment-view-next')).toBeVisible()
-    await expect(page.locator('.segment-view-next-meta')).toHaveText('3.0 km')
+    await expect(page.locator('.segment-view-next-meta')).toHaveText('1.0 km')
     await expect(page.locator('.segment-view-progress-text')).toHaveText('0/2 asetettu')
 
     // Aseta → PUT juuri 'early'-merkille statuksella asetettu

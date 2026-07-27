@@ -6,8 +6,10 @@ import { PhaseSwitcher } from '../ui/phase-switcher'
 import { getSegmentsForPhase, getSegmentForCode, getMarkersForSegment, segmentPeers } from '../logic/segments'
 import { fitMapToSegment } from '../map/segment-fit'
 import type { Segment } from '../logic/segments'
-import { fetchSegmentByCode, fetchAllSegments } from '../logic/segment-sync'
+import { fetchSegmentByCode, fetchAllSegments, pushSegmentTrack } from '../logic/segment-sync'
+import { backfillSegmentTracks } from '../logic/segment-backfill'
 import { getActivePhase } from '../logic/phase-view'
+import { getRole } from '../logic/role'
 import type { RouteConfig } from '../logic/multi-route'
 import type { SignMarker } from '../logic/types'
 import { mapMode } from '../logic/map-mode'
@@ -46,6 +48,25 @@ export async function wireSegments(
       for (const seg of result.segments) segmentStore.set(seg.id, seg)
     } else {
       onLoadError()
+    }
+  }
+
+  // T361/V258/V260: legacy-pätkä saa jäljen heti kun GPX:t ovat ladattu (routes on jo tässä).
+  // Johdettu jälki on SAMA siivu jonka kartta piirtää ∴ maasto ⊥ muutu — vain esitys.
+  const backfilled = backfillSegmentTracks(segmentStore, routes)
+
+  // B145/V260-amend: SIVULATAUS ⊥ SAA OLLA KIRJOITUS. Push vain järjestäjältä — pätkän
+  // geometria on järjestäjän dataa (V13/V93) & taustakirjoitus jota käyttäjä ⊥ pyytänyt voi
+  // 401:llä laukaista `promptReauth`-overlayn (`main.ts:180`) joka lukitsee koko näkymän.
+  // Talkoolaiselle metsässä se on V18-luokan vika. Turvallista koska V260:n välitila on jo
+  // laillinen: jäljetön pätkä toimii km-haarassa ∴ push odottaa siihen asti kun joku jolla on
+  // oikeus avaa näkymän. Jälki on silti MUISTISSA ∴ tämän istunnon jäsenyys on jo uuden säännön
+  // mukainen — vain serverin kopio jää odottamaan.
+  if (getRole() !== 'talkoolainen') {
+    for (const seg of backfilled) {
+      // B145: outboxin OHI — johdettu arvo ⊥ tarvitse durabiliteettia & taustakirjoitus ⊥ saa
+      // nostaa reauth-overlaytä. Epäonnistuminen korjautuu seuraavalla latauksella.
+      void pushSegmentTrack(seg.id, seg.track)
     }
   }
 

@@ -54,6 +54,7 @@ server/       ← Hono + Bun + SQLite
 | NavigationLogic | `src/logic/navigation.ts` | ✓ T16, T327, T328 (pätkäkontekstin funktiot saavat `segment`in ⊥ `routeId`-parametria, V237; drive-funktiot pitävät `routeId`:n — eri omistaja) | tests/navigation.test.ts | [logic.md](docs/components/logic.md) |
 | SegmentOrder | `src/logic/segment-order.ts` | ✓ T359 (`segmentKm` lukee jäljen akselia kun jälki on, V259; aiemmin T328: pätkä omistaa km-akselin: `segmentKm`/`orderMarkersInSegment`/`displayKm`, suunta phasesta, "ei reitillä" -ryhmä; V237/V238/B129) | tests/segment-order.test.ts | [logic.md](docs/components/logic.md) |
 | SegmentTrack | `src/logic/segment-track.ts` | ✓ T358 (pätkän oma jälki: johto rajoista/ankkureista, kohtisuora etäisyys + km jäljen akselilla; V258/V261. T359–T363 kuluttajat kesken) | tests/segment-track.test.ts | [logic.md](docs/components/logic.md) |
+| SegmentBackfill | `src/logic/segment-backfill.ts` | ✓ T361 (legacy-pätkä saa jäljen rajoistaan kun GPX:t ladattu; ei ylikirjoita, idempotentti; V260) | e2e/segments.spec.ts | [logic.md](docs/components/logic.md) |
 | SegmentMembership | `src/logic/segment-membership.ts` | ✓ T359 (kuka omistaa merkin: lähin jälki voittaa, eksklusiivinen per vaihe, linked/excluded ohittaa geometrian; V259/B143) | tests/segment-membership.test.ts | [logic.md](docs/components/logic.md) |
 | SegmentSync | `src/logic/segment-sync.ts` | ✓ T62 | — | [logic.md](docs/components/logic.md) |
 | AreaTypes | `src/logic/area-types.ts` | ✓ | — | [logic.md](docs/components/logic.md) |

@@ -187,6 +187,11 @@ export function cloneSegmentToNextPhase(store: SegmentStore, segment: Segment): 
     primaryRouteId: segment.primaryRouteId,
     startDist: segment.startDist,
     endDist: segment.endDist,
+    // T361/V258 (ck:review H-7): klooni kattaa SAMAN maaston ∴ se perii jäljen. Ilman tätä
+    // tarkastus-/purku-vaiheen pätkä jäisi ikuisesti jäljettömäksi (V260 sallii sen ∴ ⊥ rikki,
+    // mutta se ⊥ koskaan saisi V259:n eksklusiivista jäsenyyttä). Kopio ⊥ jaettu viittaus:
+    // kloonin rajojen muokkaus (T363) ⊥ saa mutatoida alkuperäisen geometriaa.
+    track: segment.track ? segment.track.map(p => ({ ...p })) : undefined,
     displayName: segment.displayName,
     equipment: [],
     phase: targetPhase,
