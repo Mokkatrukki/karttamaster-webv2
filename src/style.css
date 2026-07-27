@@ -2613,7 +2613,7 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   flex-shrink: 0;
 }
 
-/* T353: otsikko on ainoa joustava elementti headerissa — 340px-modaalissa se typistyy, ⊥ kytkin
+/* T356: otsikko on ainoa joustava elementti headerissa — 340px-modaalissa se typistyy, ⊥ kytkin
    eikä ✕ kutistu (44px on kosketuskoko, ei neuvoteltava). */
 .segment-details-modal-title {
   color: var(--text-body);
@@ -2668,13 +2668,13 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   border-top: 1px solid var(--border-card);
 }
 .segment-details-modal-body > .segment-details-group-title:first-child,
-/* T351: ryhmäotsikot elävät nyt Asetukset-panelin sisällä → ensimmäisen yläviiva pois sieltä. */
+/* T354: ryhmäotsikot elävät nyt Asetukset-panelin sisällä → ensimmäisen yläviiva pois sieltä. */
 .segment-details-modal-tabs .segment-koti-panel > .segment-details-group-title:first-child {
   padding-top: 0;
   border-top: none;
 }
 
-/* T351: bodyn gap siirtyy panelille — body kantaa vain tabikuoren. */
+/* T354: bodyn gap siirtyy panelille — body kantaa vain tabikuoren. */
 .segment-details-modal-tabs .segment-koti-panel {
   display: flex;
   flex-direction: column;
@@ -2757,7 +2757,7 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   color: var(--text-body);
 }
 
-/* T351/V254: sama tabikomponentti kuin talkoolaisen kotinäkymässä, modaalin sisällä.
+/* T354/V257: sama tabikomponentti kuin talkoolaisen kotinäkymässä, modaalin sisällä.
    Tabipalkki on sticky bodyn yläreunassa — pitkä Asetukset-tab ei saa vierittää välilehtiä
    pois näkyvistä (paikan pitää pysyä paikallaan). Tausta on läpinäkymätön: alta liukuva
    sisältö ei sotke luettavuutta. */
@@ -2775,7 +2775,7 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   margin: 4px 0;
 }
 
-/* T352: footer noudattaa jaettua .modal-footer-patternia (DESIGN.md §Modal footer) — layout,
+/* T355: footer noudattaa jaettua .modal-footer-patternia (DESIGN.md §Modal footer) — layout,
    padding ja reunaviiva tulevat sieltä. Modaalikohtaista jää vain flex-shrink (kuori on
    flex-column + overflow:hidden ∴ footer ⊥ saa kutistua bodyn painaessa).
    Poistettu: .btn-segment-modal-save (confirm-primary joka vain sulki = V250-valhe). */
@@ -2838,7 +2838,7 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   cursor: default;
 }
 
-/* T352: vaaravyöhyke on nyt footerin destructive-RIVI (.modal-footer-destructive hoitaa
+/* T355: vaaravyöhyke on nyt footerin destructive-RIVI (.modal-footer-destructive hoitaa
    keskityksen) — ⊥ oikealle tasattu blokki rungon lopussa. */
 
 .btn-segment-delete-modal {
@@ -4085,7 +4085,7 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 }
 .btn--ghost:hover { background: var(--hover); color: var(--text-body); }
 
-/* T335/V243 → T353: korostuskytkin asuu modaalin HEADERISSA otsikon ja ✕:n välissä (tilakytkin,
+/* T335/V243 → T356: korostuskytkin asuu modaalin HEADERISSA otsikon ja ✕:n välissä (tilakytkin,
    ei asetusrivi). aria-pressed näkyy myös visuaalisesti: päällä = accent-kehys (ei pelkkä
    tekstinvaihto, V197). Ei kutistu: otsikko typistyy ensin (min-width:0 + ellipsis alla). */
 .btn-segment-focus-toggle {

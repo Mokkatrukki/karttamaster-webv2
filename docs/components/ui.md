@@ -161,20 +161,20 @@ DOM-komponentit ilman Leafletia. **Testattavuus: Vitest-jsdom.**
 ## SegmentDetailsModal
 **Vastuu:** Pätkän täydet asetukset — nimi, kuvaus, merkit, varustelista, talkoolaisen linkki, pisteiden muokkaus, poisto
 **Käyttäjä:** järjestäjä
-**Moduuli:** `src/ui/segment-details-modal.ts` (~740 riv, ⚠️ pilkkolistalla — T351:n tabijako = tuleva moduuliraja)
+**Moduuli:** `src/ui/segment-details-modal.ts` (~740 riv, ⚠️ pilkkolistalla — T354:n tabijako = tuleva moduuliraja)
 **Testattavuus:** Vitest-jsdom
 
 ### Ominaisuudet
-- ✓ **Kolme välilehteä (T351/V254):** `🎒 Varustelista` (oletus) · `Kaikki merkit` · `Asetukset` (nimi+linkki, kuvaus, jako+loki, rajat, kloonaus). Runko on jaettu `SegmentKotiTabs` — sama komponentti kuin talkoolaisen kotinäkymässä, `scrollerSelector`-parametrilla modaalin bodyyn.
-- ✓ **Footer = jaettu modal-footer (T352):** secondary `Sulje` + destructive `Poista pätkä`. Ei primarya — kentät tallentuvat muutoksesta (V250).
-- ✓ **Korostuskytkin headerissa (T353)** otsikon ja ✕:n välissä; tila asuu wiringissä (T335/V243), poistumis-pilleri vastaa näkyvyydestä modaalin sulkeuduttua.
+- ✓ **Kolme välilehteä (T354/V257):** `🎒 Varustelista` (oletus) · `Kaikki merkit` · `Asetukset` (nimi+linkki, kuvaus, jako+loki, rajat, kloonaus). Runko on jaettu `SegmentKotiTabs` — sama komponentti kuin talkoolaisen kotinäkymässä, `scrollerSelector`-parametrilla modaalin bodyyn.
+- ✓ **Footer = jaettu modal-footer (T355):** secondary `Sulje` + destructive `Poista pätkä`. Ei primarya — kentät tallentuvat muutoksesta (V250).
+- ✓ **Korostuskytkin headerissa (T356)** otsikon ja ✕:n välissä; tila asuu wiringissä (T335/V243), poistumis-pilleri vastaa näkyvyydestä modaalin sulkeuduttua.
 - ✓ Nimen muokkaus (blur/Enter tallentaa, päivittää modaalin otsikon reaaliaikaisesti)
 - ✓ Järjestäjän ohjeet -tekstialue (change tallentaa)
 - ✓ Pätkän merkit -lista (km + tyyppi + statusbadge), näkyy vain jos merkkejä on
 - ✓ Varustelista: automaattinen laskuri merkkityypeittäin + manuaaliset rivit (määrä + nimi, lisää/poista)
 - ✓ Talkoolaisen linkki: näyttää/generoi `assignedCode`-koodin, kopiointinappi, "Muuta"-nappi poistaa koodin (`DELETE /api/admin/codes/:code`)
 - ✓ "Muokkaa pisteitä kartalla" -nappi sulkee modaalin ja siirtää `segmentOverlay.enterEditMode`-tilaan
-- ✓ Poisto: footerin destructive-rivi "Poista pätkä" (confirm, poistaa myös backendistä) — T352 siirsi sen rungon vaaravyöhykkeestä footeriin
+- ✓ Poisto: footerin destructive-rivi "Poista pätkä" (confirm, poistaa myös backendistä) — T355 siirsi sen rungon vaaravyöhykkeestä footeriin
 - ✓ Kaikki muutokset synkronoidaan backendiin (`updateSegmentRemote`/`deleteSegmentRemote`)
 
 ### Käyttäjätarkistus

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// T351/V254 — SegmentDetailsModalin välilehdet. Sama jaettu komponentti (SegmentKotiTabs) kuin
+// T354/V257 — SegmentDetailsModalin välilehdet. Sama jaettu komponentti (SegmentKotiTabs) kuin
 // talkoolaisen kotinäkymässä ∴ testi lukitsee (a) tabijaon, (b) sen ettei sisältö vuoda väärään
 // paneliin, (c) tyhjätilan joka pitää tabin paikallaan datasta riippumatta.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
@@ -32,7 +32,7 @@ const tabButtons = () =>
 const panel = (id: string) =>
   document.querySelector<HTMLElement>(`.segment-details-modal-tabs .segment-koti-panel[data-tab="${id}"]`)!
 
-describe('T351/V254 — pätkämodaalin välilehdet', () => {
+describe('T354/V257 — pätkämodaalin välilehdet', () => {
   beforeEach(() => {
     document.body.innerHTML = ''
     let ls: Record<string, string> = {}

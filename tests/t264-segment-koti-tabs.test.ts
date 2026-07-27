@@ -55,7 +55,7 @@ describe('T264 — SegmentKotiTabs (koti-välilehdet)', () => {
     expect(merkitBtn.getAttribute('aria-selected')).toBe('true')
   })
 
-  // T351/V254: sama komponentti palvelee järjestäjän pätkämodaalia — scrolleri on eri elementti.
+  // T354/V257: sama komponentti palvelee järjestäjän pätkämodaalia — scrolleri on eri elementti.
   // Yleistys on parametri, ⊥ roolihaara sisällä.
   it('oletusscrolleri on #segment-view (talkoolaispolku ennallaan)', () => {
     const host = document.createElement('div')

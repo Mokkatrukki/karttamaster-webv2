@@ -344,7 +344,7 @@ test.describe('T25 — SegmentPanel', () => {
     })
     await page.waitForTimeout(400)
 
-    // T351/V254: rajojen muokkaus asuu Asetukset-tabissa → tabi ensin, ⊥ kaivaa piilotettua panelia.
+    // T354/V257: rajojen muokkaus asuu Asetukset-tabissa → tabi ensin, ⊥ kaivaa piilotettua panelia.
     await page.click('.segment-details-modal-tabs .segment-koti-tab[data-tab="asetukset"]')
 
     const editBtn = page.locator('.btn-segment-edit-pts-modal')
@@ -418,10 +418,10 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(page.locator('.segment-empty')).toBeVisible()
   })
 
-  // T351/V254: modaalin välilehdet kapealla ruudulla. Kolme tabia EI saa taittua kahdelle riville
+  // T354/V257: modaalin välilehdet kapealla ruudulla. Kolme tabia EI saa taittua kahdelle riville
   // — taittunut tabipalkki syö modaalin korkeudesta ja siirtää sisältöä datan mukana.
-  // T352/T353 samassa ajossa: footer on jaettu modal-footer ja korostuskytkin headerissa.
-  test('T351 — modaalin 3 tabia mahtuvat 390px-ruudulle, tab-vaihto toimii', async ({ page }) => {
+  // T355/T356 samassa ajossa: footer on jaettu modal-footer ja korostuskytkin headerissa.
+  test('T354 — modaalin 3 tabia mahtuvat 390px-ruudulle, tab-vaihto toimii', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await mockSegmentWrites(page)
     await page.setViewportSize({ width: 1280, height: 720 })
@@ -454,13 +454,13 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(page.locator('.segment-koti-panel[data-tab="merkit"]')).toBeVisible()
     await expect(page.locator('.segment-koti-panel[data-tab="varuste"]')).toBeHidden()
 
-    // T353: korostuskytkin headerissa, ✕ edelleen 44px.
+    // T356: korostuskytkin headerissa, ✕ edelleen 44px.
     await expect(page.locator('.segment-details-modal-header .btn-segment-focus-toggle')).toBeVisible()
     const closeBox = await page.locator('.segment-details-modal-close').boundingBox()
     expect(closeBox!.width).toBeGreaterThanOrEqual(44)
     expect(closeBox!.height).toBeGreaterThanOrEqual(44)
 
-    // T352: footer = secondary Sulje + destructive-rivi, ei primarya.
+    // T355: footer = secondary Sulje + destructive-rivi, ei primarya.
     await expect(page.locator('.segment-details-modal .modal-footer .modal-btn-secondary')).toHaveText('Sulje')
     await expect(page.locator('.segment-details-modal .modal-btn-primary')).toHaveCount(0)
     await expect(page.locator('.segment-details-modal .modal-footer .modal-btn-destructive')).toHaveText('Poista pätkä')

@@ -19,7 +19,7 @@ describe('korostuskytkimen label (T335/V243/V197)', () => {
   it('kertoo tilan sanoin, ei pelkällä ikonilla', () => {
     expect(focusToggleLabel(false)).toBe('◎ Korosta vain tämä pätkä')
     expect(focusToggleLabel(true)).toBe('◉ Korostus päällä')
-    // T353/V197: headerin lyhyt muoto on edelleen SANA, ⊥ pelkkä ikoni.
+    // T356/V197: headerin lyhyt muoto on edelleen SANA, ⊥ pelkkä ikoni.
     expect(focusToggleShortLabel(false)).toBe('◎ Korosta')
     expect(focusToggleShortLabel(true)).toBe('◉ Korostettu')
     expect(focusToggleShortLabel(true)).not.toBe('◉')
@@ -118,7 +118,7 @@ describe('kytkin + pilleri yhdessä (T335/V243)', () => {
     expect(document.querySelector('.btn-segment-focus-toggle')!.getAttribute('aria-pressed')).toBe('false')
   })
 
-  // T353: kytkin on modaalin HEADERISSA otsikon ja ✕:n välissä — se on tilakytkin, ⊥ Asetukset-
+  // T356: kytkin on modaalin HEADERISSA otsikon ja ✕:n välissä — se on tilakytkin, ⊥ Asetukset-
   // tabin alaotsikko (tabien takana se olisi näkymätön juuri silloin kun se vaikuttaa karttaan).
   it('kytkin on headerissa otsikon ja ✕:n VÄLISSÄ, ⊥ enää rungossa', async () => {
     pillDom()

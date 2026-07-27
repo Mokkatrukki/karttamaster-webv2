@@ -438,18 +438,19 @@ Flex-toolbar joka voi ylittää kapean modaalin → `flex-wrap: wrap` (ei vaakal
 - Backdrop: `background: overlay; backdrop-filter: blur(2px)` — klikki sulkee
 - Modaalikehys: `bg-card`, `border: 1px solid border-default`, `border-radius: 14px`, `box-shadow: 0 16px 48px rgba(0,0,0,0.5)`
 - Leveys: `min(480px, 92vw)`, `max-height: 80vh`, scrollable sisältö
-- **Otsikko-rivi (T353): kolme elementtiä** — `[otsikko flex:1; min-width:0; ellipsis][korostuskytkin flex:0 0 auto][✕ 44×44]`.
+- **Otsikko-rivi (T356): kolme elementtiä** — `[otsikko flex:1; min-width:0; ellipsis][korostuskytkin flex:0 0 auto][✕ 44×44]`.
   Otsikko `text-primary 14px bold` typistyy ENSIN; kytkin ja ✕ eivät kutistu (44px = kosketuskoko, ei neuvoteltava).
   Korostuskytkin `.btn.btn--ghost.btn-segment-focus-toggle`: `min-height:44px`, `padding:0 10px`, `12px`, `white-space:nowrap`,
   teksti `◎ Korosta` ↔ `◉ Korostettu` (**ei pelkkä ikoni** — V197: näkyvä teksti on saavutettava nimi), pitkä muoto `title`-attribuutissa,
   `aria-pressed` + `[aria-pressed="true"]` = accent-kehys. Kytkin on karttaan heti vaikuttava TILAKYTKIN ∴ se ei kuulu välilehden taakse.
 - Sulkeminen: ✕-nappi / Escape / backdrop-klikki — auto-save on change, ei hylkäysdialogi
-- **Välilehdet (T351/V254):** runko on `SegmentKotiTabs` — SAMA komponentti kuin talkoolaisen kotinäkymässä, ei toista toteutusta.
+- **Välilehdet (T354/V257):** runko on `SegmentKotiTabs` — SAMA komponentti kuin talkoolaisen kotinäkymässä, ei toista toteutusta.
   Kolme tabia: `🎒 Varustelista` (oletus) · `Kaikki merkit` · `Asetukset`. Tabipalkki `position:sticky; top:0` bodyn sisällä,
   `surface-card`-tausta (läpinäkymätön — alta liukuva sisältö ei sotke). Panelin sisäinen rytmi `flex-column; gap:14px`.
   Modaali antaa komponentille `scrollerSelector: '.segment-details-modal-body'` → tab-vaihto nollaa scrollTopin (T315/V226).
   Merkitön pätkä: `Kaikki merkit` näyttää tyhjätilan (`.segment-details-markers-empty`) — **tabi ei katoa** datan mukana.
-- **Footer (T352):** jaettu `.modal-footer`-pattern. `.modal-btn-secondary` `Sulje` + `.modal-footer-destructive` > `.modal-btn-destructive` `Poista pätkä`.
+  Järjestäjän valmis-toggle (`.btn-segment-complete-toggle`, T352/V255) asuu `Kaikki merkit` -tabissa merkkilistan alla — sama paikka kuin talkoolaisen kotinäkymässä ∴ roolit löytävät saman toiminnon samasta kohdasta.
+- **Footer (T355):** jaettu `.modal-footer`-pattern. `.modal-btn-secondary` `Sulje` + `.modal-footer-destructive` > `.modal-btn-destructive` `Poista pätkä`.
   **Ei primarya:** kentät tallentuvat muutoksesta ∴ `Tallenna` (tai confirm-täytteinen nappi joka vain sulkee) lupaisi työn jonka kenttä on jo tehnyt (V250).
 - Kentät:
   - `displayName`: `<input>`, auto-save blur/Enter, `min-height: 44px`
@@ -457,7 +458,7 @@ Flex-toolbar joka voi ylittää kapean modaalin → `flex-wrap: wrap` (ei vaakal
   - **Merkit & varusteet (T199, yhtenäinen lista — korvaa entiset kolme erillistä osiota):**
     - Per-merkki-rivit (`.segment-details-marker-list`, `max-height:200px` scrollable): `[MarkerVisualRow 34px, zoomable=true][nimi flex:1 truncated][km tabular-nums text-meta][status-pilli]`. Nimi = `m.label ?? tyyppilabel`. Status-pilli väritetty §C-taulukon mukaan (`.status-suunniteltu/asetettu/tarkistettu/kerätty/ei_tarpeen`, pill-muotoinen `border-radius:999px`).
     - Yhteenveto-chip-rivit (`.segment-equipment-chip-list`, samassa sektiossa heti perässä): merkit groupoitu `m.type`:n mukaan, `[iso tabular-nums luku "N×"][MarkerVisualRow 28px, zoomable=false][nimi]`. Korvaa entisen `"6× left"`-tekstirivin. Ei zoom-nappia (yhteenveto ei ole tarkka esikatselu, per-merkki-rivi hoitaa sen).
-    - **T351: merkkiosiot ja lisävarusteet ovat ERI välilehdillä** — per-merkki-rivit + yhteenveto-chipit `Kaikki merkit` -tabissa, manuaaliset lisävarusteet `🎒 Varustelista` -tabissa. Rivien sisäinen DOM ja luokat säilyivät T199:stä ennallaan.
+    - **T354: merkkiosiot ja lisävarusteet ovat ERI välilehdillä** — per-merkki-rivit + yhteenveto-chipit `Kaikki merkit` -tabissa, manuaaliset lisävarusteet `🎒 Varustelista` -tabissa. Rivien sisäinen DOM ja luokat säilyivät T199:stä ennallaan.
     - Manuaaliset lisävarusteet: add/remove/edit-rivi ennallaan (ei muutettu T199:ssä), `min-height: 44px` kaikille inputeille ja napeille.
     - Merkkipohjainen sisältö korvautuu tyhjätilalla jos pätkällä ei merkkejä (`segMarkers.length === 0`); lisävarustelista näkyy silti aina omalla tabillaan.
   - `.btn-segment-clone-phase` (T146): "Kloonaa &lt;seuraava&gt;-vaiheeseen", sama tyyli kuin `.btn-segment-edit-pts-modal` (`field-tint` bg, `border-strong`, `min-height:44px`, `width:100%`, `text-align:left`) — ei destructive, ei primary, matala visuaalinen painoarvo koska harvoin käytetty toiminto

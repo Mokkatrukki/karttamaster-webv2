@@ -3,7 +3,7 @@ import { updateSegmentRemote, deleteSegmentRemote, pushSegment } from '../logic/
 import type { Segment, SegmentStore, EquipmentItem } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
 import { registerEscClose, createBackdrop } from './modal-helpers'
-// T351/V254: JAETTU tabikomponentti (talkoolaisen kotinäkymä + tämä modaali) — ⊥ toista toteutusta.
+// T354/V257: JAETTU tabikomponentti (talkoolaisen kotinäkymä + tämä modaali) — ⊥ toista toteutusta.
 import { SegmentKotiTabs } from './segment-koti-tabs'
 import { buildMarkerVisual } from './marker-visual-row'
 import { displayKm, orderMarkersInSegment } from '../logic/segment-order'
@@ -47,7 +47,7 @@ export function focusToggleLabel(on: boolean): string {
   return on ? '◉ Korostus päällä' : '◎ Korosta vain tämä pätkä'
 }
 
-// T353/V197: headerissa on tilaa vain lyhyelle muodolle — mutta EI pelkälle ikonille: näkyvä
+// T356/V197: headerissa on tilaa vain lyhyelle muodolle — mutta EI pelkälle ikonille: näkyvä
 // teksti on saavutettava nimi. Pitkä muoto jää `title`-lisäselitteeksi.
 export function focusToggleShortLabel(on: boolean): string {
   return on ? '◉ Korostettu' : '◎ Korosta'
@@ -85,7 +85,7 @@ export class SegmentDetailsModal {
     // T346: audit-osio elää nyt Jako-ryhmän sisällä (buildBody), ⊥ bodyn loppuun liimattuna.
     const { body } = this.buildBody(seg, titleEl)
     modal.appendChild(body)
-    // T352/V250: poisto on footerin destructive-rivi, ⊥ rungon vaaravyöhyke.
+    // T355/V250: poisto on footerin destructive-rivi, ⊥ rungon vaaravyöhyke.
     modal.appendChild(this.buildCloseFooter(seg))
 
     backdrop.appendChild(modal)
@@ -108,7 +108,7 @@ export class SegmentDetailsModal {
     header.className = 'segment-details-modal-header'
     header.appendChild(titleEl)
 
-    // T353/V243: korostus on modaalin TILAKYTKIN — se vaikuttaa karttaan taustalla heti, ⊥ ole
+    // T356/V243: korostus on modaalin TILAKYTKIN — se vaikuttaa karttaan taustalla heti, ⊥ ole
     // Asetukset-tabin kolmas alaotsikko. Tila asuu edelleen wiringissä (modaali tuhoutuu
     // sulkiessa), poistumis-pilleri vastaa näkyvyydestä modaalin jälkeen.
     header.appendChild(this.buildFocusToggle(seg))
@@ -130,7 +130,7 @@ export class SegmentDetailsModal {
     const body = document.createElement('div')
     body.className = 'segment-details-modal-body'
 
-    // T351/V254: kolme välilehteä, SAMA komponentti kuin talkoolaisen kotinäkymässä. T346:n
+    // T354/V257: kolme välilehteä, SAMA komponentti kuin talkoolaisen kotinäkymässä. T346:n
     // ryhmäjako (Tiedot/Sisältö/Jako/Kartta/Vaiheet) EI katoa — se on edelleen tuleva moduuliraja
     // — mutta Sisältö avautuu kahdeksi tabiksi (merkit ⊥ varusteet ovat eri kysymys kun ne ovat
     // eri välilehdillä ∴ T199:n "yksi lista" -perustelu raukeaa) ja loput neljä ryhmää kääriytyvät
@@ -151,12 +151,6 @@ export class SegmentDetailsModal {
       groupHeading('Jako'),
       this.buildAssignSection(seg),
     ]
-    // T352/V255 (B141): valmis-toggle kuuluu Jako-ryhmään — "mitä tekijä on tehnyt". Järjestäjän
-    // AINOA sisääntulo pätkän valmis-tilaan (⋯-valikko on `data-role-hide="järjestäjä"` & SegmentView
-    // kytketään vain talkoolaispolussa) ∴ ilman tätä järjestäjä ⊥ voi kuitata soittaneen talkoolaisen
-    // puolesta eikä perua virhekuittausta.
-    const completeSection = this.buildCompleteSection(seg)
-    if (completeSection) asetukset.push(completeSection)
     if (seg.assignedCode) asetukset.push(this.buildAuditSection(seg.assignedCode))
     asetukset.push(
       groupHeading('Kartta'),
@@ -165,10 +159,19 @@ export class SegmentDetailsModal {
       this.buildCloneSection(seg),
     )
 
+    // T352/V255 (B141) + T354: valmis-toggle on `Kaikki merkit` -tabissa — SAMA paikka kuin
+    // talkoolaisen kotinäkymässä (`segment-view.ts` merkit-tab: markerList + completeSection).
+    // Järjestäjän AINOA sisääntulo valmis-tilaan (⋯-valikko on `data-role-hide="järjestäjä"` &
+    // SegmentView kytketään vain talkoolaispolussa) ∴ se ⊥ saa haudata itseään kolmanteen tabiin;
+    // & kaksi roolia ⊥ saa löytää samaa toimintoa eri paikasta (V236-henki).
+    const merkit: HTMLElement[] = [this.buildMarkersSection(seg)]
+    const completeSection = this.buildCompleteSection(seg)
+    if (completeSection) merkit.push(completeSection)
+
     const tabs = new SegmentKotiTabs(
       [
         { id: 'varuste', label: '🎒 Varustelista', els: [this.buildEquipmentSection(seg)] },
-        { id: 'merkit', label: 'Kaikki merkit', els: [this.buildMarkersSection(seg)] },
+        { id: 'merkit', label: 'Kaikki merkit', els: merkit },
         { id: 'asetukset', label: 'Asetukset', els: asetukset },
       ],
       // Modaalin body on oma scrollerinsa — ilman tätä tab-vaihto ⊥ nollaisi scrollTopia ja
@@ -279,7 +282,7 @@ export class SegmentDetailsModal {
     return { section, descInput }
   }
 
-  // T199 → T351: merkkilista + yhteenveto omalla välilehdellään. Precise-rivit ja
+  // T199 → T354: merkkilista + yhteenveto omalla välilehdellään. Precise-rivit ja
   // yhteenveto-chipit käyttävät buildMarkerVisual (T198) — sama visuaali kuin kartalla
   // (V87: täyttö on tyyppiväri, ei tekstiä). Rivien DOM & valitsimet ovat T199:stä
   // muuttumattomat — tämä on sijaintimuutos, ⊥ sisältömuutos.
@@ -291,7 +294,7 @@ export class SegmentDetailsModal {
     const segMarkers = getMarkersForSegment(seg, allMarkers)
 
     if (segMarkers.length === 0) {
-      // T351: tyhjätila, ⊥ katoava tabi. Tabi joka häviää datan mukana siirtää naapureita ∴
+      // T354: tyhjätila, ⊥ katoava tabi. Tabi joka häviää datan mukana siirtää naapureita ∴
       // järjestäjä opettelee paikan joka ei pysy paikallaan.
       const empty = document.createElement('p')
       empty.className = 'segment-details-markers-empty'
@@ -367,7 +370,7 @@ export class SegmentDetailsModal {
     return section
   }
 
-  // T351: manuaaliset lisävarusteet omana välilehtenään — sama rooli kuin talkoolaisen
+  // T354: manuaaliset lisävarusteet omana välilehtenään — sama rooli kuin talkoolaisen
   // varustelistalla (`/s/<koodi>` 🎒-tab), ∴ sama paikka ja sama nimi molemmille rooleille.
   private buildEquipmentSection(seg: Segment): HTMLElement {
     const container = document.createElement('div')
@@ -631,7 +634,7 @@ export class SegmentDetailsModal {
     return section
   }
 
-  // T335/V243 → T353: järjestäjän korostuskytkin, nyt headerissa otsikon ja ✕:n välissä.
+  // T335/V243 → T356: järjestäjän korostuskytkin, nyt headerissa otsikon ja ✕:n välissä.
   // Oletus POIS (fokus on hetken työkalu). Modaali ei sulkeudu klikistä — järjestäjä voi kokeilla
   // ja perua saman tien; poistumis-pilleri (wiring) vastaa siitä että tila löytyy vielä modaalin
   // sulkeuduttua.
@@ -699,7 +702,7 @@ export class SegmentDetailsModal {
     return section
   }
 
-  // T344/V250 → T352: footer VAIN sulkee, ja käyttää jaettua modal-footer-patternia
+  // T344/V250 → T355: footer VAIN sulkee, ja käyttää jaettua modal-footer-patternia
   // (DESIGN.md §Modal footer). Aiempi "Tallenna muutokset" kattoi 2/8 osiosta ∴ se lupasi enemmän
   // kuin teki. Kaikki kentät tallentuvat muutoksesta ⇒ `Tallenna` on kielletty tässä modaalissa,
   // ja niin on myös confirm-täytteinen primary joka vain sulkee — se on sama valhe toisella
@@ -803,7 +806,7 @@ export class SegmentDetailsModal {
     return section
   }
 
-  // T352: destruktiivinen toiminto elää footerin omalla rivillään pienenä tekstinappina
+  // T355: destruktiivinen toiminto elää footerin omalla rivillään pienenä tekstinappina
   // (DESIGN.md §Modal footer) — ⊥ isona danger-blokkina rungossa. V250:n alkuperäinen huoli
   // (footerin ALLE jäävä vaaravyöhyke luetaan toiseksi dialogiksi) ratkeaa tyylillä, ⊥ sijainnilla.
   private buildDangerZone(seg: Segment): HTMLElement {

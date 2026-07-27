@@ -30,7 +30,11 @@ function setup(phase: Segment['phase'] = 'asettaminen', completed?: boolean) {
   return { container, store, seg, onUpdate, panel }
 }
 
+// T354/V257: modaali on välilehdillä — valmis-toggle elää `Kaikki merkit` -tabissa (sama paikka
+// kuin talkoolaisen kotinäkymässä). Valitsin osuu edelleen suoraan; sijainti on lukittu alla.
 const toggle = () => document.querySelector('.btn-segment-complete-toggle') as HTMLButtonElement | null
+const togglePanel = () =>
+  document.querySelector('.segment-koti-panel[data-tab="merkit"] .btn-segment-complete-toggle')
 const status = () => document.querySelector('.segment-details-complete-status') as HTMLElement | null
 
 describe('T352 — järjestäjän valmis-toggle pätkämodaalissa', () => {
@@ -102,5 +106,11 @@ describe('T352 — järjestäjän valmis-toggle pätkämodaalissa', () => {
     await flush()
     await flush()
     expect(status()?.textContent).toContain('Tallennus epäonnistui')
+  })
+
+  it('T354: toggle asuu Kaikki merkit -tabissa — sama paikka kuin talkoolaisella', () => {
+    setup('asettaminen')
+    expect(togglePanel()).not.toBeNull()
+    expect(document.querySelector('.segment-koti-panel[data-tab="asetukset"] .btn-segment-complete-toggle')).toBeNull()
   })
 })

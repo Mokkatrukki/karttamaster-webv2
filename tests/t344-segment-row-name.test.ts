@@ -105,7 +105,7 @@ describe('T344/V250 — yksi tallennusmalli modaalissa', () => {
     expect(store.get(segId)!.description).toBe('Uusi ohje')
   })
 
-  it('footer sanoo "Sulje" — ei lupaa tallennusta jota se ei tee (T352)', () => {
+  it('footer sanoo "Sulje" — ei lupaa tallennusta jota se ei tee (T355)', () => {
     setup()
     document.querySelector<HTMLButtonElement>('.segment-info')!.click()
     const footerBtn = document.querySelector<HTMLButtonElement>('.modal-footer .modal-btn-secondary')!
@@ -121,9 +121,9 @@ describe('T344/V250 — yksi tallennusmalli modaalissa', () => {
     expect(document.querySelector('.segment-details-modal')).toBeNull()
   })
 
-  // T352/V250: vaaravyöhyke siirtyi rungosta footerin omalle destructive-riville. Sijainti ei enää
+  // T355/V250: vaaravyöhyke siirtyi rungosta footerin omalle destructive-riville. Sijainti ei enää
   // kanna erottelua — tyyli kantaa (pieni tekstinappi, ⊥ danger-blokki).
-  it('poisto on footerin destructive-rivillä actions-rivin JÄLKEEN (T352)', () => {
+  it('poisto on footerin destructive-rivillä actions-rivin JÄLKEEN (T355)', () => {
     setup()
     document.querySelector<HTMLButtonElement>('.segment-info')!.click()
 

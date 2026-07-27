@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // T346/V250 — SegmentDetailsModalin osioryhmittely. Ryhmäjako on myös tuleva moduuliraja
 // (moduuli on ⚠️ pilkkolistalla) ∴ tämä testi lukitsee rajat ennen pilkkomista.
-// T351/V254 PÄIVITYS: Sisältö-ryhmä avautui kahdeksi välilehdeksi (Varustelista · Kaikki merkit,
+// T354/V257 PÄIVITYS: Sisältö-ryhmä avautui kahdeksi välilehdeksi (Varustelista · Kaikki merkit,
 // katettu tests/t351-modal-tabs.test.ts:ssä) ja loput neljä ryhmää elävät Asetukset-tabin
 // sisäotsikkoina. Ryhmärajat itsessään EIVÄT muuttuneet — vain niiden kuori.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
@@ -34,7 +34,7 @@ function groupOf(el: Element): string | null {
   return null
 }
 
-describe('T346/V250+T351 — modaalin ryhmärajat', () => {
+describe('T346/V250+T354 — modaalin ryhmärajat', () => {
   beforeEach(() => {
     document.body.innerHTML = ''
     let ls: Record<string, string> = {}
@@ -48,7 +48,7 @@ describe('T346/V250+T351 — modaalin ryhmärajat', () => {
   })
   afterEach(() => { document.body.innerHTML = '' })
 
-  it('ryhmäotsikot oikeassa järjestyksessä (Sisältö = omat tabinsa, T351)', () => {
+  it('ryhmäotsikot oikeassa järjestyksessä (Sisältö = omat tabinsa, T354)', () => {
     openModal()
     expect(groupTitles()).toEqual(['Tiedot', 'Jako', 'Kartta', 'Vaiheet'])
   })
@@ -59,7 +59,7 @@ describe('T346/V250+T351 — modaalin ryhmärajat', () => {
     expect(groupOf(document.querySelector('.segment-desc-input')!.closest('.segment-details-modal-section')!)).toBe('Tiedot')
   })
 
-  // T353: korostuskytkin siirtyi headeriin (tilakytkin, ⊥ ryhmän asetusrivi) → Kartta-ryhmään
+  // T356: korostuskytkin siirtyi headeriin (tilakytkin, ⊥ ryhmän asetusrivi) → Kartta-ryhmään
   // jää rajojen muokkaus. Kytkimen sijainti on t335:n vastuulla.
   it('rajojen muokkaus kuuluu Kartta-ryhmään', () => {
     openModal()
@@ -85,7 +85,7 @@ describe('T346/V250+T351 — modaalin ryhmärajat', () => {
     expect(groupTitles()).toContain('Jako')
   })
 
-  it('vaaravyöhyke ja footer pysyvät ryhmien ULKOpuolella (T352: poisto footerin sisällä)', () => {
+  it('vaaravyöhyke ja footer pysyvät ryhmien ULKOpuolella (T355: poisto footerin sisällä)', () => {
     openModal()
     const danger = document.querySelector('.segment-modal-danger-zone')!
     const footer = document.querySelector('.modal-footer')!

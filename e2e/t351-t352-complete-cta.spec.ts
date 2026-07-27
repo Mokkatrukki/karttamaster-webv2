@@ -137,6 +137,10 @@ test.describe('T352 — järjestäjän valmis-toggle pätkämodaalissa', () => {
     await page.locator('.segment-info').first().click()
     await page.waitForTimeout(300)
 
+    // T354/V257: modaali on välilehdillä — valmis-toggle asuu `Kaikki merkit` -tabissa, samassa
+    // paikassa kuin talkoolaisen kotinäkymässä. Testi klikkaa tabin, ⊥ kaivaa piilotettua panelia.
+    await page.click('.segment-details-modal-tabs .segment-koti-tab[data-tab="merkit"]')
+
     const toggle = page.locator('.btn-segment-complete-toggle')
     await expect(toggle).toBeVisible()
     await expect(toggle).toHaveText('✓ Merkitse pätkä valmiiksi')

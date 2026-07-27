@@ -3,8 +3,8 @@
 // (käyttäjäpalaute 2026-07-21). Pure-DOM (Vitest-jsdom). REPARENTOI annetut elementit paneleihin
 // (appendChild siirtää) → SegmentView pysyy koordinaattorina, ei rakenteellista kasvua (pilkkohälytys).
 // Vain koti-moodissa (kartta-moodi: CSS piilottaa .segment-koti-tabs, hero näkyy).
-// T351/V254: JAETTU komponentti — palvelee myös järjestäjän SegmentDetailsModalia. Toinen
-// tabitoteutus on rikkomus (V254): kaksi kopiota ajautuu erilleen aria-selectedissä ja
+// T354/V257: JAETTU komponentti — palvelee myös järjestäjän SegmentDetailsModalia. Toinen
+// tabitoteutus on rikkomus (V257): kaksi kopiota ajautuu erilleen aria-selectedissä ja
 // scroll-nollauksessa. Erot hoidetaan parametrilla (scrollerSelector), ei roolihaaralla.
 
 export interface KotiTabDef {
@@ -16,9 +16,9 @@ export interface KotiTabDef {
 export interface KotiTabOptions {
   /** Aloitustabi. Oletus: ensimmäinen. */
   initial?: string
-  // T351/V254: sama komponentti palvelee myös järjestäjän pätkämodaalia, jonka scrolleri on eri
+  // T354/V257: sama komponentti palvelee myös järjestäjän pätkämodaalia, jonka scrolleri on eri
   // elementti. Yleistys on PARAMETRI, ei roolihaara sisällä — muuten kaksi tabitoteutusta ajautuu
-  // erilleen (V254). Oletus pitää talkoolaispolun ennallaan.
+  // erilleen (V257). Oletus pitää talkoolaispolun ennallaan.
   scrollerSelector?: string
 }
 
