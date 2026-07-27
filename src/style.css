@@ -613,7 +613,9 @@ button {
 .route-vis-row.route-hidden { opacity: 0.45; }
 .route-vis-row:disabled { cursor: default; }
 .route-vis-row .route-vis-label { flex: 1; }
-.route-vis-dot { width: 14px; height: 14px; border-radius: 999px; flex-shrink: 0; }
+/* T304/V216: väripallosta VIIVASWATCH — kuvio (2. kanava) ei mahdu 14px palloon.
+   Leveä + matala = sama muoto kuin kartan viiva ∴ legenda vastaa karttaa. */
+.route-vis-dot { width: 26px; height: 5px; border-radius: 2px; flex-shrink: 0; }
 .route-vis-eye { display: inline-flex; color: var(--text-muted); flex-shrink: 0; }
 
 /* T286: suuntanuolet — divIcon ilman Leafletin oletustaustaa/reunaa. */
@@ -665,9 +667,10 @@ button {
 }
 
 .tab-color-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+  /* T304/V216: sama viivaswatch kuin reittivalitsimessa, pienempänä (drive-nappi). */
+  width: 16px;
+  height: 4px;
+  border-radius: 2px;
   flex-shrink: 0;
 }
 

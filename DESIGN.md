@@ -67,7 +67,7 @@ myös `STATUS_RING`-taulussa synkassa vaalean teeman kanssa. Taustaväri: `color
 
 ### Reitti-/pätkävärit (SEGMENT_COLORS `src/logic/segments.ts` + ROUTE_DEFS `src/main.ts`)
 
-Segmenttipaletti (pätkät, valkoiselle kartalle): `#2F6FB0` (sininen) · `#7A4E9C` (violetti) · `#0E9594` (turkoosi) · `#B5476B` (magenta).
+Segmenttipaletti (pätkät): **TUMMA perhe** `#163A5F` (petroli) · `#552070` (violetti) · `#681A41` (viini) · `#582F0F` (ruoste). Reittipaletti on keskikirkas ∴ pätkä ja reitti erottuvat päällekkäin myös akromaattisesti (vaaleusero on kanava jota värisokeus ja aurinko eivät vie) ja V244:n ehto `SEGMENT_COLORS ∩ ROUTE-värit = ∅` toteutuu myös silmällä, ei vain pikselinä (ennen: `#2F6FB0` = `smtb-55` pikselilleen). Vihreä puuttuu tarkoituksella — se on varattu status-kanavalle (`--segment-done`, V96-amend).
 
 **Karttapinta-tokenit — oma väriavaruus (V253/B136).** Karttapinnan grafiikan (Leaflet-vektorit, karttalappu, merkkien hehku) kontrasti on kalibroitu POHJAKARTTAA vasten, ja pohjakartta ei vaihdu teeman mukana ∴ nämä värit **eivät saa tulla teemariippuvaisista chrome-tokeneista** (`--confirm`, `--accent`, `--surface-*`, `--text-*`). Lisäksi Leaflet-vektori saa värinsä JS:stä joka ei näe CSS-muuttujaa ⇒ jokainen chrome-token karttapinnalla luo parin joka hajoaa teemanvaihdossa (B136: viiva `#1F8A50` vs lapun reunus `#2FA35B` Kaamoksessa).
 
@@ -80,15 +80,22 @@ Rekisteri on testattu: `e2e/t349-map-surface-theme.spec.ts` iteroi tämän taulu
 
 Sääntö: karttapinta-token määritellään **vain `:root`issa** — `[data-theme="dark"]` ei ylikirjoita sitä. Poikkeus säännöstä "väri tulee tokenista": elementti joka kantaa oman läpinäkymättömän pintansa kartan päällä (`.map-mode-pill`, `#marker-focus-pill`, kontrollit) on chromea ja saa seurata teemaa — se ei lue kontrastiaan pohjakarttaa vasten. Testattava vain teemakierroksella (`e2e/t349-map-surface-theme.spec.ts`): vaaleassa vika on näkymätön.
 
-**Reittivärit — kaksi tapahtumaa, kaksi sävyperhettä (T285/§C).** Reittipilli renderöi taustan = reittiväri + tumma teksti (`--text-body`), joten jokainen ≥3:1 kontrasti (AA large). Tapahtuma tunnistuu perheestä, pituus perheen sävystä:
+**Reittivärit — KAKSI KANAVAA (T304/V216).** Sävy erottaa tapahtuman (MTB viileä, Gravel lämmin) JA reitin perheen sisällä; viivakuvio on riippumaton 2. kanava joka paljastaa jaetulla osuudella alla kulkevan reitin ja luetaan myös akromaattisesti (värisokeus, aurinko, mobiilin autokirkkaus). Ennen T304:ää perheen sisäinen ero oli pelkkä vaaleusporrastus (3 sinistä) — yksi kanava kantoi kaiken ∴ päällekkäisyys hävitti alemman kokonaan.
 
-| Reitti | id | väri | perhe | kontrasti (dark text) |
-|---|---|---|---|---|
-| SyöteMTB 30 km | `smtb-30` | `#4C97D6` vaalea sininen | MTB = viileä/sininen | 5.2:1 |
-| SyöteMTB 55 km | `smtb-55` | `#2F6FB0` sininen | " | 3.14:1 |
-| Gravel 62 km | `sgf-62` | `#E9A13B` amber | Gravel = lämmin oranssi-puna | ≥3:1 |
-| Gravel 125 km | `sgf-125` | `#E2662A` oranssi | " | ≥3:1 |
-| Gravel 175 km | `sgf-175` | `#C4384A` puna | " | 3.13:1 |
+Luminanssibudjetti on kaksipuolinen ja mitattu: reittipilleri (`route-bar.ts`) renderöi värin **taustaksi** tummalla tekstillä ⇒ väri ei saa olla liian tumma (≥3:1 vs `--text-body`), ja viiva piirtyy vaalealle kartalle ⇒ ei liian vaalea (≥2.5:1 vs `#F2F0EA`). Testattu: `tests/t304-route-palette.test.ts`.
+
+| Reitti | id | väri | sävy | kuvio | vs kartta | vs pilleriteksti |
+|---|---|---|---|---|---|---|
+| SyöteMTB 30 km | `smtb-30` | `#1D8CB4` syaani-sininen | 196° | ehjä | 3.37 | 4.26 |
+| SyöteMTB 55 km | `smtb-55` | `#4D6FCB` indigo | 224° | `18 8` | 4.14 | 3.47 |
+| SyöteMTB 110 km siirtymä | `smtb-110-siirtyma` | `#8C71D6` violetti-sininen | 256° | `6 10` | 3.38 | 4.25 |
+| Gravel 62 km | `sgf-62` | `#A58312` oliivi-amber | 46° | ehjä | 3.15 | 4.56 |
+| Gravel 125 km | `sgf-125` | `#E2662A` oranssi | 20° | `18 8` | 2.99 | 4.81 |
+| Gravel 175 km | `sgf-175` | `#C4384A` puna | 352° | `6 10` | 4.59 | 3.13 |
+
+Sävyero perheen sisällä ≥20° (mitattu; amber siirrettiin 38°→46° koska 38° oli vain 18° päässä oranssista). Kuviot: ehjä / pitkä katko / lyhyt katko, sama kolmikko molemmissa perheissä — perhe erottuu sävystä, reitti perheen sisällä kuviosta.
+
+**Legenda vastaa karttaa (V216 c).** `RouteVisibilityControl` ja `RouteBar` renderöivät väripallon sijaan **viivaswatchin** (`.route-vis-dot` 26×5px, `.tab-color-dot` 16×4px) jonka tausta tulee `routeSwatchBackground(color, dashArray)`-funktiosta (`src/logic/route-swatch.ts`, puhdas). Swatchiin mahtuu 3 jaksoa ∴ harva kuvio lukee kuviona eikä yhtenä pisteenä. Väripallo valehteli sen jälkeen kun kuviosta tuli erottava kanava.
 
 Uusi reittiväri: pidä ≥3:1 tummalla tekstillä. `smtb-55 #1E5A94` hylättiin (2.29:1 < 3:1).
 

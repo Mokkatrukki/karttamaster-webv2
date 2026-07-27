@@ -1,5 +1,6 @@
 import type L from 'leaflet'
 import type { RouteConfig } from '../logic/multi-route'
+import { routeSwatchBackground } from '../logic/route-swatch'
 import type { MarkerManager } from './markers'
 
 const SVG_EYE_OPEN = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`
@@ -125,7 +126,8 @@ export class RouteVisibilityControl {
         row.className = 'route-vis-row'
         row.type = 'button'
         row.dataset.routeId = r.id
-        row.innerHTML = `<span class="route-vis-dot" style="background:${r.color}"></span><span class="route-vis-label">${r.label}</span><span class="route-vis-eye">${SVG_EYE_OPEN}</span>`
+        // T304/V216: swatch näyttää värin JA kuvion — legenda ! vastata karttaa.
+        row.innerHTML = `<span class="route-vis-dot" style="background:${routeSwatchBackground(r.color, r.dashArray)}"></span><span class="route-vis-label">${r.label}</span><span class="route-vis-eye">${SVG_EYE_OPEN}</span>`
         row.addEventListener('click', () => this.toggleVisible(r.id))
         this.panel.appendChild(row)
       }

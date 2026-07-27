@@ -1,6 +1,7 @@
 import L from 'leaflet'
 import { nearestPointIndex } from '../logic/bearing'
 import type { RouteConfig } from '../logic/multi-route'
+import { routeSwatchBackground } from '../logic/route-swatch'
 import type { DriveMode } from './drive'
 import type { MarkerManager } from './markers'
 
@@ -98,7 +99,7 @@ export class RouteBar {
       const driveBtn = document.createElement('button')
       driveBtn.className = 'route-tab-drive'
       driveBtn.title = 'Aseta ajettavaksi reitiksi'
-      driveBtn.innerHTML = `<span class="tab-color-dot" style="background:${r.color}"></span>${r.label}<span class="tab-arrow">▶</span>`
+      driveBtn.innerHTML = `<span class="tab-color-dot" style="background:${routeSwatchBackground(r.color, r.dashArray)}"></span>${r.label}<span class="tab-arrow">▶</span>`
       driveBtn.addEventListener('click', () => this.setDriveRoute(r.id))
 
       const visBtn = document.createElement('button')

@@ -270,8 +270,12 @@ export function formatPhaseProgress(progress: PhaseProgress): string {
 }
 
 // T152/V96: pätkän tunnistehue stabiili per id (⊥ lista-indeksi — poisto ei siirrä muiden värejä).
-// V132/T202: valkoiselle kartalle sopivat reitti-/pätkävärit (Reittimerkki-paletti).
-export const SEGMENT_COLORS = ['#2F6FB0', '#7A4E9C', '#0E9594', '#B5476B']
+// V132/T202: valkoiselle kartalle sopivat värit.
+// T304/V216/V244: pätkäpaletti on TUMMA perhe & reittipaletti on KESKIKIRKAS ∴ (a) leikkaus
+// reittiväreihin on tyhjä myös silmällä ⊥ vain pikselinä (ennen `#2F6FB0` = smtb-55 pikselilleen),
+// (b) pätkä & reitti erottuvat päällekkäin myös akromaattisesti (vaaleusero, ⊥ sävyero).
+// Vihreä puuttuu tarkoituksella: se on varattu status-kanavalle (SEGMENT_DONE_COLOR, V96-amend).
+export const SEGMENT_COLORS = ['#163A5F', '#552070', '#681A41', '#582F0F']
 
 export function colorForSegment(id: string): string {
   let hash = 0

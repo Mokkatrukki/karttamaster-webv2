@@ -66,8 +66,10 @@ async function init(talkoolainenCode?: string) {
   backfillDistanceByRoute(initialMarkers, routes)
 
   const polylines = routes.map(r =>
+    // T304/V216: dashArray = 2. kanava. Jaetulla osuudella ylempi reitti paljastaa aukoistaan
+    // alla kulkevan ∴ päällekkäisyys ei enää piilota reittiä kokonaan.
     L.polyline(r.routePoints.map(p => [p.lat, p.lon] as [number, number]), {
-      color: r.color, weight: 6, opacity: 0.85,
+      color: r.color, weight: 6, opacity: 0.85, dashArray: r.dashArray,
     }).addTo(map)
   )
   map.fitBounds(L.featureGroup(polylines).getBounds(), { padding: [20, 20] })
