@@ -86,6 +86,23 @@ export class SegmentHero {
         ? '<span class="segment-view-next-done-title">Ei merkkejä tällä pätkällä</span>'
         : '<span class="segment-view-next-done-title">✓ Kaikki asetettu 🎉</span>'
       this.el.appendChild(done)
+      // T351/V254 (B137): valmiussignaali & sen kuittaus SAMASSA näkymässä. Ennen tätä nappi oli
+      // vain "Kaikki merkit" -tabin pohjalla + yläpalkin ⋯:ssä ∴ talkoolaisen VIIMEINEN askel
+      // metsässä vaati tabinvaihdon tai valikon. total===0 ("Ei merkkejä") ⊥ saa nappia — tyhjä
+      // pätkä ⊥ ole valmiussignaali. Sanamuoto & tokenit = SegmentView.renderCompleteSection (T230).
+      if (total > 0 && actions.onComplete) {
+        const completed = segment.completed ?? false
+        const btn = document.createElement('button')
+        btn.type = 'button'
+        // Jaettu `segment-view-complete-btn` = jaetut tokenit (leveys/keskitys); oma
+        // `segment-hero-complete-btn` erottaa hero-napin tabin osiosta valitsimissa.
+        btn.className = completed
+          ? 'btn btn--secondary segment-view-complete-btn segment-hero-complete-btn'
+          : 'btn btn--confirm segment-view-complete-btn segment-hero-complete-btn'
+        btn.textContent = completed ? '↩ Merkitse keskeneräiseksi' : '✓ Merkitse pätkä valmiiksi'
+        btn.addEventListener('click', () => actions.onComplete?.(!completed))
+        this.el.appendChild(btn)
+      }
       actions.onNavigate?.(null)
       return
     }

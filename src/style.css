@@ -1961,6 +1961,12 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   color: var(--text-muted);
 }
 
+/* T351/V254: done-rivin valmis-toggle. Rivi itse pysyy matalana (T228) — nappi on ainoa
+   painava elementti siinä, koska se on talkoolaisen VIIMEINEN askel (B137). */
+.segment-view-next--done .segment-view-complete-btn {
+  margin-top: 8px;
+}
+
 /* T228: done-tila = matala rivi ilman accent-kortti-korostusta → kartta esiin.
    Passiivinen "kaikki asetettu" ei kilpaile kartan kanssa (VISION kartta=päänavigointi). */
 .segment-view-next--done {
@@ -2652,6 +2658,20 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* T352/V255: järjestäjän valmis-toggle. Nappi täysleveä kuten muutkin modaalin toiminnot;
+   status kertoo nykytilan sanoin (V197) & kantaa myös epäonnistuneen tallennuksen viestin. */
+.segment-details-complete-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--confirm);
+  margin: 0;
+}
+
+.btn-segment-complete-toggle {
+  width: 100%;
+  justify-content: center;
 }
 
 .segment-assign-modal-row {

@@ -143,7 +143,13 @@ export class SegmentDetailsModal {
 
     // Jako = kenelle pätkä kuuluu & mitä tekijä on tehnyt. Aktiviteettiloki (T227) kuuluu tähän
     // ryhmään eikä bodyn loppuun: se on assign-tiedon jatke, ⊥ oma saareke.
+    // T352/V255 (B138): valmis-toggle kuuluu Jako-ryhmään — "mitä tekijä on tehnyt". Järjestäjän
+    // AINOA sisääntulo pätkän valmis-tilaan (⋯-valikko on `data-role-hide="järjestäjä"` & SegmentView
+    // kytketään vain talkoolaispolussa) ∴ ilman tätä järjestäjä ⊥ voi kuitata soittaneen talkoolaisen
+    // puolesta eikä perua virhekuittausta.
     const jako: HTMLElement[] = [this.buildAssignSection(seg)]
+    const completeSection = this.buildCompleteSection(seg)
+    if (completeSection) jako.push(completeSection)
     if (seg.assignedCode) jako.push(this.buildAuditSection(seg.assignedCode))
     group('Jako', jako)
 
@@ -537,6 +543,61 @@ export class SegmentDetailsModal {
   // T335/V243: järjestäjän korostuskytkin. Oletus POIS (fokus on hetken työkalu). Modaali ei
   // sulkeudu klikistä — järjestäjä voi kokeilla ja perua saman tien; poistumis-pilleri (wiring)
   // vastaa siitä että tila löytyy vielä modaalin sulkeuduttua.
+  // T352/V255 (B138): järjestäjän valmis-toggle. Sama kirjoituspolku kuin talkoolaisella
+  // (`markers-wiring.ts` applyComplete): updateSegment + updateSegmentRemote + onRender/onUpdate
+  // ∴ pätkäviiva vihertyy heti (T348) & kaksi roolia ⊥ ajaudu eri tilaan. null = ei näytetä:
+  // valmis-tila koskee vain asettamista/purkua (tarkastus käyttää inspect-osiota, T230/T147).
+  private buildCompleteSection(seg: Segment): HTMLElement | null {
+    if (seg.phase !== 'asettaminen' && seg.phase !== 'purku') return null
+
+    const section = document.createElement('div')
+    section.className = 'segment-details-modal-section'
+
+    const status = document.createElement('p')
+    status.className = 'segment-details-complete-status'
+    section.appendChild(status)
+
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.className = 'btn-segment-complete-toggle'
+    section.appendChild(btn)
+
+    let done = seg.completed ?? false
+    const sync = (): void => {
+      status.textContent = done ? 'Pätkä merkitty valmiiksi ✓' : ''
+      status.hidden = !done
+      btn.textContent = done ? '↩ Merkitse keskeneräiseksi' : '✓ Merkitse pätkä valmiiksi'
+      btn.className = done
+        ? 'btn btn--secondary btn-segment-complete-toggle'
+        : 'btn btn--confirm btn-segment-complete-toggle'
+      btn.setAttribute('aria-pressed', String(done))
+    }
+    sync()
+
+    btn.addEventListener('click', () => {
+      done = !done
+      updateSegment(this.store, seg.id, { completed: done })
+      sync()
+      this.onRender()
+      this.onUpdate()
+      // ⊥ hiljaista epäonnistumista: PUT:n kaatuessa kerrotaan tähän osioon (modaalilla ⊥ ole
+      // pääsyä main.ts:n showWarningiin — inline-status on lähempänä toimintoa kuin toast).
+      updateSegmentRemote(seg.id, { completed: done })
+        .then(ok => {
+          if (!ok) {
+            status.hidden = false
+            status.textContent = '⚠ Tallennus epäonnistui — yritä uudelleen'
+          }
+        })
+        .catch(() => {
+          status.hidden = false
+          status.textContent = '⚠ Tallennus epäonnistui — yritä uudelleen'
+        })
+    })
+
+    return section
+  }
+
   private buildFocusSection(seg: Segment): HTMLElement {
     const section = document.createElement('div')
     section.className = 'segment-details-modal-section'

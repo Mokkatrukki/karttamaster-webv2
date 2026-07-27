@@ -347,22 +347,11 @@ export function wireMarkers(
       applyDraggable()
 
       // T257/R8/V179: talkoolaisen yläpalkin ⋯-toiminnot (VISION "GPS ym ylävalikkoon").
-      // Karttamoodissa hero-chrome minimaali (T255) → Lisää merkki/Merkitse valmiiksi ⋯:ssä.
-      // GPS kytkettiin jo ylempänä (T341/V247) — se ei tarvitse pätkää, nämä kaksi tarvitsevat.
+      // Karttamoodissa hero-chrome minimaali (T255) → Lisää merkki ⋯:ssä.
+      // GPS kytkettiin jo ylempänä (T341/V247) — se ei tarvitse pätkää, tämä tarvitsee.
+      // T351/V254 (B137): "Merkitse pätkä valmiiksi" EI enää täällä — se on hero:n done-rivillä
+      // (`segment-hero.ts`, `actions.onComplete` → applyComplete). Yksi sisääntulo per rooli.
       document.getElementById('btn-tk-add-marker')?.addEventListener('click', openAddMarkerPicker)
-
-      const btnTkComplete = document.getElementById('btn-tk-complete')
-      const syncCompleteLabel = () => {
-        const cur = getSegmentForCode(segmentStore, talkoolainenCode)
-        if (btnTkComplete) btnTkComplete.textContent = (cur?.completed ?? false)
-          ? '↩ Merkitse keskeneräiseksi' : '✓ Merkitse pätkä valmiiksi'
-      }
-      btnTkComplete?.addEventListener('click', () => {
-        const cur = getSegmentForCode(segmentStore, talkoolainenCode)
-        applyComplete(!(cur?.completed ?? false))
-        syncCompleteLabel()
-      })
-      syncCompleteLabel()
     }
   }
 
