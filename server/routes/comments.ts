@@ -18,6 +18,8 @@ interface CommentRow {
   icon_id: string | null
   author_name: string | null
   created_at: string
+  resolved_at: string | null
+  resolved_by: string | null
 }
 
 // T338: huomion kuva-URL:t. Sama muoto kuin markers.ts:n imageUrls (yksi kuvio, ei kahta).
@@ -42,6 +44,9 @@ function rowToComment(row: CommentRow, db?: Database) {
     iconId: row.icon_id ?? undefined,
     authorName: row.author_name ?? undefined,
     createdAt: row.created_at,
+    // T341/V248: huomio = työtilaus. resolvedAt puuttuu ⇒ avoin.
+    resolvedAt: row.resolved_at ?? undefined,
+    resolvedBy: row.resolved_by ?? undefined,
   }
 }
 
@@ -202,6 +207,32 @@ commentsRoutes.get('/:id/images/:imageId', requireAuth(), (c) => {
   return new Response(row.data, {
     headers: { 'Content-Type': row.content_type, 'Cache-Control': 'private, max-age=86400' },
   })
+})
+
+// PATCH /api/comments/:id/resolve — järjestäjä+ kuittaa työn tehdyksi (tai palauttaa avoimeksi).
+// V248: kuittaus on KOORDINOINTIPÄÄTÖS ("tämä on hoidettu") ∴ se kuuluu järjestäjälle joka
+// näkee kaikki pätkät. Talkoolainen ILMOITTAA, järjestäjä KUITTAA — sama työnjako kuin
+// merkkien poistossa. Kuittaaja jää talteen: "kuka sanoi tämän hoidetuksi" on se kysymys
+// johon 2026-07-25 incidentin jälkeen halutaan aina vastaus (V240-linja).
+commentsRoutes.patch('/:id/resolve', requireAuth(), requireRole('admin', 'järjestäjä'), async (c) => {
+  const db: Database = c.get('db')
+  const id = c.req.param('id')
+  const existing = db.query<{ id: string }, [string]>('SELECT id FROM comments WHERE id = ?').get(id)
+  if (!existing) return c.json({ error: 'not_found' }, 404)
+
+  const body = await c.req.json<{ resolved?: boolean }>().catch(() => ({ resolved: true }))
+  const resolved = body.resolved !== false
+  const session = c.get('session')
+  const actor = session?.display_name ?? session?.role ?? null
+
+  db.run('UPDATE comments SET resolved_at = ?, resolved_by = ? WHERE id = ?', [
+    resolved ? new Date().toISOString() : null,
+    resolved ? actor : null,
+    id,
+  ])
+
+  const row = db.query<CommentRow, [string]>('SELECT * FROM comments WHERE id = ?').get(id)!
+  return c.json(rowToComment(row, db))
 })
 
 // DELETE /api/comments/:id — vain järjestäjä+ (voi yliajaa kaiken, VISION r283).

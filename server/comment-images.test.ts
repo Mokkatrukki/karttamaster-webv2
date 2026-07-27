@@ -144,3 +144,61 @@ describe('T338: huomion kuvat', () => {
     expect(res.status).toBe(401)
   })
 })
+
+describe('T341/V248: huomion kuittaus (työtilaus)', () => {
+  let db: Database
+  let id: string
+
+  beforeEach(async () => {
+    db = createDb(':memory:')
+    seedTestUsers(db)
+    const res = await makeApp(db).request('/api/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(db, 'talkoolainen') },
+      body: JSON.stringify({ targetType: 'point', lat: 65.1, lon: 27.5, text: 'Puu kaatunut', iconId: 'tree-pine' }),
+    })
+    id = ((await res.json()) as { id: string }).id
+  })
+
+  const resolve = (role: 'järjestäjä' | 'talkoolainen', resolved = true) =>
+    makeApp(db).request(`/api/comments/${id}/resolve`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(db, role) },
+      body: JSON.stringify({ resolved }),
+    })
+
+  test('uusi huomio on AVOIN (resolvedAt puuttuu)', async () => {
+    const rows = (await (await makeApp(db).request('/api/comments?targetType=point', {
+      headers: authHeaders(db, 'järjestäjä'),
+    })).json()) as { resolvedAt?: string }[]
+    expect(rows[0].resolvedAt).toBeUndefined()
+  })
+
+  test('järjestäjä kuittaa tehdyksi — leima + kuittaaja talteen', async () => {
+    const res = await resolve('järjestäjä')
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { resolvedAt?: string; resolvedBy?: string }
+    expect(body.resolvedAt).toBeTruthy()
+    // "Kuka sanoi tämän hoidetuksi" ! olla vastattavissa (V240-linja).
+    expect(body.resolvedBy).toBeTruthy()
+  })
+
+  test('kuittaus on peruttavissa — palautus avoimeksi nollaa leiman', async () => {
+    await resolve('järjestäjä')
+    const body = (await (await resolve('järjestäjä', false)).json()) as { resolvedAt?: string }
+    expect(body.resolvedAt).toBeUndefined()
+  })
+
+  test('talkoolainen ⊥ saa kuitata — hän ILMOITTAA, järjestäjä KUITTAA', async () => {
+    expect((await resolve('talkoolainen')).status).toBe(403)
+  })
+
+  test('tuntematon huomio → 404', async () => {
+    const res = await makeApp(db).request('/api/comments/ei-ole/resolve', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(db, 'järjestäjä') },
+      body: JSON.stringify({ resolved: true }),
+    })
+    expect(res.status).toBe(404)
+  })
+})

@@ -1,6 +1,9 @@
 import { registerEscClose, createBackdrop } from './modal-helpers'
-import { postComment, deleteComment, type Comment, type NewComment, type CommentImageError } from '../logic/comments'
-import { renderIconSvg, CURATED_ICONS } from '../logic/icon-set'
+import {
+  postComment, deleteComment, resolveComment, isOpenNote, NOTE_CATEGORIES,
+  type Comment, type NewComment, type CommentImageError,
+} from '../logic/comments'
+import { renderIconSvg } from '../logic/icon-set'
 import { openImageLightbox } from './image-lightbox'
 import { downscaleImage } from './image-downscale'
 
@@ -22,6 +25,8 @@ export interface CommentPointModalOptions {
   defaultAuthorName?: () => string | undefined
   /** T338: kuvan liitos. Puuttuu → kuvaosio piilossa. null-paluu = onnistui. */
   uploadImage?: (commentId: string, file: File) => Promise<CommentImageError | null>
+  /** T341/V248: kuittausnapin näkyvyys (järjestäjä+). Oletus false. */
+  canResolve?: () => boolean
 }
 
 // V247: käyttäjälle kerrotaan MIKSI lataus ei mennyt läpi. "Yritä uudelleen" on väärä ohje
@@ -104,29 +109,44 @@ export class CommentPointModal {
     hint.textContent = 'Huomio kiinnittyy valittuun karttapisteeseen. Se ei ole merkki eikä näy tehtävälistoissa.'
     body.appendChild(hint)
 
+    // V248: kategoria yhdellä painalluksella — dropdown on väärä kontrolli hanskat kädessä.
+    // Valinta vaihtaa myös tekstikentän vihjeen ∴ käyttäjä näkee heti millaista tietoa odotetaan.
+    const cats = document.createElement('div')
+    cats.className = 'comment-point-cats'
+    cats.setAttribute('role', 'radiogroup')
+    cats.setAttribute('aria-label', 'Huomion tyyppi')
+    let selectedIcon = NOTE_CATEGORIES[0].iconId
+
     const text = document.createElement('textarea')
     text.className = 'comment-point-text'
     text.rows = 3
-    text.placeholder = 'Esim. tämä voisi korjata — juurakko rikki'
+    text.placeholder = NOTE_CATEGORIES[0].placeholder
+
+    for (const cat of NOTE_CATEGORIES) {
+      const chip = document.createElement('button')
+      chip.type = 'button'
+      chip.className = 'comment-point-cat'
+      chip.dataset.icon = cat.iconId
+      chip.setAttribute('role', 'radio')
+      chip.innerHTML = `<span class="comment-point-cat-icon">${renderIconSvg(cat.iconId, 18)}</span><span>${cat.label}</span>`
+      const select = () => {
+        selectedIcon = cat.iconId
+        text.placeholder = cat.placeholder
+        for (const c of cats.querySelectorAll('.comment-point-cat')) {
+          const on = (c as HTMLElement).dataset.icon === cat.iconId
+          c.classList.toggle('is-active', on)
+          c.setAttribute('aria-checked', String(on))
+        }
+      }
+      chip.addEventListener('click', select)
+      cats.appendChild(chip)
+      if (cat.iconId === selectedIcon) select()
+    }
+    body.appendChild(cats)
     body.appendChild(text)
 
     const controls = document.createElement('div')
     controls.className = 'comment-point-controls'
-
-    const iconSelect = document.createElement('select')
-    iconSelect.className = 'comment-point-icon'
-    iconSelect.setAttribute('aria-label', 'Ikoni (valinnainen)')
-    const none = document.createElement('option')
-    none.value = ''
-    none.textContent = 'Ei ikonia'
-    iconSelect.appendChild(none)
-    for (const icon of CURATED_ICONS) {
-      const o = document.createElement('option')
-      o.value = icon.id
-      o.textContent = icon.label ?? icon.id
-      iconSelect.appendChild(o)
-    }
-    controls.appendChild(iconSelect)
 
     const name = document.createElement('input')
     name.className = 'comment-point-name'
@@ -161,7 +181,7 @@ export class CommentPointModal {
         lat,
         lon,
         text: text.value,
-        iconId: iconSelect.value || undefined,
+        iconId: selectedIcon,
         authorName: name.value || undefined,
       }
       if (!input.text.trim()) {
@@ -216,10 +236,41 @@ export class CommentPointModal {
     meta.textContent = [comment.authorName, when].filter(Boolean).join(' · ')
     body.appendChild(meta)
 
+    // V248: tila sanoin, ⊥ pelkkä väri (V197-linja). Kuitattu kertoo KUKA ja MILLOIN —
+    // "kuka sanoi tämän hoidetuksi" on se kysymys johon halutaan aina vastaus.
+    const state = document.createElement('p')
+    state.className = isOpenNote(comment) ? 'comment-point-state comment-point-state--open' : 'comment-point-state comment-point-state--done'
+    state.textContent = isOpenNote(comment)
+      ? '● Avoin — odottaa tekijää'
+      : `✓ Tehty${comment.resolvedBy ? ` — ${comment.resolvedBy}` : ''}${comment.resolvedAt ? ` · ${new Date(comment.resolvedAt).toLocaleString('fi-FI')}` : ''}`
+    body.appendChild(state)
+
     body.appendChild(this.buildImageSection(comment))
 
     const footer = document.createElement('div')
     footer.className = 'comment-point-modal-footer'
+
+    // V248: kuittaus on järjestäjän koordinointipäätös — talkoolainen ILMOITTAA, järjestäjä KUITTAA.
+    if (this.opts.canResolve?.()) {
+      const open = isOpenNote(comment)
+      const resolveBtn = document.createElement('button')
+      resolveBtn.type = 'button'
+      resolveBtn.className = open
+        ? 'btn btn--confirm comment-point-resolve'
+        : 'btn btn--secondary comment-point-resolve'
+      resolveBtn.textContent = open ? '✓ Merkitse tehdyksi' : '↩ Palauta avoimeksi'
+      resolveBtn.addEventListener('click', () => {
+        resolveBtn.disabled = true
+        void resolveComment(comment.id, open).then((updated) => {
+          resolveBtn.disabled = false
+          if (!updated) return
+          this.opts.onChanged?.()
+          // Näkymä päivittyy paikallaan: käyttäjä näkee kuittauksen tuloksen ⊥ sulkeudu pois.
+          this.openView(updated)
+        })
+      })
+      footer.appendChild(resolveBtn)
+    }
 
     if (this.opts.canDelete?.()) {
       const del = document.createElement('button')

@@ -56,9 +56,13 @@ export class CommentLayer {
 
   private buildIcon(c: Comment): L.DivIcon {
     const inner = c.iconId ? renderIconSvg(c.iconId, 18) : SPEECH_SVG
+    // T341/V248: kuitattu työ HIMMENEE, ⊥ katoa — kartta ⊥ saa valehdella siitä mitä alueella
+    // on tehty (sama sääntö kuin merkkien fokus-himmennyksessä, V243).
+    const done = Boolean(c.resolvedAt)
+    const dim = done ? 'opacity:.45;filter:grayscale(1);' : ''
     // Puhekupla: pyöreä accent-taustainen "nappi", jossa valittu ikoni tai oletus-kuplakuva.
     const html = `
-      <div style="position:relative;width:32px;height:38px;pointer-events:auto">
+      <div style="position:relative;width:32px;height:38px;pointer-events:auto;${dim}">
         <div style="position:absolute;top:0;left:0;width:32px;height:32px;box-sizing:border-box;
           background:#F2542D;border:2px solid #fff;border-radius:50% 50% 50% 4px;
           display:flex;align-items:center;justify-content:center;color:#fff;

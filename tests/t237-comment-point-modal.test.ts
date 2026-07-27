@@ -208,3 +208,126 @@ describe('T340 — järjestäjän sivupalkin Huomiot-lista', () => {
     expect(container.querySelectorAll('.comment-panel-item')).toHaveLength(1)
   })
 })
+
+describe('T341/V248 — huomio työtilauksena: kategoria + kuittaus', () => {
+  beforeEach(() => { document.body.innerHTML = '' })
+  afterEach(() => { vi.unstubAllGlobals() })
+
+  it('luonti tarjoaa 4 kategoriaa, Raivaus oletuksena valittuna', () => {
+    new CommentPointModal().openCreate(65.1, 27.5)
+    const chips = document.querySelectorAll('.comment-point-cat')
+    expect(chips).toHaveLength(4)
+    expect(Array.from(chips).map(c => c.textContent?.trim())).toEqual(
+      expect.arrayContaining(['Raivaus', 'Korjaus', 'Nouto', 'Muu']),
+    )
+    expect(chips[0].getAttribute('aria-checked')).toBe('true')
+  })
+
+  it('kategorian valinta vaihtaa vihjetekstin — käyttäjä näkee mitä odotetaan', () => {
+    new CommentPointModal().openCreate(65.1, 27.5)
+    const text = document.querySelector('.comment-point-text') as HTMLTextAreaElement
+    expect(text.placeholder).toContain('puu kaatunut')
+
+    const nouto = Array.from(document.querySelectorAll('.comment-point-cat'))
+      .find(c => c.textContent?.includes('Nouto')) as HTMLButtonElement
+    nouto.click()
+    expect(text.placeholder).toContain('säkin')
+  })
+
+  it('valittu kategoria tallentuu iconId:nä (⊥ skeemamuutosta)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => makeComment({ iconId: 'package' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    new CommentPointModal().openCreate(65.1, 27.5)
+    ;(Array.from(document.querySelectorAll('.comment-point-cat'))
+      .find(c => c.textContent?.includes('Nouto')) as HTMLButtonElement).click()
+    ;(document.querySelector('.comment-point-text') as HTMLTextAreaElement).value = 'Säkki tässä'
+    ;(document.querySelector('.comment-point-save') as HTMLButtonElement).click()
+
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).iconId).toBe('package')
+  })
+
+  it('avoin huomio näyttää tilan sanoin, ⊥ pelkkä väri', () => {
+    new CommentPointModal().openView(makeComment())
+    expect(document.querySelector('.comment-point-state')?.textContent).toContain('Avoin')
+  })
+
+  it('kuitattu näyttää kuka ja milloin', () => {
+    new CommentPointModal().openView(makeComment({ resolvedAt: '2026-07-25T12:00:00.000Z', resolvedBy: 'Järjestäjä Jaana' }))
+    const state = document.querySelector('.comment-point-state')?.textContent ?? ''
+    expect(state).toContain('Tehty')
+    expect(state).toContain('Järjestäjä Jaana')
+  })
+
+  it('kuittausnappi vain canResolve-oikeudella (talkoolainen ⊥ näe)', () => {
+    new CommentPointModal().openView(makeComment())
+    expect(document.querySelector('.comment-point-resolve')).toBeNull()
+
+    new CommentPointModal({ canResolve: () => true }).openView(makeComment())
+    expect(document.querySelector('.comment-point-resolve')?.textContent).toContain('Merkitse tehdyksi')
+  })
+
+  it('kuittaus PATCHaa ja päivittää näkymän paikallaan', async () => {
+    const resolved = makeComment({ resolvedAt: '2026-07-25T12:00:00.000Z', resolvedBy: 'Jaana' })
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => resolved })
+    vi.stubGlobal('fetch', fetchMock)
+    const onChanged = vi.fn()
+
+    new CommentPointModal({ canResolve: () => true, onChanged }).openView(makeComment())
+    ;(document.querySelector('.comment-point-resolve') as HTMLButtonElement).click()
+    await vi.waitFor(() => expect(onChanged).toHaveBeenCalled())
+
+    expect(fetchMock.mock.calls[0][1].method).toBe('PATCH')
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).resolved).toBe(true)
+    // Modaali jää auki päivittyneellä sisällöllä — kuittauksen tulos ! näkyä.
+    expect(document.querySelector('.comment-point-state')?.textContent).toContain('Tehty')
+    expect(document.querySelector('.comment-point-resolve')?.textContent).toContain('Palauta avoimeksi')
+  })
+})
+
+describe('T341/V248 — sivupalkki erottaa avoimet tehdyistä', () => {
+  let container: HTMLElement
+  beforeEach(() => {
+    document.body.innerHTML = ''
+    container = document.createElement('div')
+    document.body.appendChild(container)
+  })
+
+  it('laskuri kertoo AVOIMET, ⊥ kokonaismäärää', () => {
+    const panel = new CommentPanel(container)
+    panel.setComments([
+      makeComment({ id: 'a' }),
+      makeComment({ id: 'b', resolvedAt: '2026-07-25T12:00:00.000Z' }),
+      makeComment({ id: 'c', resolvedAt: '2026-07-25T12:00:00.000Z' }),
+    ])
+    expect(container.querySelector('.comment-panel-title')?.textContent).toBe('Huomiot (1)')
+  })
+
+  it('tehdyt omassa ryhmässään, himmennettynä — ⊥ katoa listasta', () => {
+    const panel = new CommentPanel(container)
+    panel.setComments([
+      makeComment({ id: 'a', text: 'Avoin työ' }),
+      makeComment({ id: 'b', text: 'Hoidettu', resolvedAt: '2026-07-25T12:00:00.000Z' }),
+    ])
+    expect(container.querySelector('.comment-panel-group')?.textContent).toBe('Tehdyt (1)')
+    expect(container.querySelectorAll('.comment-panel-item')).toHaveLength(2)
+    const done = container.querySelector('.comment-panel-item--done')
+    expect(done?.textContent).toContain('Hoidettu')
+    expect(done?.textContent).toContain('✓ tehty')
+  })
+
+  it('avoin rivi renderöityy ENNEN tehtyjä (työjono, ⊥ arkisto)', () => {
+    const panel = new CommentPanel(container)
+    panel.setComments([
+      makeComment({ id: 'b', text: 'Hoidettu', resolvedAt: '2026-07-25T12:00:00.000Z', createdAt: '2026-07-26T10:00:00.000Z' }),
+      makeComment({ id: 'a', text: 'Avoin työ', createdAt: '2026-07-20T10:00:00.000Z' }),
+    ])
+    const rows = container.querySelectorAll('.comment-panel-item')
+    // Vanhempi mutta AVOIN tulee ensin — uutuus ⊥ voita avoimuutta.
+    expect(rows[0].textContent).toContain('Avoin työ')
+  })
+})

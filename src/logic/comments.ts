@@ -18,6 +18,31 @@ export interface Comment {
   createdAt: string
   /** T338: kuva-URL:t (`/api/comments/:id/images/:imageId`). Sama muoto kuin SignMarker.images. */
   images?: string[]
+  /** T341/V248: kuittausleima. Puuttuu ⇒ työ on AVOIN. ⊥ ole merkin status (V9/V245). */
+  resolvedAt?: string
+  resolvedBy?: string
+}
+
+// T341/V248: huomion KATEGORIA. Talkoolainen valitsee hanskat kädessä yhdellä painalluksella —
+// dropdown on väärä kontretti kentällä. Kategoria talletetaan olemassa olevaan `iconId`-kenttään
+// ∴ ⊥ skeemamuutosta, & se näkyy heti sekä kartalla (CommentPin) että listassa.
+export interface NoteCategory {
+  iconId: string
+  label: string
+  /** Lyhyt vihje siitä mitä tähän kirjoitetaan — kenttäesimerkit käyttäjältä 2026-07-25. */
+  placeholder: string
+}
+
+export const NOTE_CATEGORIES: NoteCategory[] = [
+  { iconId: 'tree-pine', label: 'Raivaus', placeholder: 'Esim. puu kaatunut polulle' },
+  { iconId: 'wrench', label: 'Korjaus', placeholder: 'Esim. pitkokset pitää korjata' },
+  { iconId: 'package', label: 'Nouto', placeholder: 'Esim. jätän tähän säkin, hakekaa se' },
+  { iconId: 'alert-triangle', label: 'Muu', placeholder: 'Mitä huomasit?' },
+]
+
+/** Avoin = ⊥ kuitattu. Yksi totuus kaikille näkymille (lista, kartta, modaali). */
+export function isOpenNote(c: Comment): boolean {
+  return !c.resolvedAt
 }
 
 // Uuden kommentin syöte (ilman palvelimen generoimia id/createdAt-kenttiä).
@@ -114,6 +139,22 @@ export async function addCommentImage(commentId: string, file: File): Promise<Co
     return 'failed'
   } catch {
     return 'failed'
+  }
+}
+
+// T341/V248: kuittaa työ tehdyksi (tai palauta avoimeksi). Järjestäjä+ — backend gate.
+export async function resolveComment(id: string, resolved: boolean): Promise<Comment | null> {
+  try {
+    const resp = await fetch(`/api/comments/${encodeURIComponent(id)}/resolve`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resolved }),
+    })
+    if (!resp.ok) return null
+    const data = await resp.json()
+    return data && typeof data === 'object' && 'id' in data ? (data as Comment) : null
+  } catch {
+    return null
   }
 }
 

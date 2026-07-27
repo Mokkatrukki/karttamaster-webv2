@@ -70,7 +70,7 @@ export class PlaceMode {
     // ∴ myöskään pickerin klikkikäsittelijä ei voi luoda merkkiä (kaksinkertainen portti).
     if (!this.mapMode.canPlaceMarkers()) return
     this.pendingDblClick = { lat, lon }
-    this.floatingPicker.innerHTML = listFavorites(this.library).map(t => {
+    const templateHtml = listFavorites(this.library).map(t => {
       // V99-precedence sama kuin sign-library-panel.ts buildRow(): kuva > ikoni > compactLabel
       const iconEntry = t.iconId ? getIconById(t.iconId) : null
       const swatchInner = iconEntry ? renderIconSvg(t.iconId!, 14) : escapeHtml(compactLabel(t.label))
@@ -80,16 +80,22 @@ export class PlaceMode {
         ${escapeHtml(t.label)}
       </button>`
     }).join('')
-    // T237/V245: huomio EI ole merkkityyppi — erotinviiva ennen sitä on pakollinen. Tasavertaisena
-    // mallilistassa se luettaisiin merkiksi, ja huomion koko pointti on ettei se mene merkkeihin.
-    if (this.onPlaceComment) {
-      this.floatingPicker.innerHTML += `
-      <div class="floating-picker-divider" role="separator"></div>
-      <button class="sign-type-btn floating-picker-comment" data-comment="1">
-        <span class="sign-swatch comment-swatch">💬</span>
-        Huomio
-      </button>`
-    }
+
+    // T237/V245: huomio EI ole merkkityyppi ∴ se ei ole listan JÄSEN vaan sen ULKOPUOLINEN
+    // alapalkki. Kaksi syytä samalle rakenteelle:
+    //   1) semantiikka — tasavertaisena mallilistassa se luettaisiin merkkityypiksi;
+    //   2) tavoitettavuus (kenttähavainto 2026-07-25) — suosikkeja on kymmeniä ∴ listan
+    //      LOPPUUN sijoitettu rivi valuu ruudun ulkopuolelle eikä sitä löydä.
+    // Lista vierii, alapalkki pysyy paikallaan.
+    const commentHtml = this.onPlaceComment
+      ? `<div class="floating-picker-footer">
+        <button class="sign-type-btn floating-picker-comment" data-comment="1">
+          <span class="sign-swatch comment-swatch">💬</span>
+          Huomio
+        </button>
+      </div>`
+      : ''
+    this.floatingPicker.innerHTML = `<div class="floating-picker-list">${templateHtml}</div>${commentHtml}`
     this.floatingPicker.classList.add('open')
     requestAnimationFrame(() => {
       const { offsetWidth: w, offsetHeight: h } = this.floatingPicker

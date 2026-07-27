@@ -308,6 +308,11 @@ export function wireMarkers(
           // T232 (E)/T229 + R8: "+ Merkki" hero-overflowsta / yläpalkin ⋯:stä → sign-picker kartan
           // keskelle (POST omalle pätkälle V149). Jaettu openAddMarkerPicker.
           onAddMarker: openAddMarkerPicker,
+          // T237/V245: "💬 Huomio" hero-⋯:stä — sama toiminto kuin yläpalkin ⋯:ssä.
+          onAddComment: () => {
+            const c = map.getCenter()
+            commentModal.openCreate(c.lat, c.lng)
+          },
           // T218/V143 (skenaario 2): keräyslistan "Haettu"-kuittaus. Suora status-asetus (EI 'kerää'-
           // action, joka heittää suunniteltu-tilaisille — sama syy kuin bulkCollect yllä). Kuka tahansa
           // autentikoitu, ei ownership-gatea; kerätty ↔ suunniteltu. bulkSetStatus persistoi + onUpdate.
@@ -337,6 +342,14 @@ export function wireMarkers(
       syncGpsLabel()
 
       document.getElementById('btn-tk-add-marker')?.addEventListener('click', openAddMarkerPicker)
+
+      // T237/V245: huomio kartan keskelle. ⊥ vaadi muokkaustilaa toisin kuin merkin lisäys:
+      // huomio ⊥ mutatoi merkkidataa eikä voi vahingossa siirtää mitään — muokkaustilan portti
+      // (V218) suojaa merkkejä, ⊥ havaintoja. Talkoolaisen kynnys jättää huomio ! olla matala.
+      document.getElementById('btn-tk-add-note')?.addEventListener('click', () => {
+        const c = map.getCenter()
+        commentModal.openCreate(c.lat, c.lng)
+      })
 
       const btnTkComplete = document.getElementById('btn-tk-complete')
       const syncCompleteLabel = () => {
@@ -497,6 +510,8 @@ export function wireMarkers(
   const commentModal = new CommentPointModal({
     onChanged: () => refreshPointComments(),
     canDelete: () => getRole() === 'järjestäjä',
+    // T341/V248: kuittaus on järjestäjän koordinointipäätös — talkoolainen ilmoittaa.
+    canResolve: () => getRole() === 'järjestäjä',
     uploadImage: (id, file) => addCommentImage(id, file),
   })
   const commentLayer = new CommentLayer(map, (c) => commentModal.openView(c))

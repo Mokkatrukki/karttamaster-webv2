@@ -452,9 +452,32 @@ button {
   flex-direction: column;
   gap: 2px;
   min-width: 180px;
+  /* T237: suosikkeja voi olla kymmeniä — ilman kattoa picker kasvaa ruudun ulkopuolelle ja
+     alimmat rivit jäävät tavoittamattomiin (kenttähavainto 2026-07-25). */
+  max-height: min(60vh, 420px);
   z-index: 1003;
 }
 #floating-picker.open { display: flex; }
+
+/* Vierivä mallilista + kiinteä alapalkki: huomio ei saa kadota listan alle (V245/T237). */
+.floating-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  min-height: 0;
+}
+
+.floating-picker-footer {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--border-default);
+  margin-top: 4px;
+  padding-top: 4px;
+  background: var(--surface-card);
+}
+
+.floating-picker-footer .sign-type-btn { width: 100%; }
 
 /* ── Sign type buttons ── */
 
@@ -5143,13 +5166,6 @@ body[data-map-mode="muokkaus"] #map-area::after {
   text-align: center;
 }
 
-/* Pickerin huomio-rivi: erotin tekee eron merkkimalleihin näkyväksi (V245). */
-.floating-picker-divider {
-  height: 1px;
-  background: var(--border-default);
-  margin: 6px 4px;
-}
-
 .comment-swatch {
   background: #F2542D;
   display: flex;
@@ -5218,3 +5234,63 @@ body[data-map-mode="muokkaus"] #map-area::after {
   font-size: 11px;
   color: var(--text-muted);
 }
+
+/* --- Huomion kategoria + tila (T341/V248) --- */
+
+/* Kategoria yhdellä painalluksella — hanskat kädessä dropdown on väärä kontrolli. */
+.comment-point-cats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.comment-point-cat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-body);
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+/* Aktiivi: reuna + tausta, EI accent-täyttöä valkoisella tekstillä (V234/B125-oppi). */
+.comment-point-cat.is-active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.comment-point-cat-icon { color: var(--accent); line-height: 0; }
+
+/* Tila sanoin, ei pelkkä väri (V197-linja). */
+.comment-point-state {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.comment-point-state--open { color: var(--accent); }
+.comment-point-state--done { color: var(--confirm); }
+
+.comment-panel-group {
+  margin: 8px 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+/* Tehty ei katoa listasta — se väistyy (V248: kartta & lista eivät valehtele). */
+.comment-panel-item--done .comment-panel-item-text,
+.comment-panel-item--done .comment-panel-item-icon {
+  opacity: 0.55;
+}
+
+.comment-panel-item--done .comment-panel-item-text { text-decoration: line-through; }

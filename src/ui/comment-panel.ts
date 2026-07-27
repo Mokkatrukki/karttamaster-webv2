@@ -1,4 +1,4 @@
-import { fetchComments, type Comment } from '../logic/comments'
+import { fetchComments, isOpenNote, type Comment } from '../logic/comments'
 import { renderIconSvg } from '../logic/icon-set'
 
 // T340/V245: järjestäjän sivupalkin "Huomiot" — vapaa-piste-huomioiden selailu.
@@ -60,8 +60,13 @@ export class CommentPanel {
   }
 
   private render(): void {
-    this.titleEl.textContent = this.comments.length > 0 ? `Huomiot (${this.comments.length})` : 'Huomiot'
     this.listEl.innerHTML = ''
+
+    // V248: laskuri kertoo AVOIMET, ⊥ kaikkia. Järjestäjä kysyy "montako työtä on tekemättä" —
+    // kokonaismäärä kasvaa ikuisesti eikä vastaa siihen kysymykseen.
+    const open = this.comments.filter(isOpenNote)
+    const done = this.comments.filter(c => !isOpenNote(c))
+    this.titleEl.textContent = open.length > 0 ? `Huomiot (${open.length})` : 'Huomiot'
 
     if (this.comments.length === 0) {
       const empty = document.createElement('p')
@@ -71,13 +76,31 @@ export class CommentPanel {
       return
     }
 
+    this.renderGroup(open, null)
+    if (done.length > 0) {
+      // Tehdyt eivät katoa (kartta & lista ⊥ valehtele) mutta ⊥ kilpaile avoimien kanssa:
+      // oma otsikko, himmennetty rivi. Ryhmä ⊥ ole kokoontaitettava — 240px paneelissa
+      // taitto-otsikko veisi saman tilan kuin rivi, & piilotettu tila unohtuu.
+      this.renderGroup(done, `Tehdyt (${done.length})`)
+    }
+  }
+
+  private renderGroup(rows: Comment[], heading: string | null): void {
+    if (rows.length === 0) return
+    if (heading) {
+      const h = document.createElement('div')
+      h.className = 'comment-panel-group'
+      h.textContent = heading
+      this.listEl.appendChild(h)
+    }
+
     // Uusin ensin: järjestäjä lukee lokia, ⊥ arkistoa.
-    const sorted = [...this.comments].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+    const sorted = [...rows].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
 
     for (const c of sorted) {
       const row = document.createElement('button')
       row.type = 'button'
-      row.className = 'comment-panel-item'
+      row.className = isOpenNote(c) ? 'comment-panel-item' : 'comment-panel-item comment-panel-item--done'
       row.dataset.commentId = c.id
 
       const icon = document.createElement('span')
@@ -97,7 +120,8 @@ export class CommentPanel {
       meta.className = 'comment-panel-item-meta'
       const when = c.createdAt ? new Date(c.createdAt).toLocaleDateString('fi-FI') : ''
       const photo = (c.images?.length ?? 0) > 0 ? ' · 📷' : ''
-      meta.textContent = [c.authorName, when].filter(Boolean).join(' · ') + photo
+      const state = isOpenNote(c) ? '' : ' · ✓ tehty'
+      meta.textContent = [c.authorName, when].filter(Boolean).join(' · ') + photo + state
       main.appendChild(meta)
 
       row.appendChild(main)

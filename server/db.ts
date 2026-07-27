@@ -245,6 +245,11 @@ function initSchema(db: Database): void {
     db.exec('ALTER TABLE inventory_items ADD COLUMN keppi INTEGER')
   } catch { /* already exists — orpo V186 */ }
 
+  // T341/V248: huomio on TYÖTILAUS, ⊥ muistilappu — talkoolainen ilmoittaa, järjestäjä kuittaa.
+  // Ilman kuittausta lista kasvaa loputtomasti eikä kukaan tiedä mikä on hoidettu.
+  try { db.exec('ALTER TABLE comments ADD COLUMN resolved_at TEXT') } catch { /* already exists */ }
+  try { db.exec('ALTER TABLE comments ADD COLUMN resolved_by TEXT') } catch { /* already exists */ }
+
   // Migraatiot — idempotent ALTER TABLE (epäonnistuu hiljaa jos kolumni jo on)
   try { db.exec('ALTER TABLE markers ADD COLUMN color TEXT') } catch { /* already exists */ }
   try { db.exec('ALTER TABLE markers ADD COLUMN short_label TEXT') } catch { /* already exists */ }

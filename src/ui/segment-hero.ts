@@ -239,6 +239,21 @@ export class SegmentHero {
     }
     menu.appendChild(addItem)
 
+    // T237/V245: "💬 Huomio" — vapaa havainto kartalle ("tämä voisi korjata"). ⊥ ole merkki:
+    // ei tyyppiä, statusta eikä osuutta pätkän laskureihin. Talkoolaisen sisääntulo on TÄSSÄ
+    // valikossa, ⊥ merkkivalikossa: talkoolainen ⊥ avaa merkkipickeriä kuin lisätäkseen merkin,
+    // ja huomio on eri aikomus (kenttäpalaute 2026-07-25).
+    const noteItem = document.createElement('button')
+    noteItem.className = 'btn btn--ghost segment-view-next-menu-item segment-view-next-note'
+    noteItem.textContent = '💬 Huomio'
+    if (actions.onAddComment) {
+      noteItem.addEventListener('click', () => { menu.hidden = true; actions.onAddComment?.() })
+    } else {
+      noteItem.disabled = true
+      noteItem.title = 'Tulossa'
+    }
+    menu.appendChild(noteItem)
+
     // "Ota kuva" — talkoolaisen kuvankaappaus tulossa (T221/T103-alue).
     const photoItem = document.createElement('button')
     photoItem.className = 'btn btn--ghost segment-view-next-menu-item segment-view-next-photo'
