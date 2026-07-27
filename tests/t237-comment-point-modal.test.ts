@@ -75,6 +75,22 @@ describe('T237 — huomion luonti kartalta', () => {
     expect(body.lon).toBe(27.9)
   })
 
+  it('ilman luonnospinniä sijainniksi kelpaa avaushetken piste — POST ei koskaan lähde ilman lon-kenttää', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => makeComment() })
+    vi.stubGlobal('fetch', fetchMock)
+    // draftPosition palauttaa undefinedin (pinniä ei ole). Regressio: aiempi fallback luki
+    // Leafletin `map.getCenter()`-olion, jossa pituusaste on `lng` ⇒ `lon` jäi undefiniksi
+    // ja serveri hylkäsi tallennuksen (missing_coordinates).
+    new CommentPointModal({ draftPosition: () => undefined }).openCreate(65.1, 27.5)
+    ;(document.querySelector('.comment-point-text') as HTMLTextAreaElement).value = 'Ei pinniä'
+    ;(document.querySelector('.comment-point-save') as HTMLButtonElement).click()
+
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body)
+    expect(body.lat).toBe(65.1)
+    expect(body.lon).toBe(27.5)
+  })
+
   it('luonnoksen kuva EI lähde palvelimelle ennen Lähetä-painallusta (V264: peruttu luonnos ⊥ syö kiintiötä)', async () => {
     const uploadImage = vi.fn().mockResolvedValue(null)
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => makeComment() })

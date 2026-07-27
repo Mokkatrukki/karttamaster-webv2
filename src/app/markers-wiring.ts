@@ -341,7 +341,7 @@ export function wireMarkers(
           // T237/V245: "💬 Huomio" hero-⋯:stä — sama toiminto kuin yläpalkin ⋯:ssä.
           onAddComment: () => {
             const c = map.getCenter()
-            commentModal.openCreate(c.lat, c.lng)
+            openCommentDraft(c.lat, c.lng)
           },
           // T218/V143 (skenaario 2): keräyslistan "Haettu"-kuittaus. Suora status-asetus (EI 'kerää'-
           // action, joka heittää suunniteltu-tilaisille — sama syy kuin bulkCollect yllä). Kuka tahansa
@@ -370,12 +370,10 @@ export function wireMarkers(
       // huomio ⊥ mutatoi merkkidataa eikä voi vahingossa siirtää mitään — muokkaustilan portti
       // (V218) suojaa merkkejä, ⊥ havaintoja. Talkoolaisen kynnys jättää huomio ! olla matala.
       document.getElementById('btn-tk-add-note')?.addEventListener('click', () => {
-        const c = map.getCenter()
         // T366/V264: kartan keskipiste on vain LÄHTÖARVAUS — luonnospinni on raahattava ja
         // lopullinen sijainti luetaan vasta Lähetä-hetkellä.
-        commentDraft?.remove()
-        commentDraft = commentLayer.startDraft(c.lat, c.lng)
-        commentModal.openCreate(c.lat, c.lng)
+        const c = map.getCenter()
+        openCommentDraft(c.lat, c.lng)
       })
     }
   }
@@ -440,7 +438,7 @@ export function wireMarkers(
   // T237: pickerin "💬 Huomio" → luontimodaali samaan lat/loniin johon picker aukesi.
   // Arrow lukee commentModalin vasta klikkihetkellä ∴ määrittelyjärjestys ei sido.
   const placeMode = new PlaceMode(markerManager, signLibrary, mapMode, (lat, lon) =>
-    commentModal.openCreate(lat, lon))
+    openCommentDraft(lat, lon))
   const signLibraryContainer = document.getElementById('sign-type-dropdown')
   let signLibraryPanel: SignLibraryPanel | null = null
   if (signLibraryContainer) {
@@ -534,11 +532,23 @@ export function wireMarkers(
     uploadImage: (id, file) => addCommentImage(id, file),
     // B152(a): kuvan lisäys/poisto → näkymä uudelleen tuoreella datalla.
     reload: (id) => fetchComments('point').then(rows => rows?.find(r => r.id === id) ?? null),
-    draftPosition: () => commentDraft?.position() ?? map.getCenter() as unknown as { lat: number; lon: number },
+    // Ilman luonnosta palautetaan undefined ∴ modaali käyttää avaushetken koordinaatteja.
+    // Aiempi `map.getCenter()`-fallback vuoti Leafletin `lng`-nimisen kentän `lon`-paikalle
+    // ⇒ POST lähti ilman pituusastetta & serveri hylkäsi sen (missing_coordinates).
+    draftPosition: () => commentDraft?.position(),
     onCreateClosed: () => { commentDraft?.remove(); commentDraft = null },
   })
 
   let commentDraft: CommentDraft | null = null
+
+  // T366/V264: huomion luonnin AINOA sisääntulo. Jokainen polku (yläpalkin ⋯, hero-⋯,
+  // merkkipickerin alapalkki) saa saman raahattavan luonnospinnin — erilliset kutsut
+  // ajautuivat erilleen heti: kaksi kolmesta avasi modaalin ilman pinniä.
+  const openCommentDraft = (lat: number, lon: number): void => {
+    commentDraft?.remove()
+    commentDraft = commentLayer.startDraft(lat, lon)
+    commentModal.openCreate(lat, lon)
+  }
 
   const commentLayer = new CommentLayer(map, (c) => commentModal.openView(c), {
     canEdit: canEditComment,

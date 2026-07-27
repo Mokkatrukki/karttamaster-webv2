@@ -27,8 +27,11 @@ export interface CommentPointModalOptions {
   uploadImage?: (commentId: string, file: File) => Promise<CommentImageError | null>
   /** T364/V263: kuittausnapin näkyvyys (järjestäjä+). Oletus false. */
   canResolve?: () => boolean
-  /** T366/V264: luonnospinnin elävä sijainti — raahaus siirtää sitä modaalin ollessa auki. */
-  draftPosition?: () => { lat: number; lon: number }
+  /**
+   * T366/V264: luonnospinnin elävä sijainti — raahaus siirtää sitä modaalin ollessa auki.
+   * undefined-paluu ⇒ käytetään avaushetken koordinaatteja (pinniä ei ole).
+   */
+  draftPosition?: () => { lat: number; lon: number } | undefined
   /** T366: modaali sulkeutui (myös Esc/peruutus) → kutsuja siivoaa luonnospinnin. */
   onCreateClosed?: () => void
   /** B152(a): hae huomio uudelleen palvelimelta kun sen kuvat muuttuivat. */
