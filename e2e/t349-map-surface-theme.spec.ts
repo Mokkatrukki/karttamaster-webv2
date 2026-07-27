@@ -16,9 +16,23 @@ const SEGMENTS = [
   { id: 's-kesken', routeIds: ['smtb-30'], startDist: 1700, endDist: 2900, displayName: 'Keskenpätkä', equipment: [], phase: 'asettaminen' },
 ]
 
+// T365/B149: merkillä ! olla OMA sijaintinsa smtb-30:n varrella. Ennen ∀ merkki oli samassa
+// pisteessä (65.62, 27.62) & ne erotti vain `distance_from_start` — kelpasi kun jäsenyys oli
+// km-väli, mutta V259 ratkaisee omistajan KOHTISUORALLA etäisyydellä pätkän jälkeen ∴ neljä
+// merkkiä yhdessä pisteessä menee kokonaisuudessaan yhdelle pätkälle & "valmis" ⊥ synny.
+// Koordinaatit poimittu `public/smtb-2026-30km.gpx`:n geometriasta (kumulatiivinen haversine),
+// ⊥ arvattu: arvattu piste voi pudota SHARED_THRESHOLD_M:n ulkopuolelle & testi kaatuisi
+// eri syystä kuin mitä se väittää mittaavansa.
+const AT_KM: Record<number, { lat: number; lon: number }> = {
+  400: { lat: 65.605244, lon: 27.625215 },   // todellinen 383 m
+  1100: { lat: 65.610202, lon: 27.624839 },  // 1113 m
+  1900: { lat: 65.615022, lon: 27.634553 },  // 1885 m
+  2600: { lat: 65.621792, lon: 27.632937 },  // 2673 m
+}
+
 // Wire-muoto on snake_case — camelCase jättää route_ids normalisoinnissa undefiniksi.
 const marker = (id: string, dist: number, status: string) => ({
-  id, type: 'right', lat: 65.62, lon: 27.62, distance_from_start: dist,
+  id, type: 'right', lat: AT_KM[dist].lat, lon: AT_KM[dist].lon, distance_from_start: dist,
   route_ids: ['smtb-30'], status, location_note: null, color: null,
   label: null, icon_id: null, image_id: null, template_id: null, parts_json: null,
   description: null, images: [], created_by: null,
