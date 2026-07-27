@@ -242,6 +242,28 @@ export class MarkerManager {
     void this.apiPutAwaited(id, patch)
   }
 
+  /**
+   * B146/V260-amend: liitä merkin km-AKSELI jokaiseen kirjoitukseen.
+   *
+   * Serverin omistajuusportti (V150) lukee km:n `distance_by_route`sta & putoaa
+   * `distance_from_start`-SKALAARIIN kun se puuttuu — tuotannossa 190/194 merkiltä (V212 on
+   * LAZY backfill: arvo lasketaan selaimessa eikä sitä ole koskaan lähetetty statusmuutoksen
+   * mukana). Skalaari on mitattu sijoitushetken lähimmältä reitiltä ∴ toisen reitin pätkälle se
+   * ⊥ osu ollenkaan → server vastaa "ei kenenkään" & talkoolainen saa 403:n merkistä jonka oma
+   * näkymä listaa (mitattu 5/26 tuotantomerkistä). Sama B100/B115/V213-suku.
+   *
+   * Arvo on jo muistissa (`backfillDistanceByRoute`, T300) ∴ se kulkee mukana AINA: kerrokset
+   * ⊥ voi olla eri mieltä akselista jota ne vertaavat. Eksplisiittinen patch (siirto) voittaa —
+   * se kantaa tuoreemman arvon. Sivuvaikutus on toivottu: server kirjoittaa akselin kantaan
+   * (`routes/markers.ts:250`) ∴ ikkuna sulkeutuu pysyvästi merkki kerrallaan.
+   */
+  private withKmAxis(id: string, patch: Record<string, unknown>): Record<string, unknown> {
+    if ('distance_by_route' in patch) return patch
+    const m = this.markers.find((x) => x.id === id)
+    if (!m?.distanceByRoute) return patch
+    return { ...patch, distance_by_route: m.distanceByRoute }
+  }
+
   // T309/V220: sama outbox-polku, mutta VÄLITTÖMÄN yrityksen tulos palautetaan kutsujalle.
   // `delivered=false, status=null` = jäi jonoon (offline / 5xx / saman resurssin FIFO-jono) =
   // laillinen pending-tila. Vain `isServerRejection(status)` (403/400/404…) on hylkäys.
@@ -250,7 +272,7 @@ export class MarkerManager {
       resourceKey: 'marker:' + id,
       method: 'PUT',
       url: `/api/markers/${id}`,
-      body: JSON.stringify(patch),
+      body: JSON.stringify(this.withKmAxis(id, patch)),
     })
   }
 

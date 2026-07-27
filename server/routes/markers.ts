@@ -222,7 +222,12 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
     // (b) V150a: olemassa olevan merkin PITÄÄ kuulua talkoolaisen pätkään (kanoninen unioni:
     //     route+dist ∪ linked ∪ typeFilter) — koskee MYÖS status/location_note-kenttiä.
     const all = allSegments(db)
-    if (bound && !markerInOwnSegment(segs, { id, lat: existing.lat, lon: existing.lon, routeIds: existingRoutes, distFromStart: existing.distance_from_start, distByRoute: parseDistByRoute(existing.distance_by_route), templateId: existing.template_id }, all)) {
+    // B146: km-akseli luetaan RUNGOSTA kun client on sen antanut — se on tuoreempi kuin kannan
+    // arvo (V212 lazy backfill ∴ kannassa se puuttuu 190/194 merkiltä & silloin `distsOnSegmentAxis`
+    // putoaa eri reitiltä mitattuun skalaariin → "ei kenenkään" → 403 merkistä jonka clientin oma
+    // näkymä listaa). Sama luottamustaso kuin `distFromStart`illa (marker-audit.ts V213-kommentti).
+    const axis = body.distance_by_route ?? parseDistByRoute(existing.distance_by_route)
+    if (bound && !markerInOwnSegment(segs, { id, lat: existing.lat, lon: existing.lon, routeIds: existingRoutes, distFromStart: existing.distance_from_start, distByRoute: axis, templateId: existing.template_id }, all)) {
       return c.json({ error: 'forbidden' }, 403)
     }
     // (c) V150b: siirto ei saa raahata merkkiä ulos omasta pätkästä — uusi sijainti range-tarkistus.
@@ -231,7 +236,7 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
       const newRoutes = body.route_ids ?? existingRoutes
       // V150b/V259: siirron kohde arvioidaan UUDELLA sijainnilla — jäljen etäisyys lasketaan
       // siitä mihin merkki on menossa, ⊥ mistä se lähti.
-      if (!markerInOwnSegment(segs, { id, lat: body.lat ?? existing.lat, lon: body.lon ?? existing.lon, routeIds: newRoutes, distFromStart: newDist, distByRoute: body.distance_by_route ?? parseDistByRoute(existing.distance_by_route), templateId: existing.template_id }, all)) {
+      if (!markerInOwnSegment(segs, { id, lat: body.lat ?? existing.lat, lon: body.lon ?? existing.lon, routeIds: newRoutes, distFromStart: newDist, distByRoute: axis, templateId: existing.template_id }, all)) {
         return c.json({ error: 'forbidden' }, 403)
       }
     }
@@ -266,7 +271,12 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
   // T226/V152: audit-action + ENNEN-tila. Siirto ensisijainen (move-payload restoraa V153),
   // muuten tilamuutos. Identiteetti/location_note-vain-PUT (järjestäjän muokkaus) ei ole osa
   // add/move/status/remove-undomallia → ei audit-riviä (4-action-enum määrittää auditoitavan mutaation).
-  const isMove = moveFields.some((f) => f in body)
+  // B146: `distance_by_route` ⊥ ole SIIRTO vaan johdettu km-akseli joka kulkee nyt jokaisen
+  // kirjoituksen mukana (V260-amend). Jos se laskettaisiin siirroksi, JOKA statusmuutos
+  // kirjautuisi `move`-riviksi & "Kumoa" palauttaisi koordinaatit statuksen sijaan (T319/V153).
+  // Sijainnin TOTUUS on lat/lon/route_ids/distance_from_start — vain ne tekevät siirron.
+  const AUDIT_MOVE_FIELDS = ['lat', 'lon', 'distance_from_start', 'route_ids'] as const
+  const isMove = AUDIT_MOVE_FIELDS.some((f) => f in body)
   const isStatus = body.status !== undefined && body.status !== existing.status
   let audit: { action: AuditAction; payload: unknown } | null = null
   if (isMove) {

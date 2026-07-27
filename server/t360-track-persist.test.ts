@@ -296,3 +296,84 @@ describe('T360/V261 — serverin projektio vastaa frontin odotusarvoja', () => {
     expect(distanceToTrackM([], LAT0, LON0)).toBe(Infinity)
   })
 })
+
+describe('B146 — kerrokset samaa mieltä myös V260-ikkunassa', () => {
+  let db: Database
+  let app: Hono
+
+  beforeEach(() => {
+    db = createDb(':memory:')
+    seedTestUsers(db)
+    app = makeApp(db)
+  })
+
+  /**
+   * B146:n koeasetelma tuotannosta: merkki kuuluu smtb-55-pätkään, mutta sen kantaan
+   * tallennettu `distance_from_start` on mitattu smtb-30:ltä (sijoitushetken lähin reitti) ∴
+   * serverin km-haara ⊥ löydä sitä pätkän väliltä → "ei kenenkään" → 403 merkistä jonka
+   * clientin oma näkymä listaa. `distance_by_route` on NULL kannassa (V212 lazy backfill).
+   */
+  function seedCrossAxisMarker(): void {
+    db.run(
+      `INSERT INTO segments (id, route_ids, primary_route_id, start_dist, end_dist, assigned_code, equipment, phase, updated_at)
+       VALUES ('seg', '["smtb-55"]', 'smtb-55', 20000, 26000, 'ABC', '[]', 'asettaminen', '2026-07-27')`,
+    )
+    db.run(
+      `INSERT INTO markers (id, type, lat, lon, distance_from_start, route_ids, status, updated_at, distance_by_route)
+       VALUES ('m1', 'right', 65.61, 27.62, 600, '["smtb-30","smtb-55"]', 'suunniteltu', '2026-07-27', NULL)`,
+    )
+  }
+
+  test('ilman akselia: statuskirjoitus torjutaan 403:lla (bugi)', async () => {
+    seedCrossAxisMarker()
+    const res = await app.request('/api/markers/m1', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...talkooHeaders(db, 'ABC') },
+      body: JSON.stringify({ status: 'asetettu' }),
+    })
+    expect(res.status).toBe(403)
+  })
+
+  test('akseli rungossa: sama kirjoitus läpäisee (korjaus)', async () => {
+    seedCrossAxisMarker()
+    const res = await app.request('/api/markers/m1', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...talkooHeaders(db, 'ABC') },
+      // Clientin muistissa oleva akseli: sama merkki on smtb-55:llä km 22 000.
+      body: JSON.stringify({ status: 'asetettu', distance_by_route: { 'smtb-30': [600], 'smtb-55': [22000] } }),
+    })
+    expect(res.status).toBe(200)
+
+    // Sivuvaikutus jonka takia ikkuna sulkeutuu pysyvästi: akseli tallentuu kantaan.
+    const row = db.query('SELECT distance_by_route FROM markers WHERE id = ?').get('m1') as { distance_by_route: string }
+    expect(JSON.parse(row.distance_by_route)['smtb-55']).toEqual([22000])
+  })
+
+  test('akselin mukana kulkeva statusmuutos kirjautuu STATUKSENA, ei siirtona', async () => {
+    seedCrossAxisMarker()
+    await app.request('/api/markers/m1', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...talkooHeaders(db, 'ABC') },
+      body: JSON.stringify({ status: 'asetettu', distance_by_route: { 'smtb-55': [22000] } }),
+    })
+
+    // T319/V153: jos tämä kirjautuisi `move`ksi, "Kumoa" palauttaisi koordinaatit statuksen
+    // sijaan — audit-loki valehtelisi siitä mitä kentällä tapahtui.
+    const rows = db.query('SELECT action, payload_json FROM marker_audit WHERE marker_id = ?').all('m1') as { action: string; payload_json: string }[]
+    expect(rows).toHaveLength(1)
+    expect(rows[0].action).toBe('status')
+    expect(JSON.parse(rows[0].payload_json)).toEqual({ status: 'suunniteltu' })
+  })
+
+  test('oikea siirto kirjautuu edelleen siirtona', async () => {
+    seedCrossAxisMarker()
+    await app.request('/api/markers/m1', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...talkooHeaders(db, 'ABC') },
+      body: JSON.stringify({ lat: 65.615, lon: 27.625, distance_by_route: { 'smtb-55': [22500] } }),
+    })
+
+    const rows = db.query('SELECT action FROM marker_audit WHERE marker_id = ?').all('m1') as { action: string }[]
+    expect(rows[0].action).toBe('move')
+  })
+})
