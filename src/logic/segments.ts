@@ -220,6 +220,9 @@ export function getSegmentForCode(
 export function getSegmentStatusCounts(
   segment: Segment,
   markers: SignMarker[],
+  // V259: eksklusiivisuus vaatii kilpailijat. Ilman niitä lukema putoaa legacy-km-sääntöön
+  // (markersForSegment) — konservatiivinen, ⊥ "kaikki reitin merkit".
+  peers: Segment[] = [],
 ): Record<MarkerStatus, number> {
   const counts: Record<MarkerStatus, number> = {
     suunniteltu: 0,
@@ -228,7 +231,7 @@ export function getSegmentStatusCounts(
     kerätty: 0,
     ei_tarpeen: 0,
   }
-  for (const m of getMarkersForSegment(segment, markers)) {
+  for (const m of getMarkersForSegment(segment, markers, peers)) {
     counts[m.status]++
   }
   return counts
@@ -262,11 +265,11 @@ export type PhaseProgress =
   | { kind: 'count'; done: number; total: number; label: string }
   | { kind: 'boolean'; done: boolean; label: string }
 
-export function getPhaseProgress(segment: Segment, markers: SignMarker[]): PhaseProgress {
+export function getPhaseProgress(segment: Segment, markers: SignMarker[], peers: Segment[] = []): PhaseProgress {
   if (segment.phase === 'tarkastus') {
     return { kind: 'boolean', done: segment.inspected ?? false, label: 'tarkastettu' }
   }
-  const segMarkers = getMarkersForSegment(segment, markers)
+  const segMarkers = getMarkersForSegment(segment, markers, peers)
   const target = COUNT_PHASE_TARGET[segment.phase]
   const done = segMarkers.filter(m => target.doneStatuses.includes(m.status)).length
   return { kind: 'count', done, total: segMarkers.length, label: target.label }

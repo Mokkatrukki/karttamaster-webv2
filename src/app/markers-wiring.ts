@@ -177,7 +177,7 @@ export function wireMarkers(
   // locked: himmennetty ei ota klikkejä — talkoolaisen vieras merkki on read-only (V142).
   if (talkoolainenCode) {
     const own = getSegmentForCode(segmentStore, talkoolainenCode)
-    if (own) markerManager.setFocusSegment(own, { locked: true })
+    if (own) markerManager.setFocusSegment(own, { locked: true, peers: segmentPeers(segmentStore, own) })
   }
 
   // T309/V221: siirron km-akseli = talkoolaisen oman pätkän PRIMARY-reitti (⊥ lähin reitti yli

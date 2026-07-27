@@ -118,7 +118,10 @@ export class SegmentOverlay {
     // T152/V96: väri = tunniste (stabiili per id), viivatyyli = phase-status.
     // T348: valmis-tila ohittaa tunnistevärin (segmentLineColor) — status voittaa identiteetin.
     for (const seg of segments) {
-      const progress = getPhaseProgress(seg, markers)
+      // V259: `segments` on kutsujan phase-suodatettu joukko (`phaseFilteredStore`) ∴ se ON
+      // kilpailijajoukko. Ilman sitä laskuri putoaisi legacy-sääntöön & kartan viivatyyli
+      // kertoisi eri tarinan kuin pätkän oma lista — tilannekuva ⊥ saa olla kahta mieltä.
+      const progress = getPhaseProgress(seg, markers, segments)
       // T353/V256 (B142): talkoolaisen kuittaus (`completed`) voittaa merkkilaskurin — ilman tätä
       // eksplisiittinen "pätkä valmis" ⊥ näkynyt kartalla lainkaan.
       const state = segmentLineState(progress, seg.completed)

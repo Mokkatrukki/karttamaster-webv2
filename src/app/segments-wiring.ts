@@ -111,7 +111,8 @@ export async function wireSegments(
   function setFocusSegment(seg: Segment | null): void {
     focusSegmentId = seg?.id ?? null
     // Järjestäjä: himmennetty PYSYY klikattavana (locked=false) — korostus on lukemisen apu.
-    markerManagerRef.current?.setFocusSegment(seg ?? undefined)
+    // V259: korostus käyttää samaa eksklusiivista jäsenyyttä kuin lista → anna kilpailijat.
+    markerManagerRef.current?.setFocusSegment(seg ?? undefined, seg ? { peers: getSegmentsForPhase(segmentStore, seg.phase) } : {})
     if (seg) focusPill.show(seg.displayName ?? 'pätkä')
     else focusPill.hide()
   }

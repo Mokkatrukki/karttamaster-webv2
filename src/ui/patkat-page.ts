@@ -78,7 +78,7 @@ export function renderPatkatPage(container: HTMLElement, opts: PatkatPageOpts): 
     const list = document.createElement('ul')
     list.className = 'patkat-list'
     for (const seg of segments) {
-      list.appendChild(buildSegmentRow(seg, markers, role))
+      list.appendChild(buildSegmentRow(seg, markers, role, segments))
     }
     listSection.appendChild(list)
   }
@@ -103,7 +103,7 @@ export function renderPatkatPage(container: HTMLElement, opts: PatkatPageOpts): 
   container.classList.add('patkat-page--has-actionbar')
 }
 
-function buildSegmentRow(seg: Segment, markers: SignMarker[], role: string): HTMLLIElement {
+function buildSegmentRow(seg: Segment, markers: SignMarker[], role: string, allSegments: Segment[] = []): HTMLLIElement {
   const li = document.createElement('li')
   li.className = 'patkat-row'
 
@@ -116,7 +116,8 @@ function buildSegmentRow(seg: Segment, markers: SignMarker[], role: string): HTM
 
   const meta = document.createElement('span')
   meta.className = 'patkat-row-meta'
-  const counts = getSegmentStatusCounts(seg, markers)
+  // V259: hubin lukema ! vastata pätkänäkymän lukemaa ∴ kilpailijat samasta vaiheesta.
+  const counts = getSegmentStatusCounts(seg, markers, allSegments.filter(s => s.phase === seg.phase))
   const statusText = formatStatusCounts(counts)
   meta.textContent = `${PHASE_LABEL[seg.phase]}${statusText ? ' · ' + statusText : ''}`
 

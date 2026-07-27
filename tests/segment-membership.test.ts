@@ -3,6 +3,8 @@ import { buildRoutePoints } from '../src/logic/bearing'
 import { deriveTrackFromBounds } from '../src/logic/segment-track'
 import { resolveSegmentMarkers, markersForSegment } from '../src/logic/segment-membership'
 import { segmentKm } from '../src/logic/segment-order'
+import { getSegmentStatusCounts, getPhaseProgress } from '../src/logic/segments'
+import { focusState } from '../src/logic/marker-focus'
 import type { Segment } from '../src/logic/segments'
 import type { SignMarker } from '../src/logic/types'
 
@@ -310,5 +312,81 @@ describe('V259 — markersForSegment ja km-akseli seuraavat samaa jäsenyyttä',
     expect(Math.abs((km as number) - (r1[7].distanceFromStart - r1[5].distanceFromStart))).toBeLessThan(2)
     // Todiste että akseli VAIHTUI: reitin oma lukema on satoja metrejä suurempi.
     expect(km as number).toBeLessThan(m.distanceFromStart - 100)
+  })
+})
+
+// ck:check-löydös 2026-07-27: `getSegmentStatusCounts`/`getPhaseProgress` kutsuivat jäsenyyttä
+// ILMAN kilpailijoita, & koska V259 on kynnyksetön, yksin kilpaileva pätkä voitti JOKAISEN
+// merkin reitillään — tuotannossa 122 merkkiä oikean 12:n sijaan. Kolme pintaa luki niitä:
+// kartan viivatyyli, järjestäjän pätkärivi & talkoolais-hub. Testit ovat vihreitä ilman
+// korjausta vain jos fixturen kaikki merkit sattuvat kuulumaan pätkään ∴ TÄMÄ fixture ei satu.
+describe('V259 — aggregaatit eivät saa väittää koko reittiä omakseen', () => {
+  const r1 = route(1000, 100)
+  const alku = seg({
+    id: 'alku', routeIds: ['r1'], primaryRouteId: 'r1',
+    startDist: 0, endDist: 300, track: deriveTrackFromBounds(r1, 0, 300),
+  })
+  const loppu = seg({
+    id: 'loppu', routeIds: ['r1'], primaryRouteId: 'r1',
+    startDist: 700, endDist: 1000, track: deriveTrackFromBounds(r1, 700, 1000),
+  })
+  // Kaksi merkkiä samalla reitillä, ERI päissä. Kumpikin kuuluu vain yhteen pätkään.
+  const markers = [
+    marker({ id: 'lahella', ...at(100, 5), routeIds: ['r1'], distanceFromStart: 100, status: 'asetettu' }),
+    marker({ id: 'kaukana', ...at(900, 5), routeIds: ['r1'], distanceFromStart: 900, status: 'suunniteltu' }),
+  ]
+
+  it('peersien kanssa: kumpikin pätkä saa VAIN omansa', () => {
+    const peers = [alku, loppu]
+    expect(getSegmentStatusCounts(alku, markers, peers).asetettu).toBe(1)
+    expect(getSegmentStatusCounts(alku, markers, peers).suunniteltu).toBe(0)
+    expect(getSegmentStatusCounts(loppu, markers, peers).suunniteltu).toBe(1)
+    expect(getPhaseProgress(alku, markers, peers)).toEqual({ kind: 'count', done: 1, total: 1, label: 'asetettu' })
+  })
+
+  it('ILMAN peersejä lukema putoaa legacy-km-sääntöön, ⊥ väitä koko reittiä', () => {
+    // Korjauksen ydin: tyhjä `peers` = "kilpailijoita ⊥ tiedetä". Ennen korjausta tämä palautti
+    // MOLEMMAT merkit (kynnyksetön lähin-voittaa yksin kilpailevalle pätkälle).
+    const counts = getSegmentStatusCounts(alku, markers)
+    expect(counts.asetettu).toBe(1)
+    expect(counts.suunniteltu).toBe(0)
+
+    const progress = getPhaseProgress(alku, markers)
+    expect(progress).toEqual({ kind: 'count', done: 1, total: 1, label: 'asetettu' })
+  })
+
+  it('kartan viivatyyli ja pätkän oma lista ⊥ voi olla eri mieltä', () => {
+    const peers = [alku, loppu]
+    // `segment-overlay` laskee progressin & `segmentLineState` värittää viivan sen mukaan.
+    // Jos laskuri näkisi koko reitin, tyhjä pätkä näyttäisi kartalla kesken/valmiilta.
+    const tyhja = seg({
+      id: 'tyhja', routeIds: ['r1'], primaryRouteId: 'r1',
+      startDist: 400, endDist: 600, track: deriveTrackFromBounds(r1, 400, 600),
+    })
+    const p = getPhaseProgress(tyhja, markers, [...peers, tyhja])
+    expect(p).toEqual({ kind: 'count', done: 0, total: 0, label: 'asetettu' })
+  })
+})
+
+describe('V243/V259 — kartan korostusjoukko seuraa kanonista jäsenyyttä', () => {
+  const r1 = route(1000, 100)
+  const alku = seg({ id: 'alku', routeIds: ['r1'], primaryRouteId: 'r1', startDist: 0, endDist: 300, track: deriveTrackFromBounds(r1, 0, 300) })
+  const loppu = seg({ id: 'loppu', routeIds: ['r1'], primaryRouteId: 'r1', startDist: 700, endDist: 1000, track: deriveTrackFromBounds(r1, 700, 1000) })
+  const markers = [
+    marker({ id: 'lahella', ...at(100, 5), routeIds: ['r1'], distanceFromStart: 100 }),
+    marker({ id: 'kaukana', ...at(900, 5), routeIds: ['r1'], distanceFromStart: 900 }),
+  ]
+
+  it('korostus ei valaise merkkiä joka kuuluu toiselle pätkälle', () => {
+    // ck:check: `marker-focus` osoitti yhä `resolveTaskMarkers`iin ∴ kartta korosti merkkejä
+    // joita pätkän oma lista ⊥ näytä — kaksi jäsenyystotuutta.
+    const state = focusState(markers, alku, [alku, loppu])
+    expect(state.get('lahella')).toBe('focus')
+    expect(state.get('kaukana')).toBe('dim')
+  })
+
+  it('ilman fokusta kaikki ovat focus-tilassa (ennallaan)', () => {
+    const state = focusState(markers, undefined)
+    expect([...state.values()].every(v => v === 'focus')).toBe(true)
   })
 })

@@ -21,6 +21,7 @@ import { markerScaleForZoom } from '../logic/marker-scale'
 import { outbox } from '../logic/outbox-instance'
 import { setOutboxSaveErrorHandler } from '../logic/outbox-instance'
 import { focusState } from '../logic/marker-focus'
+import type { MembershipSegment } from '../logic/segment-membership'
 import type { TaskMarkerSource } from '../logic/task-markers'
 
 interface RouteRef { id: string; routePoints: RoutePoint[] }
@@ -48,6 +49,8 @@ export class MarkerManager {
   // T335/V243: fokus-tila. `undefined` = ei fokusta (⊥ himmennystä). Jäsenyys lasketaan
   // `focusState`illa (T334) joka delegoi `resolveTaskMarkers`iin — ⊥ omaa sääntöä tänne.
   private focusSegment: TaskMarkerSource | undefined = undefined
+  // V259: fokusjoukon kilpailijat — sama kanoninen jäsenyys kuin pätkän listalla (ck:check).
+  private focusPeers: MembershipSegment[] = []
   // V142: talkoolaisen näkymässä himmennetty merkki on myös read-only (pointer-events pois);
   // järjestäjällä himmennetty PYSYY klikattavana — korostus on lukemisen apu, ⊥ lukko.
   private focusLocked = false
@@ -133,8 +136,9 @@ export class MarkerManager {
 
   // T335/V243: kartan fokus-tila — HIMMENNÄ muut, ⊥ piilota. `undefined` nollaa.
   // `locked` = himmennetty ei ota klikkejä (talkoolainen, V142).
-  setFocusSegment(segment: TaskMarkerSource | undefined, opts: { locked?: boolean } = {}): void {
+  setFocusSegment(segment: TaskMarkerSource | undefined, opts: { locked?: boolean; peers?: MembershipSegment[] } = {}): void {
     this.focusSegment = segment
+    this.focusPeers = opts.peers ?? []
     this.focusLocked = opts.locked ?? false
     this.recomputeFocus()
   }
@@ -149,7 +153,7 @@ export class MarkerManager {
   private recomputeFocus(): void {
     this.dimmedIds = new Set()
     if (this.focusSegment !== undefined) {
-      focusState(this.markers, this.focusSegment).forEach((state, id) => {
+      focusState(this.markers, this.focusSegment, this.focusPeers).forEach((state, id) => {
         if (state === 'dim') this.dimmedIds.add(id)
       })
     }

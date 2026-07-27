@@ -119,14 +119,21 @@ export function resolveSegmentMarkers(
 /**
  * Yhden pätkän merkit — `resolveSegmentMarkers`in kapea näkymä.
  * `peers` = saman vaiheen muut pätkät. ILMAN sitä eksklusiivisuutta ⊥ voi ratkaista (kysymys
- * "kuka omistaa" vaatii kilpailijat) ∴ tyhjä `peers` tarkoittaa "ei kilpailijoita" & tulos on
- * pätkän oma geometrinen osuma. Kutsuja jolla on `SegmentStore` ! antaa `getSegmentsForPhase`.
+ * "kuka omistaa" vaatii kilpailijat) ∴ tyhjä `peers` = "kilpailijoita ⊥ tiedetä" & tulos putoaa
+ * legacy-km-sääntöön. Kutsuja jolla on `SegmentStore` ! antaa `segmentPeers`in.
  */
 export function markersForSegment(
   segment: MembershipSegment,
   markers: SignMarker[],
   peers: MembershipSegment[] = [],
 ): SignMarker[] {
+  // Tyhjä `peers` = "kilpailijoita ⊥ TIEDETÄ", ⊥ "kilpailijoita ⊥ OLE". Ero on ratkaiseva:
+  // V259 on kynnyksetön ∴ yksin kilpaileva pätkä voittaisi JOKAISEN merkin reitillään (mitattu:
+  // 122 merkkiä oikean 12:n sijaan). Ilman kilpailijatietoa palataan siis legacy-km-sääntöön —
+  // sama haara kuin jäljettömällä pätkällä (V260) ∴ lukema on entinen & konservatiivinen,
+  // ⊥ villisti liian suuri. Eksklusiivisuus vaatii joukon; kutsuja jolla on `SegmentStore`
+  // antaa sen `segmentPeers`illa.
+  if (peers.length === 0) return resolveTaskMarkers(segment, markers)
   const all = peers.some(p => p.id === segment.id) ? peers : [segment, ...peers]
   return resolveSegmentMarkers(all, markers).get(segment.id) ?? []
 }

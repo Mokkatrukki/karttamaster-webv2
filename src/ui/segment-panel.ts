@@ -3,6 +3,7 @@ import { buildTrackFromAnchors, nextAnchorIndex, type AnchorHit } from '../logic
 import {
   validateNoOverlap,
   getSegmentStatusCounts,
+  segmentPeers,
   formatStatusCounts,
   getPhaseProgress,
   formatPhaseProgress,
@@ -401,12 +402,14 @@ export class SegmentPanel {
     const kmSpan = document.createElement('span')
     kmSpan.className = 'segment-km'
     const markers = this.callbacks.getMarkers?.() ?? []
-    kmSpan.textContent = formatPhaseProgress(getPhaseProgress(seg, markers))
+    // V259: rivin lukema ! olla eksklusiivinen — ilman kilpailijoita se putoaisi legacy-sääntöön.
+    const peers = segmentPeers(this.store, seg)
+    kmSpan.textContent = formatPhaseProgress(getPhaseProgress(seg, markers, peers))
     // V139: reitittömällä tehtävällä ei km-aluetta.
     const kmRange = seg.startDist !== undefined && seg.endDist !== undefined
       ? `${(seg.startDist / 1000).toFixed(1)}–${(seg.endDist / 1000).toFixed(1)} km · `
       : ''
-    kmSpan.title = `${kmRange}${formatStatusCounts(getSegmentStatusCounts(seg, markers))}`
+    kmSpan.title = `${kmRange}${formatStatusCounts(getSegmentStatusCounts(seg, markers, peers))}`
 
     // T353/V256 (B142): talkoolaisen kuittaus omana merkintänään — EI laskurin tilalla. Ne voivat
     // olla eri mieltä (kuitattu vaikka merkkejä kesken, tai kaikki asetettu mutta ⊥ kuitattu) &
