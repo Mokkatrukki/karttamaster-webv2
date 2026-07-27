@@ -4,7 +4,7 @@
 // oltava ainoa ulospääsy — juuri se puuttui B131:ssä.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { initMarkerFocusPill, pillText } from '../src/ui/marker-focus-pill'
-import { focusToggleLabel } from '../src/ui/segment-details-modal'
+import { focusToggleLabel, focusToggleShortLabel } from '../src/ui/segment-details-modal'
 
 function pillDom(): HTMLElement {
   document.body.innerHTML = `
@@ -19,6 +19,10 @@ describe('korostuskytkimen label (T335/V243/V197)', () => {
   it('kertoo tilan sanoin, ei pelkällä ikonilla', () => {
     expect(focusToggleLabel(false)).toBe('◎ Korosta vain tämä pätkä')
     expect(focusToggleLabel(true)).toBe('◉ Korostus päällä')
+    // T353/V197: headerin lyhyt muoto on edelleen SANA, ⊥ pelkkä ikoni.
+    expect(focusToggleShortLabel(false)).toBe('◎ Korosta')
+    expect(focusToggleShortLabel(true)).toBe('◉ Korostettu')
+    expect(focusToggleShortLabel(true)).not.toBe('◉')
   })
 })
 
@@ -95,7 +99,8 @@ describe('kytkin + pilleri yhdessä (T335/V243)', () => {
 
     btn.click()
     expect(btn.getAttribute('aria-pressed')).toBe('true')
-    expect(btn.textContent).toBe(focusToggleLabel(true))
+    expect(btn.textContent).toBe(focusToggleShortLabel(true))
+    expect(btn.title).toBe(focusToggleLabel(true))
     expect(focusId).toBe(seg.id)
     expect(pill.isVisible()).toBe(true)
 
@@ -111,5 +116,30 @@ describe('kytkin + pilleri yhdessä (T335/V243)', () => {
     // uudelleen auetessa kytkin lukee tilan wiringistä → pois
     modal.open(seg)
     expect(document.querySelector('.btn-segment-focus-toggle')!.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  // T353: kytkin on modaalin HEADERISSA otsikon ja ✕:n välissä — se on tilakytkin, ⊥ Asetukset-
+  // tabin alaotsikko (tabien takana se olisi näkymätön juuri silloin kun se vaikuttaa karttaan).
+  it('kytkin on headerissa otsikon ja ✕:n VÄLISSÄ, ⊥ enää rungossa', async () => {
+    pillDom()
+    const { SegmentDetailsModal } = await import('../src/ui/segment-details-modal')
+    const { createSegmentStore, createSegment } = await import('../src/logic/segments')
+
+    const store = createSegmentStore()
+    const seg = createSegment(store, {
+      routeIds: ['r1'], startDist: 0, endDist: 1000, equipment: [], phase: 'asettaminen',
+      displayName: 'Pätkä 4',
+    })!
+    new SegmentDetailsModal(store, () => {}, () => {}, { getMarkers: () => [] }).open(seg)
+
+    const header = document.querySelector('.segment-details-modal-header')!
+    const kids = [...header.children].map(e => e.className.split(' ')[0])
+    expect(kids).toEqual([
+      'segment-details-modal-title',
+      'btn',
+      'segment-details-modal-close',
+    ])
+    expect(header.querySelector('.btn-segment-focus-toggle')).not.toBeNull()
+    expect(document.querySelector('.segment-details-modal-body .btn-segment-focus-toggle')).toBeNull()
   })
 })

@@ -2607,16 +2607,23 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
 .segment-details-modal-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 4px;
   padding: 12px 16px 10px;
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
 }
 
+/* T353: otsikko on ainoa joustava elementti headerissa — 340px-modaalissa se typistyy, ⊥ kytkin
+   eikä ✕ kutistu (44px on kosketuskoko, ei neuvoteltava). */
 .segment-details-modal-title {
   color: var(--text-body);
   font-size: 14px;
   font-weight: 700;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .segment-details-modal-close {
@@ -2660,10 +2667,21 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   padding-top: 10px;
   border-top: 1px solid var(--border-card);
 }
-.segment-details-modal-body > .segment-details-group-title:first-child {
+.segment-details-modal-body > .segment-details-group-title:first-child,
+/* T351: ryhmäotsikot elävät nyt Asetukset-panelin sisällä → ensimmäisen yläviiva pois sieltä. */
+.segment-details-modal-tabs .segment-koti-panel > .segment-details-group-title:first-child {
   padding-top: 0;
   border-top: none;
 }
+
+/* T351: bodyn gap siirtyy panelille — body kantaa vain tabikuoren. */
+.segment-details-modal-tabs .segment-koti-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 0;
+}
+.segment-details-modal-tabs .segment-koti-panel[hidden] { display: none; }
 
 .segment-details-modal-section {
   display: flex;
@@ -2739,25 +2757,30 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   color: var(--text-body);
 }
 
+/* T351/V254: sama tabikomponentti kuin talkoolaisen kotinäkymässä, modaalin sisällä.
+   Tabipalkki on sticky bodyn yläreunassa — pitkä Asetukset-tab ei saa vierittää välilehtiä
+   pois näkyvistä (paikan pitää pysyä paikallaan). Tausta on läpinäkymätön: alta liukuva
+   sisältö ei sotke luettavuutta. */
+.segment-details-modal-tabs .segment-koti-tabbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0 0 10px;
+  background: var(--surface-card);
+}
+
+.segment-details-markers-empty {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin: 4px 0;
+}
+
+/* T352: footer noudattaa jaettua .modal-footer-patternia (DESIGN.md §Modal footer) — layout,
+   padding ja reunaviiva tulevat sieltä. Modaalikohtaista jää vain flex-shrink (kuori on
+   flex-column + overflow:hidden ∴ footer ⊥ saa kutistua bodyn painaessa).
+   Poistettu: .btn-segment-modal-save (confirm-primary joka vain sulki = V250-valhe). */
 .segment-details-modal-footer {
-  padding: 12px 20px;
-  border-top: 1px solid var(--border-subtle);
-}
-
-.btn-segment-modal-save {
-  background: var(--confirm);
-  color: var(--confirm-text);
-  border: none;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 600;
-  min-height: 44px;
-  width: 100%;
-  cursor: pointer;
-}
-
-.btn-segment-modal-save:hover {
-  background: var(--confirm-hover);
+  flex-shrink: 0;
 }
 
 /* T227: supervision — per-pätkä aktiviteettiloki + massaperuutus (järjestäjä). */
@@ -2815,11 +2838,8 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   cursor: default;
 }
 
-.segment-modal-danger-zone {
-  padding: 4px 20px 12px;
-  display: flex;
-  justify-content: flex-end;
-}
+/* T352: vaaravyöhyke on nyt footerin destructive-RIVI (.modal-footer-destructive hoitaa
+   keskityksen) — ⊥ oikealle tasattu blokki rungon lopussa. */
 
 .btn-segment-delete-modal {
   background: transparent;
@@ -3979,7 +3999,7 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 .btn-status-primary, .btn-status-secondary, .btn-bulk-collect,
 .btn-mark-inspected, .btn-snapshot-create, .btn-snapshot-download,
 .btn-snapshot-restore, .btn-snapshot-restore-file, .btn-segment-create,
-.btn-segment-modal-save, .btn-segment-creation-save, .btn-segment-creation-cancel,
+.btn-segment-creation-save, .btn-segment-creation-cancel,
 .btn-segment-delete, .btn-segment-edit-pts, .btn-segment-edit-pts-modal,
 .btn-segment-clone-phase, .btn-segment-details-toggle, .btn-assign-save,
 .btn-assign-edit, .btn-copy-url, .btn-equipment-add, .btn-equipment-remove,
@@ -4014,13 +4034,13 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 .btn--confirm,
 .btn-bulk-apply:not(:disabled), .btn-bulk-checkin-aseta:not(:disabled),
 .btn-status-primary, .btn-bulk-collect, .btn-mark-inspected,
-.btn-segment-modal-save, .btn-segment-creation-save, .modal-btn-primary {
+.btn-segment-creation-save, .modal-btn-primary {
   background: var(--confirm);
   color: var(--confirm-text);
 }
 .btn--confirm:hover,
 .btn-status-primary:hover, .btn-bulk-collect:hover,
-.btn-mark-inspected:hover, .btn-segment-modal-save:hover, .modal-btn-primary:hover {
+.btn-mark-inspected:hover, .modal-btn-primary:hover {
   background: var(--confirm-hover);
 }
 
@@ -4065,16 +4085,20 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 }
 .btn--ghost:hover { background: var(--hover); color: var(--text-body); }
 
-/* T335/V243: korostuskytkin istuu modaalin toimintorivien joukkoon → sama muoto kuin
-   naapurinapeilla (.btn-segment-edit-pts-modal), ei leijuvaa inline-nappia. aria-pressed
-   näkyy myös visuaalisesti: päällä = accent-kehys (ei pelkkä tekstinvaihto, V197). */
+/* T335/V243 → T353: korostuskytkin asuu modaalin HEADERISSA otsikon ja ✕:n välissä (tilakytkin,
+   ei asetusrivi). aria-pressed näkyy myös visuaalisesti: päällä = accent-kehys (ei pelkkä
+   tekstinvaihto, V197). Ei kutistu: otsikko typistyy ensin (min-width:0 + ellipsis alla). */
 .btn-segment-focus-toggle {
-  width: 100%;
-  justify-content: flex-start;
+  flex: 0 0 auto;
+  justify-content: center;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--field-tint);
   font-size: 12px;
+  min-height: 44px;
+  padding: 0 10px;
+  margin-right: 6px;
+  white-space: nowrap;
   cursor: pointer;
 }
 .btn-segment-focus-toggle[aria-pressed="true"] {

@@ -105,30 +105,37 @@ describe('T344/V250 — yksi tallennusmalli modaalissa', () => {
     expect(store.get(segId)!.description).toBe('Uusi ohje')
   })
 
-  it('footer sanoo "Valmis" — ei lupaa tallennusta jota se ei tee', () => {
+  it('footer sanoo "Sulje" — ei lupaa tallennusta jota se ei tee (T352)', () => {
     setup()
     document.querySelector<HTMLButtonElement>('.segment-info')!.click()
-    const footerBtn = document.querySelector<HTMLButtonElement>('.segment-details-modal-footer button')!
-    expect(footerBtn.textContent).toBe('Valmis')
+    const footerBtn = document.querySelector<HTMLButtonElement>('.modal-footer .modal-btn-secondary')!
+    expect(footerBtn.textContent).toBe('Sulje')
+    // Primarya ⊥ ole: confirm-täytteinen nappi joka vain sulkee valehtelee samoin kuin `Tallenna`.
+    expect(document.querySelector('.segment-details-modal .modal-btn-primary')).toBeNull()
   })
 
   it('footer sulkee modaalin', () => {
     setup()
     document.querySelector<HTMLButtonElement>('.segment-info')!.click()
-    document.querySelector<HTMLButtonElement>('.segment-details-modal-footer button')!.click()
+    document.querySelector<HTMLButtonElement>('.modal-footer .modal-btn-secondary')!.click()
     expect(document.querySelector('.segment-details-modal')).toBeNull()
   })
 
-  it('vaaravyöhyke on rungon SISÄLLÄ ennen footeria (⊥ footerin alla)', () => {
+  // T352/V250: vaaravyöhyke siirtyi rungosta footerin omalle destructive-riville. Sijainti ei enää
+  // kanna erottelua — tyyli kantaa (pieni tekstinappi, ⊥ danger-blokki).
+  it('poisto on footerin destructive-rivillä actions-rivin JÄLKEEN (T352)', () => {
     setup()
     document.querySelector<HTMLButtonElement>('.segment-info')!.click()
 
     const body = document.querySelector('.segment-details-modal-body')!
-    const danger = document.querySelector('.segment-modal-danger-zone')!
-    const footer = document.querySelector('.segment-details-modal-footer')!
+    const footer = document.querySelector('.modal-footer')!
+    const actions = footer.querySelector('.modal-footer-actions')!
+    const danger = footer.querySelector('.modal-footer-destructive')!
+    const delBtn = danger.querySelector('.modal-btn-destructive')!
 
-    expect(body.contains(danger)).toBe(true)
-    // DOM-järjestys: vaaravyöhyke ennen footeria
-    expect(danger.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(body.contains(danger)).toBe(false)
+    expect(delBtn.textContent).toBe('Poista pätkä')
+    expect(actions.compareDocumentPosition(danger) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
+
 })

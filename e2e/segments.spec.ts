@@ -328,6 +328,9 @@ test.describe('T25 — SegmentPanel', () => {
 
   test('T56b — "Muokkaa pisteitä" -nappi näkyy SegmentDetailsModalissa (siirretty T77-modaaliin)', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
+    // E2E-NOTES juurisyy 1: ilman kirjoitusmockia luonti-POST → 401 → #auth-screen.open kaappaa
+    // klikit. Assertio oli aiemmin pelkkä toBeVisible ∴ puute ei näkynyt; tab-klikki paljasti sen.
+    await mockSegmentWrites(page)
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
@@ -340,6 +343,9 @@ test.describe('T25 — SegmentPanel', () => {
       if (last) last.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
     await page.waitForTimeout(400)
+
+    // T351/V254: rajojen muokkaus asuu Asetukset-tabissa → tabi ensin, ⊥ kaivaa piilotettua panelia.
+    await page.click('.segment-details-modal-tabs .segment-koti-tab[data-tab="asetukset"]')
 
     const editBtn = page.locator('.btn-segment-edit-pts-modal')
     await expect(editBtn).toBeVisible()
@@ -410,6 +416,54 @@ test.describe('T25 — SegmentPanel', () => {
     await page.click('.btn-segment-delete-modal')
 
     await expect(page.locator('.segment-empty')).toBeVisible()
+  })
+
+  // T351/V254: modaalin välilehdet kapealla ruudulla. Kolme tabia EI saa taittua kahdelle riville
+  // — taittunut tabipalkki syö modaalin korkeudesta ja siirtää sisältöä datan mukana.
+  // T352/T353 samassa ajossa: footer on jaettu modal-footer ja korostuskytkin headerissa.
+  test('T351 — modaalin 3 tabia mahtuvat 390px-ruudulle, tab-vaihto toimii', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockSegmentWrites(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await createSegmentViaModal(page)
+    await expect(page.locator('.segment-details-modal')).toBeVisible()
+
+    // Kapea ruutu VASTA modaalin auettua — luontiflow tarvitsee kartan leveyden.
+    await page.setViewportSize({ width: 390, height: 780 })
+    await page.waitForTimeout(300)
+
+    const tabs = page.locator('.segment-details-modal-tabs .segment-koti-tab')
+    await expect(tabs).toHaveCount(3)
+
+    // Yksi rivi = kaikilla sama y-koordinaatti.
+    const tops = await tabs.evaluateAll(els => els.map(e => Math.round(e.getBoundingClientRect().top)))
+    expect(new Set(tops).size).toBe(1)
+
+    // Tabipalkki mahtuu modaalin leveyteen (⊥ vaakascrollia).
+    const bar = page.locator('.segment-details-modal-tabs .segment-koti-tabbar')
+    const fits = await bar.evaluate(el => el.scrollWidth <= el.clientWidth + 1)
+    expect(fits).toBe(true)
+
+    // Oletustabi = Varustelista; merkit-tab piilossa kunnes klikataan.
+    await expect(page.locator('.segment-koti-panel[data-tab="varuste"]')).toBeVisible()
+    await expect(page.locator('.segment-koti-panel[data-tab="merkit"]')).toBeHidden()
+    await tabs.nth(1).click()
+    await expect(page.locator('.segment-koti-panel[data-tab="merkit"]')).toBeVisible()
+    await expect(page.locator('.segment-koti-panel[data-tab="varuste"]')).toBeHidden()
+
+    // T353: korostuskytkin headerissa, ✕ edelleen 44px.
+    await expect(page.locator('.segment-details-modal-header .btn-segment-focus-toggle')).toBeVisible()
+    const closeBox = await page.locator('.segment-details-modal-close').boundingBox()
+    expect(closeBox!.width).toBeGreaterThanOrEqual(44)
+    expect(closeBox!.height).toBeGreaterThanOrEqual(44)
+
+    // T352: footer = secondary Sulje + destructive-rivi, ei primarya.
+    await expect(page.locator('.segment-details-modal .modal-footer .modal-btn-secondary')).toHaveText('Sulje')
+    await expect(page.locator('.segment-details-modal .modal-btn-primary')).toHaveCount(0)
+    await expect(page.locator('.segment-details-modal .modal-footer .modal-btn-destructive')).toHaveText('Poista pätkä')
   })
 
   // T141/B61/V88: main.ts wiring regression guard — T95 died silently this exact way (B60).

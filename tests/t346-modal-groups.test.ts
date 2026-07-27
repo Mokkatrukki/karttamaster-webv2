@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
 // T346/V250 — SegmentDetailsModalin osioryhmittely. Ryhmäjako on myös tuleva moduuliraja
 // (moduuli on ⚠️ pilkkolistalla) ∴ tämä testi lukitsee rajat ennen pilkkomista.
+// T351/V254 PÄIVITYS: Sisältö-ryhmä avautui kahdeksi välilehdeksi (Varustelista · Kaikki merkit,
+// katettu tests/t351-modal-tabs.test.ts:ssä) ja loput neljä ryhmää elävät Asetukset-tabin
+// sisäotsikkoina. Ryhmärajat itsessään EIVÄT muuttuneet — vain niiden kuori.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { SegmentDetailsModal } from '../src/ui/segment-details-modal'
 import { createSegmentStore, createSegment } from '../src/logic/segments'
@@ -31,7 +34,7 @@ function groupOf(el: Element): string | null {
   return null
 }
 
-describe('T346/V250 — modaalin viisi ryhmää', () => {
+describe('T346/V250+T351 — modaalin ryhmärajat', () => {
   beforeEach(() => {
     document.body.innerHTML = ''
     let ls: Record<string, string> = {}
@@ -45,9 +48,9 @@ describe('T346/V250 — modaalin viisi ryhmää', () => {
   })
   afterEach(() => { document.body.innerHTML = '' })
 
-  it('ryhmät oikeassa järjestyksessä', () => {
+  it('ryhmäotsikot oikeassa järjestyksessä (Sisältö = omat tabinsa, T351)', () => {
     openModal()
-    expect(groupTitles()).toEqual(['Tiedot', 'Sisältö', 'Jako', 'Kartta', 'Vaiheet'])
+    expect(groupTitles()).toEqual(['Tiedot', 'Jako', 'Kartta', 'Vaiheet'])
   })
 
   it('nimi ja kuvaus kuuluvat Tiedot-ryhmään', () => {
@@ -56,10 +59,12 @@ describe('T346/V250 — modaalin viisi ryhmää', () => {
     expect(groupOf(document.querySelector('.segment-desc-input')!.closest('.segment-details-modal-section')!)).toBe('Tiedot')
   })
 
-  it('rajojen muokkaus ja korostus kuuluvat Kartta-ryhmään', () => {
+  // T353: korostuskytkin siirtyi headeriin (tilakytkin, ⊥ ryhmän asetusrivi) → Kartta-ryhmään
+  // jää rajojen muokkaus. Kytkimen sijainti on t335:n vastuulla.
+  it('rajojen muokkaus kuuluu Kartta-ryhmään', () => {
     openModal()
     expect(groupOf(document.querySelector('.btn-segment-edit-pts-modal')!.closest('.segment-details-modal-section')!)).toBe('Kartta')
-    expect(groupOf(document.querySelector('.btn-segment-focus-toggle')!.closest('.segment-details-modal-section')!)).toBe('Kartta')
+    expect(document.querySelector('.segment-details-modal-body .btn-segment-focus-toggle')).toBeNull()
   })
 
   it('kloonaus kuuluu Vaiheet-ryhmään', () => {
@@ -80,11 +85,11 @@ describe('T346/V250 — modaalin viisi ryhmää', () => {
     expect(groupTitles()).toContain('Jako')
   })
 
-  it('vaaravyöhyke ja footer pysyvät ryhmien ULKOpuolella (T344-järjestys)', () => {
+  it('vaaravyöhyke ja footer pysyvät ryhmien ULKOpuolella (T352: poisto footerin sisällä)', () => {
     openModal()
     const danger = document.querySelector('.segment-modal-danger-zone')!
-    const footer = document.querySelector('.segment-details-modal-footer')!
+    const footer = document.querySelector('.modal-footer')!
     expect(danger.classList.contains('segment-details-modal-section')).toBe(false)
-    expect(danger.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(footer.contains(danger)).toBe(true)
   })
 })
