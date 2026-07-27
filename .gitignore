@@ -14,3 +14,8 @@ backups/
 
 # Tuotannosta vedetyt backupit — ei repoon
 tuotanto-back/
+
+# Claude Code -worktreet ja ajonaikaiset dumpit — eivät kuulu repoon (2026-07-27)
+.claude/worktrees/
+*.json.save
+karttamaster-web.fly.dev-*.json
