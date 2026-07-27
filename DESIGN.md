@@ -584,12 +584,19 @@ Sivun (ei modaalin) **primary-toiminto** kun sivun sisältö on datan mukana kas
   - `.comment-thread-send` (`.btn--confirm`): `width:100%`. Virhe: `.comment-thread-error` `danger-text 12px`.
 - **Sääntö:** kaikki lomakekontrollit ≥44px touch (§R, talkoolainen mobiili/hanskat) + DESIGN-tokenit — EI natiiveja selain-defaultteja.
 
+### ImageLightbox — jaettu suurennus (`src/ui/image-lightbox.ts`, T337/V246)
+- **Yksi kuori kaikille suurennetuille kuville:** merkkien valokuvat, huomioiden kuvat (T338), kylttivisuaali (`marker-visual-row`). Kolme toteutusta ⇒ kolme eri sulkemiskäytöstä; Esc, backdrop-klikki ja ✕ toimivat samoin joka paikassa (escape-chain).
+- **Rakenne:** `.marker-visual-lightbox-backdrop` (`--overlay` + blur, `z-index:5000`) > `.marker-visual-lightbox` (kortti, `max-width:min(90vw,420px)`) > `.marker-visual-lightbox-close` (✕, `34px`, oikea yläkulma) + `.marker-visual-lightbox-stage` + valinnainen `.marker-visual-lightbox-caption`.
+- **Valokuva (`openImageLightbox`):** `.image-lightbox-photo`, **`object-fit: contain`**, `max-height:70vh`. Lava `--surface-app` (tumma) ⇒ valokuva erottuu kortin reunasta. Thumbin `cover`-rajaus EI saa toistua isossa — rajaus hävittää juuri sen mitä kentällä kuvattiin (V246).
+- **Kuvan kahva (thumb):** `role="button"` + `tabindex=0` + `aria-label="Avaa kuva N"` + `cursor:zoom-in`, Enter/Space avaa. Thumb ≥44px hit-area (§R) — `.marker-detail-image-thumb` on 72px ∴ täyttyy.
+- Sisältö tulee kutsujalta (`stage`-elementti) — kuori ei tiedä mitä näyttää.
+
 ### CommentPin — vapaan pisteen huomio kartalla (`src/map/comment-layer.ts`, T221 → sijoitus T237)
 - **Konsepti:** huomio ("tämä voisi korjata", "puu kaatuu tässä") on kartalla PAIKANNETTU, mutta se **ei ole merkki**: ei tyyppiä, ei statusta, ei elinkaarta, ei pätkäjäsenyyttä, ei osuutta merkkilaskureihin. Visuaalin ainoa tehtävä on tehdä tuo ero ilmeiseksi 1 metrin päästä auringossa.
 - **Muoto erottaa, ei väri** (väri katoaa auringossa ja värisokealta): merkki = **neliökortti 40×40 + kärkikolmio** (V136/T208). Huomio = **pyöreä puhekupla 32×32**, `border-radius: 50% 50% 50% 4px` (yksi terävä alanurkka = osoitin), valkoinen 2px reuna, `box-shadow 0 1px 3px rgba(0,0,0,.35)`. Kupla on PIENEMPI kuin merkki — huomio ei kilpaile tehtävän kanssa.
 - **Väri:** `#F2542D` (redesign-aksentti "tape"), ei kuulu merkkityyppi- eikä statuspalettiin ∴ ei törmää §C:n merkkiväreihin. Sisältö: valittu `iconId` (`renderIconSvg`, 18px) tai oletus-puhekupla-SVG, aina valkoisena.
 - **Ankkuri** `[4, 38]` — terävä alanurkka osoittaa pisteen, sama logiikka kuin merkin kärki.
-- **Fokus-tila (V243):** huomio-pinnit himmenevät samalla säännöllä kuin merkit (`.marker-dimmed`), ⊥ katoa — huomio kuuluu kartan totuuteen.
+- **Fokus-tila (V243):** huomio-pinnit himmenevät samoilla arvoilla kuin merkit (`opacity .4` + `grayscale(1)`), ⊥ katoa — huomio kuuluu kartan totuuteen. Luokka on oma: `.comment-pin-dimmed`, ⊥ `.marker-dimmed` — jälkimmäisellä on `--locked`-variantti joka poistaa klikattavuuden (V142, talkoolaisen vieras merkki on read-only), eikä se koske huomiota: huomio on aina luettava, kenen tahansa. Kytkentä: `CommentLayer.setFocusActive(boolean)` — binäärinen, koska huomiolla ⊥ ole pätkäjäsenyyttä (V245); jäsenyyden laskeminen tekisi siitä merkin.
 - **⊥ arvoja koodiin ilman tätä lohkoa:** nykyiset hexit ovat inline `comment-layer.ts:60-66` -templatessa; jos niitä muutetaan, päivitä tämä sopimus samalla (sama drift-luokka kuin SEGMENT_COLORS-törmäys yllä).
 - Käyttäjä: molemmat (kuka tahansa autentikoitu saa jättää huomion, V13).
 

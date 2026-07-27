@@ -20,7 +20,9 @@ import type { Segment } from '../logic/segments'
 import { fitMapToSegment } from '../map/segment-fit'
 import { firstUnsetMarker, distanceAhead } from '../logic/navigation'
 import { CommentLayer } from '../map/comment-layer'
-import { fetchComments, deleteComment } from '../logic/comments'
+import { fetchComments, addCommentImage } from '../logic/comments'
+import { CommentPointModal } from '../ui/comment-point-modal'
+import { CommentPanel } from '../ui/comment-panel'
 import type { GpsNavigator, GpsState } from '../map/gps-navigator'
 import { updateSegmentRemote } from '../logic/segment-sync'
 import { outbox, setOutboxChangeHandler } from '../logic/outbox-instance'
@@ -79,6 +81,8 @@ export interface MarkersWiring {
   placeMode: PlaceMode
   markerModal: HTMLElement
   closeMarkerModal: () => void
+  // T237(d)/V243: main.ts kytkee tämän segments-wiringin fokus-refiin.
+  commentLayer: CommentLayer
 }
 
 interface MarkersWiringDeps {
@@ -334,6 +338,11 @@ export function wireMarkers(
           // T232 (E)/T229 + R8: "+ Merkki" hero-overflowsta / yläpalkin ⋯:stä → sign-picker kartan
           // keskelle (POST omalle pätkälle V149). Jaettu openAddMarkerPicker.
           onAddMarker: openAddMarkerPicker,
+          // T237/V245: "💬 Huomio" hero-⋯:stä — sama toiminto kuin yläpalkin ⋯:ssä.
+          onAddComment: () => {
+            const c = map.getCenter()
+            commentModal.openCreate(c.lat, c.lng)
+          },
           // T218/V143 (skenaario 2): keräyslistan "Haettu"-kuittaus. Suora status-asetus (EI 'kerää'-
           // action, joka heittää suunniteltu-tilaisille — sama syy kuin bulkCollect yllä). Kuka tahansa
           // autentikoitu, ei ownership-gatea; kerätty ↔ suunniteltu. bulkSetStatus persistoi + onUpdate.
@@ -357,6 +366,13 @@ export function wireMarkers(
       // T351/V254 (B140): "Merkitse pätkä valmiiksi" EI enää täällä — se on hero:n done-rivillä
       // (`segment-hero.ts`, `actions.onComplete` → applyComplete). Yksi sisääntulo per rooli.
       document.getElementById('btn-tk-add-marker')?.addEventListener('click', openAddMarkerPicker)
+      // T237/V245: huomio kartan keskelle. ⊥ vaadi muokkaustilaa toisin kuin merkin lisäys:
+      // huomio ⊥ mutatoi merkkidataa eikä voi vahingossa siirtää mitään — muokkaustilan portti
+      // (V218) suojaa merkkejä, ⊥ havaintoja. Talkoolaisen kynnys jättää huomio ! olla matala.
+      document.getElementById('btn-tk-add-note')?.addEventListener('click', () => {
+        const c = map.getCenter()
+        commentModal.openCreate(c.lat, c.lng)
+      })
     }
   }
 
@@ -417,7 +433,10 @@ export function wireMarkers(
   statusPanel.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
 
   signLibrary = createSignLibrary()
-  const placeMode = new PlaceMode(markerManager, signLibrary)
+  // T237: pickerin "💬 Huomio" → luontimodaali samaan lat/loniin johon picker aukesi.
+  // Arrow lukee commentModalin vasta klikkihetkellä ∴ määrittelyjärjestys ei sido.
+  const placeMode = new PlaceMode(markerManager, signLibrary, mapMode, (lat, lon) =>
+    commentModal.openCreate(lat, lon))
   const signLibraryContainer = document.getElementById('sign-type-dropdown')
   let signLibraryPanel: SignLibraryPanel | null = null
   if (signLibraryContainer) {
@@ -496,19 +515,43 @@ export function wireMarkers(
   // T221/T75: vapaa-piste-kommentit kartalle (targetType='point'). Ikoni-marker, klikkaus →
   // järjestäjä voi poistaa (confirm), muut näkevät tekstin. Haetaan latauksessa; poiston jälkeen
   // uudelleenrender. (Vapaan pisteen SIJOITUS-UI on erillinen jatko — tässä renderöinti + poisto.)
-  const commentLayer = new CommentLayer(map, (c) => {
-    if (getRole() === 'järjestäjä') {
-      if (window.confirm(`Poistetaanko kommentti: "${c.text}"?`)) {
-        void deleteComment(c.id).then((ok) => { if (ok) refreshPointComments() })
-      }
-    } else {
-      showWarning(c.text, 5000)
-    }
+  // T237/T338: klikkaus avaa huomio-modaalin (teksti + kuvat + poisto järjestäjälle) — aiempi
+  // confirm/toast-haara korvattu: toast ei mahduta kuvia eikä kerro kuka huomion jätti.
+  const commentModal = new CommentPointModal({
+    onChanged: () => refreshPointComments(),
+    canDelete: () => getRole() === 'järjestäjä',
+    // T364/V263: kuittaus on järjestäjän koordinointipäätös — talkoolainen ilmoittaa.
+    canResolve: () => getRole() === 'järjestäjä',
+    uploadImage: (id, file) => addCommentImage(id, file),
   })
+  const commentLayer = new CommentLayer(map, (c) => commentModal.openView(c))
+
+  // T340: järjestäjän sivupalkin lista. Sama data kuin kartalla ∴ yksi refresh päivittää molemmat
+  // — erilliset hakukierrokset ajautuisivat eri mielisiksi (B127-oppi).
+  const commentPanelEl = document.getElementById('comment-panel-container')
+  const commentPanel = commentPanelEl
+    ? new CommentPanel(commentPanelEl, {
+        onFocus: (c) => {
+          if (typeof c.lat === 'number' && typeof c.lon === 'number') map.setView([c.lat, c.lon], 16)
+          commentModal.openView(c)
+        },
+      })
+    : null
+
+  // T335/V243 + T237(d): talkoolaisella korostus on AUTOMAATTI (rivi ~181) ∴ myös huomiot
+  // ovat hänelle kontekstia heti latauksessa — sama tila kuin merkeillä, ei kahta totuutta.
+  if (talkoolainenCode && getSegmentForCode(segmentStore, talkoolainenCode)) {
+    commentLayer.setFocusActive(true)
+  }
+
   const refreshPointComments = () => {
-    void fetchComments('point').then((rows) => { if (rows) commentLayer.render(rows) })
+    void fetchComments('point').then((rows) => {
+      if (!rows) return
+      commentLayer.render(rows)
+      commentPanel?.setComments(rows)
+    })
   }
   refreshPointComments()
 
-  return { markerManager, driveMode, routeBar, progressBar, placeMode, markerModal, closeMarkerModal }
+  return { markerManager, driveMode, routeBar, progressBar, placeMode, markerModal, closeMarkerModal, commentLayer }
 }

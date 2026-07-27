@@ -27,6 +27,8 @@
           <button id="btn-tk-map-mode" class="map-mode-toggle" aria-pressed="false">✎ Muokkaa</button>
           <button id="btn-tk-gps">📍 GPS</button>
           <button id="btn-tk-add-marker">➕ Lisää merkki</button>
+          <!-- T237/V245: huomio ⊥ ole merkki — oma rivinsä merkkirivin alla, ei merkkivalikossa. -->
+          <button id="btn-tk-add-note">💬 Huomio</button>
           <!-- T351/V254 (B140): #btn-tk-complete POISTETTU — valmis-toggle on hero:n done-rivillä
                (samassa näkymässä kuin "✓ Kaikki asetettu"). ⊥ palauta tänne: kaksi sisääntuloa =
                kaksi label-synkkaa jotka ajautuvat erilleen. -->
@@ -60,6 +62,10 @@
             </div>
             <div class="left-panel-section">
               <div id="area-panel-container"></div>
+            </div>
+            <!-- T340/V245: huomiot (targetType='point') — selailu + panorointi kartalle. -->
+            <div class="left-panel-section">
+              <div id="comment-panel-container"></div>
             </div>
             <div class="left-panel-section">
               <a id="btn-inventory-link" class="left-panel-link" href="/inventory.html">📦 Inventaario</a>

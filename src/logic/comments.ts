@@ -16,6 +16,33 @@ export interface Comment {
   iconId?: string
   authorName?: string
   createdAt: string
+  /** T338: kuva-URL:t (`/api/comments/:id/images/:imageId`). Sama muoto kuin SignMarker.images. */
+  images?: string[]
+  /** T364/V263: kuittausleima. Puuttuu ⇒ työ on AVOIN. ⊥ ole merkin status (V9/V245). */
+  resolvedAt?: string
+  resolvedBy?: string
+}
+
+// T364/V263: huomion KATEGORIA. Talkoolainen valitsee hanskat kädessä yhdellä painalluksella —
+// dropdown on väärä kontretti kentällä. Kategoria talletetaan olemassa olevaan `iconId`-kenttään
+// ∴ ⊥ skeemamuutosta, & se näkyy heti sekä kartalla (CommentPin) että listassa.
+export interface NoteCategory {
+  iconId: string
+  label: string
+  /** Lyhyt vihje siitä mitä tähän kirjoitetaan — kenttäesimerkit käyttäjältä 2026-07-25. */
+  placeholder: string
+}
+
+export const NOTE_CATEGORIES: NoteCategory[] = [
+  { iconId: 'tree-pine', label: 'Raivaus', placeholder: 'Esim. puu kaatunut polulle' },
+  { iconId: 'wrench', label: 'Korjaus', placeholder: 'Esim. pitkokset pitää korjata' },
+  { iconId: 'package', label: 'Nouto', placeholder: 'Esim. jätän tähän säkin, hakekaa se' },
+  { iconId: 'alert-triangle', label: 'Muu', placeholder: 'Mitä huomasit?' },
+]
+
+/** Avoin = ⊥ kuitattu. Yksi totuus kaikille näkymille (lista, kartta, modaali). */
+export function isOpenNote(c: Comment): boolean {
+  return !c.resolvedAt
 }
 
 // Uuden kommentin syöte (ilman palvelimen generoimia id/createdAt-kenttiä).
@@ -86,6 +113,45 @@ export async function postComment(input: NewComment): Promise<Comment | null> {
     if (!resp.ok) return null
     const data = await resp.json()
     // Vahti: odotamme objektia jossa on id — ei-objekti (virhe-JSON) → null.
+    return data && typeof data === 'object' && 'id' in data ? (data as Comment) : null
+  } catch {
+    return null
+  }
+}
+
+// T338: liitä kuva huomioon. ∀ autentikoitu (V13/V246) — backend gate hoitaa auktorisoinnin.
+// Palauttaa virhekoodin tai null jos onnistui: kutsuja erottaa taajuusrajan (429) muusta,
+// koska "yritä uudelleen" on väärä ohje kun kiintiö on täynnä (V262).
+export type CommentImageError = 'rate_limited' | 'too_large' | 'invalid_type' | 'failed'
+
+export async function addCommentImage(commentId: string, file: File): Promise<CommentImageError | null> {
+  try {
+    const fd = new FormData()
+    fd.append('image', file)
+    const resp = await fetch(`/api/comments/${encodeURIComponent(commentId)}/images`, {
+      method: 'POST',
+      body: fd,
+    })
+    if (resp.ok) return null
+    if (resp.status === 429) return 'rate_limited'
+    if (resp.status === 413) return 'too_large'
+    if (resp.status === 400) return 'invalid_type'
+    return 'failed'
+  } catch {
+    return 'failed'
+  }
+}
+
+// T364/V263: kuittaa työ tehdyksi (tai palauta avoimeksi). Järjestäjä+ — backend gate.
+export async function resolveComment(id: string, resolved: boolean): Promise<Comment | null> {
+  try {
+    const resp = await fetch(`/api/comments/${encodeURIComponent(id)}/resolve`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resolved }),
+    })
+    if (!resp.ok) return null
+    const data = await resp.json()
     return data && typeof data === 'object' && 'id' in data ? (data as Comment) : null
   } catch {
     return null

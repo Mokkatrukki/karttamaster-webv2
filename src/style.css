@@ -464,9 +464,32 @@ button {
   flex-direction: column;
   gap: 2px;
   min-width: 180px;
+  /* T237: suosikkeja voi olla kymmeniä — ilman kattoa picker kasvaa ruudun ulkopuolelle ja
+     alimmat rivit jäävät tavoittamattomiin (kenttähavainto 2026-07-25). */
+  max-height: min(60vh, 420px);
   z-index: 1003;
 }
 #floating-picker.open { display: flex; }
+
+/* Vierivä mallilista + kiinteä alapalkki: huomio ei saa kadota listan alle (V245/T237). */
+.floating-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  min-height: 0;
+}
+
+.floating-picker-footer {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--border-default);
+  margin-top: 4px;
+  padding-top: 4px;
+  background: var(--surface-card);
+}
+
+.floating-picker-footer .sign-type-btn { width: 100%; }
 
 /* ── Sign type buttons ── */
 
@@ -3542,6 +3565,14 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
    arvaa roolia. */
 .marker-dimmed--locked { pointer-events: none; }
 
+/* T237(d)/V243: huomio-pinni himmenee fokus-tilassa samalla kahdella kanavalla kuin merkki.
+   Pysyy klikattavana: huomio on lukemisen kohde, ⊥ pätkän omistama työ (V245). */
+.comment-pin-dimmed {
+  opacity: 0.4;
+  filter: grayscale(1);
+  transition: opacity 0.12s, filter 0.12s;
+}
+
 /* ── Segment label (Leaflet tooltip) ── */
 .segment-label {
   background: rgba(15, 23, 42, 0.85);
@@ -5238,3 +5269,298 @@ body[data-map-mode="muokkaus"] #map-area::after {
 #app[data-view-mode="koti"] #map-area::after {
   display: none;
 }
+
+/* === Huomiot (T237/T338/T340, V245, V246, V262) ==================================
+   Huomio ⊥ ole merkki: kartalla pyöreä kupla (comment-layer.ts), listassa oma rivinsä,
+   modaalissa oma kuorensa. Erottelu on MUODOSSA ⊥ värissä (DESIGN.md §K CommentPin). */
+
+.comment-point-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  z-index: 4000;
+}
+
+.comment-point-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, 92vw);
+  max-height: 80vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+.comment-point-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.comment-point-modal-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-body);
+  flex: 1;
+}
+
+.comment-point-modal-close {
+  min-width: 44px;
+  min-height: 44px;
+  margin: -10px -6px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.comment-point-modal-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.comment-point-modal-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* iOS-zoom-esto: 16px syötteissä (sama sääntö kuin .comment-thread-input). */
+.comment-point-text,
+.comment-point-name,
+.comment-point-icon {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--text-body);
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+}
+
+.comment-point-text { resize: vertical; }
+
+.comment-point-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.comment-point-controls > * { flex: 1; min-width: 120px; }
+
+.comment-point-error,
+.comment-point-image-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--danger-text);
+}
+
+.comment-point-modal-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.comment-point-view-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.comment-point-view-icon {
+  color: var(--accent);
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.comment-point-view-text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-body);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.comment-point-view-meta {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.comment-point-images {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comment-point-image-gallery {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Thumb = KAHVA (V246): rajaava cover on ok tässä, koska klikkaus avaa rajaamattoman kuvan. */
+.comment-point-image-thumb {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  cursor: zoom-in;
+}
+
+.comment-point-image-placeholder {
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.comment-swatch {
+  background: #F2542D;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+/* --- Sivupalkin Huomiot-lista (T340) --- */
+
+.comment-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.comment-panel-empty {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.comment-panel-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 4px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.comment-panel-item:hover { background: var(--hover); }
+
+.comment-panel-item-icon {
+  color: #F2542D;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+/* 240px sivupalkki (B104-oppi): min-width:0 + ellipsis ∴ pitkä teksti ⊥ leviä vaakasuunnassa. */
+.comment-panel-item-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.comment-panel-item-text,
+.comment-panel-item-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comment-panel-item-text {
+  font-size: 13px;
+  color: var(--text-body);
+}
+
+.comment-panel-item-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* --- Huomion kategoria + tila (T341/V248) --- */
+
+/* Kategoria yhdellä painalluksella — hanskat kädessä dropdown on väärä kontrolli. */
+.comment-point-cats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.comment-point-cat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-body);
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+/* Aktiivi: reuna + tausta, EI accent-täyttöä valkoisella tekstillä (V234/B125-oppi). */
+.comment-point-cat.is-active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.comment-point-cat-icon { color: var(--accent); line-height: 0; }
+
+/* Tila sanoin, ei pelkkä väri (V197-linja). */
+.comment-point-state {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.comment-point-state--open { color: var(--accent); }
+.comment-point-state--done { color: var(--confirm); }
+
+.comment-panel-group {
+  margin: 8px 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+/* Tehty ei katoa listasta — se väistyy (V248: kartta & lista eivät valehtele). */
+.comment-panel-item--done .comment-panel-item-text,
+.comment-panel-item--done .comment-panel-item-icon {
+  opacity: 0.55;
+}
+
+.comment-panel-item--done .comment-panel-item-text { text-decoration: line-through; }

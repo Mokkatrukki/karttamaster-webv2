@@ -77,6 +77,7 @@ server/       ← Hono + Bun + SQLite
 | SignIcon | `src/map/icons.ts` | ✓ T172 | critical-paths: "toolbar-dropdown", "yhdistelmämerkki" | [map.md](docs/components/map.md) |
 | DriveMode | `src/map/drive.ts` | ✓ | critical-paths: "Drive mode" | [map.md](docs/components/map.md) |
 | MarkerManager | `src/map/markers.ts` | ✓ T335 (setFocusSegment: himmennä muut kuin pätkän merkit, V243; reapplyElementState kokoaa setIconin pudottamat luokat) | critical-paths: "Merkki kartalle", "Drag-to-move", "Merkin zoom-skaalaus", "tallennus epäonnistuu", "merkkien korostus" | [map.md](docs/components/map.md) |
+| CommentLayer | `src/map/comment-layer.ts` | ✓ T221/T237 (point-huomioiden pinnit, diff-render; `setFocusActive`: himmennä fokus-tilassa, ⊥ piilota — V243/V245) | tests/t237-comment-focus-dim.test.ts, e2e/t237-huomio.spec.ts | [map.md](docs/components/map.md) |
 | RouteBar | `src/map/route-bar.ts` | ✓ (T224: piilotettu talkoolaiselta, `#route-bar` hidden) | — | [map.md](docs/components/map.md) |
 | BasemapDimControl | `src/map/basemap-dim-control.ts` | ✓ T287 (pohjan näkyvyys-slider ⋯-valikossa, tilePane-opacity, V201) | — | [map.md](docs/components/map.md) |
 | ~~NextMarkerHighlight~~ | POISTETTU T256/R6 | accent-rengas → ikoni-hehku (`MarkerManager.setNextHighlight` + `.marker-next-highlight` CSS-glow, V178) | — | — |
@@ -118,6 +119,10 @@ server/       ← Hono + Bun + SQLite
 | StatusPanel | `src/ui/status-panel.ts` | ✓ T28 | sprint-features: "T28" | [ui.md](docs/components/ui.md) |
 | ModalHelpers | `src/ui/modal-helpers.ts` | ✓ T172 | — | [ui.md](docs/components/ui.md) |
 | MarkerVisualRow | `src/ui/marker-visual-row.ts` | ✓ T198 | tests/t198-marker-visual-row.test.ts | [ui.md](docs/components/ui.md) |
+| ImageLightbox | `src/ui/image-lightbox.ts` | ✓ T337 (jaettu kuori: valokuvat + kylttivisuaali, V246/B132) | tests/t337-image-lightbox.test.ts | [ui.md](docs/components/ui.md) |
+| ImageDownscale | `src/ui/image-downscale.ts` | ✓ T338 (canvas-pienennys 1600px/JPEG ennen lähetystä, V262) | tests/t237-comment-point-modal.test.ts | [ui.md](docs/components/ui.md) |
+| CommentPointModal | `src/ui/comment-point-modal.ts` | ✓ T237/T338 (huomion luonti kartalta + katselu + kuvat + poisto, V245) | tests/t237-comment-point-modal.test.ts | [ui.md](docs/components/ui.md) |
+| CommentPanel | `src/ui/comment-panel.ts` | ✓ T340 (järjestäjän sivupalkin Huomiot-lista, V245) | tests/t237-comment-point-modal.test.ts | [ui.md](docs/components/ui.md) |
 | Toast | `src/ui/toast.ts` | ✓ T253 (jaettu "Kumoa"-toast, client-only undo V172; auto-dismiss, yksi kerrallaan, 44px §R) | tests/t253-toast.test.ts | [ui.md](docs/components/ui.md) |
 | AreaDetailsModal | `src/ui/area-details-modal.ts` | ✓ | — | [ui.md](docs/components/ui.md) |
 | AreaPanel | `src/ui/area-panel.ts` | ✓ | area-interaction | [ui.md](docs/components/ui.md) |
@@ -141,7 +146,7 @@ server/       ← Hono + Bun + SQLite
 | AreasAPI | `server/routes/areas.ts` | ✓ | area-interaction | [backend.md](docs/components/backend.md) |
 | DevFeedbackAPI | `server/routes/devfeedback.ts` | ✓ | — | [backend.md](docs/components/backend.md) |
 | CronRoutes | `server/routes/cron.ts` | ✓ T163 | — | [backend.md](docs/components/backend.md) |
-| CommentsAPI | `server/routes/comments.ts` | ~ T221 (backend: comments-taulu + GET/POST/DELETE; UI-slice kesken) | — | [backend.md](docs/components/backend.md) |
+| CommentsAPI | `server/routes/comments.ts` | ✓ T221/T338 (comments-taulu + GET/POST/DELETE + kuvaliite `comment_images`, rajat V262) | — | [backend.md](docs/components/backend.md) |
 | GpkgGeoJSON | `server/gpkg/geojson.ts` | ✓ T124 | — | [backend.md](docs/components/backend.md) |
 | GpkgConvert | `server/gpkg/convert.ts` | ✓ T125 | — | [backend.md](docs/components/backend.md) |
 | GpkgRoutes | `server/routes/gpkg.ts` | ✓ T126 | — | [backend.md](docs/components/backend.md) |

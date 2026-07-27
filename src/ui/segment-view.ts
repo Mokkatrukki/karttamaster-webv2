@@ -46,6 +46,10 @@ export interface SegmentViewActions {
   onNavigate?: (markerId: string | null) => void
   // T232 (E)/T229: "+ Merkki" hero-overflowsta → avaa sign-picker kartan keskelle (POST omalle pätkälle).
   onAddMarker?: () => void
+  // T237/V245: "💬 Huomio" hero-overflowsta → pudottaa vapaan huomion kartan keskelle.
+  // Huomio ⊥ ole merkki ∴ oma callbackinsa — jaettu onAddMarkerin kanssa se ajautuisi
+  // "kumpi tyyppi tämä oli" -haaraksi wiringissä.
+  onAddComment?: () => void
   // T218/V143 (skenaario 2): keräyslistan "haettu"-kuittaus. Kuka tahansa autentikoitu, EI
   // ownership-gatea. collected=true → kerätty, false → suunniteltu (peruutus).
   onCollectMarker?: (id: string, collected: boolean) => void

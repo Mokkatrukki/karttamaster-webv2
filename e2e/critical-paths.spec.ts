@@ -105,10 +105,13 @@ test.describe('Merkki kartalle', () => {
     await page.dblclick('#map', { position: { x: 460, y: 260 } })
     await page.waitForTimeout(500)
 
-    // Floating picker näkyy kirjaston suosikeilla (default 4 ovat favorite:true)
+    // Floating picker näkyy kirjaston suosikeilla (default 4 ovat favorite:true).
+    // T237/V245: laskenta kohdistuu MALLILISTAAN — "💬 Huomio" on listan ulkopuolinen alapalkki
+    // (.floating-picker-footer) eikä merkkityyppi, joten se ei kuulu tähän lukuun.
     await expect(page.locator('#floating-picker')).toHaveClass(/open/)
-    const pickerBtns = page.locator('#floating-picker .sign-type-btn')
+    const pickerBtns = page.locator('#floating-picker .floating-picker-list .sign-type-btn')
     await expect(pickerBtns).toHaveCount(4)
+    await expect(page.locator('#floating-picker .floating-picker-comment')).toHaveCount(1)
     const pickerText = await page.locator('#floating-picker').innerText()
     expect(pickerText).toContain('Oikealle')
     expect(pickerText).toContain('Vasemmalle')

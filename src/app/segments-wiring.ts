@@ -32,6 +32,9 @@ export async function wireSegments(
   talkoolainenCode: string | undefined,
   initialMarkers: SignMarker[],
   markerManagerRef: { current: MarkerManager | null },
+  // T237(d)/V243: sama forward-ref-kuvio kuin markerManagerRef — CommentLayer syntyy vasta
+  // markers-wiringissä, mutta fokus-kytkin elää täällä.
+  commentLayerRef: { current: { setFocusActive(active: boolean): void } | null },
   onSaveError: () => void,
   onLoadError: () => void = () => {},
   // T345: näkyvä palaute pikavalikon toiminnoille (linkin kopiointi).
@@ -113,6 +116,9 @@ export async function wireSegments(
     // Järjestäjä: himmennetty PYSYY klikattavana (locked=false) — korostus on lukemisen apu.
     // V259: korostus käyttää samaa eksklusiivista jäsenyyttä kuin lista → anna kilpailijat.
     markerManagerRef.current?.setFocusSegment(seg ?? undefined, seg ? { peers: getSegmentsForPhase(segmentStore, seg.phase) } : {})
+    // T237(d)/V243: huomiot himmenevät korostuksen mukana — eivät katoa (V245: huomiolla ⊥ ole
+    // pätkäjäsenyyttä ∴ fokus on binäärinen, ⊥ per-pätkä-laskenta).
+    commentLayerRef.current?.setFocusActive(seg !== null)
     if (seg) focusPill.show(seg.displayName ?? 'pätkä')
     else focusPill.hide()
   }

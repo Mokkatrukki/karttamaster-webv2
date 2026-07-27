@@ -177,6 +177,18 @@ function initSchema(db: Database): void {
       created_at TEXT NOT NULL
     );
 
+    -- T338/V246: huomion kuvaliite. Sama tallennusmalli kuin marker_images (BLOB kannassa) —
+    -- ⊥ keksitä toista. Kommentin poisto poistaa kuvat (cascade tehdään koodissa, ei FK:lla,
+    -- koska muu skeema ei käytä FK-constrainteja).
+    CREATE TABLE IF NOT EXISTS comment_images (
+      id TEXT PRIMARY KEY,
+      comment_id TEXT NOT NULL,
+      content_type TEXT NOT NULL,
+      data BLOB NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_comment_images_comment ON comment_images(comment_id);
+
     -- T226/V152: merkki-audit-loki. Jokainen merkkimutaatio (POST/PUT/DELETE markers.ts)
     -- kirjaa rivin SAMASSA transaktiossa mutaation kanssa. payload_json tallentaa
     -- peruutettaville actioneille (move/status/remove) ENNEN-tilan (V153-restore-lähde).
@@ -232,6 +244,11 @@ function initSchema(db: Database): void {
   try {
     db.exec('ALTER TABLE inventory_items ADD COLUMN keppi INTEGER')
   } catch { /* already exists — orpo V186 */ }
+
+  // T341/V248: huomio on TYÖTILAUS, ⊥ muistilappu — talkoolainen ilmoittaa, järjestäjä kuittaa.
+  // Ilman kuittausta lista kasvaa loputtomasti eikä kukaan tiedä mikä on hoidettu.
+  try { db.exec('ALTER TABLE comments ADD COLUMN resolved_at TEXT') } catch { /* already exists */ }
+  try { db.exec('ALTER TABLE comments ADD COLUMN resolved_by TEXT') } catch { /* already exists */ }
 
   // Migraatiot — idempotent ALTER TABLE (epäonnistuu hiljaa jos kolumni jo on)
   try { db.exec('ALTER TABLE markers ADD COLUMN color TEXT') } catch { /* already exists */ }
