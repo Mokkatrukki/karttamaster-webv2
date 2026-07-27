@@ -130,6 +130,14 @@ export async function wireSegments(
         tempCreationMarker = L.circleMarker([lat, lon], {
           radius: 9, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.85, weight: 2,
           className: 'segment-creation-marker',
+          // B147: Leafletin circleMarker on INTERAKTIIVINEN oletuksena ∴ 18px kiekko söi kartan
+          // click-eventin & seuraava ankkuriklikki katosi hiljaa (⊥ ankkuria, ⊥ virhetekstiä).
+          // Ennen T362:ta oire oli piilossa: flow tarvitsi yhden lisäklikin joka tehtiin kaukana.
+          // Klik-klik klikkaa reittiä PITKIN ∴ peräkkäiset pisteet ovat pienellä zoomilla
+          // pikselien päässä toisistaan. Tämä markeri on PALAUTE ⊥ kohde — se ⊥ ota klikkejä.
+          // (Snap-markerit `segment-overlay.ts:213` pysyvät interaktiivisina: niillä on oma
+          // click-handler & ne ON tarkoitettu klikattaviksi.)
+          interactive: false,
         }).addTo(map)
       },
       onFirstPointClear: () => {

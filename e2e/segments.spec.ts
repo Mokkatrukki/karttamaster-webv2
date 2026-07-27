@@ -372,6 +372,40 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(page.locator('.segment-creation-marker')).toHaveCount(1)
   })
 
+  // B147: ankkurimarkeri on PALAUTE ⊥ klikkikohde. Leafletin circleMarker on interaktiivinen
+  // oletuksena ∴ 18px kiekko söi seuraavan ankkuriklikin hiljaa — ⊥ ankkuria, ⊥ virhetekstiä.
+  test('B147 — ankkurimarkeri ei syö seuraavaa klikkiä', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await page.locator('.segment-panel-header').click()
+    await page.waitForTimeout(200)
+    await page.click('#btn-segment-create')
+    await page.waitForTimeout(200)
+
+    const marker = page.locator('.segment-creation-marker')
+    await clickRoutePoints(page, [0.20])
+    await expect(marker).toHaveCount(1)
+
+    // Leaflet merkitsee klikattavat vektorit `leaflet-interactive`-luokalla → sen puuttuminen
+    // on se mitattava sopimus (⊥ pelkkä "klikki näytti toimivan").
+    await expect(marker).not.toHaveClass(/leaflet-interactive/)
+
+    // Klikki markerin PÄÄLTÄ menee kartalle asti: uusi ankkuri TAI virheteksti — ⊥ hiljaisuus.
+    const box = (await marker.boundingBox())!
+    const mapBox = (await page.locator('#map').boundingBox())!
+    await page.click('#map', {
+      position: { x: Math.round(box.x + box.width / 2 - mapBox.x), y: Math.round(box.y + box.height / 2 - mapBox.y) },
+    })
+    await page.waitForTimeout(300)
+
+    const anchors = await page.locator('.segment-creation-anchor').count()
+    const errVisible = await page.locator('.segment-creation-error').isVisible()
+    expect(anchors > 1 || errVisible).toBe(true)
+  })
+
   test('T56a — Esc peruuttaa luonnin ja sulkee modaalin (T94)', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })
