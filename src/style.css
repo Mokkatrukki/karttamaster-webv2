@@ -29,7 +29,15 @@
   --accent-text:  #ffffff;
   --accent-hover: #D8441F;
 
-  /* Confirm (vihreä) — talkoolaisen kuittausnappula */
+  /* KARTTAPINTA-TOKENIT (V253) — nämä EIVÄT saa esiintyä [data-theme]-lohkoissa.
+     Karttapinnan grafiikan kontrasti on kalibroitu POHJAKARTTAA vasten, ei sovelluksen
+     chromea vasten, & pohjakartta ei vaihdu teeman mukana. Lisäksi Leaflet-vektorit saavat
+     värinsä JS:stä joka ei näe CSS-muuttujaa ∴ jokainen teemariippuvainen token karttapinnalla
+     luo parin joka hajoaa teemanvaihdossa (B136: viiva #1F8A50 vs lappu #2FA35B Kaamoksessa). */
+  --segment-done:  #1F8A50; /* JS-peili: SEGMENT_DONE_COLOR (src/logic/segments.ts) */
+
+  /* Confirm (vihreä) — talkoolaisen kuittausnappula. CHROME-token: vaihtuu teeman mukana
+     ∴ EI saa käyttää karttapinnalla (käytä --segment-done). */
   --confirm:       #1F8A50;
   --confirm-hover: #196E40;
   --confirm-text:  #ffffff;
@@ -3453,7 +3461,9 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
    lapun tausta ⊥ seuraa teemaa ∴ vihreä tausta rikkoisi kontrastisopimuksen). 2px reuna:
    1px --confirm ⊥ erotu tummaa pilleriä vasten kartan päällä. */
 .segment-label--done {
-  border: 2px solid var(--confirm);
+  /* B136/V253: --segment-done, EI --confirm. Lappu istuu kiinteällä navyllä (B106) kartan
+     päällä ∴ se on karttapintaa: reunuksen ! täsmätä viivan JS-väriin joka ei vaihdu teemasta. */
+  border: 2px solid var(--segment-done);
   padding: 5px 7px; /* 6px 8px − 1px reunan kasvu ∴ lapun ulkomitta & osumapinta säilyy (T347) */
 }
 /* V142: talkoolaisen näkymä — muiden tehtävien nimilaput himmeät (konteksti, ei fokus). */

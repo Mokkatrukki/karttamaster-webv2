@@ -282,9 +282,11 @@ export function colorForSegment(id: string): string {
 }
 
 // T348/V96-amend: valmis-tila ohittaa tunnistevärin. Valmiin pätkän identiteetti ⊥ enää kanna
-// tietoa (kukaan ⊥ etsi kartalta "kuka teki tämän loppuun") — status kantaa. Arvo on §C-tokenin
-// `--confirm` peili (vaalea #1F8A50 / Kaamos #2FA35B): Leaflet-polyline ⊥ lue CSS-muuttujaa ∴
+// tietoa (kukaan ⊥ etsi kartalta "kuka teki tämän loppuun") — status kantaa. Arvo on §C:n
+// KARTTAPINTA-tokenin `--segment-done` peili (V253): Leaflet-polyline ⊥ lue CSS-muuttujaa ∴
 // JS-vakio on pakko, mutta se ! olla YKSI paikka (V132: ⊥ hajota hexiä kutsupaikkoihin).
+// ⊥ sido tätä `--confirm`iin (B136): se on chrome-token joka vaihtuu Kaamoksessa #2FA35B:ksi
+// ∴ viiva & nimilapun reunus ajautuisivat eri vihreisiin teemanvaihdossa.
 // Vihreä sävyperhe on VARATTU tälle kanavalle — SEGMENT_COLORS ⊥ saa sisältää vihreää (T304).
 export const SEGMENT_DONE_COLOR = '#1F8A50'
 

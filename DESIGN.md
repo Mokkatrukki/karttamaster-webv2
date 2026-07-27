@@ -69,6 +69,14 @@ myös `STATUS_RING`-taulussa synkassa vaalean teeman kanssa. Taustaväri: `color
 
 Segmenttipaletti (pätkät, valkoiselle kartalle): `#2F6FB0` (sininen) · `#7A4E9C` (violetti) · `#0E9594` (turkoosi) · `#B5476B` (magenta).
 
+**Karttapinta-tokenit — oma väriavaruus (V253/B136).** Karttapinnan grafiikan (Leaflet-vektorit, karttalappu, merkkien hehku) kontrasti on kalibroitu POHJAKARTTAA vasten, ja pohjakartta ei vaihdu teeman mukana ∴ nämä värit **eivät saa tulla teemariippuvaisista chrome-tokeneista** (`--confirm`, `--accent`, `--surface-*`, `--text-*`). Lisäksi Leaflet-vektori saa värinsä JS:stä joka ei näe CSS-muuttujaa ⇒ jokainen chrome-token karttapinnalla luo parin joka hajoaa teemanvaihdossa (B136: viiva `#1F8A50` vs lapun reunus `#2FA35B` Kaamoksessa).
+
+| Token | Arvo | JS-peili | Käyttö |
+|---|---|---|---|
+| `--segment-done` | `#1F8A50` | `SEGMENT_DONE_COLOR` (`src/logic/segments.ts`) | valmis-pätkän viiva + nimilapun reunus |
+
+Sääntö: karttapinta-token määritellään **vain `:root`issa** — `[data-theme="dark"]` ei ylikirjoita sitä. Poikkeus säännöstä "väri tulee tokenista": elementti joka kantaa oman läpinäkymättömän pintansa kartan päällä (`.map-mode-pill`, `#marker-focus-pill`, kontrollit) on chromea ja saa seurata teemaa — se ei lue kontrastiaan pohjakarttaa vasten. Testattava vain teemakierroksella (`e2e/t349-map-surface-theme.spec.ts`): vaaleassa vika on näkymätön.
+
 **Reittivärit — kaksi tapahtumaa, kaksi sävyperhettä (T285/§C).** Reittipilli renderöi taustan = reittiväri + tumma teksti (`--text-body`), joten jokainen ≥3:1 kontrasti (AA large). Tapahtuma tunnistuu perheestä, pituus perheen sävystä:
 
 | Reitti | id | väri | perhe | kontrasti (dark text) |
@@ -738,7 +746,7 @@ Kartta avautuu **katselutilassa** joka latauksella; kaikki kartan MUTATOIVAT ele
 | Reuna | `1px solid rgba(255,255,255,0.15)`, `radius-sm`, `box-shadow 0 2px 8px rgba(0,0,0,0.4)` |
 | Osoitin | `cursor: pointer` **vain** `.segment-label.leaflet-interactive` |
 | Himmeä (`--dim`) | `opacity: .4`, `font-weight: 600`, `pointer-events: none` |
-| Valmis (`--done`) ✓ T348 | `border: 2px solid var(--confirm)` + `padding: 5px 7px` (reunan kasvu kompensoitu ∴ osumapinta säilyy) + teksti saa `✓ `-prefixin (`segment-overlay.ts`). **Tausta pysyy kiinteänä navynä & teksti valkoisena** — vihreä tulee VAIN reunuksesta (B106: lapun tausta ei seuraa teemaa ∴ vihreä tausta rikkoisi kontrastisopimuksen) |
+| Valmis (`--done`) ✓ T348/T349 | `border: 2px solid var(--segment-done)` (**ei `--confirm`** — B136/V253, karttapinta-token) + `padding: 5px 7px` (reunan kasvu kompensoitu ∴ osumapinta säilyy) + teksti saa `✓ `-prefixin (`segment-overlay.ts`). **Tausta pysyy kiinteänä navynä & teksti valkoisena** — vihreä tulee VAIN reunuksesta (B106: lapun tausta ei seuraa teemaa ∴ vihreä tausta rikkoisi kontrastisopimuksen) |
 
 - **`--dim` & `--done` eivät ole toisensa poissulkevia** (T348): talkoolaisen konteksti-lappu voi olla valmis ∴ luokkajono kootaan yhdessä paikassa (`segmentLabelOptions(interactive, done)`), ei kutsupaikalla.
 - **Klikattavuus tulee yhdestä lähteestä:** `segmentLabelOptions(style.interactive)` saa saman `interactive`-lipun kuin polyline (`contextSegmentStyle`, V142) ∴ talkoolaisen näkymässä vain oma pätkä on klikattava — muiden lappu on läpäisevä (kaksi lukkoa: Leaflet-optio + `pointer-events:none`).
