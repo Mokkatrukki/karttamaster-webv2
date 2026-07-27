@@ -12,7 +12,10 @@ import { renderIconSvg } from '../logic/icon-set'
 
 export interface CommentPanelOptions {
   /** Rivin klikkaus → panoroi kartalle + avaa huomio. */
+  /** T369/B153: rivin klikkaus = NÄYTÄ KARTALLA (panoroi + korosta), ⊥ avaa modaalia. */
   onFocus?: (comment: Comment) => void
+  /** T369: rivin oma nappi avaa huomion — kaksi eri kysymystä, kaksi eri kontrollia. */
+  onOpen?: (comment: Comment) => void
   /** Datalähde. Oletus: fetchComments('point'). Testit injektoivat oman. */
   load?: () => Promise<Comment[] | null>
 }
@@ -125,8 +128,24 @@ export class CommentPanel {
       main.appendChild(meta)
 
       row.appendChild(main)
+      // T369/B153: rivi vastaa kysymykseen "missä?" — se panoroi kartan eikä peitä sitä
+      // modaalilla. Sama kuvio kuin talkoolaisen keräyslistalla ja pätkän nimilapulla.
       row.addEventListener('click', () => this.opts.onFocus?.(c))
       this.listEl.appendChild(row)
+
+      if (this.opts.onOpen) {
+        const open = document.createElement('button')
+        open.type = 'button'
+        open.className = 'comment-panel-item-open'
+        open.setAttribute('aria-label', `Avaa huomio: ${firstLine(c.text)}`)
+        open.title = 'Avaa huomio'
+        open.textContent = '›'
+        open.addEventListener('click', (e) => {
+          e.stopPropagation()
+          this.opts.onOpen?.(c)
+        })
+        row.appendChild(open)
+      }
     }
   }
 }

@@ -1,6 +1,6 @@
 import { registerEscClose, createBackdrop } from './modal-helpers'
 import {
-  postComment, deleteComment, resolveComment, isOpenNote, NOTE_CATEGORIES,
+  postComment, deleteComment, deleteCommentImage, resolveComment, isOpenNote, NOTE_CATEGORIES,
   type Comment, type NewComment, type CommentImageError,
 } from '../logic/comments'
 import { renderIconSvg } from '../logic/icon-set'
@@ -19,14 +19,20 @@ import { downscaleImage } from './image-downscale'
 export interface CommentPointModalOptions {
   /** Kutsutaan kun kommentti luotiin, poistettiin tai kuva lisättiin → kartta/lista päivitetään. */
   onChanged?: () => void
-  /** Poistonapin näkyvyys (järjestäjä+). Oletus false. */
-  canDelete?: () => boolean
+  /** T367/V265: saako tämän huomion muokata/poistaa (omistaja tai järjestäjä). Oletus false. */
+  canDelete?: (comment: Comment) => boolean
   /** Oletusnimi lomakkeeseen (esim. kirjautuneen näyttönimi). */
   defaultAuthorName?: () => string | undefined
   /** T338: kuvan liitos. Puuttuu → kuvaosio piilossa. null-paluu = onnistui. */
   uploadImage?: (commentId: string, file: File) => Promise<CommentImageError | null>
   /** T364/V263: kuittausnapin näkyvyys (järjestäjä+). Oletus false. */
   canResolve?: () => boolean
+  /** T366/V264: luonnospinnin elävä sijainti — raahaus siirtää sitä modaalin ollessa auki. */
+  draftPosition?: () => { lat: number; lon: number }
+  /** T366: modaali sulkeutui (myös Esc/peruutus) → kutsuja siivoaa luonnospinnin. */
+  onCreateClosed?: () => void
+  /** B152(a): hae huomio uudelleen palvelimelta kun sen kuvat muuttuivat. */
+  reload?: (id: string) => Promise<Comment | null>
 }
 
 // V262: käyttäjälle kerrotaan MIKSI lataus ei mennyt läpi. "Yritä uudelleen" on väärä ohje
@@ -41,12 +47,17 @@ const IMAGE_ERROR_TEXT: Record<CommentImageError, string> = {
 export class CommentPointModal {
   private backdrop: HTMLElement | null = null
   private unregEsc: (() => void) | null = null
+  private creating = false
+  // T366/V264: luonnoksen kuvat elävät PAIKALLISESTI kunnes Lähetä — peruttu luonnos ⊥ jätä
+  // orpoja BLOBeja kantaan eikä syö kuvakiintiötä (V262: 2 kuvaa/60 s).
+  private draftImages: { file: File; url: string }[] = []
 
   constructor(private readonly opts: CommentPointModalOptions = {}) {}
 
-  /** Luontitila: kartalta valittu piste. */
+  /** Luontitila: kartalta valittu piste. Luonnos elää kunnes käyttäjä painaa Lähetä (V264). */
   openCreate(lat: number, lon: number): void {
     this.close()
+    this.creating = true
     this.render(this.buildCreateBody(lat, lon), 'Uusi huomio')
   }
 
@@ -61,6 +72,13 @@ export class CommentPointModal {
     this.backdrop = null
     this.unregEsc?.()
     this.unregEsc = null
+    // objectURL on oikea muistivuoto mobiilissa jos sitä ei vapauteta.
+    for (const img of this.draftImages) URL.revokeObjectURL(img.url)
+    this.draftImages = []
+    if (this.creating) {
+      this.creating = false
+      this.opts.onCreateClosed?.()
+    }
   }
 
   isOpen(): boolean { return this.backdrop !== null }
@@ -159,6 +177,10 @@ export class CommentPointModal {
     const error = document.createElement('p')
     error.className = 'comment-point-error'
     error.hidden = true
+
+    // T366/V264: kuvat kertyvät paikallisesti — käyttäjä NÄKEE ne heti ja voi poistaa väärän
+    // ennen lähetystä. Mitään ei mene palvelimelle ennen Lähetä-painallusta.
+    body.appendChild(this.buildDraftImageSection())
     body.appendChild(error)
 
     const footer = document.createElement('div')
@@ -174,12 +196,14 @@ export class CommentPointModal {
     const save = document.createElement('button')
     save.type = 'button'
     save.className = 'btn btn--confirm comment-point-save'
-    save.textContent = 'Tallenna huomio'
+    save.textContent = 'Lähetä'
     save.addEventListener('click', () => {
+      // Sijainti luetaan VASTA nyt: pinniä on voitu raahata koko ajan modaalin ollessa auki.
+      const pos = this.opts.draftPosition?.() ?? { lat, lon }
       const input: NewComment = {
         targetType: 'point',
-        lat,
-        lon,
+        lat: pos.lat,
+        lon: pos.lon,
         text: text.value,
         iconId: selectedIcon,
         authorName: name.value || undefined,
@@ -190,24 +214,129 @@ export class CommentPointModal {
         return
       }
       save.disabled = true
-      save.textContent = 'Tallennetaan…'
-      void postComment(input).then((created) => {
+      save.textContent = 'Lähetetään…'
+      const files = this.draftImages.map(i => i.file)
+      void postComment(input).then(async (created) => {
         if (!created) {
           save.disabled = false
-          save.textContent = 'Tallenna huomio'
+          save.textContent = 'Lähetä'
           error.hidden = false
           error.textContent = '⚠ Tallennus epäonnistui — yritä uudelleen.'
           return
         }
+        // Kuvat perässä: huomio on jo kannassa ∴ osittainen epäonnistuminen EI peru tekstiä
+        // (teksti on arvokkaampi kuin kuva) mutta se kerrotaan ääneen.
+        let failed = 0
+        if (this.opts.uploadImage) {
+          save.textContent = 'Lähetetään kuvia…'
+          for (const file of files) {
+            const err = await this.opts.uploadImage(created.id, file)
+            if (err) failed++
+          }
+        }
         this.opts.onChanged?.()
-        // Kuvan voi liittää vasta kun kommentilla on id (T338) → siirry katselutilaan.
-        this.openView(created)
+        if (failed > 0) {
+          save.disabled = false
+          save.textContent = 'Lähetä'
+          error.hidden = false
+          error.textContent = `⚠ Huomio tallennettiin, mutta ${failed} kuvaa ei mennyt läpi. Voit lisätä ne uudelleen huomion kautta.`
+          return
+        }
+        this.close()
       })
     })
     footer.appendChild(save)
     body.appendChild(footer)
 
     return body
+  }
+
+  // T366/V264: luonnoksen paikalliset kuvat. objectURL-esikatselu + ✕ per kuva.
+  private buildDraftImageSection(): HTMLElement {
+    const section = document.createElement('div')
+    section.className = 'comment-point-images'
+    if (!this.opts.uploadImage) return section
+
+    const gallery = document.createElement('div')
+    gallery.className = 'comment-point-image-gallery'
+    section.appendChild(gallery)
+
+    const error = document.createElement('p')
+    error.className = 'comment-point-image-error'
+    error.hidden = true
+
+    const renderGallery = (): void => {
+      gallery.replaceChildren()
+      this.draftImages.forEach((img, i) => {
+        const wrap = document.createElement('div')
+        wrap.className = 'comment-point-image-wrap'
+
+        const el = document.createElement('img')
+        el.className = 'comment-point-image-thumb'
+        el.src = img.url
+        el.alt = `Liitettävä kuva ${i + 1}`
+        el.setAttribute('role', 'button')
+        el.tabIndex = 0
+        el.setAttribute('aria-label', `Avaa kuva ${i + 1}`)
+        el.addEventListener('click', () => openImageLightbox(img.url))
+        wrap.appendChild(el)
+
+        const remove = document.createElement('button')
+        remove.type = 'button'
+        remove.className = 'comment-point-image-remove'
+        remove.setAttribute('aria-label', `Poista kuva ${i + 1}`)
+        remove.textContent = '✕'
+        remove.addEventListener('click', () => {
+          URL.revokeObjectURL(img.url)
+          this.draftImages = this.draftImages.filter(x => x !== img)
+          renderGallery()
+        })
+        wrap.appendChild(remove)
+        gallery.appendChild(wrap)
+      })
+    }
+
+    const addBtn = document.createElement('button')
+    addBtn.type = 'button'
+    addBtn.className = 'btn btn--secondary comment-point-add-image'
+    addBtn.textContent = '📷 Lisää kuva'
+
+    const fileInput = document.createElement('input')
+    fileInput.type = 'file'
+    fileInput.accept = 'image/*'
+    fileInput.setAttribute('capture', 'environment')
+    fileInput.className = 'comment-point-file'
+    fileInput.hidden = true
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files?.[0]
+      if (!file) return
+      fileInput.value = ''
+      addBtn.disabled = true
+      addBtn.textContent = 'Pienennetään…'
+      error.hidden = true
+      // Pienennys jo tässä (V262): kentällä näkee heti jos kuva on kelvoton, ei vasta
+      // lähetyshetkellä kun peruminen maksaa koko lomakkeen.
+      void downscaleImage(file)
+        .then(({ file: prepared }) => {
+          this.draftImages.push({ file: prepared, url: URL.createObjectURL(prepared) })
+          renderGallery()
+        })
+        .catch(() => {
+          error.hidden = false
+          error.textContent = IMAGE_ERROR_TEXT.failed
+        })
+        .finally(() => {
+          addBtn.disabled = false
+          addBtn.textContent = '📷 Lisää kuva'
+        })
+    })
+
+    addBtn.addEventListener('click', () => fileInput.click())
+    section.appendChild(addBtn)
+    section.appendChild(fileInput)
+    section.appendChild(error)
+    return section
   }
 
   // ---- katselu ----
@@ -272,7 +401,7 @@ export class CommentPointModal {
       footer.appendChild(resolveBtn)
     }
 
-    if (this.opts.canDelete?.()) {
+    if (this.opts.canDelete?.(comment)) {
       const del = document.createElement('button')
       del.type = 'button'
       del.className = 'btn btn--ghost comment-point-delete'
@@ -310,6 +439,9 @@ export class CommentPointModal {
       const gallery = document.createElement('div')
       gallery.className = 'comment-point-image-gallery'
       images.forEach((url, i) => {
+        const wrap = document.createElement('div')
+        wrap.className = 'comment-point-image-wrap'
+
         const img = document.createElement('img')
         img.className = 'comment-point-image-thumb'
         img.src = url
@@ -329,7 +461,31 @@ export class CommentPointModal {
           ph.textContent = '[kuva ei saatavilla]'
           img.replaceWith(ph)
         })
-        gallery.appendChild(img)
+        wrap.appendChild(img)
+
+        // T368/V265: kuvan poisto samalla oikeudella kuin huomion muokkaus — kuva on todiste.
+        if (this.opts.canDelete?.(comment)) {
+          const del = document.createElement('button')
+          del.type = 'button'
+          del.className = 'comment-point-image-remove'
+          del.setAttribute('aria-label', `Poista kuva ${i + 1}`)
+          del.textContent = '✕'
+          del.addEventListener('click', () => {
+            if (!window.confirm('Poistetaanko kuva?')) return
+            del.disabled = true
+            void deleteCommentImage(url).then((ok) => {
+              if (!ok) { del.disabled = false; return }
+              // Näkymä päivittyy paikallaan: poisto ei saa sulkea modaalia jonka kautta
+              // käyttäjä on juuri katsomassa muita kuvia.
+              const left = (comment.images ?? []).filter(u => u !== url)
+              this.opts.onChanged?.()
+              this.openView({ ...comment, images: left })
+            })
+          })
+          wrap.appendChild(del)
+        }
+
+        gallery.appendChild(wrap)
       })
       section.appendChild(gallery)
     }
@@ -376,6 +532,11 @@ export class CommentPointModal {
             return
           }
           this.opts.onChanged?.()
+          // B152(a): avoin näkymä ! renderöityä uudelleen — ilman tätä käyttäjä ⊥ näe juuri
+          // lataamaansa kuvaa & lataa sen toistamiseen (kiintiö V262 täyttyy kahdesta samasta).
+          void this.opts.reload?.(comment.id).then((fresh) => {
+            if (fresh) this.openView(fresh)
+          })
         })
     })
 

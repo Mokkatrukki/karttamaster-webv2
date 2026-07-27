@@ -21,6 +21,14 @@ export interface Comment {
   /** T364/V263: kuittausleima. Puuttuu ⇒ työ on AVOIN. ⊥ ole merkin status (V9/V245). */
   resolvedAt?: string
   resolvedBy?: string
+  /** T367/V265: omistaja-avain palvelimelta (user/code/session). Puuttuu ⇒ vain järjestäjä muokkaa. */
+  createdBy?: string
+  /**
+   * T367/V265: saako TÄMÄ istunto siirtää/poistaa. Serveri ratkaisee & kertoo valmiina —
+   * client ei tunne omaa omistaja-avaintaan eikä saa toisintaa sääntöä (kaksi toteutusta
+   * ajautuisi erilleen ja UI lupaisi mitä API kieltää).
+   */
+  canEdit?: boolean
 }
 
 // T364/V263: huomion KATEGORIA. Talkoolainen valitsee hanskat kädessä yhdellä painalluksella —
@@ -158,7 +166,37 @@ export async function resolveComment(id: string, resolved: boolean): Promise<Com
   }
 }
 
-// Poista kommentti (järjestäjä+; backend gate hoitaa auktorisoinnin). true = poistettu.
+// T367/V265: siirto (lat/lon) tai tekstin korjaus. Omistaja tai järjestäjä — gate on
+// serverissä, tämä palauttaa nullin myös 403:sta ∴ kutsuja palauttaa pinnin takaisin.
+export async function updateComment(
+  id: string,
+  patch: { lat?: number; lon?: number; text?: string; iconId?: string },
+): Promise<Comment | null> {
+  try {
+    const resp = await fetch(`/api/comments/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    })
+    if (!resp.ok) return null
+    const data = await resp.json()
+    return data && typeof data === 'object' && 'id' in data ? (data as Comment) : null
+  } catch {
+    return null
+  }
+}
+
+// T368/V265: yksittäisen kuvan poisto. URL on sama jonka `Comment.images` kantaa.
+export async function deleteCommentImage(imageUrl: string): Promise<boolean> {
+  try {
+    const resp = await fetch(imageUrl, { method: 'DELETE' })
+    return resp.ok
+  } catch {
+    return false
+  }
+}
+
+// Poista kommentti (omistaja tai järjestäjä; backend gate hoitaa auktorisoinnin). true = poistettu.
 export async function deleteComment(id: string): Promise<boolean> {
   try {
     const resp = await fetch(`/api/comments/${encodeURIComponent(id)}`, { method: 'DELETE' })

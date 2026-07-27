@@ -19,8 +19,8 @@ import { boundsPatch } from '../logic/segment-backfill'
 import type { Segment } from '../logic/segments'
 import { fitMapToSegment } from '../map/segment-fit'
 import { firstUnsetMarker, distanceAhead } from '../logic/navigation'
-import { CommentLayer } from '../map/comment-layer'
-import { fetchComments, addCommentImage } from '../logic/comments'
+import { CommentLayer, type CommentDraft } from '../map/comment-layer'
+import { fetchComments, addCommentImage, updateComment, type Comment } from '../logic/comments'
 import { CommentPointModal } from '../ui/comment-point-modal'
 import { CommentPanel } from '../ui/comment-panel'
 import type { GpsNavigator, GpsState } from '../map/gps-navigator'
@@ -371,6 +371,10 @@ export function wireMarkers(
       // (V218) suojaa merkkejä, ⊥ havaintoja. Talkoolaisen kynnys jättää huomio ! olla matala.
       document.getElementById('btn-tk-add-note')?.addEventListener('click', () => {
         const c = map.getCenter()
+        // T366/V264: kartan keskipiste on vain LÄHTÖARVAUS — luonnospinni on raahattava ja
+        // lopullinen sijainti luetaan vasta Lähetä-hetkellä.
+        commentDraft?.remove()
+        commentDraft = commentLayer.startDraft(c.lat, c.lng)
         commentModal.openCreate(c.lat, c.lng)
       })
     }
@@ -517,32 +521,60 @@ export function wireMarkers(
   // uudelleenrender. (Vapaan pisteen SIJOITUS-UI on erillinen jatko — tässä renderöinti + poisto.)
   // T237/T338: klikkaus avaa huomio-modaalin (teksti + kuvat + poisto järjestäjälle) — aiempi
   // confirm/toast-haara korvattu: toast ei mahduta kuvia eikä kerro kuka huomion jätti.
+  // T367/V265: oikeuden RATKAISEE serveri (`canEdit` per rivi) — client vain lukee sen.
+  // Sääntöä ei toisinneta selaimessa: kaksi toteutusta ajautuisi erilleen ja UI lupaisi
+  // mitä API kieltää. Puuttuva kenttä (vanha vastaus välimuistista) = ei oikeutta.
+  const canEditComment = (c: Comment): boolean => c.canEdit === true
+
   const commentModal = new CommentPointModal({
     onChanged: () => refreshPointComments(),
-    canDelete: () => getRole() === 'järjestäjä',
+    canDelete: canEditComment,
     // T364/V263: kuittaus on järjestäjän koordinointipäätös — talkoolainen ilmoittaa.
     canResolve: () => getRole() === 'järjestäjä',
     uploadImage: (id, file) => addCommentImage(id, file),
+    // B152(a): kuvan lisäys/poisto → näkymä uudelleen tuoreella datalla.
+    reload: (id) => fetchComments('point').then(rows => rows?.find(r => r.id === id) ?? null),
+    draftPosition: () => commentDraft?.position() ?? map.getCenter() as unknown as { lat: number; lon: number },
+    onCreateClosed: () => { commentDraft?.remove(); commentDraft = null },
   })
-  const commentLayer = new CommentLayer(map, (c) => commentModal.openView(c))
+
+  let commentDraft: CommentDraft | null = null
+
+  const commentLayer = new CommentLayer(map, (c) => commentModal.openView(c), {
+    canEdit: canEditComment,
+    // T367: raahaus tallentaa heti. false ⇒ CommentLayer palauttaa pinnin (403 = vieras huomio).
+    onMove: (c, lat, lon) => updateComment(c.id, { lat, lon }).then((updated) => {
+      if (!updated) {
+        showWarning('⚠ Huomion siirto ei onnistunut — se ei ole sinun.', 4000)
+        return false
+      }
+      refreshPointComments()
+      return true
+    }),
+  })
 
   // T340: järjestäjän sivupalkin lista. Sama data kuin kartalla ∴ yksi refresh päivittää molemmat
   // — erilliset hakukierrokset ajautuisivat eri mielisiksi (B127-oppi).
   const commentPanelEl = document.getElementById('comment-panel-container')
   const commentPanel = commentPanelEl
     ? new CommentPanel(commentPanelEl, {
+        // T369/B153: rivi NÄYTTÄÄ missä huomio on — modaali peittäisi juuri sen kartan
+        // jota käyttäjä halusi katsoa. Avaaminen on oma nappinsa rivin lopussa.
         onFocus: (c) => {
-          if (typeof c.lat === 'number' && typeof c.lon === 'number') map.setView([c.lat, c.lon], 16)
-          commentModal.openView(c)
+          if (typeof c.lat === 'number' && typeof c.lon === 'number') {
+            map.setView([c.lat, c.lon], 16)
+            commentLayer.pulse(c.id)
+          }
         },
+        onOpen: (c) => commentModal.openView(c),
       })
     : null
 
-  // T335/V243 + T237(d): talkoolaisella korostus on AUTOMAATTI (rivi ~181) ∴ myös huomiot
-  // ovat hänelle kontekstia heti latauksessa — sama tila kuin merkeillä, ei kahta totuutta.
-  if (talkoolainenCode && getSegmentForCode(segmentStore, talkoolainenCode)) {
-    commentLayer.setFocusActive(true)
-  }
+  // T370/V266 (B154): talkoolaisen automaattifokus EI himmennä huomioita. Aiempi
+  // `setFocusActive(true)` täällä luki V243:a liian leveästi — talkoolainen ei kytkenyt
+  // korostusta, joten hänen oma tuore havaintonsa ilmestyi kartalle harmaana ja luettiin
+  // poissuljetuksi. Himmennys jää järjestäjän eksplisiittiseen pätkäkorostukseen
+  // (segments-wiring setFocusSegment): hän vertailee pätkiä, talkoolainen tekee työtä.
 
   const refreshPointComments = () => {
     void fetchComments('point').then((rows) => {

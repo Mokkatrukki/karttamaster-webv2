@@ -20,6 +20,7 @@ interface CommentRow {
   created_at: string
   resolved_at: string | null
   resolved_by: string | null
+  created_by: string | null
 }
 
 // T338: huomion kuva-URL:t. Sama muoto kuin markers.ts:n imageUrls (yksi kuvio, ei kahta).
@@ -32,7 +33,7 @@ function commentImageUrls(db: Database, commentId: string): string[] {
     .map(r => `/api/comments/${commentId}/images/${r.id}`)
 }
 
-function rowToComment(row: CommentRow, db?: Database) {
+function rowToComment(row: CommentRow, db?: Database, session?: OwnerSession) {
   return {
     images: db ? commentImageUrls(db, row.id) : undefined,
     id: row.id,
@@ -47,7 +48,45 @@ function rowToComment(row: CommentRow, db?: Database) {
     // T341/V248: huomio = työtilaus. resolvedAt puuttuu ⇒ avoin.
     resolvedAt: row.resolved_at ?? undefined,
     resolvedBy: row.resolved_by ?? undefined,
+    // T367/V265: omistaja. NULL = ennen omistajuutta kirjattu ⇒ vain järjestäjä muokkaa.
+    createdBy: row.created_by ?? undefined,
+    // T367: oikeus ratkaistaan SERVERISSÄ & kerrotaan clientille valmiina. Client ei tunne
+    // omaa omistaja-avaintaan (se on session sisäinen) ∴ sääntöä ei voi eikä pidä toisintaa
+    // selaimessa — kaksi toteutusta ajautuisi erilleen ja UI lupaisi mitä API kieltää.
+    canEdit: session ? mayEditComment(session, row.created_by) : undefined,
   }
+}
+
+// T367/V265: kuka saa siirtää/poistaa. Omistajuus luetaan RIVILTÄ ⊥ bodystä — client ei saa
+// nimetä itseään omistajaksi. `created_by` NULL ⇒ vain järjestäjä (vanha data ei muutu
+// kenenkään omaisuudeksi).
+//
+// Ketju user_id > talkoolainen_code > sessio. Kaksi viimeistä ovat karkeampia mutta
+// välttämättömiä: pätkäkoodilla kirjautuneella ei ole user_id:tä, ja yleissalasana-sessiolla
+// (talkoolais-hub) ei ole kumpaakaan (B124) — ilman sessio-ankkuria hub-käyttäjä ei omistaisi
+// omaa havaintoaan lainkaan, mikä on juuri se umpikuja jota V265 estää. Sessio katkeaa
+// uloskirjautumisesta ∴ oikeus katoaa silloin ja rivi jää järjestäjän hoidettavaksi:
+// karkeampi ankkuri antaa vähemmän oikeuksia, ei enempää.
+type OwnerSession = {
+  id?: string
+  user_id?: string | null
+  talkoolainen_code?: string | null
+  role?: string
+}
+
+function ownerKey(session: OwnerSession | undefined): string | null {
+  if (session?.user_id) return `user:${session.user_id}`
+  if (session?.talkoolainen_code) return `code:${session.talkoolainen_code}`
+  return session?.id ? `session:${session.id}` : null
+}
+
+function mayEditComment(
+  session: OwnerSession | undefined,
+  createdBy: string | null,
+): boolean {
+  if (session?.role === 'admin' || session?.role === 'järjestäjä') return true
+  const key = ownerKey(session)
+  return key !== null && createdBy !== null && key === createdBy
 }
 
 export const commentsRoutes = new Hono<AuthEnv>()
@@ -70,7 +109,7 @@ commentsRoutes.get('/', requireAuth(), (c) => {
   } else {
     rows = db.query<CommentRow, []>('SELECT * FROM comments ORDER BY created_at ASC').all()
   }
-  return c.json(rows.map(r => rowToComment(r, db)))
+  return c.json(rows.map(r => rowToComment(r, db, c.get('session'))))
 })
 
 // POST /api/comments — kaikille autentikoiduille (talkoolainen mukaan lukien, VISION).
@@ -105,7 +144,7 @@ commentsRoutes.post('/', requireAuth(), async (c) => {
   const id = randomUUID()
   const now = new Date().toISOString()
   db.run(
-    'INSERT INTO comments (id, target_type, target_id, lat, lon, text, icon_id, author_name, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO comments (id, target_type, target_id, lat, lon, text, icon_id, author_name, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       id,
       body.targetType,
@@ -116,11 +155,13 @@ commentsRoutes.post('/', requireAuth(), async (c) => {
       body.iconId ?? null,
       body.authorName?.trim() || null,
       now,
+      // T367/V265: omistaja kirjataan tässä — myöhemmin sitä ei voi päätellä mistään.
+      ownerKey(c.get('session')),
     ],
   )
 
   const row = db.query<CommentRow, [string]>('SELECT * FROM comments WHERE id = ?').get(id)!
-  return c.json(rowToComment(row, db), 201)
+  return c.json(rowToComment(row, db, c.get('session')), 201)
 })
 
 // ---- T338/V262: kuvaliite ----
@@ -209,8 +250,34 @@ commentsRoutes.get('/:id/images/:imageId', requireAuth(), (c) => {
   })
 })
 
+// DELETE /api/comments/:id/images/:imageId — T368/V265: omistaja TAI järjestäjä.
+// Kuva on todiste ∴ poisto-oikeus on sama kuin huomion muokkauksella, ei löysempi.
+commentsRoutes.delete('/:id/images/:imageId', requireAuth(), (c) => {
+  const db: Database = c.get('db')
+  const id = c.req.param('id')
+  const imageId = c.req.param('imageId')
+
+  const comment = db
+    .query<CommentRow, [string]>('SELECT * FROM comments WHERE id = ?')
+    .get(id)
+  if (!comment) return c.json({ error: 'not_found' }, 404)
+  if (!mayEditComment(c.get('session'), comment.created_by)) {
+    return c.json({ error: 'forbidden' }, 403)
+  }
+
+  const image = db
+    .query<{ id: string }, [string, string]>(
+      'SELECT id FROM comment_images WHERE id = ? AND comment_id = ?',
+    )
+    .get(imageId, id)
+  if (!image) return c.json({ error: 'not_found' }, 404)
+
+  db.run('DELETE FROM comment_images WHERE id = ?', [imageId])
+  return c.json({ ok: true })
+})
+
 // PATCH /api/comments/:id/resolve — järjestäjä+ kuittaa työn tehdyksi (tai palauttaa avoimeksi).
-// V248: kuittaus on KOORDINOINTIPÄÄTÖS ("tämä on hoidettu") ∴ se kuuluu järjestäjälle joka
+// V263: kuittaus on KOORDINOINTIPÄÄTÖS ("tämä on hoidettu") ∴ se kuuluu järjestäjälle joka
 // näkee kaikki pätkät. Talkoolainen ILMOITTAA, järjestäjä KUITTAA — sama työnjako kuin
 // merkkien poistossa. Kuittaaja jää talteen: "kuka sanoi tämän hoidetuksi" on se kysymys
 // johon 2026-07-25 incidentin jälkeen halutaan aina vastaus (V240-linja).
@@ -232,15 +299,61 @@ commentsRoutes.patch('/:id/resolve', requireAuth(), requireRole('admin', 'järje
   ])
 
   const row = db.query<CommentRow, [string]>('SELECT * FROM comments WHERE id = ?').get(id)!
-  return c.json(rowToComment(row, db))
+  return c.json(rowToComment(row, db, c.get('session')))
 })
 
-// DELETE /api/comments/:id — vain järjestäjä+ (voi yliajaa kaiken, VISION r283).
-commentsRoutes.delete('/:id', requireAuth(), requireRole('admin', 'järjestäjä'), (c) => {
+// PUT /api/comments/:id — T367/V265: siirto & tekstin korjaus. Omistaja TAI järjestäjä.
+// Sijaintivirhe syntyy kiireessä maastossa & korjaaja on sama ihminen joka seisoo paikalla —
+// jos hän ei voi siirtää, väärä sijainti jää kantaan ja järjestäjä ajaa väärään kohtaan.
+commentsRoutes.put('/:id', requireAuth(), async (c) => {
   const db: Database = c.get('db')
   const id = c.req.param('id')
-  const existing = db.query<{ id: string }, [string]>('SELECT id FROM comments WHERE id = ?').get(id)
+  const existing = db
+    .query<CommentRow, [string]>('SELECT * FROM comments WHERE id = ?')
+    .get(id)
   if (!existing) return c.json({ error: 'not_found' }, 404)
+  if (!mayEditComment(c.get('session'), existing.created_by)) {
+    return c.json({ error: 'forbidden' }, 403)
+  }
+
+  const body = await c.req.json<{ lat?: number; lon?: number; text?: string; iconId?: string }>()
+  // Siirto koskee vain vapaata pistettä: merkkiin/pätkään kiinnitetyllä huomiolla ei ole omaa
+  // sijaintia — sen paikka on kohteen paikka.
+  const movesPoint = typeof body.lat === 'number' && typeof body.lon === 'number'
+  if (movesPoint && existing.target_type !== 'point') {
+    return c.json({ error: 'not_a_point' }, 400)
+  }
+  if (body.text !== undefined && body.text.trim() === '') {
+    return c.json({ error: 'missing_text' }, 400)
+  }
+
+  db.run(
+    'UPDATE comments SET lat = ?, lon = ?, text = ?, icon_id = ? WHERE id = ?',
+    [
+      movesPoint ? body.lat! : existing.lat,
+      movesPoint ? body.lon! : existing.lon,
+      body.text?.trim() ?? existing.text,
+      body.iconId ?? existing.icon_id,
+      id,
+    ],
+  )
+
+  const row = db.query<CommentRow, [string]>('SELECT * FROM comments WHERE id = ?').get(id)!
+  return c.json(rowToComment(row, db, c.get('session')))
+})
+
+// DELETE /api/comments/:id — T367/V265: omistaja TAI järjestäjä (ennen: vain järjestäjä).
+// Kirjoitusoikeus ilman korjausoikeutta tuottaa kantaan roskaa jota kukaan ei uskalla siivota.
+commentsRoutes.delete('/:id', requireAuth(), (c) => {
+  const db: Database = c.get('db')
+  const id = c.req.param('id')
+  const existing = db
+    .query<CommentRow, [string]>('SELECT * FROM comments WHERE id = ?')
+    .get(id)
+  if (!existing) return c.json({ error: 'not_found' }, 404)
+  if (!mayEditComment(c.get('session'), existing.created_by)) {
+    return c.json({ error: 'forbidden' }, 403)
+  }
   // Cascade koodissa: orpo BLOB jäisi kantaan kasvamaan ilman mitään joka viittaa siihen.
   db.run('DELETE FROM comment_images WHERE comment_id = ?', [id])
   db.run('DELETE FROM comments WHERE id = ?', [id])

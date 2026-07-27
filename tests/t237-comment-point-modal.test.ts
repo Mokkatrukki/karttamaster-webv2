@@ -38,7 +38,7 @@ describe('T237 — huomion luonti kartalta', () => {
     expect((document.querySelector('.comment-point-error') as HTMLElement).hidden).toBe(false)
   })
 
-  it('tallennus POSTaa point-kommentin klikatuilla koordinaateilla + siirtyy katseluun', async () => {
+  it('Lähetä POSTaa point-kommentin ja SULKEE modaalin (V264: yksi hetki jolloin työ on valmis)', async () => {
     const created = makeComment({ text: 'Puu kaatuu' })
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => created })
     vi.stubGlobal('fetch', fetchMock)
@@ -54,8 +54,79 @@ describe('T237 — huomion luonti kartalta', () => {
     expect(body.lat).toBe(65.1)
     expect(body.lon).toBe(27.5)
     expect(body.text).toBe('Puu kaatuu')
-    // Kuvan voi liittää vasta kun id on olemassa → katselutila avautuu automaattisesti.
-    expect(document.querySelector('.comment-point-view-text')?.textContent).toBe('Puu kaatuu')
+    await vi.waitFor(() => expect(document.querySelector('.comment-point-modal')).toBeNull())
+  })
+
+  // T366/V264 — luonnos: raahattu sijainti, paikalliset kuvat, yksi Lähetä.
+  it('Lähetä lukee sijainnin VASTA nyt — raahattu pinni voittaa avaushetken koordinaatit', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => makeComment() })
+    vi.stubGlobal('fetch', fetchMock)
+    // Pinniä raahattiin modaalin ollessa auki: kartan keskipiste oli vain lähtöarvaus.
+    let pos = { lat: 65.1, lon: 27.5 }
+    const modal = new CommentPointModal({ draftPosition: () => pos })
+    modal.openCreate(65.1, 27.5)
+    pos = { lat: 65.4, lon: 27.9 }
+    ;(document.querySelector('.comment-point-text') as HTMLTextAreaElement).value = 'Silta rikki'
+    ;(document.querySelector('.comment-point-save') as HTMLButtonElement).click()
+
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body)
+    expect(body.lat).toBe(65.4)
+    expect(body.lon).toBe(27.9)
+  })
+
+  it('luonnoksen kuva EI lähde palvelimelle ennen Lähetä-painallusta (V264: peruttu luonnos ⊥ syö kiintiötä)', async () => {
+    const uploadImage = vi.fn().mockResolvedValue(null)
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => makeComment() })
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('URL', { ...URL, createObjectURL: () => 'blob:kuva', revokeObjectURL: () => {} })
+
+    const modal = new CommentPointModal({ uploadImage })
+    modal.openCreate(65.1, 27.5)
+    const input = document.querySelector('.comment-point-file') as HTMLInputElement
+    const file = new File([new Uint8Array(4)], 'k.jpg', { type: 'image/jpeg' })
+    Object.defineProperty(input, 'files', { value: [file], configurable: true })
+    input.dispatchEvent(new Event('change'))
+
+    // Esikatselu näkyy heti — käyttäjä NÄKEE mitä on liittämässä.
+    await vi.waitFor(() => expect(document.querySelectorAll('.comment-point-image-thumb').length).toBe(1))
+    expect(uploadImage).not.toHaveBeenCalled()
+
+    ;(document.querySelector('.comment-point-text') as HTMLTextAreaElement).value = 'Kuvallinen'
+    ;(document.querySelector('.comment-point-save') as HTMLButtonElement).click()
+    await vi.waitFor(() => expect(uploadImage).toHaveBeenCalledTimes(1))
+  })
+
+  it('peruutus ei tallenna mitään eikä lähetä kuvia — luonnos katoaa jäljettä', async () => {
+    const uploadImage = vi.fn()
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('URL', { ...URL, createObjectURL: () => 'blob:kuva', revokeObjectURL: () => {} })
+    const onCreateClosed = vi.fn()
+
+    const modal = new CommentPointModal({ uploadImage, onCreateClosed })
+    modal.openCreate(65.1, 27.5)
+    ;(document.querySelector('.comment-point-cancel') as HTMLButtonElement).click()
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(uploadImage).not.toHaveBeenCalled()
+    // Kutsuja siivoaa luonnospinnin kartalta — muuten kartalle jäisi haamu.
+    expect(onCreateClosed).toHaveBeenCalled()
+  })
+
+  it('luonnoksen kuvan voi poistaa ✕:llä ennen lähetystä', async () => {
+    vi.stubGlobal('URL', { ...URL, createObjectURL: () => 'blob:kuva', revokeObjectURL: () => {} })
+    new CommentPointModal({ uploadImage: vi.fn() }).openCreate(65.1, 27.5)
+    const input = document.querySelector('.comment-point-file') as HTMLInputElement
+    Object.defineProperty(input, 'files', {
+      value: [new File([new Uint8Array(4)], 'k.jpg', { type: 'image/jpeg' })],
+      configurable: true,
+    })
+    input.dispatchEvent(new Event('change'))
+    await vi.waitFor(() => expect(document.querySelectorAll('.comment-point-image-thumb').length).toBe(1))
+
+    ;(document.querySelector('.comment-point-image-remove') as HTMLButtonElement).click()
+    expect(document.querySelectorAll('.comment-point-image-thumb').length).toBe(0)
   })
 
   it('Esc sulkee, Peruuta sulkee', () => {
@@ -73,6 +144,31 @@ describe('T237 — huomion luonti kartalta', () => {
 describe('T237 — huomion katselu ja poisto', () => {
   beforeEach(() => { document.body.innerHTML = '' })
   afterEach(() => { vi.unstubAllGlobals() })
+
+  // T368/V265 — tallennetun kuvan poisto.
+  it('kuvan ✕ kutsuu DELETEä kuvan URLilla ja päivittää näkymän paikallaan', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: true }) })
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('confirm', () => true)
+    const withImage = makeComment({ images: ['/api/comments/c-1/images/i-1'] })
+
+    new CommentPointModal({ canDelete: () => true }).openView(withImage)
+    ;(document.querySelector('.comment-point-image-remove') as HTMLButtonElement).click()
+
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/comments/c-1/images/i-1')
+    expect(fetchMock.mock.calls[0][1].method).toBe('DELETE')
+    // Modaali pysyy auki: poisto ei saa sulkea näkymää jonka kautta muita kuvia katsotaan.
+    await vi.waitFor(() => expect(document.querySelectorAll('.comment-point-image-thumb').length).toBe(0))
+    expect(document.querySelector('.comment-point-modal')).not.toBeNull()
+  })
+
+  it('ilman muokkausoikeutta kuvan ✕ ei renderöidy (V265)', () => {
+    new CommentPointModal({ canDelete: () => false })
+      .openView(makeComment({ images: ['/api/comments/c-1/images/i-1'] }))
+    expect(document.querySelector('.comment-point-image-thumb')).not.toBeNull()
+    expect(document.querySelector('.comment-point-image-remove')).toBeNull()
+  })
 
   it('näyttää tekstin + tekijän, poistonappi piilossa ilman canDeletea', () => {
     new CommentPointModal().openView(makeComment({ authorName: 'Matti' }))
@@ -330,5 +426,46 @@ describe('T341/V248 — sivupalkki erottaa avoimet tehdyistä', () => {
     const rows = container.querySelectorAll('.comment-panel-item')
     // Vanhempi mutta AVOIN tulee ensin — uutuus ⊥ voita avoimuutta.
     expect(rows[0].textContent).toContain('Avoin työ')
+  })
+})
+
+// T369/B153 — järjestäjän sivupalkki: rivi NÄYTTÄÄ, nappi AVAA.
+describe('T369 — huomion paikantaminen sivupalkista', () => {
+  beforeEach(() => { document.body.innerHTML = '' })
+  afterEach(() => { vi.unstubAllGlobals() })
+
+  it('rivin klikkaus kutsuu onFocus oikealla sijainnilla EIKÄ avaa huomiota', () => {
+    const onFocus = vi.fn()
+    const onOpen = vi.fn()
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    new CommentPanel(host, { onFocus, onOpen }).setComments([makeComment({ lat: 65.7, lon: 27.2 })])
+
+    ;(host.querySelector('.comment-panel-item') as HTMLButtonElement).click()
+
+    expect(onFocus).toHaveBeenCalledTimes(1)
+    expect(onFocus.mock.calls[0][0].lat).toBe(65.7)
+    // Modaali peittäisi juuri sen kartan jota käyttäjä halusi katsoa.
+    expect(onOpen).not.toHaveBeenCalled()
+  })
+
+  it('rivin oma nappi avaa huomion eikä laukaise paikannusta samalla', () => {
+    const onFocus = vi.fn()
+    const onOpen = vi.fn()
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    new CommentPanel(host, { onFocus, onOpen }).setComments([makeComment()])
+
+    ;(host.querySelector('.comment-panel-item-open') as HTMLButtonElement).click()
+
+    expect(onOpen).toHaveBeenCalledTimes(1)
+    expect(onFocus).not.toHaveBeenCalled()
+  })
+
+  it('ilman onOpen-callbackia avausnappia ei renderöidä (⊥ kuollutta nappia)', () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    new CommentPanel(host, { onFocus: vi.fn() }).setComments([makeComment()])
+    expect(host.querySelector('.comment-panel-item-open')).toBeNull()
   })
 })

@@ -5423,6 +5423,41 @@ body[data-map-mode="muokkaus"] #map-area::after {
   cursor: zoom-in;
 }
 
+/* T366/T368: thumbin ✕. Kuva on kahva, ✕ on sen päällä omana kohteenaan — hit-area 44px
+   (§R) vaikka nappi itse on pieni: hanskat kädessä 24px:n osuma on arpa. */
+.comment-point-image-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.comment-point-image-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1;
+  color: #fff;
+  background: var(--danger);
+  border: 2px solid var(--surface-card);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* Kosketuskohde kasvaa napin ULKOPUOLELLE — visuaali pysyy pienenä, osuma-alue ei. */
+.comment-point-image-remove::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+}
+
+.comment-point-image-remove:disabled { opacity: 0.5; cursor: default; }
+
 .comment-point-image-placeholder {
   width: 72px;
   height: 72px;
@@ -5473,6 +5508,39 @@ body[data-map-mode="muokkaus"] #map-area::after {
 }
 
 .comment-panel-item:hover { background: var(--hover); }
+
+/* T369/B153: rivi = "näytä kartalla", tämä nappi = "avaa". Kaksi kysymystä, kaksi kontrollia. */
+.comment-panel-item-open {
+  flex-shrink: 0;
+  width: 28px;
+  min-height: 44px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.comment-panel-item-open:hover { color: var(--text-body); }
+
+/* T369: pulssi kertoo KUMPI pinni se oli — kartalla voi olla kymmeniä. Ei siirrä elementtiä
+   (transform rikkoisi Leafletin position), vain drop-shadow kuten .marker-next-highlight. */
+@keyframes comment-pin-locate {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(242, 84, 45, 0.9)); }
+  50%      { filter: drop-shadow(0 0 12px rgba(242, 84, 45, 1)); }
+}
+
+.comment-pin-located {
+  animation: comment-pin-locate 0.6s ease-in-out 3;
+  z-index: 1200;
+}
+
+/* T366/V264: luonnospinni on RAAHATTAVA ehdotus — kursori kertoo sen ennen kuin käyttäjä
+   ehtii ihmetellä miksi pinni on väärässä paikassa. */
+.comment-pin-draft { cursor: grab; }
+.leaflet-dragging .comment-pin-draft { cursor: grabbing; }
 
 .comment-panel-item-icon {
   color: #F2542D;
