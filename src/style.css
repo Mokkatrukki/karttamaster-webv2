@@ -4216,17 +4216,28 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   color: var(--text-muted);
 }
 
+/* T373/V268/§A: oikea <button> ∴ globaali button-sääntö (padding:6px 12px, §A "LIIAN PIENI")
+   ! neutralisoida eksplisiittisesti. min-height 44px = kosketusminimi; header on RAKENNE-elementti
+   ⊥ .btn-variantti (V135-poikkeus, ks. DESIGN.md §A). */
 .left-panel-section-header {
   display: flex;
   align-items: center;
   cursor: pointer;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
   padding: 8px 10px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: 0;
+  font-family: inherit;
   font-size: 11px;
   font-weight: 700;
+  text-align: left;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
-  border-bottom: 1px solid var(--border-subtle);
   user-select: none;
 }
 
@@ -4294,6 +4305,17 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   background: var(--hover);
   border-left: 2px solid var(--accent);
   gap: 6px;
+}
+
+/* B156/§A: Leafletin zoom-napit ovat oletuksena 30×30px — alle kosketusminimin. Paljastui kun
+   T373 laajensi kosketusvahdin valitsimen rooliin (V268): ne ovat `a[role="button"]` ∴ vanha
+   `button`-valitsin ⊥ nähnyt niitä koskaan. V122 edellyttää zoomilta ≥44px hit-areaa. */
+.leaflet-control-zoom a.leaflet-control-zoom-in,
+.leaflet-control-zoom a.leaflet-control-zoom-out {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+  font-size: 20px;
 }
 
 @media print {

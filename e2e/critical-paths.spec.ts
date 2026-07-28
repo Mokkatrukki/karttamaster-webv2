@@ -482,7 +482,9 @@ test.describe('Touch targets — T45', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    const buttons = await page.locator('button').all()
+    // T373/V268: valitsin seuraa ROOLIA ⊥ tagia. Pelkkä `button` jätti `div[role="button"]`it
+    // mittaamatta ∴ sivupalkin section-headerit (~28px) olivat vahdin katveessa T106:sta asti.
+    const buttons = await page.locator('button, [role="button"]').all()
     const violations: string[] = []
 
     for (const btn of buttons) {
@@ -499,6 +501,44 @@ test.describe('Touch targets — T45', () => {
 
     // T45 ✓ — kaikki napit ≥44px mobiililla
     expect(violations).toHaveLength(0)
+  })
+})
+
+test.describe('Section-header — T373/V268', () => {
+  // jsdom ⊥ toteuta natiivia keydown→click-aktivointia ∴ VAIN selain voi todistaa että
+  // näppäimistötoggle tapahtuu & tapahtuu KERRAN (oma keydown-kuuntelija tuplaisi sen).
+  test('section-header aktivoituu näppäimistöltä — kerran per painallus', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    // Alueet-osio: kiinni oletuksena, oma laskuri-span.
+    const header = page.locator('#area-panel-container .left-panel-section-header')
+    await expect(header).toHaveAttribute('aria-expanded', 'false')
+
+    await header.focus()
+    await page.keyboard.press('Enter')
+    await expect(header).toHaveAttribute('aria-expanded', 'true')
+
+    await page.keyboard.press('Space')
+    await expect(header).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  test('section-header on ≥44px myös 375px-viewportissa (§A)', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    const headers = await page.locator('.left-panel-section-header').all()
+    expect(headers.length).toBeGreaterThan(0)
+    for (const h of headers) {
+      const box = await h.boundingBox()
+      if (box) expect(box.height, await h.innerText()).toBeGreaterThanOrEqual(44)
+    }
   })
 })
 

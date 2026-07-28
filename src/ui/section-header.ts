@@ -35,10 +35,12 @@ export interface SectionHeader {
 }
 
 export function createSectionHeader(opts: SectionHeaderOptions): SectionHeader {
-  const el = document.createElement('div')
+  // T373/V268: OIKEA `<button>`, ⊥ `div[role="button"]`. Natiivi nappi tuo fokuksen,
+  // Enter/Space-aktivoinnin ja — ratkaisevasti — näkyvyyden kosketusvahdille joka valitsee
+  // `button, [role="button"]`. `role`/`tabindex` ovat natiivilla napilla turhia.
+  const el = document.createElement('button')
+  el.type = 'button'
   el.className = 'left-panel-section-header'
-  el.setAttribute('role', 'button')
-  el.setAttribute('tabindex', '0')
 
   const toggleEl = document.createElement('span')
   toggleEl.className = 'section-header-toggle'
@@ -68,13 +70,10 @@ export function createSectionHeader(opts: SectionHeaderOptions): SectionHeader {
   }
   applyCollapsed(opts.collapsed)
 
+  // T373: VAIN click. Natiivi `<button>` laukaisee clickin jo Enteristä & Spacesta ∴ oma
+  // keydown-kuuntelija togglaisi kahdesti per painallus = tila palaisi lähtöpisteeseen eikä
+  // näppäimistökäyttö näyttäisi tekevän mitään. Älä lisää keydown-kuuntelijaa takaisin.
   el.addEventListener('click', () => opts.onToggle())
-  // `role="button"` lupaa näppäimistökäytön — ilman tätä lupaus on valhe kaikissa osioissa.
-  el.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter' && e.key !== ' ') return
-    e.preventDefault() // Space scrollaisi sivupalkin alta
-    opts.onToggle()
-  })
 
   return {
     el,

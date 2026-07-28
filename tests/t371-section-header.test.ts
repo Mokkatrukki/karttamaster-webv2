@@ -7,8 +7,11 @@ describe('T371 — jaettu section-header (V61, V267)', () => {
   it('renderöi V61-patternin DOM:n: header + toggle + name', () => {
     const h = createSectionHeader({ name: 'Alueet', collapsed: true, onToggle: vi.fn() })
     expect(h.el.className).toBe('left-panel-section-header')
-    expect(h.el.getAttribute('role')).toBe('button')
-    expect(h.el.getAttribute('tabindex')).toBe('0')
+    // T373/V268: oikea nappi ∴ kosketusvahti näkee sen & fokus/Enter/Space tulevat natiivina.
+    expect(h.el.tagName).toBe('BUTTON')
+    expect((h.el as HTMLButtonElement).type).toBe('button')
+    expect(h.el.getAttribute('role')).toBeNull()
+    expect(h.el.getAttribute('tabindex')).toBeNull()
     expect(h.el.querySelector('.section-header-toggle')?.textContent).toBe('▶')
     expect(h.el.querySelector('.section-header-name')?.textContent).toBe('Alueet')
   })
@@ -64,20 +67,15 @@ describe('T371 — jaettu section-header (V61, V267)', () => {
     expect(onToggle).toHaveBeenCalledTimes(1)
   })
 
-  // V267: role="button" lupaa näppäimistökäytön — ennen T371:tä lupaus oli valhe.
-  it.each(['Enter', ' '])('%s-näppäin kutsuu onToggle & estää oletustoiminnon', (key) => {
+  // T373: EI omaa keydown-kuuntelijaa. Natiivi nappi laukaisee clickin Enteristä/Spacesta ∴
+  // oma kuuntelija tuplaisi toggle-kutsun ja tila palaisi lähtöpisteeseen (hiljainen regressio).
+  // jsdom ⊥ toteuta natiivia keydown→click-aktivointia ∴ tämä testi mittaa nimenomaan sitä
+  // ETTEI moduulissa ole omaa kuuntelijaa; oikea näppäinaktivointi varmistetaan Playwrightissa
+  // (e2e/critical-paths.spec.ts "section-header aktivoituu näppäimistöltä").
+  it.each(['Enter', ' '])('%s ⊥ laukaise omaa keydown-kuuntelijaa (⊥ tuplakutsua)', (key) => {
     const onToggle = vi.fn()
     const h = createSectionHeader({ name: 'X', collapsed: true, onToggle })
-    const ev = new KeyboardEvent('keydown', { key, cancelable: true, bubbles: true })
-    h.el.dispatchEvent(ev)
-    expect(onToggle).toHaveBeenCalledTimes(1)
-    expect(ev.defaultPrevented).toBe(true)
-  })
-
-  it('muu näppäin ei togglaa', () => {
-    const onToggle = vi.fn()
-    const h = createSectionHeader({ name: 'X', collapsed: true, onToggle })
-    h.el.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', cancelable: true }))
+    h.el.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true, bubbles: true }))
     expect(onToggle).not.toHaveBeenCalled()
   })
 

@@ -153,9 +153,21 @@ pidettävä synkassa tämän taulukon kanssa (Leaflet-SVG ei peri CSS-tokeneja).
 | btn-route-prev/next    | `min-height: 36px` ⚠️ | LIIAN PIENI |
 | button (global)        | `padding: 6px 12px` → ~24px ⚠️ | LIIAN PIENI |
 | btn-modal-close        | `padding: 4px 8px` ⚠️ | LIIAN PIENI |
+| `.left-panel-section-header` | `min-height: 44px` ✓ | OK (T373) |
+| `.leaflet-control-zoom a` | `44×44px` ✓ | OK (B156 — oli 30×30) |
 
 **Sääntö:** `min-height: 44px` kaikille napeille. Tämä on erityisen kriittistä talkoolaiselle
 metsässä, hanskat kädessä.
+
+**Mittari seuraa roolia, ei tagia (T373/V268).** E2E-vahti (`critical-paths.spec.ts` "Touch targets")
+valitsee `button, [role="button"]`. Pelkkä `button` jätti mittaamatta `div[role=button]`-headerit
+(~28px) ja Leafletin zoom-linkit (30×30px, B156) — vahti oli vihreä ja lupasi §A:n pitävän.
+Jos lisäät interaktiivisen elementin joka ei ole `<button>`, sillä ! olla syy: natiivi nappi tuo
+fokuksen, Enter/Space-aktivoinnin ja vahdin kattavuuden ilmaiseksi.
+
+**V135-poikkeus:** `.left-panel-section-header` on rakenne-elementti (osion otsikko), ei `.btn`-variantti
+— se on `<button>` semantiikan ja kosketuskoon vuoksi, mutta ei kuulu nappipaletin variantteihin.
+Älä yritä pakottaa sitä `.btn--ghost`iksi: taustaton, koko leveys, 11px uppercase, `border-bottom`.
 
 ### Scroll ja overscroll (B108/V187 — mobiili "kaikki liikkuu" -korjaus)
 
@@ -342,7 +354,7 @@ Flex-toolbar joka voi ylittää kapean modaalin → `flex-wrap: wrap` (ei vaakal
 
 | Osa | Elementti | Tyyli |
 |-----|-----------|-------|
-| Header | `.left-panel-section-header` | `cursor:pointer; display:flex; align-items:center; padding:8px 10px; border-bottom:1px solid border-subtle` |
+| Header | `button.left-panel-section-header` | `min-height:44px` (§A, T373); `cursor:pointer; display:flex; align-items:center; width:100%; padding:8px 10px; background:none; border:0; border-bottom:1px solid border-subtle; text-align:left; font:inherit` — oikea `<button>`, ei `div[role=button]` |
 | Toggle-ikoni | `▼/▶` | `11px text-muted flex-shrink:0 mr:6px` — ▼ auki, ▶ kiinni |
 | Nimi | `span` | `11px uppercase text-muted letter-spacing:0.06em flex:1` |
 | Count | `span.section-header-count` | `11px text-meta, font-weight:400, letter-spacing:normal` — sulkuihin esim. `(3)`. Luku ei peri otsikon uppercase/boldia: se on mittari ⊥ otsikko |
