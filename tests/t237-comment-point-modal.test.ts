@@ -268,6 +268,14 @@ describe('T338 — kuvan pienennys (V247)', () => {
   })
 })
 
+// T372: otsikko = V61-section-header. Nimi & laskuri ovat eri spaneissa (toggle-ikoni ⊥ kuulu
+// otsikkotekstiin) ∴ kootaan sama merkkijono jonka vanha yksi-elementti-otsikko tuotti.
+function sectionTitle(container: HTMLElement): string {
+  const name = container.querySelector('.section-header-name')?.textContent ?? ''
+  const count = container.querySelector('.comment-panel-title')?.textContent ?? ''
+  return count ? `${name} ${count}` : name
+}
+
 describe('T340 — järjestäjän sivupalkin Huomiot-lista', () => {
   let container: HTMLElement
   beforeEach(() => {
@@ -279,7 +287,43 @@ describe('T340 — järjestäjän sivupalkin Huomiot-lista', () => {
   it('tyhjä tila kun huomioita ei ole', () => {
     new CommentPanel(container)
     expect(container.querySelector('.comment-panel-empty')?.textContent).toBe('Ei huomioita.')
-    expect(container.querySelector('.comment-panel-title')?.textContent).toBe('Huomiot')
+    // T372: otsikko on nyt V61-section-header (nimi + erillinen laskuri-span) ∴ luetaan header.
+    expect(sectionTitle(container)).toBe('Huomiot')
+  })
+
+  // T372/V61: haitari kuten Reittipätkät & Alueet.
+  it('kiinni oletuksena — lista piilossa, header näkyy', () => {
+    const panel = new CommentPanel(container)
+    panel.setComments([makeComment({ id: 'a' })])
+    expect(container.querySelector('.left-panel-section-header')).not.toBeNull()
+    expect(container.querySelector<HTMLElement>('.comment-panel-list')!.hidden).toBe(true)
+  })
+
+  it('header-klikkaus avaa & sulkee listan', () => {
+    const panel = new CommentPanel(container)
+    panel.setComments([makeComment({ id: 'a' })])
+    const header = container.querySelector<HTMLElement>('.left-panel-section-header')!
+    const list = container.querySelector<HTMLElement>('.comment-panel-list')!
+    header.click()
+    expect(list.hidden).toBe(false)
+    expect(header.getAttribute('aria-expanded')).toBe('true')
+    header.click()
+    expect(list.hidden).toBe(true)
+  })
+
+  // Kiinni-oletus on turvallinen VAIN jos luku näkyy avaamatta — muuten tilannekuva katoaisi.
+  it('laskuri näkyy myös kiinni-tilassa', () => {
+    const panel = new CommentPanel(container)
+    panel.setComments([makeComment({ id: 'a' }), makeComment({ id: 'b' })])
+    expect(container.querySelector<HTMLElement>('.comment-panel-list')!.hidden).toBe(true)
+    expect(container.querySelector('.comment-panel-title')?.textContent).toBe('(2)')
+  })
+
+  it('avattu tila säilyy kun lista päivittyy (setComments ⊥ sulje osiota)', () => {
+    const panel = new CommentPanel(container)
+    container.querySelector<HTMLElement>('.left-panel-section-header')!.click()
+    panel.setComments([makeComment({ id: 'a' })])
+    expect(container.querySelector<HTMLElement>('.comment-panel-list')!.hidden).toBe(false)
   })
 
   it('setComments renderöi rivit + laskurin, uusin ensin', () => {
@@ -288,7 +332,7 @@ describe('T340 — järjestäjän sivupalkin Huomiot-lista', () => {
       makeComment({ id: 'a', text: 'Vanha', createdAt: '2026-07-20T10:00:00.000Z' }),
       makeComment({ id: 'b', text: 'Uusi', createdAt: '2026-07-25T10:00:00.000Z' }),
     ])
-    expect(container.querySelector('.comment-panel-title')?.textContent).toBe('Huomiot (2)')
+    expect(sectionTitle(container)).toBe('Huomiot (2)')
     const rows = container.querySelectorAll('.comment-panel-item')
     expect(rows).toHaveLength(2)
     expect(rows[0].querySelector('.comment-panel-item-text')?.textContent).toBe('Uusi')
@@ -417,7 +461,7 @@ describe('T341/V248 — sivupalkki erottaa avoimet tehdyistä', () => {
       makeComment({ id: 'b', resolvedAt: '2026-07-25T12:00:00.000Z' }),
       makeComment({ id: 'c', resolvedAt: '2026-07-25T12:00:00.000Z' }),
     ])
-    expect(container.querySelector('.comment-panel-title')?.textContent).toBe('Huomiot (1)')
+    expect(sectionTitle(container)).toBe('Huomiot (1)')
   })
 
   it('tehdyt omassa ryhmässään, himmennettynä — ⊥ katoa listasta', () => {

@@ -1,5 +1,6 @@
 import { fetchComments, isOpenNote, type Comment } from '../logic/comments'
 import { renderIconSvg } from '../logic/icon-set'
+import { createSectionHeader, type SectionHeader } from './section-header'
 
 // T340/V245: järjestäjän sivupalkin "Huomiot" — vapaa-piste-huomioiden selailu.
 //
@@ -22,8 +23,12 @@ export interface CommentPanelOptions {
 
 export class CommentPanel {
   private readonly listEl: HTMLElement
-  private readonly titleEl: HTMLElement
+  private readonly header: SectionHeader
   private comments: Comment[] = []
+  // T372/V61: kiinni oletuksena kuten Reittipätkät & Alueet. 240px paneelissa (B104-oppi) neljäs
+  // aina-auki-lista söisi pystytilan naapureilta, & avointen määrä näkyy silti otsikon
+  // laskurista ∴ tilannekuva ⊥ katoa kiinni-tilassa. Tila ⊥ persistoidu — naapurit eivät persistoi.
+  private collapsed = true
 
   constructor(
     private readonly container: HTMLElement,
@@ -31,13 +36,17 @@ export class CommentPanel {
   ) {
     this.container.innerHTML = ''
 
-    this.titleEl = document.createElement('div')
-    this.titleEl.className = 'left-panel-section-title comment-panel-title'
-    this.titleEl.textContent = 'Huomiot'
-    this.container.appendChild(this.titleEl)
+    this.header = createSectionHeader({
+      name: 'Huomiot',
+      collapsed: this.collapsed,
+      countClass: 'comment-panel-title',
+      onToggle: () => this.toggleCollapsed(),
+    })
+    this.container.appendChild(this.header.el)
 
     this.listEl = document.createElement('div')
     this.listEl.className = 'comment-panel-list'
+    this.listEl.hidden = this.collapsed
     this.container.appendChild(this.listEl)
 
     this.render()
@@ -69,7 +78,9 @@ export class CommentPanel {
     // kokonaismäärä kasvaa ikuisesti eikä vastaa siihen kysymykseen.
     const open = this.comments.filter(isOpenNote)
     const done = this.comments.filter(c => !isOpenNote(c))
-    this.titleEl.textContent = open.length > 0 ? `Huomiot (${open.length})` : 'Huomiot'
+    // Laskuri elää headerissa ∴ se näkyy myös kiinni-tilassa — juuri se tekee kiinni-oletuksesta
+    // turvallisen: "montako työtä on tekemättä" vastataan avaamatta osiota.
+    this.header.setCount(open.length > 0 ? `(${open.length})` : '')
 
     if (this.comments.length === 0) {
       const empty = document.createElement('p')
@@ -86,6 +97,12 @@ export class CommentPanel {
       // taitto-otsikko veisi saman tilan kuin rivi, & piilotettu tila unohtuu.
       this.renderGroup(done, `Tehdyt (${done.length})`)
     }
+  }
+
+  private toggleCollapsed(): void {
+    this.collapsed = !this.collapsed
+    this.header.setCollapsed(this.collapsed)
+    this.listEl.hidden = this.collapsed
   }
 
   private renderGroup(rows: Comment[], heading: string | null): void {

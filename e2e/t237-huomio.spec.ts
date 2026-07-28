@@ -35,7 +35,15 @@ test.describe('T237 — huomio-sisääntulot selaimessa', () => {
     await mockAuthAsJarjestaja(page)
     await page.goto('/')
     await expect(page.locator('#comment-panel-container')).toHaveCount(1)
-    await expect(page.locator('.comment-panel-title')).toBeVisible()
+    // T372: osio on haitari (kiinni oletuksena) ∴ otsikko on section-header, ⊥ pelkkä title-div.
+    // Laskuri-span (.comment-panel-title) on tyhjä kun huomioita ⊥ ole ∴ tarkistetaan header.
+    const header = page.locator('#comment-panel-container .left-panel-section-header')
+    await expect(header).toBeVisible()
+    await expect(header).toContainText('Huomiot')
+    await expect(header).toHaveAttribute('aria-expanded', 'false')
+    await expect(page.locator('.comment-panel-list')).toBeHidden()
+    await header.click()
+    await expect(page.locator('.comment-panel-list')).toBeVisible()
   })
 
   // T366/V264 — TALLENNUS PÄÄSTÄ PÄÄHÄN. Yksikkötestit olivat vihreitä vaikka tallennus oli

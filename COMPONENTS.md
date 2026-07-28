@@ -98,7 +98,7 @@ server/       ← Hono + Bun + SQLite
 | AreasWiring | `src/app/areas-wiring.ts` | ✓ T155 | area-interaction | [ui.md](docs/components/ui.md) |
 | SegmentsWiring | `src/app/segments-wiring.ts` | ✓ T155 | e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | MarkersWiring | `src/app/markers-wiring.ts` | ✓ T182,T224 (zoom-to-segment, alapalkki piilotettu, next-highlight, gps-drive-panel poistettu) | critical-paths: "Merkki kartalle", "Drive mode", "tallennus epäonnistuu" | [ui.md](docs/components/ui.md) |
-| SectionHeader | `src/ui/section-header.ts` | ✓ T371 (left-panelin section-headerin AINOA toteutus, V267 — 3 kopiota poistettu; kuluttajat: SignLibraryPanel, SegmentPanel, AreaPanel) | tests/t371-section-header.test.ts | [ui.md](docs/components/ui.md) |
+| SectionHeader | `src/ui/section-header.ts` | ✓ T371 (left-panelin section-headerin AINOA toteutus, V267 — 3 kopiota poistettu; kuluttajat: SignLibraryPanel, SegmentPanel, AreaPanel, CommentPanel) | tests/t371-section-header.test.ts | [ui.md](docs/components/ui.md) |
 | SignLibraryPanel | `src/ui/sign-library-panel.ts` | ✓ T176, T235 (194r lista/grid; modaali irrotettu), T371 (header jaetusta apurista) | critical-paths: "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
 | SignTemplateModal | `src/ui/sign-template-modal.ts` | ✓ T235 (malli-detalji/muokkaus-modaali, irrotettu SignLibraryPanelista; XSS-escape B19/V44) | (kattaa sign-library-panel-testit) | [ui.md](docs/components/ui.md) |
 | RoleSelector | `src/ui/role-selector.ts` | ✓ T12 (V80: toggle dead code) | critical-paths: "Rooli backendistä" | [ui.md](docs/components/ui.md) |
@@ -123,7 +123,7 @@ server/       ← Hono + Bun + SQLite
 | ImageLightbox | `src/ui/image-lightbox.ts` | ✓ T337 (jaettu kuori: valokuvat + kylttivisuaali, V246/B132) | tests/t337-image-lightbox.test.ts | [ui.md](docs/components/ui.md) |
 | ImageDownscale | `src/ui/image-downscale.ts` | ✓ T338 (canvas-pienennys 1600px/JPEG ennen lähetystä, V262) | tests/t237-comment-point-modal.test.ts | [ui.md](docs/components/ui.md) |
 | CommentPointModal | `src/ui/comment-point-modal.ts` | ✓ T237/T338 (huomion luonti kartalta + katselu + kuvat + poisto, V245) | tests/t237-comment-point-modal.test.ts | [ui.md](docs/components/ui.md) |
-| CommentPanel | `src/ui/comment-panel.ts` | ✓ T340 (järjestäjän sivupalkin Huomiot-lista, V245) | tests/t237-comment-point-modal.test.ts | [ui.md](docs/components/ui.md) |
+| CommentPanel | `src/ui/comment-panel.ts` | ✓ T340 (järjestäjän sivupalkin Huomiot-lista, V245), T372 (V61-haitari, kiinni oletuksena) | tests/t237-comment-point-modal.test.ts, e2e/t237-huomio.spec.ts | [ui.md](docs/components/ui.md) |
 | Toast | `src/ui/toast.ts` | ✓ T253 (jaettu "Kumoa"-toast, client-only undo V172; auto-dismiss, yksi kerrallaan, 44px §R) | tests/t253-toast.test.ts | [ui.md](docs/components/ui.md) |
 | AreaDetailsModal | `src/ui/area-details-modal.ts` | ✓ | — | [ui.md](docs/components/ui.md) |
 | AreaPanel | `src/ui/area-panel.ts` | ✓ | area-interaction | [ui.md](docs/components/ui.md) |

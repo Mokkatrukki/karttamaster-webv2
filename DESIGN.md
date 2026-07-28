@@ -604,7 +604,8 @@ Sivun (ei modaalin) **primary-toiminto** kun sivun sisältö on datan mukana kas
 
 ### CommentPanel — "Huomiot" järjestäjän sivupalkissa (`#comment-panel-container`, `src/ui/comment-panel.ts`, T340)
 - **Missä:** `#left-panel-content`in oma `.left-panel-section`, `#area-panel-container`in jälkeen. Inventaario-linkki pysyy viimeisenä (se vie pois sivulta). Vain järjestäjä (`#left-panel` on jo roolisuojattu, ei toista porttia).
-- **Otsikko:** `Huomiot (N)` — sama `.left-panel-section-title`-kieli kuin naapureilla. Tyhjä: "Ei huomioita." `text-muted 12px`.
+- **Otsikko (T372):** V61-section-header (`createSectionHeader`, ks. §K Section pattern) — `[▼/▶ Huomiot (N)]`, laskuriväli oma `.comment-panel-title`-span. N = AVOIMET (V263), tyhjä lista → pelkkä `Huomiot`. Lista tyhjänä: "Ei huomioita." `text-muted 12px`.
+- **Oletustila: KIINNI** — kuten Reittipätkät & Alueet. 240px paneelissa neljäs aina-auki-lista söisi naapureiden pystytilan, ja laskuri elää headerissa ∴ "montako työtä on tekemättä" vastataan osiota avaamatta. Tila ei persistoidu (naapurit eivät persistoi).
 - **Rivi (`.comment-panel-item`):** `[ikoni 20px] [tekstin 1. rivi] [nimi · pvm]` + `📷` jos kuvia. Ikoni = sama `#F2542D` kupla-aihe pienennettynä ⇒ sivupalkin rivi ja kartan pinni tunnistetaan samaksi asiaksi.
 - **Leveysrajoite (240px, B104-oppi):** teksti `overflow:hidden; text-overflow:ellipsis; white-space:nowrap`. Sivupalkki EI saa vuotaa vaakasuunnassa — pitkä huomioteksti katkaistaan, koko teksti näkyy avatessa.
 - **Rivin klikkaus = näytä kartalla** (panoroi + korosta pinni), EI modaalia — sama valinta kuin talkoolaisen keräyslistassa (`segment-view.ts:317`). Järjestäjä etsii paikkaa, ei lue tekstiä listasta.
