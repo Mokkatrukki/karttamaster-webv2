@@ -114,7 +114,11 @@ async function init(talkoolainenCode?: string) {
 
   const { markerManager, driveMode, progressBar, placeMode, markerModal, closeMarkerModal, commentLayer } = wireMarkers(
     map, routes, polylines, initialMarkers, talkoolainenCode,
-    { segmentStore, renderSegmentOverlay, segmentPanel, showWarning, gpsNavigator },
+    {
+      segmentStore, renderSegmentOverlay, segmentPanel, showWarning, gpsNavigator,
+      // T374/V269/B157: reittivalitsimen kytkin ulottuu pätkäkerrokseen asti.
+      setSegmentVisibleRoutes: ids => segmentOverlay.setVisibleRoutes(ids),
+    },
   )
   markerManagerRef.current = markerManager
   commentLayerRef.current = commentLayer

@@ -4,6 +4,7 @@ import type { RoutePoint, SignMarker } from '../logic/types'
 import type { Segment, SegmentStore, SegmentLineState } from '../logic/segments'
 import { segmentLineColor, segmentLineState, getPhaseProgress, segmentPrimaryRouteId } from '../logic/segments'
 import { segmentLayerStyles } from '../logic/segment-style'
+import { segmentVisibleOnRoutes } from '../logic/segment-visibility'
 
 // T336: casing tarvitsee reitin VÄRIN sisukseen. Valinnainen ∴ vanhat kutsupaikat & testit
 // (jotka antavat vain geometrian) toimivat ennallaan — ilman väriä piirtyy yksi viiva.
@@ -32,24 +33,35 @@ export interface ContextLineStyle {
   weight: number
   dashArray?: string
   interactive: boolean
+  /** T375/V270: himmennetty = ⊥ huomion kohde. ERI asia kuin `interactive` (= omistajuus). */
+  dimmed: boolean
 }
 
 // V142: talkoolaisen näkymässä oma tehtävä kirkas + klikattava, muut himmeä + read-only.
-// Pure — Leaflet vain soveltaa. contextOwnId === undefined = järjestäjä (ei himmennystä).
-// Testattavuus: Vitest-pure (oma → interactive täysi tyyli; muu → himmennetty non-interactive).
+// Pure — Leaflet vain soveltaa. contextOwnId === undefined = ei kontekstia (kaikki kirkkaita).
+//
+// T375/V270/B158: `locked` erottaa HIMMENNYKSEN & INTERAKTIOLUKON. Ennen tätä ne olivat samassa
+// boolissa ∴ järjestäjän korostuskytkin (T335) ⊥ voinut himmentää pätkäviivoja lainkaan — se
+// olisi samalla lukinnut ne klikkaamattomiksi, & järjestäjä omistaa kaiken. Talkoolainen saa
+// molemmat (locked=true, V142/V93/V150: vieras pätkä ⊥ ole hänen muokattavissaan), järjestäjä
+// vain himmennyksen (locked=false: himmeä MUTTA klikattava, korostus on lukemisen apu).
+//
+// Testattavuus: Vitest-pure.
 export const CONTEXT_DIM_OPACITY = 0.22
 export function contextSegmentStyle(
   base: { opacity: number; weight: number; dashArray?: string },
   contextOwnId: string | undefined,
   segId: string,
+  locked = true,
 ): ContextLineStyle {
   const isOwn = contextOwnId === undefined || segId === contextOwnId
-  if (isOwn) return { ...base, interactive: true }
+  if (isOwn) return { ...base, interactive: true, dimmed: false }
   return {
     opacity: Math.min(base.opacity, CONTEXT_DIM_OPACITY),
     weight: Math.max(base.weight - 4, 5),
     dashArray: base.dashArray,
-    interactive: false,
+    interactive: !locked,
+    dimmed: true,
   }
 }
 
@@ -66,9 +78,12 @@ export function contextSegmentStyle(
 // ⊥ ole toisensa poissulkevia: talkoolaisen konteksti-lappu voi olla valmis (V142 himmennys pätee
 // silti — se on eri kanava kuin status).
 // Testattavuus: Vitest-pure.
-export function segmentLabelOptions(interactive: boolean, done = false): L.TooltipOptions {
+// T375/V270: `dimmed` on OMA parametrinsa — oletuksena se seuraa `interactive`ia (vanha
+// kaksoismerkitys säilyy kutsupaikoille jotka tuntevat vain klikattavuuden), mutta järjestäjän
+// korostuksessa lappu on himmeä JA klikattava. Yksi lippu ⊥ voi kantaa kahta merkitystä (B158).
+export function segmentLabelOptions(interactive: boolean, done = false, dimmed = !interactive): L.TooltipOptions {
   const classes = ['segment-label']
-  if (!interactive) classes.push('segment-label--dim')
+  if (dimmed) classes.push('segment-label--dim')
   if (done) classes.push('segment-label--done')
   return {
     permanent: true,
@@ -84,6 +99,8 @@ export class SegmentOverlay {
   private snapMarkers: L.CircleMarker[] = []
   private onSegmentClick?: (seg: Segment) => void
   private contextOwnId?: string
+  private contextLocked = true
+  private visibleRouteIds?: string[]
 
   constructor(
     private readonly map: L.Map,
@@ -96,8 +113,18 @@ export class SegmentOverlay {
 
   // V142: talkoolaisen näkymä — oma tehtävä kirkas+klikattava, muut himmeä+read-only.
   // undefined = järjestäjä (kaikki kirkkaita, klikattavia). Kutsu ennen update():a.
-  setContextOwn(ownId: string | undefined): void {
+  // T375/V270: `locked` = interaktiolukko. Talkoolainen true (V142: vieras pätkä ⊥ hänen),
+  // järjestäjän korostus false (himmeä mutta klikattava — hän omistaa kaiken).
+  setContextOwn(ownId: string | undefined, locked = true): void {
     this.contextOwnId = ownId
+    this.contextLocked = locked
+  }
+
+  // T374/V269/B157: reittinäkyvyys koskee myös pätkäkerrosta. Sama V137-kuvio kuin
+  // setContextOwn — kutsu ENNEN update():a, tila jää voimaan seuraaviin rendereihin.
+  // undefined = ⊥ suodatinta (talkoolainen; järjestäjä ennen ensimmäistä valintaa).
+  setVisibleRoutes(ids: string[] | undefined): void {
+    this.visibleRouteIds = ids
   }
 
   update(store: SegmentStore, markers: SignMarker[] = []): void {
@@ -106,6 +133,9 @@ export class SegmentOverlay {
 
     // Gray gaps (uncovered route sections)
     for (const route of this.routes) {
+      // T374/V269: piilotetun reitin aukot katoavat reitin mukana — aukko on väite TÄSTÄ
+      // reitistä ∴ se ⊥ saa jäädä kartalle kun reittiä ⊥ ole.
+      if (this.visibleRouteIds && !this.visibleRouteIds.includes(route.id)) continue
       const gaps = computeGapRanges(segments, route.id, route.routePoints)
       for (const [start, end] of gaps) {
         const pts = sliceRoutePoints(route.routePoints, start, end)
@@ -118,6 +148,9 @@ export class SegmentOverlay {
     // T152/V96: väri = tunniste (stabiili per id), viivatyyli = phase-status.
     // T348: valmis-tila ohittaa tunnistevärin (segmentLineColor) — status voittaa identiteetin.
     for (const seg of segments) {
+      // T374/V269/B157: piilotetun reitin pätkäviiva & nimilappu katoavat reitin mukana.
+      // Reititön tehtävä (V139) läpäisee aina — predikaatti hoitaa sen, ⊥ toista sääntöä tänne.
+      if (!segmentVisibleOnRoutes(seg, this.visibleRouteIds)) continue
       // V259: `segments` on kutsujan phase-suodatettu joukko (`phaseFilteredStore`) ∴ se ON
       // kilpailijajoukko. Ilman sitä laskuri putoaisi legacy-sääntöön & kartan viivatyyli
       // kertoisi eri tarinan kuin pätkän oma lista — tilannekuva ⊥ saa olla kahta mieltä.
@@ -128,7 +161,7 @@ export class SegmentOverlay {
       const color = segmentLineColor(seg.id, state)
       const done = state === 'valmis'
       // V142: himmennä muut tehtävät talkoolaisen näkymässä; oma säilyy kirkkaana.
-      const style = contextSegmentStyle(LINE_STATE_STYLE[state], this.contextOwnId, seg.id)
+      const style = contextSegmentStyle(LINE_STATE_STYLE[state], this.contextOwnId, seg.id, this.contextLocked)
       // T348/V252/B135: ✓ KAIKISSA phaseissa (ennen: vain tarkastus) & PREFIXINÄ — nimi voi
       // katketa lapun leveyteen, merkki ⊥ saa. "Valmis" ⊥ saa olla pääteltävissä vain katkon
       // puuttumisesta: positiivinen tila tarvitsee positiivisen merkin jota etsiä.
@@ -154,6 +187,9 @@ export class SegmentOverlay {
           segmentColor: color,
           routeColor: route.color,
           base: { opacity: style.opacity, weight: style.weight, dashArray: style.dashArray },
+          // T375/V270: casing seuraa KOROSTUSTA, klikki seuraa OMISTAJUUTTA — järjestäjän
+          // himmennetty pätkä on yksiviivainen mutta yhä klikattava (B158).
+          highlighted: !style.dimmed,
           interactive: style.interactive,
         })
         let line: L.Polyline | undefined
@@ -170,7 +206,7 @@ export class SegmentOverlay {
           if (ls.interactive) line = pl
         }
         if (line && seg.displayName) {
-          line.bindTooltip(labelPrefix + seg.displayName, segmentLabelOptions(style.interactive, done))
+          line.bindTooltip(labelPrefix + seg.displayName, segmentLabelOptions(style.interactive, done, style.dimmed))
         }
         if (line && this.onSegmentClick && style.interactive) {
           const clickedSeg = seg

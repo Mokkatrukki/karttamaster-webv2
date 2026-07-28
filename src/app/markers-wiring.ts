@@ -88,6 +88,9 @@ export interface MarkersWiring {
 interface MarkersWiringDeps {
   segmentStore: Map<string, Segment>
   renderSegmentOverlay: () => void
+  // T374/V269/B157: reittivalitsin asuu täällä, pätkäkerros segments-wiringissä ∴ näkyvyys
+  // välitetään setterillä. `renderSegmentOverlay` piirtää uuden tilan.
+  setSegmentVisibleRoutes: (ids: string[]) => void
   segmentPanel: SegmentPanel
   showWarning: (msg: string, ms?: number) => void
   // T232 (B): GPS-navigaattori (luotu map-init.ts:ssä) → talkoolaisen SegmentView-heron GPS-toggle.
@@ -106,7 +109,7 @@ export function wireMarkers(
   talkoolainenCode: string | undefined,
   deps: MarkersWiringDeps,
 ): MarkersWiring {
-  const { segmentStore, renderSegmentOverlay, segmentPanel, showWarning, gpsNavigator } = deps
+  const { segmentStore, renderSegmentOverlay, segmentPanel, showWarning, gpsNavigator, setSegmentVisibleRoutes } = deps
 
   let progressBar!: ProgressBar
   let statusPanel!: StatusPanel
@@ -404,7 +407,11 @@ export function wireMarkers(
     )
     document.getElementById('route-bar')?.setAttribute('hidden', '')
   } else {
-    routeVis = new RouteVisibilityControl(routes, polylines, map, markerManager, routeSelectorEl)
+    routeVis = new RouteVisibilityControl(routes, polylines, map, markerManager, routeSelectorEl, ids => {
+      // T374/V269/B157: reitin piilotus vie pätkäviivat & nimilaput mukanaan.
+      setSegmentVisibleRoutes(ids)
+      renderSegmentOverlay()
+    })
     // Piilota drive-osat järjestäjältä (V134)
     document.getElementById('route-track')?.setAttribute('hidden', '')
     document.getElementById('route-drive-controls')?.setAttribute('hidden', '')

@@ -39,21 +39,26 @@ export interface SegmentStyleInput {
   routeColor?: string
   /** Kontekstisovitettu perustyyli (LINE_STATE_STYLE + V142-himmennys). */
   base: { opacity: number; weight: number; dashArray?: string }
-  /** V142: himmennetty konteksti-pätkä ⊥ saa casingia — casing on korostuksen kieli. */
+  /** V142/V270: korostettu = ⊥ himmennetty konteksti. Himmennetty ⊥ saa casingia — casing on
+   *  korostuksen kieli. HUOM: ERI kanava kuin `interactive` (T375/B158). */
+  highlighted: boolean
+  /** V270: klikattavuus. Talkoolainen: vieras pätkä ⊥ klikattava (lukko). Järjestäjä: himmennetty
+   *  pätkä PYSYY klikattavana — hän omistaa kaiken, himmennys on lukemisen apu ⊥ lukko. */
   interactive: boolean
 }
 
 /**
  * Pätkän kartta-kerrokset piirtojärjestyksessä (ensimmäinen alimmaiseksi).
  *
- * Casing vain kun (a) pätkä on korostettu (⊥ V142-himmennetty konteksti) JA (b) reitin väri
- * tiedetään. Muuten yksi viiva kuten ennen — reitittömällä tehtävällä ei ole sisusta jota kehystää
+ * Casing vain kun (a) pätkä on korostettu (`highlighted` — ⊥ V142/V270-himmennetty konteksti)
+ * JA (b) reitin väri tiedetään. Klikattavuus (`interactive`) kulkee erikseen: järjestäjän
+ * himmennetty pätkä on yksiviivainen MUTTA klikattava (T375/B158/V270). Muuten yksi viiva kuten ennen — reitittömällä tehtävällä ei ole sisusta jota kehystää
  * eikä taustalle anneta korostuksen kieltä.
  */
 export function segmentLayerStyles(input: SegmentStyleInput): SegmentLayerStyle[] {
-  const { segmentColor, routeColor, base, interactive } = input
+  const { segmentColor, routeColor, base, highlighted, interactive } = input
 
-  if (!interactive || !routeColor) {
+  if (!highlighted || !routeColor) {
     return [{
       role: 'casing',
       color: segmentColor,

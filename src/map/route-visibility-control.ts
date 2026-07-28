@@ -27,6 +27,10 @@ export class RouteVisibilityControl {
     private readonly map: L.Map,
     private readonly markerManager: MarkerManager,
     private readonly container: HTMLElement,
+    // T374/V269/B157: pätkäkerros ⊥ elä tässä moduulissa (segments-wiring omistaa sen) ∴
+    // näkyvyysmuutos ilmoitetaan ulos callbackilla. Ilman tätä kontrolli tuntisi
+    // SegmentOverlayn = toinen riippuvuussuunta map-kerroksen sisällä.
+    private readonly onVisibleChange?: (ids: string[]) => void,
   ) {
     this.visibleRouteIds = routes.map(r => r.id)
     this.build()
@@ -59,6 +63,9 @@ export class RouteVisibilityControl {
       else this.polylines[i].remove()
     })
     this.markerManager.setVisibleRoutes(ids)
+    // T374/V269: sama kytkin vie pätkäviivat & nimilaput — kerros joka ⊥ kuuntele tätä jää
+    // leijumaan ilman ankkuriaan (B157).
+    this.onVisibleChange?.(ids)
     this.updateDOM()
   }
 

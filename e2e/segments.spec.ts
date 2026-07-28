@@ -785,3 +785,54 @@ test.describe('T25 — SegmentPanel', () => {
     expect(trackLen).toBeLessThan(5000)
   })
 })
+
+// T374/V269/B157: reitin näkyvyys on YKSI kytkin joka koskee ∀ siihen reittiin ankkuroitua
+// kerrosta. Ennen tätä `RouteVisibilityControl` piilotti polylinen & merkit, mutta pätkäviivat
+// & nimilaput jäivät leijumaan kartalle ilman reittiä jonka päällä olisivat.
+test.describe('T374 — reitin piilotus vie pätkät mukanaan (V269)', () => {
+  const seg = (id: string, routeId: string, name: string) => ({
+    id, routeIds: [routeId], primaryRouteId: routeId,
+    startDist: 1000, endDist: 4000,
+    displayName: name, description: '', equipment: [],
+    phase: 'asettaminen', inspected: false, completed: false,
+  })
+  // V139: reititön tehtävä ⊥ ole minkään reitin varassa ∴ reittisuodatin ⊥ saa hukata sitä.
+  const ROUTELESS = {
+    id: 'seg-routeless', displayName: 'Keräyskasat', description: '', equipment: [],
+    phase: 'asettaminen', inspected: false, completed: false,
+  }
+
+  test('piilota reitti → sen pätkän nimilappu katoaa, toisen reitin & reitittömän jää', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await page.route(/\/api\/segments(\?|$)/, r =>
+      r.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify([seg('seg-30', 'smtb-30', 'Kolmekymppi'), seg('seg-55', 'smtb-55', 'Viisviitonen'), ROUTELESS]),
+      }))
+    await mockMarkers(page, [])
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    const label30 = page.locator('.segment-label', { hasText: 'Kolmekymppi' })
+    const label55 = page.locator('.segment-label', { hasText: 'Viisviitonen' })
+    await expect(label30).toHaveCount(1)
+    await expect(label55).toHaveCount(1)
+
+    // Piilota 30 km reittivalitsimesta (T286: trigger → lista → rivi togglaa).
+    await page.locator('.route-vis-trigger').click()
+    await page.locator('.route-vis-row[data-route-id="smtb-30"]').click()
+    await page.waitForTimeout(300)
+
+    // B157: pätkäviiva & lappu katoavat reitin MUKANA — ⊥ jää leijumaan.
+    await expect(label30).toHaveCount(0)
+    await expect(label55).toHaveCount(1)
+    // Reititön tehtävä ⊥ piirrä viivaa lainkaan, mutta se ! säilyä listalla (⊥ katoa suodattimesta).
+    await expect(page.locator('#segment-list', { hasText: 'Keräyskasat' })).toHaveCount(1)
+
+    // Takaisin näkyviin → lappu palaa (tila ⊥ jää jumiin).
+    await page.locator('.route-vis-row[data-route-id="smtb-30"]').click()
+    await page.waitForTimeout(300)
+    await expect(label30).toHaveCount(1)
+  })
+})

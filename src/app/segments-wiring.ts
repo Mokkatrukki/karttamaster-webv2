@@ -116,6 +116,14 @@ export async function wireSegments(
     // Järjestäjä: himmennetty PYSYY klikattavana (locked=false) — korostus on lukemisen apu.
     // V259: korostus käyttää samaa eksklusiivista jäsenyyttä kuin lista → anna kilpailijat.
     markerManagerRef.current?.setFocusSegment(seg ?? undefined, seg ? { peers: getSegmentsForPhase(segmentStore, seg.phase) } : {})
+    // T375/V270/B158: sama fokus koskee PÄTKÄVIIVOJA & nimilappuja — ennen tätä korostus
+    // himmensi vain merkit ∴ "korosta vain tämä pätkä" jätti muut viivat täyteen kirkkauteen.
+    // `locked=false`: järjestäjän himmennys on lukemisen apu ⊥ lukko (hän omistaa kaiken).
+    // Talkoolaisen oma kutsu (`setContextOwn(own?.id)` yllä) pitää oletuksen locked=true (V142).
+    if (!talkoolainenCode) {
+      segmentOverlay.setContextOwn(seg?.id, false)
+      renderSegmentOverlay()
+    }
     // T237(d)/V243: huomiot himmenevät korostuksen mukana — eivät katoa (V245: huomiolla ⊥ ole
     // pätkäjäsenyyttä ∴ fokus on binäärinen, ⊥ per-pätkä-laskenta).
     commentLayerRef.current?.setFocusActive(seg !== null)

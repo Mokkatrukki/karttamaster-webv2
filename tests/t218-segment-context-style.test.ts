@@ -10,7 +10,8 @@ const base = { opacity: 0.9, weight: 11, dashArray: '1 9' }
 describe('T218/V142: contextSegmentStyle', () => {
   it('järjestäjä (contextOwnId undefined) → kaikki kirkkaita + interactive, tyyli ennallaan', () => {
     const style = contextSegmentStyle(base, undefined, 'any-seg')
-    expect(style).toEqual({ ...base, interactive: true })
+    // T375/V270: `dimmed` on oma kanavansa — kirkas pätkä ⊥ ole himmennetty.
+    expect(style).toEqual({ ...base, interactive: true, dimmed: false })
   })
 
   it('oma pätkä (id täsmää) → interactive + täysi tyyli säilyy', () => {

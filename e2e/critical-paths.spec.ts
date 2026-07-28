@@ -1017,3 +1017,53 @@ test.describe('T347 — pätkän nimilappu kartalla', () => {
     }
   })
 })
+
+// T375/V270/B158: järjestäjän korostus himmentää myös PÄTKÄVIIVAT & nimilaput — ei vain merkkejä.
+// Himmennys & interaktiolukko ovat eri kanavia: järjestäjä omistaa kaiken ∴ himmennetty pätkä
+// pysyy klikattavana (talkoolaisella lukko säilyy, V142).
+test.describe('T375 — korostus himmentää pätkäviivat (V270)', () => {
+  const seg = (id: string, name: string, start: number, end: number) => ({
+    id, routeIds: ['smtb-30'], primaryRouteId: 'smtb-30',
+    startDist: start, endDist: end,
+    displayName: name, description: '', equipment: [],
+    phase: 'asettaminen', inspected: false, completed: false,
+  })
+
+  test('järjestäjä: korostus → muun pätkän lappu himmeä MUTTA klikattava', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
+    await page.route(/\/api\/segments$/, r =>
+      r.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify([seg('seg-a', 'Ykköspätkä', 0, 2000), seg('seg-b', 'Kakkospätkä', 2500, 4500)]),
+      }))
+    await mockMarkers(page, [])
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    const labelB = page.locator('.segment-label', { hasText: 'Kakkospätkä' })
+    await expect(labelB).toHaveCount(1)
+    await expect(labelB).not.toHaveClass(/segment-label--dim/)
+
+    // Korostus päälle pätkämodaalista (T335/T356: kytkin headerissa).
+    await page.locator('.segment-panel-header').click()
+    await page.locator('#segment-list .segment-info').first().click()
+    await page.locator('.btn-segment-focus-toggle').click()
+    await page.click('.segment-details-modal-close')
+    await page.waitForTimeout(400)
+
+    // B158: ENNEN tätä muut pätkäviivat jäivät täyteen kirkkauteen.
+    await expect(labelB).toHaveClass(/segment-label--dim/)
+    // V270: himmennys ⊥ ole lukko järjestäjälle — himmeä lappu avaa yhä pätkän modaalin.
+    await labelB.click()
+    await expect(page.locator('.segment-details-modal')).toBeVisible()
+    await expect(page.locator('.segment-details-modal')).toContainText('Kakkospätkä')
+
+    // Nollaus palauttaa kirkkauden.
+    await page.click('.segment-details-modal-close')
+    await page.locator('#btn-marker-focus-clear').click()
+    await page.waitForTimeout(300)
+    await expect(labelB).not.toHaveClass(/segment-label--dim/)
+  })
+})
