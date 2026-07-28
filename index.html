@@ -74,6 +74,10 @@
         </div>
 
         <div id="map-area">
+          <!-- T377/V272: suodatinbar — kartan "mitä näkyy" -kontrollit yhdessä paikassa,
+               kartan yläpuolella. Aina näkyvissä (⊥ napin takana): suodatettu kartta jonka
+               syytä ⊥ näy luetaan kadonneena datana. Renderöidään roolikohtaisesti wiringissä. -->
+          <div id="map-filter-bar" hidden></div>
           <!-- T308/V219: pysyvä tilapilleri (sanoin, ei pelkkä väri). Näkyvyys = [hidden]
                map-mode-toggle.ts:stä; accent-kehys = CSS body[data-map-mode="muokkaus"]. -->
           <div id="map-mode-pill" class="map-mode-pill" role="status" hidden>✎ Muokkaustila</div>

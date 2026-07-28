@@ -5,12 +5,12 @@ import type { Segment, SegmentStore, SegmentLineState } from '../logic/segments'
 import { segmentLineColor, segmentLineState, getPhaseProgress, segmentPrimaryRouteId } from '../logic/segments'
 import { segmentLayerStyles } from '../logic/segment-style'
 import { segmentVisibleOnRoutes } from '../logic/segment-visibility'
+import type { MapFilter } from '../logic/map-filter'
+import { defaultMapFilter, segmentVisibility, DIM_OPACITY } from '../logic/map-filter'
 
 // T336: casing tarvitsee reitin VÄRIN sisukseen. Valinnainen ∴ vanhat kutsupaikat & testit
 // (jotka antavat vain geometrian) toimivat ennallaan — ilman väriä piirtyy yksi viiva.
 interface RouteRef { id: string; routePoints: RoutePoint[]; color?: string }
-
-const GAP_COLOR = '#94a3b8'
 
 // T152/V96: viivatyyli = status. Väri = tunniste (colorForSegment) paitsi valmiina (T348).
 // T348/V252/B135: dashArray oli '1 9' MOLEMMISSA katkotiloissa = 1px viiva 9px aukosta ∴ kuvio
@@ -101,6 +101,7 @@ export class SegmentOverlay {
   private contextOwnId?: string
   private contextLocked = true
   private visibleRouteIds?: string[]
+  private mapFilter: MapFilter = defaultMapFilter()
 
   constructor(
     private readonly map: L.Map,
@@ -127,23 +128,22 @@ export class SegmentOverlay {
     this.visibleRouteIds = ids
   }
 
+  // T377/V271: suodatin päättää, overlay soveltaa. Kutsu ENNEN update():a (V137-kuvio).
+  setMapFilter(filter: MapFilter): void {
+    this.mapFilter = filter
+    this.visibleRouteIds = filter.visibleRouteIds
+  }
+
   update(store: SegmentStore, markers: SignMarker[] = []): void {
     this.clear()
     const segments = Array.from(store.values())
 
-    // Gray gaps (uncovered route sections)
-    for (const route of this.routes) {
-      // T374/V269: piilotetun reitin aukot katoavat reitin mukana — aukko on väite TÄSTÄ
-      // reitistä ∴ se ⊥ saa jäädä kartalle kun reittiä ⊥ ole.
-      if (this.visibleRouteIds && !this.visibleRouteIds.includes(route.id)) continue
-      const gaps = computeGapRanges(segments, route.id, route.routePoints)
-      for (const [start, end] of gaps) {
-        const pts = sliceRoutePoints(route.routePoints, start, end)
-        if (pts.length >= 2) {
-          this.layers.push(L.polyline(pts, { color: GAP_COLOR, weight: 8, opacity: 0.3 }).addTo(this.map))
-        }
-      }
-    }
+    // T378/V273/B159: AUKKORENDER POISTETTU. Aukko (= reitin osuus jolla ⊥ pätkää) luetaan
+    // PALJAASTA REITTIVIIVASTA — pätkä on värillinen casing (T336), sen puuttuminen ON aukko.
+    // Vanha harmaa `#94a3b8 @ 0.3` -viiva oli kolmas visuaalinen kanava reitin & pätkän päällä,
+    // & mitattavasti näkymätön maastokartalla ∴ järjestäjä pyysi 2026-07-28 ominaisuutta joka
+    // oli koodissa jo. Aukon havaittavuus ratkeaa PÄTKÄN kontrastilla (§K alfa-alaraja ≥3:1),
+    // ⊥ aukon omalla tyylillä — yksi säädin ⊥ kaksi.
 
     // T152/V96: väri = tunniste (stabiili per id), viivatyyli = phase-status.
     // T348: valmis-tila ohittaa tunnistevärin (segmentLineColor) — status voittaa identiteetin.
@@ -160,8 +160,18 @@ export class SegmentOverlay {
       const state = segmentLineState(progress, seg.completed)
       const color = segmentLineColor(seg.id, state)
       const done = state === 'valmis'
+      // T377/V271: suodatin päättää — overlay soveltaa. 'hidden' = ⊥ renderöidä (eksplisiittinen
+      // käyttäjävalinta, V243-amend), 'dim' = sama himmennyskieli kuin fokuksella.
+      const filterVis = segmentVisibility(seg, this.mapFilter, { state, markers, peers: segments })
+      if (filterVis === 'hidden') continue
       // V142: himmennä muut tehtävät talkoolaisen näkymässä; oma säilyy kirkkaana.
-      const style = contextSegmentStyle(LINE_STATE_STYLE[state], this.contextOwnId, seg.id, this.contextLocked)
+      let style = contextSegmentStyle(LINE_STATE_STYLE[state], this.contextOwnId, seg.id, this.contextLocked)
+      if (filterVis === 'dim' && !style.dimmed) {
+        // V270: suodattimen himmennys ⊥ ole lukko — pätkä pysyy klikattavana (järjestäjän
+        // työkalu). Alfa portaasta jonka käyttäjä valitsi (V243-amend).
+        const lineAlpha = DIM_OPACITY[this.mapFilter.dimLevel === 'kevyt' ? 'kevyt' : 'vahva'].line
+        style = { ...style, opacity: Math.min(style.opacity, lineAlpha), dimmed: true }
+      }
       // T348/V252/B135: ✓ KAIKISSA phaseissa (ennen: vain tarkastus) & PREFIXINÄ — nimi voi
       // katketa lapun leveyteen, merkki ⊥ saa. "Valmis" ⊥ saa olla pääteltävissä vain katkon
       // puuttumisesta: positiivinen tila tarvitsee positiivisen merkin jota etsiä.
@@ -332,23 +342,3 @@ function sliceRoutePoints(points: RoutePoint[], startDist: number, endDist: numb
     .map(p => [p.lat, p.lon])
 }
 
-// V139: exportattu Taso-1-testausta varten — reitittömät tehtävät EIVÄT osallistu gap-laskentaan
-// (niillä ei ole reittiä katettavaksi). Testataan että routeless-seg ei kaada eikä vääristä gappeja.
-export function computeGapRanges(segments: Segment[], routeId: string, routePoints: RoutePoint[]): [number, number][] {
-  const totalEnd = routePoints[routePoints.length - 1]?.distanceFromStart ?? 0
-  const covered = segments
-    .filter((s): s is Segment & { startDist: number; endDist: number } =>
-      // T299/V211: kattavuus lasketaan primary-reitin km-akselilla — jäsenyys (`includes`) toi
-      // mukaan naapurireitin km-välejä jotka eivät ole tällä reitillä vertailukelpoisia.
-      !!s.routeIds && segmentPrimaryRouteId(s) === routeId && s.startDist !== undefined && s.endDist !== undefined)
-    .map(s => [s.startDist, s.endDist] as [number, number])
-    .sort((a, b) => a[0] - b[0])
-  const gaps: [number, number][] = []
-  let pos = 0
-  for (const [start, end] of covered) {
-    if (start > pos) gaps.push([pos, start])
-    pos = Math.max(pos, end)
-  }
-  if (pos < totalEnd) gaps.push([pos, totalEnd])
-  return gaps
-}

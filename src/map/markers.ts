@@ -21,6 +21,8 @@ import { markerScaleForZoom } from '../logic/marker-scale'
 import { outbox } from '../logic/outbox-instance'
 import { setOutboxSaveErrorHandler } from '../logic/outbox-instance'
 import { focusState } from '../logic/marker-focus'
+import type { MapFilter, MarkerFilterContext } from '../logic/map-filter'
+import { defaultMapFilter, markerVisibility } from '../logic/map-filter'
 import type { MembershipSegment } from '../logic/segment-membership'
 import type { TaskMarkerSource } from '../logic/task-markers'
 
@@ -55,6 +57,13 @@ export class MarkerManager {
   // järjestäjällä himmennetty PYSYY klikattavana — korostus on lukemisen apu, ⊥ lukko.
   private focusLocked = false
   private dimmedIds = new Set<string>()
+  // T376/T377/V271: suodatin päättää näkyvyyden (`full|dim|hidden`) — manager SOVELTAA.
+  // Erillään fokuksesta: fokus on hetken työkalu, suodatin on persistoitu näkymätila, & merkki
+  // voi olla himmeä kummasta tahansa syystä (⊥ yksi lähde joka kumoaisi toisen).
+  private mapFilter: MapFilter = defaultMapFilter()
+  private filterCtx: MarkerFilterContext = {}
+  private filterHiddenIds = new Set<string>()
+  private filterDimmedIds = new Set<string>()
   private map: L.Map
   private routes: RouteRef[]
   private visibleRouteIds: string[]
@@ -143,6 +152,37 @@ export class MarkerManager {
     this.recomputeFocus()
   }
 
+  // T377/V271: suodatin kartalle. `ctx.isolatedMarkerIds` tulee wiringistä (V259-jäsenyys) —
+  // manager ⊥ laske jäsenyyttä itse.
+  setMapFilter(filter: MapFilter, ctx: MarkerFilterContext = {}): void {
+    this.mapFilter = filter
+    this.filterCtx = ctx
+    this.applyMapFilter()
+  }
+
+  private applyMapFilter(): void {
+    this.filterHiddenIds = new Set()
+    this.filterDimmedIds = new Set()
+    for (const m of this.markers) {
+      const vis = markerVisibility(m, this.mapFilter, this.filterCtx)
+      if (vis === 'hidden') this.filterHiddenIds.add(m.id)
+      else if (vis === 'dim') this.filterDimmedIds.add(m.id)
+    }
+    // Piilotus = Leaflet-markerin poisto (V271: 'hidden' ⊥ ole opacity 0 — klikattava haamu
+    // olisi pahempi kuin näkyvä merkki).
+    for (const m of this.markers) {
+      const lm = this.leafletMarkers.get(m.id)
+      const routeVisible = m.routeIds.some(id => this.visibleRouteIds.includes(id))
+      const shouldShow = routeVisible && !this.filterHiddenIds.has(m.id)
+      if (shouldShow && !lm) this.addLeafletMarker(m)
+      else if (!shouldShow && lm) {
+        lm.remove()
+        this.leafletMarkers.delete(m.id)
+      }
+    }
+    this.leafletMarkers.forEach((lm, id) => this.applyFocusClass(lm, id))
+  }
+
   /** T335: onko fokus päällä (pilleri kysyy). */
   hasFocusSegment(): boolean {
     return this.focusSegment !== undefined
@@ -163,9 +203,12 @@ export class MarkerManager {
   private applyFocusClass(lm: L.Marker, id: string): void {
     const el = lm.getElement()
     if (!el) return
-    const dim = this.dimmedIds.has(id)
+    // T377: kaksi himmennyslähdettä (fokus & suodatin) — kumpi tahansa riittää. Lukko koskee
+    // VAIN fokusta (V270/V142): suodatin on lukemisen apu ⊥ omistajuusväite.
+    const focusDim = this.dimmedIds.has(id)
+    const dim = focusDim || this.filterDimmedIds.has(id)
     el.classList.toggle('marker-dimmed', dim)
-    el.classList.toggle('marker-dimmed--locked', dim && this.focusLocked)
+    el.classList.toggle('marker-dimmed--locked', focusDim && this.focusLocked)
   }
 
   // Leafletin `setIcon` korvaa DOM-elementin ∴ KAIKKI elementtiin kirjoitettu tila (luokat +
@@ -404,16 +447,8 @@ export class MarkerManager {
 
   setVisibleRoutes(ids: string[]): void {
     this.visibleRouteIds = ids
-    this.markers.forEach((m) => {
-      const visible = m.routeIds.some((id) => ids.includes(id))
-      const lm = this.leafletMarkers.get(m.id)
-      if (visible && !lm) {
-        this.addLeafletMarker(m)
-      } else if (!visible && lm) {
-        lm.remove()
-        this.leafletMarkers.delete(m.id)
-      }
-    })
+    // T377: näkyvyys on kahden ehdon leikkaus (reitti & suodatin) ∴ yksi sovelluskohta.
+    this.applyMapFilter()
     this.onUpdate()
   }
 

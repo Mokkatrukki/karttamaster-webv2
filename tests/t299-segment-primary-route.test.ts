@@ -9,7 +9,6 @@ import {
   cloneSegmentToNextPhase,
 } from '../src/logic/segments'
 import type { SegmentStore } from '../src/logic/segments'
-import { computeGapRanges } from '../src/map/segment-overlay'
 
 // r1 ja r2 kulkevat SAMAA polkua (jaettu osuus, kuten 3 SMTB-reittiä) mutta eri km-lukemilla:
 // sama fyysinen piste on r1:llä 5.0 km ja r2:lla 45.0 km. Tämä on B114:n koeasetelma.
@@ -184,29 +183,7 @@ describe('T299/V211 — primaryRouteId logiikkakerroksessa', () => {
   })
 })
 
-describe('T299/V211 — kattavuuslasku primary-reitin km-akselilla', () => {
-  const rp = Array.from({ length: 51 }, (_, i) => ({
-    lat: 65 + i / 1000, lon: 27, distanceFromStart: i * 100,
-  }))
-
-  const seg = (id: string, routeIds: string[], primaryRouteId: string | undefined, a: number, b: number) =>
-    ({ id, routeIds, primaryRouteId, startDist: a, endDist: b, equipment: [], phase: 'asettaminen' }) as never
-
-  it('naapurireitin km-väli ei enää valu tämän reitin kattavuuteen', () => {
-    // pätkä on jäsenenä r1:llä mutta sen km:t mitattiin r2:lla → ei kata r1:n akselia
-    const gaps = computeGapRanges([seg('s1', ['r1', 'r2'], 'r2', 1000, 3000)], 'r1', rp)
-    expect(gaps).toEqual([[0, 5000]])
-  })
-
-  it('oman primaryn pätkä kattaa normaalisti', () => {
-    const gaps = computeGapRanges([seg('s1', ['r1', 'r2'], 'r1', 1000, 3000)], 'r1', rp)
-    expect(gaps).toEqual([[0, 1000], [3000, 5000]])
-  })
-
-  it('legacy-pätkä ilman primaryä → routeIds[0] ratkaisee', () => {
-    expect(computeGapRanges([seg('s1', ['r1'], undefined, 1000, 3000)], 'r1', rp))
-      .toEqual([[0, 1000], [3000, 5000]])
-    expect(computeGapRanges([seg('s1', ['r2', 'r1'], undefined, 1000, 3000)], 'r1', rp))
-      .toEqual([[0, 5000]])
-  })
-})
+// T378/V273/B159: "kattavuuslasku primary-reitin km-akselilla" -blokki POISTETTU yhdessä
+// `computeGapRanges`in kanssa — aukko luetaan nyt paljaasta reittiviivasta, ⊥ omasta
+// laskennasta & renderistä. V211 (primary omistaa km-akselin) pysyy voimassa: sitä vahtivat
+// yllä olevat blokit + `segment-order.test.ts`.

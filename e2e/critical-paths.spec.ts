@@ -190,12 +190,12 @@ test.describe('RouteBar-jako (T204/V134)', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    // T286: reittivalitsin = trigger-nappi → avaa listapaneeli
-    await expect(page.locator('.route-vis-trigger')).toBeVisible()
-    await page.locator('.route-vis-trigger').click()
-    await expect(page.locator('.route-vis-row').first()).toBeVisible()
-    await expect(page.locator('#route-track')).toBeHidden()
-    await expect(page.locator('#route-drive-controls')).toBeHidden()
+    // T377: reittivalinta asuu suodatinbarissa kartan yläpuolella; alapalkki poistui
+    // järjestäjältä kokonaan (yksi "mitä näkyy" -pinta, ⊥ kahta).
+    await expect(page.locator('#map-filter-bar')).toBeVisible()
+    await page.locator('.map-filter-dropdown[data-filter="routes"] .map-filter-trigger').click()
+    await expect(page.locator('.map-filter-route-row').first()).toBeVisible()
+    await expect(page.locator('#route-bar')).toBeHidden()
     await expect(page.locator('.route-tab-drive')).toHaveCount(0)
   })
 
@@ -208,7 +208,9 @@ test.describe('RouteBar-jako (T204/V134)', () => {
     await page.waitForTimeout(1500)
 
     await expect(page.locator('#route-bar')).toBeHidden()
-    await expect(page.locator('.route-vis-trigger')).toHaveCount(0)
+    // T379: talkoolainen saa kapean "Näytä"-valinnan, ⊥ järjestäjän neljää akselia.
+    await expect(page.locator('.map-filter-dropdown[data-filter="routes"]')).toHaveCount(0)
+    await expect(page.locator('.map-filter-dropdown[data-filter="narrow"]')).toHaveCount(1)
   })
 })
 
@@ -1065,5 +1067,141 @@ test.describe('T375 — korostus himmentää pätkäviivat (V270)', () => {
     await page.locator('#btn-marker-focus-clear').click()
     await page.waitForTimeout(300)
     await expect(labelB).not.toHaveClass(/segment-label--dim/)
+  })
+})
+
+// T377/V272: suodatinbar — kartan "mitä näkyy" -kontrollit yhdessä paikassa. Suodatettu kartta
+// ! kertoa olevansa suodatettu, myös reloadin jälkeen (tila persistoituu, V5).
+test.describe('T377 — suodatinbar (V272)', () => {
+  const SEG = {
+    id: 'seg-filter', routeIds: ['smtb-30'], primaryRouteId: 'smtb-30',
+    startDist: 0, endDist: 0, linkedMarkerIds: ['mk-suunniteltu'],
+    displayName: 'Suodatinpätkä', description: '', equipment: [],
+    phase: 'asettaminen', inspected: false, completed: false,
+  }
+  const mk = (id: string, status: string, lat: number) => ({
+    id, type: 'right', lat, lon: 27.62, distance_from_start: 5000,
+    route_ids: ['smtb-30'], status, location_note: null, color: null,
+    label: id.toUpperCase(), icon_id: null, image_id: null, template_id: null, parts_json: null,
+    description: null, images: [], created_by: null,
+  })
+
+  async function openBoard(page: import('playwright/test').Page): Promise<void> {
+    await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
+    await page.route(/\/api\/segments$/, r =>
+      r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([SEG]) }))
+    await mockMarkers(page, [mk('mk-suunniteltu', 'suunniteltu', 65.62), mk('mk-asetettu', 'asetettu', 65.63)])
+    await page.setViewportSize({ width: 1280, height: 720 })
+  }
+
+  test('status-suodatin himmentää rajatut & banneri kertoo syyn — säilyy reloadin yli', async ({ page }) => {
+    await openBoard(page)
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await expect(page.locator('#map-filter-bar')).toBeVisible()
+    await expect(page.locator('.map-filter-banner')).toBeHidden()
+
+    // Rajaa pois kaikki paitsi suunniteltu.
+    await page.locator('.map-filter-dropdown[data-filter="markers"] .map-filter-trigger').click()
+    for (const label of ['Asetettu', 'Tarkistettu', 'Kerätty', 'Ei tarpeen']) {
+      await page.locator('.map-filter-row', { hasText: label }).click()
+    }
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(300)
+
+    // V243-amend: 'dim' ⊥ 'hidden' — rajattu merkki näkyy yhä kartalla, himmeänä.
+    await expect(page.locator('.leaflet-marker-icon[title="MK-ASETETTU"]')).toHaveClass(/marker-dimmed/)
+    await expect(page.locator('.leaflet-marker-icon[title="MK-SUUNNITELTU"]')).not.toHaveClass(/marker-dimmed/)
+    // V270: suodattimen himmennys ⊥ ole lukko (järjestäjä omistaa kaiken).
+    await expect(page.locator('.leaflet-marker-icon[title="MK-ASETETTU"]')).not.toHaveClass(/marker-dimmed--locked/)
+    await expect(page.locator('.map-filter-banner')).toContainText('Suodatin päällä')
+
+    // V5 + V272: persistoitu suodatin & sen SYY säilyvät — muuten kartta luetaan kadonneena datana.
+    await page.reload()
+    await page.waitForTimeout(1500)
+    await expect(page.locator('.map-filter-banner')).toContainText('Suodatin päällä')
+    await expect(page.locator('.leaflet-marker-icon[title="MK-ASETETTU"]')).toHaveClass(/marker-dimmed/)
+
+    // Nollaus palauttaa kaiken.
+    await page.locator('.map-filter-reset').click()
+    await page.waitForTimeout(300)
+    await expect(page.locator('.map-filter-banner')).toBeHidden()
+    await expect(page.locator('.leaflet-marker-icon.marker-dimmed')).toHaveCount(0)
+  })
+
+  test('"piilota kokonaan" -porras poistaa rajatut kartalta (eksplisiittinen valinta, V243-amend)', async ({ page }) => {
+    await openBoard(page)
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await page.locator('.map-filter-dropdown[data-filter="dim"] .map-filter-trigger').click()
+    await page.locator('.map-filter-row', { hasText: 'Piilota kokonaan' }).click()
+    await page.locator('.map-filter-dropdown[data-filter="markers"] .map-filter-trigger').click()
+    await page.locator('.map-filter-row', { hasText: 'Asetettu' }).click()
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(300)
+
+    await expect(page.locator('.leaflet-marker-icon[title="MK-ASETETTU"]')).toHaveCount(0)
+    await expect(page.locator('.leaflet-marker-icon[title="MK-SUUNNITELTU"]')).toHaveCount(1)
+  })
+
+  test('§A/V268: barin kontrollit ovat kosketuskokoa', async ({ page }) => {
+    await openBoard(page)
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+    const triggers = page.locator('#map-filter-bar .map-filter-trigger')
+    const n = await triggers.count()
+    expect(n).toBe(4)
+    for (let i = 0; i < n; i++) {
+      const box = await triggers.nth(i).boundingBox()
+      expect(box!.height).toBeGreaterThanOrEqual(44)
+    }
+  })
+})
+
+// T379: talkoolaisen kapea suodatin — yksi valinta, ⊥ paneelia. V155: yläpalkki pysyy koskemattomana.
+test.describe('T379 — talkoolaisen "vain asettamattomat"', () => {
+  const SEG = {
+    id: 'seg-tk', routeIds: ['smtb-30'], primaryRouteId: 'smtb-30',
+    startDist: 0, endDist: 0, linkedMarkerIds: ['mk-a', 'mk-b'],
+    assignedCode: 'TEST01', displayName: 'Oma pätkä', description: '', equipment: [],
+    phase: 'asettaminen', inspected: false, completed: false,
+  }
+  const mk = (id: string, status: string, lat: number) => ({
+    id, type: 'right', lat, lon: 27.62, distance_from_start: 5000,
+    route_ids: ['smtb-30'], status, location_note: null, color: null,
+    label: id.toUpperCase(), icon_id: null, image_id: null, template_id: null, parts_json: null,
+    description: null, images: [], created_by: null,
+  })
+
+  test('toggle rajaa suunniteltuihin; yläpalkki pysyy 3 nappina (V155)', async ({ page }) => {
+    await mockAuthAsTalkoolainen(page)
+    await mockTemplates(page)
+    await page.route(/\/api\/segments\/by-code\/TEST01$/, r =>
+      r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SEG) }))
+    await mockMarkers(page, [mk('mk-a', 'suunniteltu', 65.62), mk('mk-b', 'asetettu', 65.63)])
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.goto('/s/TEST01')
+    await page.waitForTimeout(1500)
+    await page.click('#btn-to-map')
+    await page.waitForTimeout(500)
+
+    // V155: yläpalkin NÄKYVÄ nappimäärä ⊥ muutu — suodatin ⊥ ole kriittisen flown askel
+    // (#btn-map-mode on data-role-hide=talkoolainen ∴ se ⊥ lasketa).
+    const visibleIds = await page.locator('#toolbar-actions button:visible').evaluateAll(
+      els => els.map(e => e.id))
+    // V155 sallii TASAN nämä — suodatin ⊥ saa ilmestyä yläpalkkiin eikä työntää mitään pois.
+    for (const id of visibleIds) expect(['btn-home-view', 'btn-list', 'btn-menu']).toContain(id)
+    expect(await page.locator('#toolbar-actions .map-filter-dropdown').count()).toBe(0)
+    await expect(page.locator('.map-filter-dropdown[data-filter="narrow"]')).toHaveCount(1)
+
+    await page.locator('.map-filter-dropdown[data-filter="narrow"] .map-filter-trigger').click()
+    await page.locator('.map-filter-row', { hasText: 'Vain asettamattomat' }).click()
+    await page.waitForTimeout(300)
+
+    await expect(page.locator('.leaflet-marker-icon[title="MK-B"]')).toHaveClass(/marker-dimmed/)
+    await expect(page.locator('.leaflet-marker-icon[title="MK-A"]')).not.toHaveClass(/marker-dimmed/)
   })
 })

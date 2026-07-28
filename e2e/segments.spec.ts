@@ -819,9 +819,9 @@ test.describe('T374 — reitin piilotus vie pätkät mukanaan (V269)', () => {
     await expect(label30).toHaveCount(1)
     await expect(label55).toHaveCount(1)
 
-    // Piilota 30 km reittivalitsimesta (T286: trigger → lista → rivi togglaa).
-    await page.locator('.route-vis-trigger').click()
-    await page.locator('.route-vis-row[data-route-id="smtb-30"]').click()
+    // Piilota 30 km suodatinbarista (T377: Reitit-dropdown → rivi togglaa).
+    await page.locator('.map-filter-dropdown[data-filter="routes"] .map-filter-trigger').click()
+    await page.locator('.map-filter-route-row[data-route-id="smtb-30"] .map-filter-route-toggle').click()
     await page.waitForTimeout(300)
 
     // B157: pätkäviiva & lappu katoavat reitin MUKANA — ⊥ jää leijumaan.
@@ -831,7 +831,7 @@ test.describe('T374 — reitin piilotus vie pätkät mukanaan (V269)', () => {
     await expect(page.locator('#segment-list', { hasText: 'Keräyskasat' })).toHaveCount(1)
 
     // Takaisin näkyviin → lappu palaa (tila ⊥ jää jumiin).
-    await page.locator('.route-vis-row[data-route-id="smtb-30"]').click()
+    await page.locator('.map-filter-route-row[data-route-id="smtb-30"] .map-filter-route-toggle').click()
     await page.waitForTimeout(300)
     await expect(label30).toHaveCount(1)
   })

@@ -75,8 +75,12 @@ describe('T282/V198 — CLS route-bar', () => {
     expect(read('index.html')).toMatch(/id="route-bar" hidden/)
   })
 
-  it('järjestäjä-wiring paljastaa route-barin vasta moodin asetuksen jälkeen', () => {
+  // T377: järjestäjän alapalkki poistui kokonaan (reittivalinta muutti suodatinbariin) ∴
+  // CLS-vahti seuraa nyt sitä pintaa joka oikeasti renderöityy: suodatinbar on markupissa
+  // `hidden` & paljastetaan vasta kun sisältö on rakennettu (sama V198-sopimus).
+  it('suodatinbar renderöityy hidden-tilassa & paljastetaan vasta rakennuksen jälkeen (V198)', () => {
+    expect(read('index.html')).toMatch(/id="map-filter-bar" hidden/)
     const w = read('src/app/markers-wiring.ts')
-    expect(w).toMatch(/setAttribute\('data-mode', 'visibility'\)[\s\S]*removeAttribute\('hidden'\)/)
+    expect(w).toMatch(/new MapFilterBar\([\s\S]*filterBarEl\.removeAttribute\('hidden'\)/)
   })
 })

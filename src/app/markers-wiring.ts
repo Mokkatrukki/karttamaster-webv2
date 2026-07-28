@@ -3,6 +3,9 @@ import { MarkerManager } from '../map/markers'
 import { DriveMode } from '../map/drive'
 import { RouteBar } from '../map/route-bar'
 import { RouteVisibilityControl } from '../map/route-visibility-control'
+import { MapFilterBar } from '../ui/map-filter-bar'
+import type { MapFilter } from '../logic/map-filter'
+import { isolatedMarkerIds } from '../logic/map-filter'
 import { ProgressBar } from '../ui/progress-bar'
 import { PlaceMode } from '../ui/place-mode'
 import { renderMarkerList } from '../ui/marker-list'
@@ -83,6 +86,8 @@ export interface MarkersWiring {
   closeMarkerModal: () => void
   // T237(d)/V243: main.ts kytkee tämän segments-wiringin fokus-refiin.
   commentLayer: CommentLayer
+  // T377/V272: suodatinbar — main.ts kytkee sen korostustilaan (isolointi).
+  mapFilterBar: MapFilterBar | null
 }
 
 interface MarkersWiringDeps {
@@ -91,6 +96,10 @@ interface MarkersWiringDeps {
   // T374/V269/B157: reittivalitsin asuu täällä, pätkäkerros segments-wiringissä ∴ näkyvyys
   // välitetään setterillä. `renderSegmentOverlay` piirtää uuden tilan.
   setSegmentVisibleRoutes: (ids: string[]) => void
+  // T377/V271: suodatin päättää, kerrokset soveltavat — pätkäkerros elää segments-wiringissä.
+  setSegmentMapFilter: (filter: MapFilter) => void
+  // T377: isoloinnin nollaus barista sammuttaa korostuksen (yksi tila, ⊥ kaksi).
+  clearFocusSegment: () => void
   segmentPanel: SegmentPanel
   showWarning: (msg: string, ms?: number) => void
   // T232 (B): GPS-navigaattori (luotu map-init.ts:ssä) → talkoolaisen SegmentView-heron GPS-toggle.
@@ -109,7 +118,10 @@ export function wireMarkers(
   talkoolainenCode: string | undefined,
   deps: MarkersWiringDeps,
 ): MarkersWiring {
-  const { segmentStore, renderSegmentOverlay, segmentPanel, showWarning, gpsNavigator, setSegmentVisibleRoutes } = deps
+  const {
+    segmentStore, renderSegmentOverlay, segmentPanel, showWarning, gpsNavigator,
+    setSegmentVisibleRoutes, setSegmentMapFilter, clearFocusSegment,
+  } = deps
 
   let progressBar!: ProgressBar
   let statusPanel!: StatusPanel
@@ -407,20 +419,40 @@ export function wireMarkers(
     )
     document.getElementById('route-bar')?.setAttribute('hidden', '')
   } else {
-    routeVis = new RouteVisibilityControl(routes, polylines, map, markerManager, routeSelectorEl, ids => {
+    routeVis = new RouteVisibilityControl(routes, polylines, map, markerManager, ids => {
       // T374/V269/B157: reitin piilotus vie pätkäviivat & nimilaput mukanaan.
       setSegmentVisibleRoutes(ids)
       renderSegmentOverlay()
     })
-    // Piilota drive-osat järjestäjältä (V134)
-    document.getElementById('route-track')?.setAttribute('hidden', '')
-    document.getElementById('route-drive-controls')?.setAttribute('hidden', '')
-    document.getElementById('route-km')?.setAttribute('hidden', '')
-    // V198/CLS: route-bar renderöidään suoraan lopullisessa visibility-moodissa (markup `hidden`),
-    // paljastetaan vasta kun moodi asetettu → ei full-bar→pilli-siirtymää latauksessa
-    const rb = document.getElementById('route-bar')
-    rb?.setAttribute('data-mode', 'visibility')
-    rb?.removeAttribute('hidden')
+    // T377: järjestäjän alapalkki poistuu kokonaan — reittivalinta asuu suodatinbarissa
+    // kartan yläpuolella (yksi "mitä näkyy" -pinta, ⊥ kahta). Drive-osat olivat jo piilossa (V134).
+    document.getElementById('route-bar')?.setAttribute('hidden', '')
+  }
+
+  // T377/V272: suodatinbar kartan yläpuolelle. Järjestäjä saa 4 akselia, talkoolainen kapean
+  // "Näytä"-valinnan (T379). Bar PÄÄTTÄÄ tilan; sovellus tapahtuu tässä callbackissa (V271).
+  const filterBarEl = document.getElementById('map-filter-bar')
+  let mapFilterBar: MapFilterBar | null = null
+  if (filterBarEl) {
+    mapFilterBar = new MapFilterBar(filterBarEl, {
+      routes: routes.map(r => ({ id: r.id, label: r.label, color: r.color, dashArray: r.dashArray, event: r.event })),
+      getSegmentName: id => segmentStore.get(id)?.displayName,
+      narrow: isTalkoolainen,
+      onIsolationClear: () => clearFocusSegment(),
+      onChange: filter => {
+        // V243-amend: himmennysporras on JÄRJESTÄJÄN asetus. Talkoolaisen automaattifokus pysyy
+        // kevyt-portaassa ∴ attribuuttia ⊥ kirjoiteta talkoolaisen näkymään lainkaan.
+        if (!isTalkoolainen) document.body.dataset.dimLevel = filter.dimLevel
+        // Reittiakseli menee Leaflet-kerrokseen kontrollin kautta (se omistaa polylinet).
+        if (routeVis && filter.visibleRouteIds) routeVis.setVisibleRoutes(filter.visibleRouteIds)
+        markerManager.setMapFilter(filter, {
+          isolatedMarkerIds: isolatedMarkerIds(filter, Array.from(segmentStore.values()), markerManager.getAll()),
+        })
+        setSegmentMapFilter(filter)
+        renderSegmentOverlay()
+      },
+    })
+    filterBarEl.removeAttribute('hidden')
   }
 
   const activeRouteProvider = () => (routeBar ?? routeVis!).getActiveRoute()
@@ -602,5 +634,5 @@ export function wireMarkers(
   }
   refreshPointComments()
 
-  return { markerManager, driveMode, routeBar, progressBar, placeMode, markerModal, closeMarkerModal, commentLayer }
+  return { markerManager, driveMode, routeBar, progressBar, placeMode, markerModal, closeMarkerModal, commentLayer, mapFilterBar }
 }

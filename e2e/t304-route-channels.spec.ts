@@ -39,11 +39,12 @@ test.describe('T304/V216 — reittien kaksi kanavaa', () => {
     await page.goto('/')
     await page.waitForTimeout(2000)
 
-    await page.locator('.route-vis-trigger, #route-visibility-control button').first().click()
+    // T377: reittivalitsin muutti suodatinbariin (kartan yläpuoli) — legendan sopimus säilyy.
+    await page.locator('.map-filter-dropdown[data-filter="routes"] .map-filter-trigger').click()
     await page.waitForTimeout(400)
 
     const swatches = await page.evaluate(() =>
-      Array.from(document.querySelectorAll<HTMLElement>('.route-vis-dot'))
+      Array.from(document.querySelectorAll<HTMLElement>('.map-filter-swatch'))
         .map(el => getComputedStyle(el).backgroundImage))
 
     expect(swatches.length).toBe(6)

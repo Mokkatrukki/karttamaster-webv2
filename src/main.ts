@@ -105,23 +105,29 @@ async function init(talkoolainenCode?: string) {
     if (!talkoolainenCode) showWarning('⚠ Alueiden lataus epäonnistui — päivitä sivu', 0)
   })
 
-  const { segmentStore, segmentOverlay, renderSegmentOverlay, segmentPanel } = await wireSegments(
+  const { segmentStore, segmentOverlay, renderSegmentOverlay, segmentPanel, setOnFocusChange, clearFocusSegment } = await wireSegments(
     map, routes, talkoolainenCode, initialMarkers, markerManagerRef, commentLayerRef,
     () => showWarning('⚠ Pätkän tallennus epäonnistui (muisti täynnä?)', 5000),
     () => showWarning('⚠ Pätkien lataus epäonnistui — päivitä sivu', 0),
     (msg) => showWarning(msg, 2500),
   )
 
-  const { markerManager, driveMode, progressBar, placeMode, markerModal, closeMarkerModal, commentLayer } = wireMarkers(
+  const { markerManager, driveMode, progressBar, placeMode, markerModal, closeMarkerModal, commentLayer, mapFilterBar } = wireMarkers(
     map, routes, polylines, initialMarkers, talkoolainenCode,
     {
       segmentStore, renderSegmentOverlay, segmentPanel, showWarning, gpsNavigator,
       // T374/V269/B157: reittivalitsimen kytkin ulottuu pätkäkerrokseen asti.
       setSegmentVisibleRoutes: ids => segmentOverlay.setVisibleRoutes(ids),
+      // T377/V271: suodatin pätkäkerrokselle — overlay soveltaa, ⊥ päätä.
+      setSegmentMapFilter: filter => segmentOverlay.setMapFilter(filter),
+      clearFocusSegment,
     },
   )
   markerManagerRef.current = markerManager
   commentLayerRef.current = commentLayer
+  // T377/V272: korostus & suodatinbarin "vain tämä pätkä" ovat SAMA tila — bar näyttää sen &
+  // tarjoaa ✕:n, laukaisin pysyy kartalla/modaalissa (⊥ kahta laukaisinta samalle asialle).
+  setOnFocusChange(segmentId => mapFilterBar?.setIsolatedSegment(segmentId))
   activeMarkerManager = markerManager
 
   // Map events

@@ -56,6 +56,7 @@ server/       ← Hono + Bun + SQLite
 | SegmentTrack | `src/logic/segment-track.ts` | ✓ T358 (pätkän oma jälki: johto rajoista/ankkureista, kohtisuora etäisyys + km jäljen akselilla; V258/V261. T359–T363 kuluttajat kesken) | tests/segment-track.test.ts | [logic.md](docs/components/logic.md) |
 | SegmentBackfill | `src/logic/segment-backfill.ts` | ✓ T361 (legacy-pätkä saa jäljen rajoistaan kun GPX:t ladattu; ei ylikirjoita, idempotentti; V260) | e2e/segments.spec.ts | [logic.md](docs/components/logic.md) |
 | SegmentMembership | `src/logic/segment-membership.ts` | ✓ T359 (kuka omistaa merkin: lähin jälki voittaa, eksklusiivinen per vaihe, linked/excluded ohittaa geometrian; V259/B143) | tests/segment-membership.test.ts | [logic.md](docs/components/logic.md) |
+| MapFilter | `src/logic/map-filter.ts` | ✓ T376 (kanoninen suodatinpredikaatti: markerVisibility/segmentVisibility → full\|dim\|hidden, 4 akselia + dimLevel, localStorage-persistointi; V271/V272/V243-amend) | tests/map-filter.test.ts | [logic.md](docs/components/logic.md) |
 | SegmentVisibility | `src/logic/segment-visibility.ts` | ✓ T374 (`segmentVisibleOnRoutes`: reittinäkyvyys koskee myös pätkäviivoja & nimilappuja, jäsenyys primarysta V211, reititön ⊥ katoa V139; V269/B157) | tests/t374-segment-visible-routes.test.ts; e2e/segments.spec.ts | [logic.md](docs/components/logic.md) |
 | SegmentSync | `src/logic/segment-sync.ts` | ✓ T62 | — | [logic.md](docs/components/logic.md) |
 | AreaTypes | `src/logic/area-types.ts` | ✓ | — | [logic.md](docs/components/logic.md) |
@@ -80,6 +81,7 @@ server/       ← Hono + Bun + SQLite
 | MarkerManager | `src/map/markers.ts` | ✓ T335 (setFocusSegment: himmennä muut kuin pätkän merkit, V243; reapplyElementState kokoaa setIconin pudottamat luokat) | critical-paths: "Merkki kartalle", "Drag-to-move", "Merkin zoom-skaalaus", "tallennus epäonnistuu", "merkkien korostus" | [map.md](docs/components/map.md) |
 | CommentLayer | `src/map/comment-layer.ts` | ✓ T221/T237 (point-huomioiden pinnit, diff-render; `setFocusActive`: himmennä fokus-tilassa, ⊥ piilota — V243/V245) | tests/t237-comment-focus-dim.test.ts, e2e/t237-huomio.spec.ts | [map.md](docs/components/map.md) |
 | RouteBar | `src/map/route-bar.ts` | ✓ (T224: piilotettu talkoolaiselta, `#route-bar` hidden) | — | [map.md](docs/components/map.md) |
+| RouteVisibilityControl | `src/map/route-visibility-control.ts` | ✓ T377 (DOM luovutettu MapFilterBarille; jäljellä sovellus: polylinet + merkit + pätkäviivat + getActiveRoute-sopimus, V271) | tests/t204-route-visibility-control.test.ts | [map.md](docs/components/map.md) |
 | BasemapDimControl | `src/map/basemap-dim-control.ts` | ✓ T287 (pohjan näkyvyys-slider ⋯-valikossa, tilePane-opacity, V201) | — | [map.md](docs/components/map.md) |
 | ~~NextMarkerHighlight~~ | POISTETTU T256/R6 | accent-rengas → ikoni-hehku (`MarkerManager.setNextHighlight` + `.marker-next-highlight` CSS-glow, V178) | — | — |
 | GpsNavigator | `src/map/gps-navigator.ts` | ✓ T30, T341 (tilakone haetaan/päällä/pois + näkyvät virheet, V247) | critical-paths: "GPS-paikannin" · t341-gps-no-segment | [map.md](docs/components/map.md) |
@@ -89,6 +91,7 @@ server/       ← Hono + Bun + SQLite
 | MarkerListUI | `src/ui/marker-list.ts` | ✓ T24 | — | [ui.md](docs/components/ui.md) |
 | SegmentRowMenu | `src/ui/segment-row-menu.ts` | ✓ T345 (pätkärivin ···-pikavalikko: kartta/korostus/linkki/lisätiedot, V250) | tests/t345-segment-row-menu.test.ts; critical-paths: "···-valikosta korostus" | [ui.md](docs/components/ui.md) |
 | SegmentFit | `src/map/segment-fit.ts` | ✓ T345 (kartan rajaus yhteen pätkään, jaettu talkoolaisen latauszoomin & järjestäjän "Näytä kartalla" kesken) | critical-paths: "Näytä kartalla siirtää karttaa" | [map.md](docs/components/map.md) |
+| MapFilterBar | `src/ui/map-filter-bar.ts` | ✓ T377/T379 (kartan suodatinbar: reitit·pätkät·merkit·himmennys, aktiivilaskuri+banneri+nollaus, talkoolaiselle kapea "Näytä"; V272/V271) | critical-paths: "T377 — suodatinbar", "T379"; segments: "T374" | [ui.md](docs/components/ui.md) |
 | MarkerFocusPill | `src/ui/marker-focus-pill.ts` | ✓ T335 (korostustilan poistumis-affordanssi kartalla, V243/V219-kuvio) | tests/t335-focus-toggle-pill.test.ts; critical-paths: "merkkien korostus" | [ui.md](docs/components/ui.md) |
 | ProgressBar | `src/ui/progress-bar.ts` | ✓ | critical-paths: "Drive mode" | [ui.md](docs/components/ui.md) |
 | PlaceMode | `src/ui/place-mode.ts` | ✓ T172 | critical-paths: "Merkki kartalle", "dblclick", "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |

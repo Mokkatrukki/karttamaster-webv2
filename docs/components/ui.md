@@ -494,3 +494,30 @@ DOM-komponentit ilman Leafletia. **Testattavuus: Vitest-jsdom.**
 > Järjestäjä: pääsenkö katsomaan pätkän kartalta ilman että avaan ja suljen asetusdialogin? Kyllä, kaksi klikkiä.
 > Talkoolainen: ei näe sivupalkkia lainkaan (V13).
 
+
+## MapFilterBar — T377/T379 ✓
+
+`src/ui/map-filter-bar.ts` · Vitest-jsdom (`tests/t377-map-filter-bar.test.ts`) · E2E `critical-paths.spec.ts` ("T377 — suodatinbar", "T379"), `segments.spec.ts` ("T374")
+
+Kartan "mitä näkyy" -kontrollit yhdessä paikassa: ohut bar `#map-arean` ensimmäisenä flow-lapsena.
+Komponentti PÄÄTTÄÄ suodatintilan & huutaa `onChange`; kartan soveltaminen on wiringin työ (V271) —
+`MapFilterBar` ⊥ tunne Leafletia.
+
+### Ominaisuudet
+- **Järjestäjä:** 4 dropdownia — Reitit (näytä/piilota + "vain tämä", V6) · Pätkät (isolointi-tila + tila-monivalinta) · Merkit (5 statusta) · Himmennys (kevyt/vahva/piilota, oletus vahva V243-amend).
+- **Talkoolainen (T379):** yksi valinta `Näytä: kaikki merkit | vain asettamattomat` — sama `map-filter`-predikaatti esiasetuksena, ⊥ omaa suodatinlogiikkaa. `.map-filter-bar--narrow` pitää dropdownin tavallisena myös mobiilissa (hero omistaa alalaidan).
+- **V272-affordanssi:** `data-active-filters` + banneri + ✕ Nollaa. Tila persistoituu (`localStorage`, V5) ∴ banneri on pakollinen — eilinen suodatin luetaan muuten kadonneena datana.
+- **Isolointi ⊥ ole toinen laukaisin:** tila tulee korostuskytkimestä (T335) `setIsolatedSegment`illa; barin ✕ kutsuu `onIsolationClear` joka sammuttaa korostuksen.
+
+### Käyttäjätarkistus
+- **Järjestäjä (desktop ensisijainen):** suodatin näkyy ilman avaamista; jokainen trigger kertoo nykyarvon.
+- **Talkoolainen (mobiili, hanskat):** yksi valinta, 44px kohteet, yläpalkki koskematon (V155).
+
+## RouteVisibilityControl — T377 (DOM luovutettu)
+
+`src/map/route-visibility-control.ts` · `tests/t204-route-visibility-control.test.ts`
+
+Ei enää omaa UI:ta (T286:n trigger+paneeli poistettu). Jäljellä sovelluskerros: `setVisibleRoutes(ids)`
+piilottaa/näyttää polylinet, vie näkyvyyden `MarkerManager`ille & ilmoittaa pätkäkerrokselle
+(`onVisibleChange` → `SegmentOverlay.setVisibleRoutes`, V269). `getActiveRoute`/`getActiveTotalM`
+palvelevat ProgressBaria & StatusPanelia.

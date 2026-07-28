@@ -5664,3 +5664,227 @@ body[data-map-mode="muokkaus"] #map-area::after {
 }
 
 .comment-panel-item--done .comment-panel-item-text { text-decoration: line-through; }
+
+/* ── MapFilterBar (T377/V272) ─────────────────────────────────────────────────────────────
+   Kartan "mitä näkyy" -kontrollit YHDESSÄ paikassa, kartan yläpuolella. Aina näkyvissä:
+   suodatettu kartta jonka syytä ⊥ näy luetaan kadonneena datana (B131-luokka). Pystytilan
+   hinta ~44px on tietoinen valinta — löydettävyys > pikselit. */
+#map-filter-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--border-subtle);
+  overflow-x: auto;
+  scrollbar-width: none;
+  position: relative;
+  /* Paneelit kartan JA talkoolaisen hero-kortin päälle (`#segment-view-container` z-index 1000
+     kartta-moodissa) — muuten dropdown avautuu näkyviin mutta ⊥ ota klikkiä. */
+  z-index: 1100;
+}
+#map-filter-bar::-webkit-scrollbar { display: none; }
+
+.map-filter-dropdown { position: relative; flex: 0 0 auto; }
+
+.map-filter-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px; /* §A/V268 kosketuskohde */
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-page);
+  color: var(--text-body);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.map-filter-trigger.open,
+.map-filter-trigger:hover { background: var(--field-tint); }
+.map-filter-trigger-value { color: var(--text-muted); font-weight: 500; }
+.map-filter-caret { color: var(--text-muted); font-size: 10px; }
+
+.map-filter-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 230px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-card);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  z-index: 1000;
+}
+
+.map-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px; /* §A: hanskakäyttö — myös valintariveillä */
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-body);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.map-filter-row:hover:not(:disabled) { background: var(--field-tint); }
+.map-filter-row:disabled { opacity: 0.5; cursor: default; }
+.map-filter-row-label { flex: 1; min-width: 0; }
+.map-filter-check {
+  width: 18px;
+  flex: 0 0 18px;
+  color: var(--accent);
+  font-weight: 700;
+}
+.map-filter-swatch {
+  width: 18px;
+  height: 6px;
+  flex: 0 0 18px;
+  border-radius: 3px;
+}
+.map-filter-group-label {
+  padding: 6px 8px 2px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.map-filter-route-row { display: flex; align-items: center; gap: 4px; }
+.map-filter-route-row .map-filter-route-toggle { flex: 1; min-width: 0; }
+.map-filter-only {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.map-filter-only:hover { background: var(--field-tint); color: var(--text-body); }
+
+.map-filter-isolation {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 4px;
+}
+.map-filter-isolation-label { flex: 1; font-size: 13px; font-weight: 600; }
+.map-filter-isolation-hint { flex: 1; font-size: 12px; color: var(--text-muted); }
+.map-filter-isolation-clear {
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-body);
+  cursor: pointer;
+}
+
+.map-filter-reset {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-body);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.map-filter-reset:hover { background: var(--field-tint); }
+
+/* V272: banneri kertoo ETTÄ suodatetaan — laskuri kertoo kuinka monta akselia. Ilman tätä
+   eilinen persistoitu suodatin luetaan kadonneena datana. */
+.map-filter-banner {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--warn, #b45309);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* §R: mobiilissa paneeli on bottom sheet — kelluva paneeli veisi kartan leveyden & suodatinta
+   säädetään juuri siksi että vaikutus nähdään kartalla (V114-oppi). */
+@media (max-width: 480px) {
+  #map-filter-bar { padding: 4px 8px; }
+  .map-filter-trigger { padding: 0 10px; font-size: 12px; }
+  /* Bottom sheet vain LEVEÄLLE (järjestäjän) barille: 4 akselia × N riviä ⊥ mahdu kelluvaan
+     paneeliin, & paneeli ⊥ saa varastaa kartan leveyttä (V114). Talkoolaisen yksi valinta
+     mahtuu triggerin alle ∴ se ⊥ kilpaile heron kanssa ruudun alalaidasta. */
+  .map-filter-bar:not(.map-filter-bar--narrow) .map-filter-panel {
+    position: fixed;
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    min-width: 0;
+    max-height: 55vh;
+    border-radius: var(--radius-lg, 14px) var(--radius-lg, 14px) 0 0;
+    border-bottom: 0;
+    padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
+    box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.35);
+  }
+  .map-filter-banner { display: none; }
+  #map-filter-bar[data-active-filters]:not([data-active-filters="0"]) .map-filter-reset {
+    border-color: var(--warn, #b45309);
+    color: var(--warn, #b45309);
+  }
+}
+
+/* V243-amend (T377): himmennysporras on JÄRJESTÄJÄN valinta — attribuutti asetetaan vain
+   järjestäjälle (`markers-wiring`). Talkoolaisen automaattifokus (V142) pysyy VAKIONA
+   kevyt-portaassa: kenttänäkymä ⊥ saa tummeta kenenkään säädöstä kesken tapahtuman.
+   Merkki & viiva saavat eri alfat — viiva on satoja px pitkä, merkki 40×48 (§K MarkerFocus). */
+body[data-dim-level="kevyt"] .marker-dimmed,
+body[data-dim-level="kevyt"] .comment-pin-dimmed { opacity: 0.4; }
+body[data-dim-level="vahva"] .marker-dimmed,
+body[data-dim-level="vahva"] .comment-pin-dimmed { opacity: 0.15; }
+
+/* T377: suodatinbar on #map-arean ENSIMMÄINEN flow-lapsi ∴ kartan päällä leijuvat kortit
+   (StatusPanel, tilapillerit) ! siirtyä sen alle. Muuten bar jää klikkaamattomaksi juuri
+   siitä kohtaa mihin kortti osuu — & se on hiljainen vika: nappi näkyy mutta ⊥ reagoi. */
+#map-filter-bar:not([hidden]) ~ #status-panel { top: 65px; }
+#map-filter-bar:not([hidden]) ~ .map-mode-pill { top: 65px; }
+/* Muokkaustilan pilleri voi olla yhtä aikaa näkyvissä → korostuspilleri pudotetaan sen ALLE
+   (sama sääntö kuin ilman baria, vain uudesta lähtötasosta). */
+body[data-map-mode="muokkaus"] #map-filter-bar:not([hidden]) ~ .marker-focus-pill { top: 105px; }
+@media (max-width: 480px) {
+  #map-filter-bar:not([hidden]) ~ .map-mode-pill,
+  #map-filter-bar:not([hidden]) ~ .marker-focus-pill { top: 61px; }
+  body[data-map-mode="muokkaus"] #map-filter-bar:not([hidden]) ~ .marker-focus-pill { top: 101px; }
+}
+
+/* T181/V114 + T377: mobiilissa `#left-panel` OVERLAYAA kartan (kutistettuna 32px kaista
+   vasemmassa reunassa) ∴ suodatinbar ! jättää sille tilaa — muuten bar peittää ▶-togglen &
+   sivupaneelia ⊥ saa auki lainkaan. Talkoolaisella paneelia ⊥ ole → ⊥ sisennystä. */
+@media (max-width: 480px) {
+  /* MARGIN ⊥ padding: elementin ! päättyä ennen kaistaa, muuten sen läpinäkyvä tausta
+     nappaa klikin vaikka lapset olisivat sivussa (mitattu: ▶ ⊥ avautunut lainkaan). */
+  body[data-role="järjestäjä"] #map-filter-bar { margin-left: 40px; }
+}

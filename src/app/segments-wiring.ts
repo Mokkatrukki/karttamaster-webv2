@@ -21,6 +21,10 @@ export interface SegmentsWiring {
   segmentPanel: SegmentPanel
   renderSegmentOverlay: () => void
   phaseFilteredStore: () => Map<string, Segment>
+  // T377/V272: korostus = suodatinbarin "vain tämä pätkä" -tila ∴ bar ! kuulla muutokset
+  // (& tarjota ✕). Kaksi paikkaa jotka ovat eri mieltä tilasta on B131-luokan umpikuja.
+  setOnFocusChange: (cb: (segmentId: string | undefined) => void) => void
+  clearFocusSegment: () => void
 }
 
 // T146-T153: kolmivaiheinen pätkäelinkaari (asettaminen/tarkastus/purku) — pätkävarasto,
@@ -109,6 +113,7 @@ export async function wireSegments(
   // sulkiessa mutta tila jää päälle, ja poistumis-pilleri on ainoa ulospääsy sen jälkeen.
   // Ei localStoragea: korostus on hetken työkalu, ei asetus.
   let focusSegmentId: string | null = null
+  let onFocusChange: (segmentId: string | undefined) => void = () => {}
   const focusPill = initMarkerFocusPill({ onClear: () => setFocusSegment(null) })
 
   function setFocusSegment(seg: Segment | null): void {
@@ -129,6 +134,7 @@ export async function wireSegments(
     commentLayerRef.current?.setFocusActive(seg !== null)
     if (seg) focusPill.show(seg.displayName ?? 'pätkä')
     else focusPill.hide()
+    onFocusChange(seg?.id)
   }
 
   let tempCreationMarker: L.CircleMarker | null = null
@@ -202,5 +208,9 @@ export async function wireSegments(
   // piirretty pätkä & sen nimilappu reagoivat ilman uudelleenrenderiä.
   renderSegmentOverlay()
 
-  return { segmentStore, segmentOverlay, segmentPanel, renderSegmentOverlay, phaseFilteredStore }
+  return {
+    segmentStore, segmentOverlay, segmentPanel, renderSegmentOverlay, phaseFilteredStore,
+    setOnFocusChange: cb => { onFocusChange = cb },
+    clearFocusSegment: () => setFocusSegment(null),
+  }
 }
