@@ -5677,15 +5677,16 @@ body[data-map-mode="muokkaus"] #map-area::after {
   padding: 6px 10px;
   background: var(--surface-card);
   border-bottom: 1px solid var(--border-subtle);
-  overflow-x: auto;
-  scrollbar-width: none;
+  /* B161: overflow ⊥ SAA leikata — dropdown-paneeli on absoluuttinen LAPSI ∴ `overflow:auto`
+     katkaisi sen barin alareunaan & kartta jäi päälle (paneeli oli DOM:issa, `z-index` oikein,
+     mutta pikselit leikattu). Vaakaskrolli oli ratkaisu ahtaudelle jonka mobiilivalikko (B160)
+     hoitaa nyt oikein ∴ tätä ⊥ tarvita. */
+  overflow: visible;
   position: relative;
   /* Paneelit kartan JA talkoolaisen hero-kortin päälle (`#segment-view-container` z-index 1000
      kartta-moodissa) — muuten dropdown avautuu näkyviin mutta ⊥ ota klikkiä. */
   z-index: 1100;
 }
-#map-filter-bar::-webkit-scrollbar { display: none; }
-
 .map-filter-dropdown { position: relative; flex: 0 0 auto; }
 
 .map-filter-trigger {
@@ -5839,8 +5840,8 @@ body[data-map-mode="muokkaus"] #map-area::after {
    alkoi x=379 eli ruudun ulkopuolelta & vaakaskrollille ⊥ ollut vihjettä ∴ nappi ⊥ ollut
    olemassa käyttäjälle). Bar kutistuu yhdeksi "Suodata (N)" -napiksi joka avaa kaikki osiot
    bottom sheetinä — osiot ovat sheetissä haitareina, tila & DOM ovat samat kuin desktopilla. */
-@media (max-width: 480px) {
-  #map-filter-bar { padding: 4px 8px; overflow: visible; }
+@media (max-width: 700px) {
+  #map-filter-bar { padding: 4px 8px; }
   .map-filter-trigger { padding: 0 10px; font-size: 12px; }
 
   .map-filter-bar:not(.map-filter-bar--narrow) .map-filter-sheet-trigger {
@@ -5925,9 +5926,9 @@ body[data-map-mode="muokkaus"] #map-area::after {
   }
 }
 
-/* Desktopilla sheetin "Valmis" on turha — osiot ovat jo rivissä. */
+/* Leveällä ruudulla sheetin "Valmis" on turha — osiot ovat jo rivissä. */
 .map-filter-sheet-done { display: none; }
-@media (max-width: 480px) {
+@media (max-width: 700px) {
   .map-filter-bar--sheet-open .map-filter-sheet-done { display: block; }
 }
 

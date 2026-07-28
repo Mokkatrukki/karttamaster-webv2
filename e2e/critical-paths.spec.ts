@@ -1279,3 +1279,42 @@ test.describe('B160 — mobiilin suodatinvalikko', () => {
     await expect(page.locator('#map-filter-bar .map-filter-trigger')).toHaveCount(4)
   })
 })
+
+// B161: desktopilla dropdown-paneeli jäi kartan taakse. Syy ⊥ ollut `z-index` (1000 vs Leafletin
+// 400) vaan barin `overflow:auto`: absoluuttinen LAPSI leikkautui barin alareunaan ∴ paneeli oli
+// DOM:issa & "näkyvä" (`toBeVisible` vihreä, boundingBox oikea) mutta pikselit leikattu pois.
+// Vahti mittaa siksi `elementFromPoint`in — se on ainoa joka erottaa "renderöity" & "päällimmäisenä".
+test.describe('B161 — suodatinpaneeli ⊥ jää kartan taakse (V274)', () => {
+  const SEG = {
+    id: 'seg-z', routeIds: ['smtb-30'], primaryRouteId: 'smtb-30', startDist: 0, endDist: 3000,
+    displayName: 'Z', description: '', equipment: [], phase: 'asettaminen', inspected: false, completed: false,
+  }
+
+  for (const width of [1920, 1280, 900, 700, 375]) {
+    test(`${width}px: avattu osio on päällimmäisenä (⊥ leikkautunut, ⊥ kartan alla)`, async ({ page }) => {
+      await mockAuthAsJarjestaja(page)
+      await mockTemplates(page)
+      await page.route(/\/api\/segments$/, r =>
+        r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([SEG]) }))
+      await mockMarkers(page, [])
+      await page.setViewportSize({ width, height: 720 })
+      await page.goto('/')
+      await page.waitForTimeout(1200)
+
+      // ≤700px: suodatin on oma valikkonsa (B160) → avaa sheet ensin.
+      const sheetTrigger = page.locator('.map-filter-sheet-trigger')
+      if (await sheetTrigger.isVisible()) await sheetTrigger.click()
+
+      await page.locator('.map-filter-dropdown[data-filter="markers"] .map-filter-trigger').click()
+      await page.waitForTimeout(250)
+
+      const topmost = await page.evaluate(() => {
+        const panel = document.querySelector('.map-filter-panel:not([hidden])') as HTMLElement
+        const r = panel.getBoundingClientRect()
+        const el = document.elementFromPoint(r.x + r.width / 2, r.y + Math.min(r.height / 2, 120))
+        return el?.closest('.map-filter-panel') !== null
+      })
+      expect(topmost, 'paneelin päällä on jokin muu elementti (leikkautunut tai väärä z-index)').toBe(true)
+    })
+  }
+})
