@@ -66,8 +66,14 @@ export class MapFilterBar {
   private readonly dropdowns = new Map<string, { trigger: HTMLButtonElement; panel: HTMLElement }>()
   private banner!: HTMLElement
   private resetBtn!: HTMLButtonElement
+  // B160: mobiilin oma valikko — yksi trigger avaa kaikki osiot sheettinä.
+  private sheetTrigger?: HTMLButtonElement
+  private groups?: HTMLElement
+  private sheetOpen = false
   private readonly onDocClick = (e: MouseEvent) => {
-    if (this.openId && !this.container.contains(e.target as Node)) this.setOpen(null)
+    if (this.container.contains(e.target as Node)) return
+    if (this.openId) this.setOpen(null)
+    if (this.sheetOpen) this.setSheetOpen(false)
   }
 
   constructor(
@@ -116,6 +122,15 @@ export class MapFilterBar {
     this.deps.onChange(this.filter)
   }
 
+  // B160: sheetin tila elää LUOKASSA ⊥ CSS-mediakyselyssä yksin — sama komponentti toimii
+  // kummassakin leveydessä & desktopilla luokka on merkityksetön (CSS ⊥ lue sitä).
+  private setSheetOpen(open: boolean): void {
+    this.sheetOpen = open
+    this.container.classList.toggle('map-filter-bar--sheet-open', open)
+    this.sheetTrigger?.setAttribute('aria-expanded', String(open))
+    if (!open) this.setOpen(null)
+  }
+
   private setOpen(id: string | null): void {
     this.openId = id
     for (const [key, dd] of this.dropdowns) {
@@ -139,10 +154,36 @@ export class MapFilterBar {
       // T379: talkoolaiselle YKSI valinta. Yläpalkkiin ⊥ kosketa (V155 lukitsee 3 nappia).
       this.container.appendChild(this.buildNarrowToggle())
     } else {
-      this.container.appendChild(this.buildRouteDropdown())
-      this.container.appendChild(this.buildSegmentDropdown())
-      this.container.appendChild(this.buildMarkerDropdown())
-      this.container.appendChild(this.buildDimDropdown())
+      // B160: mobiilissa neljä dropdownia ⊥ mahdu riviin (mitattu 375px: "Himmennys" alkoi
+      // x=379 = ruudun ULKOPUOLELLA & vaakaskrollille ⊥ ollut vihjettä ∴ nappia ⊥ ollut
+      // olemassa käyttäjälle). Mobiilissa bar kutistuu YHDEKSI "Suodata (N)" -napiksi joka
+      // avaa kaikki neljä osiota bottom sheetinä (käyttäjäpäätös 2026-07-28: "jos on mobiili
+      // siitä tehdään joku oma valikko"). Sama DOM molemmissa — ⊥ kloonata tilaa kahteen paikkaan.
+      this.sheetTrigger = document.createElement('button')
+      this.sheetTrigger.type = 'button'
+      this.sheetTrigger.className = 'map-filter-sheet-trigger'
+      this.sheetTrigger.setAttribute('aria-expanded', 'false')
+      this.sheetTrigger.innerHTML = '<span class="map-filter-sheet-label">Suodata</span><span class="map-filter-sheet-count"></span>'
+      this.sheetTrigger.addEventListener('click', e => { e.stopPropagation(); this.setSheetOpen(!this.sheetOpen) })
+      this.container.appendChild(this.sheetTrigger)
+
+      this.groups = document.createElement('div')
+      this.groups.className = 'map-filter-groups'
+      this.groups.append(
+        this.buildRouteDropdown(),
+        this.buildSegmentDropdown(),
+        this.buildMarkerDropdown(),
+        this.buildDimDropdown(),
+      )
+      // Sheetin sulkeva "Valmis" — mobiilissa taustaklikki on kartalla & se ⊥ saa olla ainoa
+      // ulospääsy (osuisi karttaan ∴ tekisi jotain muuta).
+      const done = document.createElement('button')
+      done.type = 'button'
+      done.className = 'map-filter-sheet-done'
+      done.textContent = 'Valmis'
+      done.addEventListener('click', e => { e.stopPropagation(); this.setSheetOpen(false) })
+      this.groups.appendChild(done)
+      this.container.appendChild(this.groups)
     }
 
     this.resetBtn = document.createElement('button')
@@ -385,6 +426,12 @@ export class MapFilterBar {
 
     // V272: aktiivilaskuri + banneri + nollaus. Suodatettu kartta ! kertoa olevansa suodatettu.
     this.container.dataset.activeFilters = String(count)
+    // B160: mobiilin yksi nappi kantaa saman laskurin — muuten sheetin takana suodattava tila
+    // olisi näkymätön juuri siinä leveydessä jossa bannerillekaan ⊥ ole tilaa.
+    if (this.sheetTrigger) {
+      this.sheetTrigger.querySelector('.map-filter-sheet-count')!.textContent = count === 0 ? '' : `(${count})`
+      this.sheetTrigger.classList.toggle('has-filters', count > 0)
+    }
     this.resetBtn.hidden = count === 0
     this.banner.hidden = count === 0
     this.banner.textContent = count === 0

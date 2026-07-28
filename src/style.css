@@ -5831,30 +5831,104 @@ body[data-map-mode="muokkaus"] #map-area::after {
 
 /* §R: mobiilissa paneeli on bottom sheet — kelluva paneeli veisi kartan leveyden & suodatinta
    säädetään juuri siksi että vaikutus nähdään kartalla (V114-oppi). */
+/* Desktop: mobiilin sheet-trigger ⊥ ole olemassa, osiot ovat rivissä. */
+.map-filter-sheet-trigger { display: none; }
+.map-filter-groups { display: contents; }
+
+/* B160: MOBIILI = OMA VALIKKO. Neljä dropdownia ⊥ mahdu 375px-riviin (mitattu: "Himmennys"
+   alkoi x=379 eli ruudun ulkopuolelta & vaakaskrollille ⊥ ollut vihjettä ∴ nappi ⊥ ollut
+   olemassa käyttäjälle). Bar kutistuu yhdeksi "Suodata (N)" -napiksi joka avaa kaikki osiot
+   bottom sheetinä — osiot ovat sheetissä haitareina, tila & DOM ovat samat kuin desktopilla. */
 @media (max-width: 480px) {
-  #map-filter-bar { padding: 4px 8px; }
+  #map-filter-bar { padding: 4px 8px; overflow: visible; }
   .map-filter-trigger { padding: 0 10px; font-size: 12px; }
-  /* Bottom sheet vain LEVEÄLLE (järjestäjän) barille: 4 akselia × N riviä ⊥ mahdu kelluvaan
-     paneeliin, & paneeli ⊥ saa varastaa kartan leveyttä (V114). Talkoolaisen yksi valinta
-     mahtuu triggerin alle ∴ se ⊥ kilpaile heron kanssa ruudun alalaidasta. */
-  .map-filter-bar:not(.map-filter-bar--narrow) .map-filter-panel {
+
+  .map-filter-bar:not(.map-filter-bar--narrow) .map-filter-sheet-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px; /* §A/V268 */
+    padding: 0 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-strong);
+    background: var(--surface-page);
+    color: var(--text-body);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .map-filter-sheet-trigger.has-filters {
+    border-color: var(--warn, #b45309);
+    color: var(--warn, #b45309);
+  }
+  .map-filter-sheet-count { font-weight: 700; }
+
+  /* Osiot piiloon kunnes sheet avataan. */
+  .map-filter-bar:not(.map-filter-bar--narrow) .map-filter-groups {
+    display: none;
     position: fixed;
-    top: auto;
     left: 0;
     right: 0;
     bottom: 0;
-    min-width: 0;
-    max-height: 55vh;
-    border-radius: var(--radius-lg, 14px) var(--radius-lg, 14px) 0 0;
-    border-bottom: 0;
+    z-index: 2100; /* yli heron (1000) & barin oman kontekstin */
+    max-height: 72vh;
+    overflow-y: auto;
+    flex-direction: column;
+    gap: 2px;
     padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
+    background: var(--surface-card);
+    border-top: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg, 14px) var(--radius-lg, 14px) 0 0;
     box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.35);
   }
+  /* Spesifisyys ! ylittää yllä oleva `:not(.map-filter-bar--narrow)` -sääntö (0,3,0) —
+     muuten sheet ⊥ avaudu vaikka luokka on paikallaan (mitattu: display jäi none). */
+  .map-filter-bar:not(.map-filter-bar--narrow).map-filter-bar--sheet-open .map-filter-groups { display: flex; }
+  .map-filter-bar--sheet-open .map-filter-dropdown { width: 100%; }
+  .map-filter-bar--sheet-open .map-filter-trigger {
+    width: 100%;
+    justify-content: space-between;
+    font-size: 14px;
+  }
+  /* Sheetissä paneeli on FLOWSSA (haitari) ⊥ kelluva — kelluva paneeli sheetin sisällä olisi
+     paneeli paneelin päällä & alempi jäisi klikkaamattomaksi. */
+  .map-filter-bar--sheet-open .map-filter-panel {
+    position: static;
+    min-width: 0;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0 0 6px;
+    background: transparent;
+  }
+  .map-filter-sheet-done {
+    position: sticky;
+    bottom: 0;
+    min-height: 48px;
+    margin-top: 6px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: var(--accent);
+    color: var(--accent-contrast, #fff);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
   .map-filter-banner { display: none; }
   #map-filter-bar[data-active-filters]:not([data-active-filters="0"]) .map-filter-reset {
     border-color: var(--warn, #b45309);
     color: var(--warn, #b45309);
   }
+}
+
+/* Desktopilla sheetin "Valmis" on turha — osiot ovat jo rivissä. */
+.map-filter-sheet-done { display: none; }
+@media (max-width: 480px) {
+  .map-filter-bar--sheet-open .map-filter-sheet-done { display: block; }
 }
 
 /* V243-amend (T377): himmennysporras on JÄRJESTÄJÄN valinta — attribuutti asetetaan vain

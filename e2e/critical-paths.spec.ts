@@ -1205,3 +1205,77 @@ test.describe('T379 — talkoolaisen "vain asettamattomat"', () => {
     await expect(page.locator('.leaflet-marker-icon[title="MK-A"]')).not.toHaveClass(/marker-dimmed/)
   })
 })
+
+// B160 (T377-jatko): mobiilissa suodatin on OMA VALIKKO. Neljä dropdownia ⊥ mahtunut 375px-riviin
+// — mitattu ennen korjausta: "Himmennys" alkoi x=379 eli ruudun ULKOPUOLELTA, & vaakaskrollille
+// ⊥ ollut mitään vihjettä ∴ nappia ⊥ ollut olemassa käyttäjälle ("ei toimi mobiilissa napit").
+test.describe('B160 — mobiilin suodatinvalikko', () => {
+  const SEG = {
+    id: 'seg-m', routeIds: ['smtb-30'], primaryRouteId: 'smtb-30',
+    startDist: 0, endDist: 3000, displayName: 'Mobiilipätkä', description: '', equipment: [],
+    phase: 'asettaminen', inspected: false, completed: false,
+  }
+  const mk = (id: string, status: string, lat: number) => ({
+    id, type: 'right', lat, lon: 27.62, distance_from_start: 1000,
+    route_ids: ['smtb-30'], status, location_note: null, color: null,
+    label: id.toUpperCase(), icon_id: null, image_id: null, template_id: null, parts_json: null,
+    description: null, images: [], created_by: null,
+  })
+
+  test('375px: yksi "Suodata" -nappi → sheet, kaikki neljä osiota ruudun sisällä & klikattavissa', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
+    await page.route(/\/api\/segments$/, r =>
+      r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([SEG]) }))
+    await mockMarkers(page, [mk('m1', 'suunniteltu', 65.62)])
+    await page.setViewportSize({ width: 375, height: 667 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    // Suljettuna: yksi nappi, osiot piilossa.
+    const sheetTrigger = page.locator('.map-filter-sheet-trigger')
+    await expect(sheetTrigger).toBeVisible()
+    await expect(page.locator('.map-filter-groups')).toBeHidden()
+    const tBox = await sheetTrigger.boundingBox()
+    expect(tBox!.x + tBox!.width).toBeLessThanOrEqual(375)   // nappi ON ruudulla
+    expect(tBox!.height).toBeGreaterThanOrEqual(44)          // §A/V268
+
+    await sheetTrigger.click()
+    await expect(page.locator('.map-filter-groups')).toBeVisible()
+
+    // Jokainen osio-otsikko mahtuu ruudulle (B160:n ydin).
+    const triggers = page.locator('.map-filter-groups .map-filter-trigger')
+    await expect(triggers).toHaveCount(4)
+    for (let i = 0; i < 4; i++) {
+      const b = await triggers.nth(i).boundingBox()
+      expect(b!.x, `osio ${i} alkaa ruudun ulkopuolelta`).toBeGreaterThanOrEqual(0)
+      expect(b!.x + b!.width, `osio ${i} jatkuu ruudun ulkopuolelle`).toBeLessThanOrEqual(375)
+    }
+
+    // Osio avautuu haitarina & rivi on klikattavissa (⊥ paneelia paneelin päällä).
+    await triggers.nth(2).click()                                   // Merkit
+    const row = page.locator('.map-filter-panel:not([hidden]) .map-filter-row').first()
+    await expect(row).toBeVisible()
+    await row.click()
+    await expect(page.locator('.map-filter-sheet-count')).toHaveText('(1)')  // laskuri myös sheetissä
+
+    // "Valmis" sulkee — taustaklikki osuisi karttaan ∴ se ⊥ saa olla ainoa ulospääsy.
+    await page.locator('.map-filter-sheet-done').click()
+    await expect(page.locator('.map-filter-groups')).toBeHidden()
+    await expect(page.locator('.map-filter-sheet-count')).toHaveText('(1)')
+  })
+
+  test('desktop 1280px: sheet-nappia ⊥ ole, osiot ovat rivissä', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await mockTemplates(page)
+    await page.route(/\/api\/segments$/, r =>
+      r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([SEG]) }))
+    await mockMarkers(page, [])
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await expect(page.locator('.map-filter-sheet-trigger')).toBeHidden()
+    await expect(page.locator('#map-filter-bar .map-filter-trigger')).toHaveCount(4)
+  })
+})
