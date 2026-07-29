@@ -59,6 +59,8 @@ export class SegmentPanel {
   private readonly header: SectionHeader
   private state: CreationState = { mode: 'idle' }
   private collapsed = true
+  // T389/V281/B164: suodattimen reittiakseli ON luonnin reittivalinta. undefined = ei suodinta.
+  private visibleRouteIds: string[] | undefined = undefined
   private readonly creationModal: SegmentCreationModal
   private readonly detailsModal: SegmentDetailsModal
 
@@ -91,6 +93,7 @@ export class SegmentPanel {
       () => this.callbacks.getMarkers?.() ?? [],
       () => this.undoAnchor(),
       () => this.finishPath(),
+      (routeId) => this.switchRoute(routeId),
     )
 
     this.detailsModal = new SegmentDetailsModal(
@@ -119,6 +122,52 @@ export class SegmentPanel {
 
   isCreationMode(): boolean {
     return this.state.mode !== 'idle'
+  }
+
+  /**
+   * T389/V281/B164: reittisuodatin (V271/V272) rajaa myös LUONNIN ehdokkaat — piilotettua
+   * reittiä ⊥ voi lukita vahingossa. Sama `setSegmentVisibleRoutes`-kanava jolla overlay jo
+   * kuulee suodattimen (V269/B157) ∴ ⊥ toista totuutta näkyvyydestä.
+   */
+  setVisibleRoutes(ids: string[] | undefined): void {
+    this.visibleRouteIds = ids
+  }
+
+  // Suodatin ⊥ saa tuottaa tilaa jossa luonti on mahdotonta: tyhjä leikkaus → kaikki reitit.
+  private candidateRoutes(): RouteConfig[] {
+    if (!this.visibleRouteIds) return this.routes
+    const visible = this.routes.filter(r => this.visibleRouteIds!.includes(r.id))
+    return visible.length > 0 ? visible : this.routes
+  }
+
+  /**
+   * T389/V281: reitin vaihto kesken luonnin. Ankkuri re-resolvoidaan ALKUPERÄISESTÄ klikistä
+   * uudelle reitille & ankkurit nollataan yhteen — toisen reitin pisteindeksi ⊥ tarkoita samaa
+   * maastoa (V258/B144) ∴ hiljainen siirto olisi arvaus. Nollaus näkyy ankkurilistassa.
+   */
+  private switchRoute(routeId: string): void {
+    if (this.state.mode !== 'polku' || routeId === this.state.routeId) return
+    const st = this.state
+    const route = this.candidateRoutes().find(r => r.id === routeId)
+    if (!route) return
+    const hit = nextAnchorIndex(route.routePoints, st.origin.lat, st.origin.lon, 0, Infinity)
+    if (!hit) return
+    this.state = {
+      ...st,
+      routeId: route.id,
+      routeLabel: route.label ?? route.id,
+      anchors: [hit],
+    }
+    this.emitAnchors()
+    this.creationModal.updatePhase(this.state)
+  }
+
+  // Reitit joilla on osuma ensiklikin lähellä — vain nämä ovat aitoja vaihtoehtoja. Ehdokkuus
+  // ratkeaa SHARED_THRESHOLD_M:llä (sama kynnys kuin jaetulla korridorilla, V25).
+  private routeChoicesFor(lat: number, lon: number): { id: string; label: string }[] {
+    return this.candidateRoutes()
+      .filter(r => nextAnchorIndex(r.routePoints, lat, lon, 0, SHARED_THRESHOLD_M) !== null)
+      .map(r => ({ id: r.id, label: r.label ?? r.id }))
   }
 
   // T150/T151/V94: uusi pätkä + overlap-validointi kohdistuu aktiiviseen phase-näkymään
@@ -166,6 +215,9 @@ export class SegmentPanel {
         routeId: first.routeId,
         routeLabel: route?.label ?? first.routeId,
         anchors: [first.hit],
+        // T389/V281: raaka klikki talteen — reitin vaihto mittaa siitä, ⊥ snapatusta pisteestä.
+        origin: { lat, lon },
+        routeChoices: this.routeChoicesFor(lat, lon),
       }
       this.emitAnchors()
       this.creationModal.updatePhase(this.state)
@@ -289,7 +341,8 @@ export class SegmentPanel {
   private resolveClick(lat: number, lon: number): { routeId: string; hit: AnchorHit } | null {
     let best: { routeId: string; hit: AnchorHit } | null = null
     let bestDist = Infinity
-    for (const route of this.routes) {
+    // T389/V281/B164: vain NÄKYVÄT reitit ovat ehdokkaita — piilotettua reittiä ⊥ lukita.
+    for (const route of this.candidateRoutes()) {
       const hit = nextAnchorIndex(route.routePoints, lat, lon, 0, Infinity)
       if (!hit) continue
       const d = haversineDistance({ lat: hit.lat, lon: hit.lon }, { lat, lon })

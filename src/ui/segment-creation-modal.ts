@@ -19,7 +19,17 @@ export type CreationState =
   | { mode: 'vaihe1' }
   // T362: reitti LUKITTU ensimmäisestä klikistä & näkyvissä (B144(a): hiljainen valinta oli
   // puolet bugista). `anchors` kasvaa klikeistä; ≥2 → "Valmis" avautuu.
-  | { mode: 'polku'; routeId: string; routeLabel: string; anchors: CreationAnchor[] }
+  // T389/V281: `origin` = ensiklikin RAAKA koordinaatti ∴ reitin vaihto re-resolvoi ankkurin
+  // siitä mihin käyttäjä osoitti, ⊥ lukitun reitin snapatusta pisteestä (joka on jo tulkinta).
+  // `routeChoices` = näkyvät reitit joilla on osuma originin lähellä — 1 ehdokas → ⊥ pillereitä.
+  | {
+      mode: 'polku'
+      routeId: string
+      routeLabel: string
+      anchors: CreationAnchor[]
+      origin: { lat: number; lon: number }
+      routeChoices: { id: string; label: string }[]
+    }
   // T299/V211: primaryRouteId = reitti jota startDist/endDist mittaavat. routeIds = jäsenyys.
   // T362/V258: `track` on pätkän geometrian totuus; startDist/endDist johdetaan siitä.
   | { mode: 'tiedot'; routeIds: string[]; primaryRouteId: string; startDist: number; endDist: number; track: SegmentTrack }
@@ -54,6 +64,8 @@ export class SegmentCreationModal {
     // T362: polkutilan napit — paneeli omistaa ankkurit, modaali vain pyytää muutosta.
     private readonly onUndoAnchor: (() => void) | null = null,
     private readonly onPathDone: (() => void) | null = null,
+    // T389/V281: reitin vaihto — paneeli omistaa ankkurit & re-resolvoinnin, modaali vain pyytää.
+    private readonly onSwitchRoute: ((routeId: string) => void) | null = null,
   ) {
     this.segmentCounter = store.size
   }
@@ -143,6 +155,25 @@ export class SegmentCreationModal {
     route.dataset.testid = 'creation-route'
     route.textContent = `Reitti: ${state.routeLabel}`
     modal.appendChild(route)
+
+    // T389/V281/B164: reitin vaihto ilman uutta aloitusta. Pillerit vain kun ehdokkaita on ≥2 —
+    // yhden reitin kohdalla valinta ⊥ ole valinta vaan kohinaa. Vaihto NOLLAA ankkurit yhteen
+    // (paneeli hoitaa): toisen reitin pisteindeksi ⊥ tarkoita samaa maastoa (V258/B144).
+    if (state.routeChoices.length >= 2) {
+      const choices = document.createElement('div')
+      choices.className = 'segment-creation-route-choices'
+      for (const c of state.routeChoices) {
+        const pill = document.createElement('button')
+        pill.className = 'segment-creation-route-choice'
+        if (c.id === state.routeId) pill.classList.add('active')
+        pill.dataset.routeId = c.id
+        pill.textContent = c.label
+        pill.setAttribute('aria-pressed', String(c.id === state.routeId))
+        pill.addEventListener('click', () => this.onSwitchRoute?.(c.id))
+        choices.appendChild(pill)
+      }
+      modal.appendChild(choices)
+    }
 
     const list = document.createElement('ol')
     list.className = 'segment-creation-anchors'

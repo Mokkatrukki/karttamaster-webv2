@@ -115,7 +115,12 @@ async function init(talkoolainenCode?: string) {
     {
       segmentStore, renderSegmentOverlay, segmentPanel, showWarning, gpsNavigator,
       // T374/V269/B157: reittivalitsimen kytkin ulottuu pätkäkerrokseen asti.
-      setSegmentVisibleRoutes: ids => segmentOverlay.setVisibleRoutes(ids),
+      // T389/V281: sama kanava vie näkyvyyden myös LUONNIN reittiehdokkaisiin — suodatin on
+      // se työkalu jolla järjestäjä kertoo minkä reitin pätkää on tekemässä (B164).
+      setSegmentVisibleRoutes: ids => {
+        segmentOverlay.setVisibleRoutes(ids)
+        segmentPanel.setVisibleRoutes(ids)
+      },
       // T377/V271: suodatin pätkäkerrokselle — overlay soveltaa, ⊥ päätä.
       setSegmentMapFilter: filter => segmentOverlay.setMapFilter(filter),
       clearFocusSegment,

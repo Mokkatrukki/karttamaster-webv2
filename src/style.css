@@ -3046,6 +3046,34 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   color: var(--text-primary);
 }
 
+/* T389/V281/B164: reittipillerit. Ensiklikki lukitsi ennen tätä lähimmän reitin hiljaa &
+   3 SMTB-reittiä kulkee ≤100 m toisistaan ∴ vaihto ! olla yhden kosketuksen päässä — ⊥
+   "Peruuta & aloita alusta". 44px min-height = §A/V268 (paksut hanskat, aurinko). */
+.segment-creation-route-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 16px 8px;
+}
+
+.segment-creation-route-choice {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  background: var(--surface-raised, var(--field-tint));
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.segment-creation-route-choice.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
 .segment-creation-anchors {
   margin: 0;
   padding: 0 16px 8px 32px;
