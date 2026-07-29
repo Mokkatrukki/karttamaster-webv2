@@ -1,6 +1,7 @@
 import { validateInventoryItem, resolveItemName, adjustQty } from '../logic/inventory'
 import type { InventoryItem, InventoryLocation, InventoryFields } from '../logic/inventory'
 import type { SignTemplate } from '../logic/sign-library'
+import type { MarkerStock } from '../logic/marker-stock'
 import { buildMarkerVisual } from './marker-visual-row'
 import { createBackdrop, registerEscClose } from './modal-helpers'
 
@@ -18,6 +19,8 @@ export interface InventoryView {
   viewMode: InventoryViewMode // T251: oletus 'read' (V169); sessiokohtainen entryssä (V170)
   /** T386: linkittämättömien rivien määrä KOKO inventaariosta (⊥ vain valitusta paikasta). */
   unlinkedCount?: number
+  /** T387: kartalla/varastossa per template_id (computeMarkerStock). Puuttuva → badge näyttää 0. */
+  markerStock?: Map<string, MarkerStock>
 }
 
 export interface InventoryPageCallbacks {
@@ -581,6 +584,15 @@ function buildCard(item: InventoryItem, view: InventoryView, cb: InventoryPageCa
     nameEl = span
   }
   head.appendChild(nameEl)
+
+  // T387/V276: "kartalla N" -badge VAIN merkki-riville (templateId) — tarvikkeella ei ole
+  // karttavastinetta. Tieto (text-meta), ⊥ accent. Puuttuva merkintä = 0 (⊥ vielä kartalla).
+  if (item.templateId) {
+    const stockEl = document.createElement('span')
+    stockEl.className = 'inv-card-stock'
+    stockEl.textContent = `kartalla ${view.markerStock?.get(item.templateId)?.kartalla ?? 0}`
+    head.appendChild(stockEl)
+  }
 
   const unitEl = (): HTMLElement => {
     const el = document.createElement('span')

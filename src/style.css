@@ -5714,3 +5714,12 @@ body[data-map-mode="muokkaus"] #map-filter-bar:not([hidden]) ~ .marker-focus-pil
   .inv-merge-panel { max-height: 94vh; width: 100vw; border-radius: 0; }
   .inv-merge-actions > * { flex: 1 1 auto; }
 }
+
+/* T387/V276: "kartalla N" merkki-rivillä. TIETO ⊥ toiminto: text-muted, ⊥ accent, ⊥ nappi.
+   Tarvikerivillä ei näy — sillä ei ole karttavastinetta. */
+.inv-card-stock {
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}

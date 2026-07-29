@@ -9,6 +9,8 @@ import type { InventoryItem, InventoryLocation, InventoryFields } from './logic/
 import { showToast } from './ui/toast'
 import { describeUndo, type UndoAction } from './logic/inventory-undo'
 import { renderMergePanel, unlinkedCount, type MergeActionResult } from './ui/inventory-merge-panel'
+import { computeMarkerStock } from './logic/marker-stock'
+import { fetchMarkers } from './logic/sync'
 
 const content = document.getElementById('inventory-content')!
 const logoutBtn = document.getElementById('btn-inventory-logout')!
@@ -87,13 +89,18 @@ async function load(): Promise<void> {
   // T386: yhdistämislaskuri koskee KOKO inventaariota ⊥ vain valittua paikkaa ∴ haetaan kaikki
   // rivit erikseen (paitsi 'all'-välilehdellä, jossa lista jo on kaikki).
   const allUrl = '/api/inventory'
-  const [itemsRes, templates, allRes] = await Promise.all([
+  const [itemsRes, templates, allRes, markersRes] = await Promise.all([
     fetch(itemsUrl),
     fetchTemplateMap(),
     selected === 'all' ? Promise.resolve(null) : fetch(allUrl),
+    fetchMarkers(),
   ])
   const items = ((await itemsRes.json()) as ServerItem[]).map(normItem)
   const allItems = allRes && allRes.ok ? ((await allRes.json()) as ServerItem[]).map(normItem) : items
+
+  // T387/V276: kartalla-luku per template_id. Marker-haun epäonnistuminen ⊥ estä inventaarion
+  // latausta → tyhjä lista, badge näyttää "kartalla 0" (client-laskenta olemassa olevasta datasta).
+  const markerStock = computeMarkerStock(allItems, markersRes.ok ? markersRes.markers : [])
 
   // V172: näytä "Kumoa"-toast viimeisimmästä mutaatiosta (vain edit-moodissa; mutaatiot
   // eivät muutenkaan aukea read-moodissa V169). Uusi mutaatio korvaa edellisen (showToast).
@@ -104,7 +111,7 @@ async function load(): Promise<void> {
 
   renderInventory(
     content,
-    { locations, items, selectedLocationId: selected, templates, viewMode, unlinkedCount: unlinkedCount(allItems) },
+    { locations, items, selectedLocationId: selected, templates, viewMode, unlinkedCount: unlinkedCount(allItems), markerStock },
     {
       onSelectLocation: (sel) => {
         selected = sel

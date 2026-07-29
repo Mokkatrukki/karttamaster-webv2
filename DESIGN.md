@@ -717,6 +717,13 @@ Kartta avautuu **katselutilassa** joka latauksella; kaikki kartan MUTATOIVAT ele
 - LeftPanel-linkki (`.left-panel-link`, `href="/inventory.html"`) — ks. alla vanha huom.
 - **Undo-toast (T253, V172/V173):** jokainen mutaatio edit-modessa (poisto, −/+, siirto, paikan poisto) → `showToast` "Kumoa"-toastilla (ks. §K Toast). Client-only: yksi undo-slotti, reload → katoaa. Näkyy vain `viewMode='edit'`. Revert olemassa oleviin `/api/inventory`-reitteihin (POST uudelleen / PUT vanha arvo).
 
+### InventoryStockBadge — "kartalla N" inventaariorivillä (`.inv-card-stock`, T387/V276)
+- **Vain merkki-rivillä** (`templateId`): tarvikkeella ⊥ ole karttavastinetta ∴ badge olisi valhe. Sijainti: nimen jälkeen, ennen määrää — `[visuaali] nimi · kartalla N ···· määrä`.
+- **Tieto ⊥ toiminto:** `text-muted`, 12px, `tabular-nums`, ⊥ accent, ⊥ nappi. Määrä (`.inv-card-qty`) pysyy rivin ainoana korostettuna lukuna — kaksi vahvaa lukua vierekkäin lukisi kilpailuna.
+- **`kartalla 0` on merkityksellinen tulos** (⊥ piilotettavaa): "⊥ vielä kartalla" on juuri se mitä järjestäjä etsii ennen tapahtumaa.
+- **Marker-haun kaatuminen ⊥ estä inventaarion latausta** → badge näyttää `kartalla 0`. Näkyvä nolla > sivu joka ⊥ aukea.
+- Rooli: järjestäjä. Näkyy sekä read- että edit-modessa (katselutietoa, V169 koskee mutaatioita).
+
 ### InventoryMergePanel — järjestäjän "Yhdistä"-työkalu (`src/ui/inventory-merge-panel.ts`, T386/V277/V279)
 
 **Ongelma:** 101 inventaariorivistä osa on merkkejä joita ⊥ ole linkattu merkkipohjaan. Nimivertailu osaa ehdottaa, mutta kone ⊥ saa kirjoittaa liitosta (V277) ∴ tarvitaan näkymä jossa ihminen kuittaa rivin kerrallaan.
