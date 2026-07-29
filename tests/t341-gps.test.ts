@@ -115,9 +115,22 @@ function stubGeolocation(): {
   return { watch, clear, fire }
 }
 
-function fakeMap(): { panTo: ReturnType<typeof vi.fn>; addLayer: ReturnType<typeof vi.fn> } {
+function fakeMap(): {
+  panTo: ReturnType<typeof vi.fn>
+  addLayer: ReturnType<typeof vi.fn>
+  getPane: (n: string) => HTMLElement | undefined
+  createPane: (n: string) => HTMLElement
+} {
   // addLayer: Leafletin CircleMarker.addTo(map) kutsuu sitä — riittää tuplaukseksi.
-  return { panTo: vi.fn(), addLayer: vi.fn() }
+  // getPane/createPane: T397 luo GPS-pisteelle oman panen. Panen SISÄLLÖN vahtii
+  // tests/t397-gps-pane.test.ts — täällä riittää ettei kutsu kaadu.
+  const panes: Record<string, HTMLElement> = {}
+  return {
+    panTo: vi.fn(),
+    addLayer: vi.fn(),
+    getPane: (n) => panes[n],
+    createPane: (n) => (panes[n] = document.createElement('div')),
+  }
 }
 
 const geoError = (code: number): GeolocationPositionError =>

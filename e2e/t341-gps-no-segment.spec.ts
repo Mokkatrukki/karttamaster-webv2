@@ -33,7 +33,9 @@ test.describe('T341/V247 — GPS ilman pätkää', () => {
     await gpsBtn.click()
     // Label kertoo totuuden: päällä VASTA fixistä (V247) — tässä fix tulee mockista heti.
     await expect(gpsBtn).toHaveText('📍 GPS päällä', { timeout: 5000 })
-    await expect(page.locator('.leaflet-overlay-pane .gps-dot')).toBeVisible()
+    // T397/V287: piste on omassa `gps`-panessa (Leaflet-luokka `leaflet-gps-pane`), EI
+    // oletus-overlayPanessa — juuri siellä pätkäviivat hautasivat sen (B166).
+    await expect(page.locator('.leaflet-gps-pane .gps-dot')).toBeVisible()
   })
 
   test('sijaintilupa evätty → näkyvä syy, ei hiljainen no-op', async ({ page }) => {

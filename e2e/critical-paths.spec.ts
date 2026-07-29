@@ -382,14 +382,14 @@ test.describe('GPS-paikannin — T30', () => {
 
     // Nappi aktiivinen (label vaihtuu) + GPS-piste (.gps-dot) ilmestyy kartalle
     await expect(gpsBtn).toHaveText('📍 GPS päällä')
-    await expect(page.locator('.leaflet-overlay-pane .gps-dot')).toBeVisible()
+    await expect(page.locator('.leaflet-gps-pane .gps-dot')).toBeVisible()
 
     // Pysäytä GPS (avaa valikko uudelleen — klikkaus sulki sen)
     await page.click('#btn-menu')
     await gpsBtn.click()
     await page.waitForTimeout(300)
     await expect(gpsBtn).toHaveText('📍 GPS')
-    await expect(page.locator('.leaflet-overlay-pane .gps-dot')).not.toBeVisible()
+    await expect(page.locator('.leaflet-gps-pane .gps-dot')).not.toBeVisible()
   })
 })
 

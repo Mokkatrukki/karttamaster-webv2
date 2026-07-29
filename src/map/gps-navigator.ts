@@ -19,6 +19,15 @@ const HIGH_ACCURACY: PositionOptions = { enableHighAccuracy: true, maximumAge: 5
 // aikaikkuna on parempi kuin ei sijaintia lainkaan.
 const LOW_ACCURACY: PositionOptions = { enableHighAccuracy: false, maximumAge: 0, timeout: 30000 }
 
+// T397/V287 (fix B166): oma pane sijaintipisteelle. Leafletin oletuspanet:
+// tilePane 200, overlayPane 400 (reitit, pätkäviivat, aluepolygonit), shadowPane 500,
+// markerPane 600 (merkki-ikonit), tooltipPane 650 (pätkälaput), popupPane 700.
+// 675 = yli kaiken minkä päällä sijainnin on oltava, alle popupin.
+// Ilman omaa panea piste on samassa SVG:ssä kuin pätkäviivat ∴ jokainen
+// SegmentOverlay.update() hautaa sen piirtojärjestyksellä (B166).
+const GPS_PANE = 'gps'
+const GPS_PANE_Z = '675'
+
 export class GpsNavigator {
   private map: L.Map
   private watchId: number | null = null
@@ -95,10 +104,22 @@ export class GpsNavigator {
     this.setState('pois', msg)
   }
 
+  // T397/V287: idempotentti — turvallinen kutsua joka fixillä ja stop()/start()-syklin yli.
+  // Pane luodaan TÄÄLLÄ eikä map-init.ts:ssä: se on sijaintipisteen toteutusyksityiskohta,
+  // ei kartan alustuksen tietoa.
+  private ensurePane(): string {
+    const pane = this.map.getPane(GPS_PANE) ?? this.map.createPane(GPS_PANE)
+    pane.style.zIndex = GPS_PANE_Z
+    return GPS_PANE
+  }
+
   private onPosition(pos: GeolocationPosition): void {
     const { latitude, longitude } = pos.coords
     if (!this.dot) {
       this.dot = L.circleMarker([latitude, longitude], {
+        // Leaflet luo pane-kohtaisen SVG-rendererin itse (Map._getPaneRenderer) ∴
+        // pelkkä pane-optio riittää, omaa L.svg()-instanssia ei tarvita.
+        pane: this.ensurePane(),
         radius: 8,
         fillColor: '#3b82f6',
         color: '#1d4ed8',

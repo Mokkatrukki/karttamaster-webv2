@@ -111,6 +111,7 @@ Leaflet-glue. Ohut kerros kartan päällä. **Testattavuus: Playwright.**
 ### Tulossa
 - [x] Geolocation API: sijainti pisteenä kartalla (T30)
 - [x] Tilakone `haetaan → päällä → pois` + näkyvä virhesyy, TIMEOUT-retry matalalla tarkkuudella (T341/V247, fix B133)
+- [x] Oma Leaflet-pane `gps` (zIndex 675) — piste yli reitti-/pätkä-/aluoverlayden, merkki-ikonien ja pätkälappujen; pane luodaan idempotentisti GpsNavigatorin sisällä (T397/V287, fix B166)
 - [ ] `nearestUnsetMarker` — lähin asettamaton merkki (T16)
 - [ ] "Seuraava merkki Xm päässä" -näyttö (T31)
 - [ ] GPS-drive UI: navigointi + kuittaus yhdessä (T31)
