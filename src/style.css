@@ -3854,9 +3854,14 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 }
 
 /* T396/V286: "Navigoi tähän" -ankkuri. .btn tuo min-height:44px (§R/V268 — hanskoin
-   osuttava). Pelkkä .btn--ghost jää B105:n ansaan (taustaton keskitetty teksti ⊥ näytä
-   napilta) ∴ field-tint-tausta + reunus kuten muillakin kentillä tässä modaalissa. */
-.marker-detail-nav {
+   osuttava), loput tässä. EI .btn--ghost-varianttia: sen sääntö on tässä tiedostossa
+   MYÖHEMMIN samalla spesifisyydellä (0,1,0) ∴ se voittaisi nämä → taustaton himmeä
+   teksti joka ⊥ näytä napilta (B105:n ansa). field-tint + reunus = sama kenttäkieli
+   kuin modaalin muilla riveillä.
+   Selektori on tarkoituksella .marker-detail-modal-esiisällä (0,2,0): myös `.btn`
+   itse on tässä tiedostossa myöhemmin & sen `border:none` söisi reunuksen. Nostettu
+   spesifisyys tekee tästä lohkosta järjestysriippumattoman ⊥ luota rivinumeroihin. */
+.marker-detail-modal .marker-detail-nav {
   width: 100%;
   margin-bottom: 12px;
   background: var(--field-tint);
@@ -3867,7 +3872,7 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   box-sizing: border-box;
 }
 
-.marker-detail-nav:hover {
+.marker-detail-modal .marker-detail-nav:hover {
   background: var(--hover);
   color: var(--text-body);
 }

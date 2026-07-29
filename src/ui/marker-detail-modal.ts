@@ -143,7 +143,10 @@ export class MarkerDetailModal {
     const navHref = navUrl(navTarget(marker))
     if (navHref) {
       const navLink = document.createElement('a')
-      navLink.className = 'btn btn--ghost marker-detail-nav'
+      // ⊥ btn--ghost: sen sääntö on style.css:ssä MYÖHEMMIN samalla spesifisyydellä
+      // (0,1,0) ∴ se voittaisi .marker-detail-nav:n → taustaton himmeä teksti joka
+      // ⊥ näytä napilta (B105:n ansa). .btn antaa 44px-perustan, loppu omista säännöistä.
+      navLink.className = 'btn marker-detail-nav'
       navLink.href = navHref
       navLink.target = '_blank'
       navLink.rel = 'noopener noreferrer'
