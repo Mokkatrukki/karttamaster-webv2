@@ -131,7 +131,7 @@ server/       ← Hono + Bun + SQLite
 | AreaPanel | `src/ui/area-panel.ts` | ✓ | area-interaction | [ui.md](docs/components/ui.md) |
 | AreaView | `src/ui/area-view.ts` | ✓ | — | [ui.md](docs/components/ui.md) |
 | GpkgControls | `src/ui/gpkg-controls.ts` | ✓ T127 | — | [ui.md](docs/components/ui.md) |
-| MarkerDetailModal | `src/ui/marker-detail-modal.ts` | ✓ T225 (talkoolaisen kova-poisto vain oma itse-luoma, V151) | screenshots: "marker-detail-modal" | [ui.md](docs/components/ui.md) |
+| MarkerDetailModal | `src/ui/marker-detail-modal.ts` | ✓ T225 (talkoolaisen kova-poisto vain oma itse-luoma, V151), T396 (📍 Navigoi tähän -ankkuri bodyn alussa, href = `nav-link.ts`, V286) | screenshots: "marker-detail-modal"; tests/t396-nav-link-ui.test.ts | [ui.md](docs/components/ui.md) |
 | FeedbackWidget | `src/devtools/feedback-widget.ts` | ✓ devtools | feedback-widget | — |
 | BackendServer | `server/index.ts` | ✓ T41 | — | [backend.md](docs/components/backend.md) |
 | DatabaseLayer | `server/db.ts` | ✓ | — | [backend.md](docs/components/backend.md) |

@@ -3853,6 +3853,25 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   margin-bottom: 4px;
 }
 
+/* T396/V286: "Navigoi tähän" -ankkuri. .btn tuo min-height:44px (§R/V268 — hanskoin
+   osuttava). Pelkkä .btn--ghost jää B105:n ansaan (taustaton keskitetty teksti ⊥ näytä
+   napilta) ∴ field-tint-tausta + reunus kuten muillakin kentillä tässä modaalissa. */
+.marker-detail-nav {
+  width: 100%;
+  margin-bottom: 12px;
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.marker-detail-nav:hover {
+  background: var(--hover);
+  color: var(--text-body);
+}
+
 .marker-detail-note {
   width: 100%;
   min-height: 80px;

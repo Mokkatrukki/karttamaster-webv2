@@ -4,6 +4,7 @@ import type { SignMarker, MarkerStatus } from '../logic/types'
 import { SIGN_TYPES } from '../logic/sign-picker'
 import { listTemplates } from '../logic/sign-library'
 import { validActions, canTransition } from '../logic/marker-status'
+import { navUrl, navTarget } from '../logic/nav-link'
 import { registerEscClose, signPreviewHtml } from './modal-helpers'
 import { openImageLightbox } from './image-lightbox'
 
@@ -131,6 +132,26 @@ export class MarkerDetailModal {
       parts: marker.parts ?? template?.parts,
     })
     body.appendChild(preview)
+
+    // T396/V286: "Navigoi tähän" — merkit ovat metsässä ∴ talkoolainen ajaa niin
+    // lähelle kuin tieverkko antaa ja kävelee loput. Ankkuri ⊥ nappi+window.open:
+    // selain hoitaa app-handoffin (Android-intent / iOS universal link), pitkä
+    // painallus antaa "kopioi linkki", eikä JS-käsittelijää tarvita.
+    // Sijainti: bodyn alussa ENNEN kommenttikenttää — vastaa kysymykseen "missä
+    // tämä on", ei ole statustoiminto ∴ ei footeriin (DESIGN §K lukitsee footerin
+    // sisällön per rooli). Näkyy molemmille rooleille: järjestäjä ajaa itse pätkänsä.
+    const navHref = navUrl(navTarget(marker))
+    if (navHref) {
+      const navLink = document.createElement('a')
+      navLink.className = 'btn btn--ghost marker-detail-nav'
+      navLink.href = navHref
+      navLink.target = '_blank'
+      navLink.rel = 'noopener noreferrer'
+      navLink.textContent = '📍 Navigoi tähän'
+      body.appendChild(navLink)
+    }
+    // navHref === null (kelvottomat koordinaatit) → riviä ei renderöidä lainkaan.
+    // Ei disabloitua nappia: kuollut pinta (V250) eikä rikkinäistä linkkiä.
 
     // locationNote textarea
     const noteLabel = document.createElement('label')
