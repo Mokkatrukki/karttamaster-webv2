@@ -1,6 +1,7 @@
 import type { InventoryItem, InventoryLocation } from '../logic/inventory'
 import type { SignTemplate } from '../logic/sign-library'
 import { rankTemplates, normalizeName, SUGGESTION_THRESHOLD } from '../logic/template-match'
+import { unlinkedItems } from '../logic/inventory-link'
 import { buildMarkerVisual } from './marker-visual-row'
 import { showToast } from './toast'
 
@@ -43,15 +44,10 @@ export interface MergePanelCallbacks {
   onClose: () => void
 }
 
-/** V276/V279: yhdistämislistalle kuuluvat vain linkittämättömät JA ei-tarvikkeiksi merkityt. */
-export function unlinkedItems(items: InventoryItem[]): InventoryItem[] {
-  return items.filter((i) => !i.templateId && i.notSign !== true)
-}
-
-/** Laskuri headerin nappiin — työkalun ARVO: järjestäjä näkee että työtä on jäljellä & milloin se loppui. */
-export function unlinkedCount(items: InventoryItem[]): number {
-  return unlinkedItems(items).length
-}
+// T398: `unlinkedItems`/`unlinkedCount` asuvat `src/logic/inventory-link.ts`:ssä — suodatinsääntö
+// on logiikkaa ⊥ DOM:ia & sillä on kaksi kuluttajaa (tämä paneeli + T399:n luontipicker).
+// Re-vienti pitää T386:n kutsupaikat & testit ennallaan.
+export { unlinkedItems, unlinkedCount } from '../logic/inventory-link'
 
 /** Saman PAIKAN toinen linkittämätön rivi joka normalisoituu samaksi nimeksi (T384) → merge-ehdokas. */
 function duplicateOf(item: InventoryItem, rows: InventoryItem[]): InventoryItem | undefined {

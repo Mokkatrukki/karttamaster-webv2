@@ -21,8 +21,17 @@
 /** Ehdotus/ei-ehdotus-raja: score ≥ tämä = "varmaankin tämä?". Alle → ⊥ tarjota. */
 export const SUGGESTION_THRESHOLD = 0.6
 
-/** V278: kiinnitystapaan viittaavat nimivariantit — sama nimike kuin kantamuoto. */
-const ATTACHMENT_TOKENS = new Set(['irtokyltti', 'irtokyltit', 'lisakilpi', 'lisakilvet'])
+/**
+ * V278: kiinnitystapaan viittaavat nimivariantit — sama nimike kuin kantamuoto.
+ * Taivutukset mukana koska tuotantodata sisältää ne ("Peikkopolku, lisäkilvellä").
+ * Vertailumuodossa (diakriitit purettu) ∴ 'lisakilvella' ⊥ 'lisäkilvellä'.
+ * JAETTU `inventory-link.ts`:n `cleanDisplayName`in kanssa (T398) — yksi lista, ⊥ kahta.
+ */
+export const ATTACHMENT_WORDS = new Set([
+  'irtokyltti', 'irtokyltit', 'irtokyltilla', 'irtokyltillinen',
+  'lisakilpi', 'lisakilvet', 'lisakilvella', 'lisakilvellinen',
+])
+const ATTACHMENT_TOKENS = ATTACHMENT_WORDS
 
 /** Rankattu tulos: alkuperäinen template-olio + [0,1]-samankaltaisuus kyselyyn. */
 export interface RankedTemplate<T> {
