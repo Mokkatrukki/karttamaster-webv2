@@ -49,6 +49,7 @@ server/       ← Hono + Bun + SQLite
 | InventoryUndoLogic | `src/logic/inventory-undo.ts` | ✓ T252 (UndoAction-tyyppi + describeUndo toast-teksti, client-only V172) | — | [logic.md](docs/components/logic.md) |
 | VarustarkastusLogic | `src/logic/varustarkastus.ts` | ✓ T258/R2 (talkoolaisen "otin nämä" checkoff, client-only localStorage per pätkä V180) | tests/t258-varustarkastus.test.ts | [logic.md](docs/components/logic.md) |
 | EquipmentCounts | `src/logic/equipment-counts.ts` | ✓ T393/V285 (varustelistan phase-tietoinen tyyppilaskuri: iso luku = `take` "ota mukaan", meta = "N/M asetettu"/"kerätty"; `ei_tarpeen` pois kaikista luvuista; JAETTU SegmentEquipment + EquipmentModal + SegmentDetailsModal — ⊥ kolmea laskentaa) | tests/t393-equipment-counts.test.ts, tests/t394-equipment-counts-ui.test.ts | [logic.md](docs/components/logic.md) |
+| TemplateMatch | `src/logic/template-match.ts` | ✓ T384 (inventaarion nimi→merkkipohja EHDOTUS, ⊥ liitos: `normalizeName` V278-suffiksipoisto + Levenshtein-toleranssi; liitos on aina templates.id V276, kirjoitus vaatii kuittauksen V277) | tests/t384-template-match.test.ts | [logic.md](docs/components/logic.md) |
 | PhaseView | `src/logic/phase-view.ts` | ✓ T148 | — | [logic.md](docs/components/logic.md) |
 | RoleController | `src/logic/role.ts` | ✓ T12 (V80: rooli backendistä, toggle dead code) | critical-paths: "Rooli backendistä" | [logic.md](docs/components/logic.md) |
 | SituationLogic | `src/logic/situation.ts` *(ei vielä)* | ○ T15 | — | [logic.md](docs/components/logic.md) |
