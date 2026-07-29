@@ -19,7 +19,7 @@ DOM-komponentit ilman Leafletia. **Testattavuus: Vitest-jsdom.**
 - ✓ Järjestäjä: leveämpi modaali (`modal--järjestäjä`) + bulk-toolbar — valitse kaikki, statusvalinta, "Aseta (N)"-nappi joukolle merkeille
 - ✓ Talkoolainen: sticky bottom bulk-action-bar — "✓ Aseta (N)" / "Ei tarpeen (N)", vain ei-terminaalitilaisille merkeille
 - ✓ Poistonappi (`.btn-delete`) vain järjestäjälle
-- ✓ Kommenttikuvake (`marker-note-dot`) jos `locationNote` asetettu
+- ✓ Ohjekuvake (`marker-note-dot`) jos `locationNote` asetettu (V275: ohje ⊥ keskustelu)
 
 ### Käyttäjätarkistus
 > Talkoolainen: lista näyttää oman pätkän merkit, bulk-kuittaus nopeuttaa raportointia metsässä ✓
@@ -373,14 +373,14 @@ DOM-komponentit ilman Leafletia. **Testattavuus: Vitest-jsdom.**
 ---
 
 ## MarkerDetailModal — T103
-**Vastuu:** Yksittäisen merkin täydet tiedot — kommentti, kuvaus, kuvat, tyypinvaihto, statussiirtymät, poisto
+**Vastuu:** Yksittäisen merkin täydet tiedot — ohje, kuvaus, kuvat, tyypinvaihto, statussiirtymät, poisto
 **Käyttäjä:** molemmat, eri footer roolin mukaan
 **Moduuli:** `src/ui/marker-detail-modal.ts` (343 riv, seurattava — kasvoi T103:ssa)
 **Testattavuus:** Vitest-jsdom
 
 ### Ominaisuudet
 - ✓ Header: tyyppi + km + statusbadge + sulje
-- ✓ Kommentti-tekstialue (`locationNote`) molemmille rooleille, auto-tallennus blurilla
+- ✓ Ohje-tekstialue (`locationNote`) molemmille rooleille, auto-tallennus blurilla — merkin AINOA vapaa tekstikenttä (V275, T380: kommenttilanka poistettu)
 - ✓ Kuvaus: järjestäjälle muokattava tekstialue, talkoolaiselle vain luku
 - ✓ Kuvagalleria (T103): thumbnailit + virhefallback ("[kuva ei saatavilla]"), järjestäjälle "📷 Lisää kuva" -nappi (kamera/tiedosto, `capture=environment`)
 - ✓ Järjestäjän footer: tyyppi-select (`.marker-detail-type-select` — sisältää sekä `SIGN_TYPES` että kirjaston templatit), Tallenna, destructive "Poista merkki"

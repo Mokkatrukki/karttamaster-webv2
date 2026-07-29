@@ -43,7 +43,7 @@ Työkalu SyöteMTB 2026 -tapahtuman reittimerkintöjen suunnitteluun, toteutukse
 - Navigoi merkiltä merkille, kuittaa tehdyksi
 - Bulk-kuittaa useita merkkejä kerralla kun on selvää mitä tehtiin
 - Siirtää tai poistaa merkin jos maasto vaatii
-- Lisää merkin jota ei suunniteltu, tai huomion/kommentin (ikoni + teksti)
+- Lisää merkin jota ei suunniteltu, tai kirjoittaa merkille ohjeen ("kelo vaarassa kaatua, hox tarkistajalle")
 - Muokkaa pätkän pituutta kentällä — voi laajentaa tai lyhentää
 - Kirjaa materiaalit: "otin 10 keppiä mukaan", merkkaa kasan kartalle
 - Merkkaa pätkä valmiiksi
@@ -264,12 +264,12 @@ Jos feature on teknisesti oikein mutta ei läpäise käyttäjätestiä, se on ke
 - **Merkin siirto:** paikka oli parempi toisaalla — siirtää kartalla tai GPS-paikalla.
 - **Merkin poisto:** ei tarvittu — merkitään "ei tarpeen" + syy.
 - **Uusi merkki:** tässä olisi hyvä olla merkki jota ei ollut suunnitelmassa.
-- **Kommentti/huomio (yleinen systeemi):** kuka tahansa voi lisätä kommentin mihin tahansa karttakohteeseen (merkki, pätkä, vapaa piste). Kommentilla voi olla ikoni (valinnaisesti). Nimi valinnainen mutta suositeltava. Geneerinen — ei erillisiä kenttiä eri tilanteille. "Puu kaatuu tänne", "blokattiin polku", "hyvä parkkipaikka tässä" — kaikki samaan systeemiin.
-- **Este/blokki:** toteutetaan kommentti+ikoni-yhdistelmänä, ei erillinen merkki. Karttamerkki-järjestelmä suunnitellaan erikseen.
+- **Merkin ohje (yksisuuntainen, V275):** kuka tahansa voi kirjoittaa merkille vapaan ohjeen (`locationNote`) ja pätkälle lisäohjeen (`description`) — "tässä on kelo joka voi romahtaa, hox tarkistajalle". Yksi kenttä per kohde, ei ketjua, ei vastauksia. **Keskustelu käydään WhatsAppissa:** sovelluksen sisäinen rinnakkaiskanava on aina huonompi kuin se johon porukka jo vastaa. (Yleinen kommentti-/huomiosysteemi rakennettiin 2026-07 ja POISTETTIIN 2026-07-29 — ks. §Avoimet 6.)
+- **Este/blokki:** avoin. Ei enää kommentti+ikoni-yhdistelmä (se systeemi poistui) — kuuluu karttamerkki-/POI-järjestelmään, §Avoimet 7. Toistaiseksi este kirjataan lähimmän merkin ohjekenttään.
 
 ### Pätkän päättäminen
 
-- Merkkaa pätkä tehdyksi + mahdolliset kommentit.
+- Merkkaa pätkä tehdyksi + mahdollinen tarkastushuomio (`inspectionNote`).
 - **Pätkän muokkaus kentällä:** nappi "muokkaa pätkän pituutta" — talkoolainen voi siirtää päätepistettä kartalla, myös pidemmälle kuin järjestäjä alun perin asetti. Järjestäjä voi yliajaa jälkikäteen. Käyttää samoja yleiskäyttöisiä komponentteja kuin järjestäjän pätkämuokkaus.
 - "Käyn purkamassa tämän alueen" — impromptu-jako, avoin kysymys toteutuksesta.
 
@@ -292,7 +292,7 @@ Jos feature on teknisesti oikein mutta ei läpäise käyttäjätestiä, se on ke
 - Kaikki talkoolaisten URL:t ovat **hash-pohjaisia** — ei arvattavissa, ei sekvenssimäisiä.
 - Jako: WhatsApp-viesti tai QR-koodi (esim. tulostettu tai näytöllä järjestäjän laitteessa).
 - Talkoolaiset toimivat yhteisymmärryksessä keskenään — voivat koordinoida ilman järjestäjää.
-- **Järjestäjä voi yliajaa kaiken** — pätkärajat, statusit, kommentit, assignoinnit.
+- **Järjestäjä voi yliajaa kaiken** — pätkärajat, statusit, ohjekentät, assignoinnit.
 
 ---
 
@@ -326,5 +326,5 @@ Jokaisella tehtävällä (reitillisellä tai reitittömällä) on **merkkijoukko
 3. **GPX-päivitys**: mitä tapahtuu olemassa oleville merkeille kun GPX korvataan? (T34, auki)
 4. **Impromptu-pätkäjako:** ~~miten talkoolainen ottaa alueen ilman järjestäjää?~~ **RATKAISTU 2026-07-08: ei self-assignia.** Vain järjestäjä luo ja jakaa pätkät/tehtävät. Talkoolainen vastaanottaa, ei ota omia. **AMEND 2026-07-22 (T267–T276, Talkoolais-hub):** talkoolainen pääsee `/patkat`-hubiin yleissalasanalla ja voi AVATA minkä tahansa pätkän (nähdä + tehdä) — mutta self-select "ota tämä pätkä itselleni" (assign) on yhä PARKISSA, tehdään myöhemmin. Järjestäjä jakaa/nimeää pätkät kuten ennenkin. Deep-linkki muuttui hash→ihmisluettava slug (V42-amend), portti = yleissalasana (V188), ei enää per-pätkä-hash-credentiaali.
 5. **Kasa-kuittaus:** ~~kuka voi merkata kasan otetuksi?~~ **RATKAISTU 2026-07-08:** kasa = talkoolaisen droppaama SignMarker (tyyppi esim. "keräyskasa"). Autoporukan tehtävä = dynaaminen tyyppisuodatin (kaikki keräyskasa-merkit, elävä lista). Kuka tahansa autentikoitu kuittaa "haettu". Osa tehtävämallia (ks. §Tehtävämalli).
-6. **Kommentti-systeemi:** yleiskäyttöinen (merkki + pätkä + vapaa piste), ikoni valinnaisesti, nimi valinnaisesti. Suunnitellaan ennen toteutusta — vaikuttaa tietomalliin laajasti.
-7. **Karttamerkki-järjestelmä (POI/este/kasa):** custom karttamerkkien tyypit ja tietomalli suunnittelematta. Eri asia kuin reittimerkki (SignMarker).
+6. **Kommentti-systeemi:** ~~yleiskäyttöinen (merkki + pätkä + vapaa piste), ikoni valinnaisesti~~ **SULJETTU 2026-07-29: ei rakenneta (T380–T382, V275).** Se rakennettiin 2026-07 ilman tätä suunnittelua (T221/T237/T338/T340) ja tuotantokäyttö koko kaudelta oli **1 kommentti / 194 merkkiä** — 0 pätkäkommenttia, 0 vapaan pisteen huomiota, 0 kuvaa. Sekin yksi oli DUPLIKAATTI: sama talkoolainen kirjoitti saman vaarahavainnon sekä kommenttiin että saman merkin ohjekenttään, koska kaksi kenttää samaan tarkoitukseen ei kerro kumpaan kirjoittaa. Vertailuksi ohjekenttä `location_note`: 6/194. Ratkaisu: yksi ohjekenttä per kohde, keskustelu WhatsAppissa. Uusi "kommentoi"-UI ei palaa ilman että V275 kumotaan ensin.
+7. **Karttamerkki-järjestelmä (POI/este/kasa):** custom karttamerkkien tyypit ja tietomalli suunnittelematta. Eri asia kuin reittimerkki (SignMarker). **AMEND 2026-07-29:** este/blokki kuuluu TÄNNE, ei kommentteihin (kohta 6 suljettiin). Jos este halutaan kartalle omana kohteenaan, se suunnitellaan osana tätä — ei uutena vapaan tekstin kerroksena.
