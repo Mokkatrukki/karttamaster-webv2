@@ -5723,3 +5723,83 @@ body[data-map-mode="muokkaus"] #map-filter-bar:not([hidden]) ~ .marker-focus-pil
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
+
+/* ── T399: InventoryLinkPicker — "mitä varastossa on" merkkipohjaa luotaessa (V288/V289) ──
+   Osio nimikentän alla. Toissijainen tieto: ⊥ kilpaile nimikentän kanssa, ⊥ accent-täyttöä. */
+.inv-link-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.inv-link-hint {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.inv-link-suggestions { display: flex; flex-direction: column; gap: 4px; }
+.inv-link-suggestion {
+  min-height: 44px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--field-tint);
+  color: var(--text-body);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+}
+.inv-link-suggestion:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.inv-link-row-name { font-weight: 600; }
+.inv-link-row-meta { color: var(--text-muted); font-size: 12px; margin-left: auto; white-space: nowrap; }
+
+.inv-link-browse {
+  min-height: 44px;
+  padding: 6px 10px;
+  background: none;
+  color: var(--accent);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+}
+.inv-link-browse:hover { border-color: var(--accent); }
+
+/* Valinta tehty → ehdotukset väistyvät, chip kertoo mitä tallennus tekee (V288). */
+.inv-link-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+.inv-link-chip-text { color: var(--text-body); font-weight: 600; flex: 1; min-width: 0; }
+.inv-link-chip-clear {
+  min-height: 44px;
+  padding: 4px 10px;
+  background: none;
+  color: var(--text-muted);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.inv-link-chip-clear:hover { color: var(--text-body); border-color: var(--border-strong); }
+
+/* Selauslista on merkkipohjan luontimodaalin PÄÄLLÄ (modaali z-index 1000). */
+.inv-link-browser-backdrop { z-index: 5000; }
+.inv-link-browser-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 44px;
+  text-align: left;
+}

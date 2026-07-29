@@ -12,6 +12,8 @@ import { CURATED_ICONS, getIconById, renderIconSvg } from '../logic/icon-set'
 import { slugify } from '../logic/sign-id-slug'
 import { signImageIds, signImageSrc } from '../logic/sign-images'
 import { registerEscClose, createBackdrop, signPreviewHtml } from './modal-helpers'
+import { mountInventoryLinkPicker, type LinkPickerHandle } from './inventory-link-picker'
+import type { InventoryLinkRow } from '../logic/inventory-link'
 
 // T195/V125: kirjasto käynnistyy tyhjänä — ei suojattuja oletusmalleja. Kaikki mallit
 // ovat järjestäjän itse tekemiä ja poistettavissa (edit-modaalin destructive-nappi).
@@ -31,9 +33,21 @@ function escapeHtml(s: string): string {
 // Callbackit joilla template-modaali kutsuu paneelia/backendia (T193/V123). onChanged
 // ajaa paneelin re-renderin + ulkoisen onChangen tallennuksen/poiston jälkeen.
 export interface SignTemplateModalCallbacks {
-  onSaveTemplate?: (template: SignTemplate, isNew: boolean) => void
+  /**
+   * `linkedItemId` (T399): luontitilassa valittu varastorivi, muuten null/undefined. Kutsuja joka
+   * MUUTENKIN luo inventaariorivin (inventaarion "+ Uusi merkki") käyttää tätä päättääkseen
+   * linkitetäänkö olemassa oleva rivi vai luodaanko uusi — muuten syntyisi kaksi riviä.
+   */
+  onSaveTemplate?: (template: SignTemplate, isNew: boolean, linkedItemId?: string | null) => void
   onDeleteTemplate?: (id: string) => void
   onChanged: () => void
+  /**
+   * T399/V289: linkitettävät varastorivit merkkipohjaa LUOTAESSA. VALINNAINEN — puuttuva
+   * (tai hylkäävä) → varastolinkki-osiota ⊥ renderöidä & luonti toimii ennallaan.
+   */
+  inventoryRows?: () => Promise<InventoryLinkRow[]>
+  /** T399/V288: kirjoita linkki VASTA tallennuksen jälkeen — templatea ⊥ ole ennen sitä. */
+  onLinkInventory?: (itemId: string, template: SignTemplate) => Promise<void>
 }
 
 // T235: template-detalji/edit-modaali eriytetty SignLibraryPanelista (pilkkotaski). Sama
@@ -140,6 +154,27 @@ export class SignTemplateModal {
     labelInput.value = template?.label ?? prefill?.label ?? ''
     labelInput.style.cssText = 'padding:8px 10px;min-height:44px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-body);font-size:13px;width:100%;box-sizing:border-box'
     modal.appendChild(labelInput)
+
+    // T399/V288/V289: varastolinkki VAIN luontitilassa — muokkaustilassa linkki on jo olemassa
+    // tai kuuluu inventaariosivulle. Callback puuttuu → osiota ⊥ mountata lainkaan (V289).
+    let linkPicker: LinkPickerHandle | null = null
+    if (!template && this.callbacks.inventoryRows) {
+      const linkHost = document.createElement('div')
+      modal.appendChild(linkHost)
+      linkPicker = mountInventoryLinkPicker(linkHost, {
+        rows: this.callbacks.inventoryRows,
+        getLabel: () => labelInput.value,
+        setLabel: (value) => {
+          labelInput.value = value
+          // Ohjelmallinen value ⊥ laukaise 'input'-eventtiä (ansa, ks. auto-slug alla) ∴
+          // dispatch käsin → slug johtuu uudesta nimestä & idTouched-sääntö pysyy voimassa.
+          labelInput.dispatchEvent(new Event('input'))
+          labelInput.focus()
+          labelInput.select() // yksi näppäily kirjoittaa yli, nuolinäppäin jättää ehdotuksen
+        },
+      })
+      labelInput.addEventListener('input', () => linkPicker?.refresh())
+    }
 
     // V97: id-kenttä — vain luonnissa (id on muuttumaton avain, editissä lukittu)
     let idInput: HTMLInputElement | null = null
@@ -647,7 +682,17 @@ export class SignTemplateModal {
         }
         const color = colorInput?.value ?? '#f59e0b'
         const created = createTemplate(this.library, { label, color, description, favorite, iconId, imageId, parts }, id)
-        this.callbacks.onSaveTemplate?.(created, true)
+        const linkedId = linkPicker?.selected()?.id ?? null
+        const saved = this.callbacks.onSaveTemplate?.(created, true, linkedId)
+        // V288: linkki kirjoitetaan VASTA nyt — templatea ⊥ ollut olemassa ennen tätä riviä.
+        // ODOTA `onSaveTemplate`n lupaus ENNEN linkitystä: se POSTaa templaten backendiin &
+        // linkitys-PUT viittaa siihen ∴ ilman odotusta PUT voisi ehtiä ensin → `template_not_found`.
+        // Epäonnistuminen ⊥ peruuta templatea (⊥ rollbackia): merkkipohja on itsenäisesti arvokas
+        // & sen poisto hukkaisi juuri tehdyn työn. Kutsuja kertoo & ohjaa 🔗 Yhdistä -työkaluun.
+        if (linkedId && this.callbacks.onLinkInventory) {
+          const link = this.callbacks.onLinkInventory
+          void Promise.resolve(saved).then(() => link(linkedId, created))
+        }
       } else {
         const patch: Partial<Omit<SignTemplate, 'id'>> = { label, description, iconId, imageId, favorite, parts }
         if (colorInput) patch.color = colorInput.value

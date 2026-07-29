@@ -10,6 +10,7 @@ import { showToast } from './ui/toast'
 import { describeUndo, type UndoAction } from './logic/inventory-undo'
 import { renderMergePanel, unlinkedCount, type MergeActionResult } from './ui/inventory-merge-panel'
 import { computeMarkerStock } from './logic/marker-stock'
+import { fetchInventoryLinkRows, linkInventoryItemToTemplate } from './logic/inventory-sync'
 import { fetchMarkers } from './logic/sync'
 
 const content = document.getElementById('inventory-content')!
@@ -379,9 +380,22 @@ async function openSignFlow(locationId: string | null, knownTemplates: Map<strin
     onCreateNew: () => {
       const modal = new SignTemplateModal(library, {
         onChanged: () => { /* inventaario reloadaa onSaveTemplaten kautta */ },
-        onSaveTemplate: async (tpl, isNew) => {
+        // T399/V289: näytä mitä varastossa on jo — usein merkkipohja luodaan juuri
+        // olemassa olevalle laatikon riville, ⊥ uudelle.
+        inventoryRows: fetchInventoryLinkRows,
+        onSaveTemplate: async (tpl, isNew, linkedItemId) => {
           if (!isNew) return
           await createTemplateRemote(tpl) // näkyy heti kirjastossa + kartalla (V165)
+          if (linkedItemId) {
+            // Käyttäjä valitsi OLEMASSA olevan varastorivin → linkitä se. UUTTA riviä ⊥ luoda:
+            // muuten sama merkki olisi kahdella rivillä (uusi qty 1 + vanha oikea määrä).
+            const ok = await linkInventoryItemToTemplate(linkedItemId, tpl.id)
+            if (!ok) {
+              showToast(`Merkkipohja "${tpl.label}" luotiin, mutta linkitys ei onnistunut — yhdistä 🔗 Yhdistä -työkalulla.`)
+            }
+            await load()
+            return
+          }
           await createSignRow(tpl.id, locationId)
         },
       })

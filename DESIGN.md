@@ -724,6 +724,17 @@ Kartta avautuu **katselutilassa** joka latauksella; kaikki kartan MUTATOIVAT ele
 - **Marker-haun kaatuminen ⊥ estä inventaarion latausta** → badge näyttää `kartalla 0`. Näkyvä nolla > sivu joka ⊥ aukea.
 - Rooli: järjestäjä. Näkyy sekä read- että edit-modessa (katselutietoa, V169 koskee mutaatioita).
 
+### InventoryLinkPicker — "mitä varastossa on" merkkipohjaa luotaessa (`src/ui/inventory-link-picker.ts`, T399/V288/V289)
+- **Sijainti:** nimikentän ALLA luontimodaalissa, ennen Tunnusta — ehdotus seuraa sitä kenttää jota se koskee. Näkyy **vain luontitilassa**.
+- **Toissijainen tieto, ⊥ kilpaile nimikentän kanssa:** `.inv-link-suggestion` = `field-tint` + `border-default`, accent vasta hoverissa. Nimi 600, meta (`N kpl · paikka`) `text-muted` oikeassa reunassa. 44px (§A/V268).
+- **Ei osumia → kaista katoaa kokonaan** (`.inv-link-suggestions` ⊥ renderöidä). Tyhjä laatikko "ei ehdotuksia" olisi melua kentässä johon käyttäjä on juuri kirjoittamassa.
+- **`.inv-link-browse`** katkoviivakehys (sama affordanssi kuin "+ Paikka") tekstillä "Näytä kaikki varastorivit (N)" → `.inv-sign-picker`-kuoren haettava lista **`z-index:5000`** (luontimodaali on 1000).
+- **Valinta → `.inv-link-chip`** (accent-reuna + 12% accent-tausta) "Linkitetään: <nimi> (N kpl)" + "Poista valinta"; **ehdotukset väistyvät** — päätös on tehty, lisäehdotukset kutsuisivat epäilemään sitä.
+- **Nimi täyttyy siivottuna** (`cleanDisplayName`, T398): "Nuoli irtokyltti, valkoinen tausta" → "Nuoli, valkoinen tausta". Kiinnitystapa kuuluu varastoriville ⊥ merkkipohjan nimeen (V278/V186). Täyttö **ylikirjoittaa aina** — kirjoitettu teksti on hakusana ("bus") ⊥ nimi — ja fokus siirtyy kenttään teksti valittuna ∴ yksi näppäily kirjoittaa yli.
+- **V288: valinta ⊥ ole kirjoitus.** PUT ajetaan vasta tallennuksessa & vasta kun template on backendissä. Peruutus ⊥ jätä jälkeä.
+- **V289: osio on valinnainen.** Callback puuttuu tai haku hylkää (403 talkoolaiselle kartalla) → osiota ⊥ renderöidä, ⊥ virheilmoitusta. Merkkipohjan luonti on itsenäinen toiminto.
+- **XSS (V164):** rivinimet `textContent`. Rooli: järjestäjä. Ei uusia väritokeneja.
+
 ### InventoryMergePanel — järjestäjän "Yhdistä"-työkalu (`src/ui/inventory-merge-panel.ts`, T386/V277/V279)
 
 **Ongelma:** 101 inventaariorivistä osa on merkkejä joita ⊥ ole linkattu merkkipohjaan. Nimivertailu osaa ehdottaa, mutta kone ⊥ saa kirjoittaa liitosta (V277) ∴ tarvitaan näkymä jossa ihminen kuittaa rivin kerrallaan.

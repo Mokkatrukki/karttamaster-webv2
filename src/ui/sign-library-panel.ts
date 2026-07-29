@@ -7,6 +7,8 @@ import {
 } from '../logic/sign-library'
 import { buildMarkerVisual, type MarkerVisualInput } from './marker-visual-row'
 import { SignTemplateModal } from './sign-template-modal'
+import { fetchInventoryLinkRows, linkInventoryItemToTemplate } from '../logic/inventory-sync'
+import { showToast } from './toast'
 import { createSectionHeader } from './section-header'
 
 // T200: SignTemplate ei kanna 'type'-kenttää jota buildMarkerVisual käyttää top-level-kuva-avaimena
@@ -51,6 +53,17 @@ export class SignLibraryPanel {
     this.modal = new SignTemplateModal(this.library, {
       onSaveTemplate: this.onSaveTemplate,
       onDeleteTemplate: this.onDeleteTemplate,
+      // T399/V288/V289: merkkipohjaa luotaessa näkyy mitä varastossa on. Kartalla
+      // `/api/inventory` on admin|järjestäjä (V163) → talkoolaisella 403 & osio jää pois hiljaa.
+      inventoryRows: fetchInventoryLinkRows,
+      onLinkInventory: async (itemId, template) => {
+        const ok = await linkInventoryItemToTemplate(itemId, template.id)
+        showToast(
+          ok
+            ? `Linkitetty varastoriviin: ${template.label}`
+            : `Merkkipohja "${template.label}" luotiin, mutta linkitys varastoon ei onnistunut — yhdistä inventaarion 🔗 Yhdistä -työkalulla.`,
+        )
+      },
       onChanged: () => {
         this.render()
         this.onChange()
