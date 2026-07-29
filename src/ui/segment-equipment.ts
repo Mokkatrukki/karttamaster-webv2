@@ -1,5 +1,6 @@
 import { SIGN_TYPES } from '../logic/sign-picker'
 import { loadChecked, setChecked, checkProgress, checkKeyForType, checkKeyForItem } from '../logic/varustarkastus'
+import { getEquipmentCounts, getEquipmentSummary, formatEquipmentSummary } from '../logic/equipment-counts'
 import type { Segment } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
 
@@ -40,14 +41,16 @@ export class SegmentEquipment {
     this.el.innerHTML = ''
     this.checked = loadChecked(segment.id)
 
-    // Auto-laskuri merkkityypeittäin (readonly) — sama lähde kuin EquipmentModal (V182).
-    const counts = new Map<string, number>()
-    for (const m of markers) counts.set(m.type, (counts.get(m.type) ?? 0) + 1)
-    const autoCounts = [...counts.entries()]
+    // T393/V285: phase-tietoinen tyyppilaskuri jaetusta pure-funktiosta — sama lähde kuin
+    // EquipmentModal (V182) JA SegmentDetailsModal. Iso luku = `take` (ota mukaan), ei
+    // kokonaismäärä: talkoolainen lukee ensimmäisen luvun ja alkaa laskea kylttejä reppuun.
+    const autoCounts = getEquipmentCounts(segment, markers)
     const manualItems = segment.equipment.filter(i => i.name.trim() !== '')
 
+    // V285: täysin tehty tyyppi (`take === 0`) EI ole varustarkastuksen nimittäjässä — rasti
+    // tavaralle jota ei oteta on kuollut pinta (V250) ja estäisi "lähtövalmis"-tilan pysyvästi.
     const allLabels = [
-      ...autoCounts.map(([type]) => checkKeyForType(type)),
+      ...autoCounts.filter(c => c.take > 0).map(c => checkKeyForType(c.type)),
       ...manualItems.map(i => checkKeyForItem(i.name)),
     ]
 
@@ -72,6 +75,15 @@ export class SegmentEquipment {
     this.el.appendChild(progress)
     this.updateProgress(progress, allLabels)
 
+    // T393/V285: sektiorivi "Pätkällä N merkkiä · M jo asetettu · ota mukaan K".
+    const summary = getEquipmentSummary(segment, markers)
+    if (summary.total > 0 || summary.notNeeded > 0) {
+      const summaryEl = document.createElement('p')
+      summaryEl.className = 'equipment-summary'
+      summaryEl.textContent = formatEquipmentSummary(summary)
+      this.el.appendChild(summaryEl)
+    }
+
     // Auto-merkit pätkällä (ota mukaan) — checkoff per tyyppi.
     if (autoCounts.length > 0) {
       const autoTitle = document.createElement('p')
@@ -80,10 +92,17 @@ export class SegmentEquipment {
       this.el.appendChild(autoTitle)
       const list = document.createElement('ul')
       list.className = 'equipment-auto-list'
-      for (const [type, count] of autoCounts) {
+      for (const c of autoCounts) {
         const li = document.createElement('li')
         li.className = 'equipment-auto-item'
-        li.appendChild(this.buildCheckbox(checkKeyForType(type), `${count}× ${typeLabel(type)}`, progress, allLabels))
+        li.appendChild(this.buildCheckbox(
+          checkKeyForType(c.type),
+          `${c.take}× ${typeLabel(c.type)}`,
+          progress,
+          allLabels,
+          c.done > 0 ? `${c.done}/${c.total} ${c.label}` : undefined,
+          c.take === 0,
+        ))
         list.appendChild(li)
       }
       this.el.appendChild(list)
@@ -115,7 +134,14 @@ export class SegmentEquipment {
 
   // Checkoff-rivi (checkbox + teksti). Toggle persistoi client-only (V180) + päivittää edistymän.
   // Sama rakenne/luokat kuin EquipmentModal → jaettu CSS + identtinen tila.
-  private buildCheckbox(key: string, text: string, progressEl: HTMLElement, allLabels: string[]): HTMLElement {
+  private buildCheckbox(
+    key: string,
+    text: string,
+    progressEl: HTMLElement,
+    allLabels: string[],
+    meta?: string,
+    alreadyDone = false,
+  ): HTMLElement {
     const segId = this.ctx.getSegment().id
     const label = document.createElement('label')
     label.className = 'equipment-check'
@@ -131,9 +157,18 @@ export class SegmentEquipment {
     const span = document.createElement('span')
     span.className = 'equipment-check-label'
     span.textContent = text
-    label.classList.toggle('equipment-check--done', cb.checked)
+    // V285: `take === 0` → tyyppi on jo maastossa. Sama himmennys/yliviivaus kuin checkatulla
+    // rivillä (ei uutta tokenia) + rasti pois käytöstä (se ei ole enää päätös).
+    label.classList.toggle('equipment-check--done', cb.checked || alreadyDone)
+    if (alreadyDone) cb.disabled = true
     label.appendChild(cb)
     label.appendChild(span)
+    if (meta) {
+      const metaEl = document.createElement('span')
+      metaEl.className = 'equipment-count-meta'
+      metaEl.textContent = meta
+      label.appendChild(metaEl)
+    }
     return label
   }
 

@@ -1,6 +1,8 @@
 import { registerEscClose, createBackdrop } from './modal-helpers'
 import { SIGN_TYPES } from '../logic/sign-picker'
 import { loadChecked, setChecked, checkProgress, checkKeyForType, checkKeyForItem } from '../logic/varustarkastus'
+import { getEquipmentCounts, getEquipmentSummary, formatEquipmentSummary } from '../logic/equipment-counts'
+import type { EquipmentCount } from '../logic/equipment-counts'
 import type { Segment, EquipmentItem } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
 
@@ -23,7 +25,9 @@ export class EquipmentModal {
   private backdrop: HTMLElement | null = null
   private escDispose: (() => void) | null = null
   private draft: EquipmentItem[] = []
-  private autoCounts: [string, number][] = []
+  // T393/V285: phase-tietoinen tyyppilaskuri jaetusta pure-funktiosta (ei omaa laskentaa).
+  private autoCounts: EquipmentCount[] = []
+  private summaryText = ''
   // T258/R2: varustarkastus-checkoff ("otin nämä") — client-only per pätkä.
   private segId = ''
   private checked = new Set<string>()
@@ -36,14 +40,22 @@ export class EquipmentModal {
 
   // Kaikki checkattavat labelit edistymän laskentaan (auto-merkit + ei-tyhjät manuaalirivit).
   private allLabels(): string[] {
+    // V285: täysin tehty tyyppi (`take === 0`) EI ole nimittäjässä — rasti tavaralle jota ei
+    // oteta on kuollut pinta (V250) ja estäisi "lähtövalmis"-tilan pysyvästi.
     return [
-      ...this.autoCounts.map(([type]) => this.autoKey(type)),
+      ...this.autoCounts.filter(c => c.take > 0).map(c => this.autoKey(c.type)),
       ...this.draft.filter(i => i.name.trim() !== '').map(i => this.manualKey(i.name)),
     ]
   }
 
   // T258/R2: checkoff-label (checkbox + teksti). Toggle persistoi client-only + päivittää edistymän.
-  private buildCheckbox(key: string, text: string, progressEl: HTMLElement): HTMLElement {
+  private buildCheckbox(
+    key: string,
+    text: string,
+    progressEl: HTMLElement,
+    meta?: string,
+    alreadyDone = false,
+  ): HTMLElement {
     const label = document.createElement('label')
     label.className = 'equipment-check'
     const cb = document.createElement('input')
@@ -58,9 +70,18 @@ export class EquipmentModal {
     const span = document.createElement('span')
     span.className = 'equipment-check-label'
     span.textContent = text
-    label.classList.toggle('equipment-check--done', cb.checked)
+    // V285: `take === 0` → tyyppi on jo maastossa. Sama himmennys/yliviivaus kuin checkatulla
+    // rivillä (ei uutta tokenia) + rasti pois käytöstä (se ei ole enää päätös).
+    label.classList.toggle('equipment-check--done', cb.checked || alreadyDone)
+    if (alreadyDone) cb.disabled = true
     label.appendChild(cb)
     label.appendChild(span)
+    if (meta) {
+      const metaEl = document.createElement('span')
+      metaEl.className = 'equipment-count-meta'
+      metaEl.textContent = meta
+      label.appendChild(metaEl)
+    }
     return label
   }
 
@@ -77,9 +98,9 @@ export class EquipmentModal {
   open(segment: Segment, markers: SignMarker[]): void {
     this.close()
     this.draft = segment.equipment.map(i => ({ ...i }))
-    const counts = new Map<string, number>()
-    for (const m of markers) counts.set(m.type, (counts.get(m.type) ?? 0) + 1)
-    this.autoCounts = [...counts.entries()]
+    this.autoCounts = getEquipmentCounts(segment, markers)
+    const summary = getEquipmentSummary(segment, markers)
+    this.summaryText = summary.total > 0 || summary.notNeeded > 0 ? formatEquipmentSummary(summary) : ''
     // T258/R2: lataa varustarkastus-checkoffit tälle pätkälle.
     this.segId = segment.id
     this.checked = loadChecked(segment.id)
@@ -139,6 +160,14 @@ export class EquipmentModal {
     body.appendChild(progress)
     this.updateProgress(progress)
 
+    // T393/V285: sektiorivi "Pätkällä N merkkiä · M jo asetettu · ota mukaan K".
+    if (this.summaryText) {
+      const summaryEl = document.createElement('p')
+      summaryEl.className = 'equipment-summary'
+      summaryEl.textContent = this.summaryText
+      body.appendChild(summaryEl)
+    }
+
     // Auto-laskuri (readonly-laskuri) — merkkityypeittäin pätkällä + varustarkastus-checkoff (R2).
     if (this.autoCounts.length > 0) {
       const autoTitle = document.createElement('p')
@@ -147,10 +176,16 @@ export class EquipmentModal {
       body.appendChild(autoTitle)
       const autoList = document.createElement('ul')
       autoList.className = 'equipment-modal-auto-list'
-      for (const [type, count] of this.autoCounts) {
+      for (const c of this.autoCounts) {
         const li = document.createElement('li')
         li.className = 'equipment-auto-item'
-        li.appendChild(this.buildCheckbox(this.autoKey(type), `${count}× ${typeLabel(type)}`, progress))
+        li.appendChild(this.buildCheckbox(
+          this.autoKey(c.type),
+          `${c.take}× ${typeLabel(c.type)}`,
+          progress,
+          c.done > 0 ? `${c.done}/${c.total} ${c.label}` : undefined,
+          c.take === 0,
+        ))
         autoList.appendChild(li)
       }
       body.appendChild(autoList)

@@ -3394,6 +3394,42 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   text-decoration: line-through;
   color: var(--text-muted);
 }
+
+/* T393/V285: iso luku = ota mukaan, meta = "N/M asetettu". Meta työntyy oikeaan reunaan;
+   se on sekundaaritietoa (§C text-muted) — talkoolainen lukee ison luvun ensin ja pakkaa
+   sen. Meta renderöidään vain kun done > 0 ∴ ennen lähtöä rivi näyttää entiseltään. */
+.equipment-check-label {
+  flex: 1;
+  min-width: 0;
+}
+.equipment-count-meta {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.equipment-check--done .equipment-count-meta {
+  text-decoration: none;
+}
+
+/* Sektiorivi: "Pätkällä 20 merkkiä · 10 jo asetettu · ota mukaan 10". */
+.equipment-summary {
+  margin: -4px 0 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tyyppi kokonaan maastossa → sama himmennys kuin checkatulla rivillä, ei uutta tokenia. */
+.segment-equipment-chip--done .segment-equipment-chip-count,
+.segment-equipment-chip--done .segment-equipment-chip-name {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+.segment-equipment-chip--done .equipment-count-meta {
+  text-decoration: none;
+}
 .equipment-manual-item--done .equipment-modal-name {
   text-decoration: line-through;
   color: var(--text-muted);

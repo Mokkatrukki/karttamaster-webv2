@@ -1,5 +1,6 @@
 import { updateSegment, deleteSegment, getMarkersForSegment, cloneSegmentToNextPhase, NEXT_PHASE, generateSegmentSlug, segmentPath, segmentPeers } from '../logic/segments'
 import { boundsPatch } from '../logic/segment-backfill'
+import { getEquipmentCounts, getEquipmentSummary, formatEquipmentSummary } from '../logic/equipment-counts'
 import { updateSegmentRemote, deleteSegmentRemote, pushSegment } from '../logic/segment-sync'
 import type { Segment, SegmentStore, EquipmentItem } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
@@ -343,33 +344,39 @@ export class SegmentDetailsModal {
       }
       section.appendChild(list)
 
-      // Yhteenveto — groupoitu m.type:n mukaan (sama laskenta kuin ennen), chip-rivi ison
-      // luvun + oikean merkkivisuaalin kanssa. Korvaa entisen "6× left"-tekstirivin.
-      const groups = new Map<string, SignMarker[]>()
-      for (const m of segMarkers) {
-        const arr = groups.get(m.type) ?? []
-        arr.push(m)
-        groups.set(m.type, arr)
-      }
+      // T393/V285: yhteenveto jaetusta pure-funktiosta — SAMAT luvut kuin talkoolainen näkee
+      // omassa varustelistassaan (kolme laskentaa samalle luvulle on kolme mahdollisuutta erota).
+      // Iso luku = `take` (vielä asettamatta), kokonaismäärä metassa.
+      const summary = getEquipmentSummary(seg, segMarkers)
       const summaryTitle = document.createElement('p')
       summaryTitle.className = 'segment-equipment-title'
       summaryTitle.textContent = 'Yhteenveto:'
       section.appendChild(summaryTitle)
+      const summaryEl = document.createElement('p')
+      summaryEl.className = 'equipment-summary'
+      summaryEl.textContent = formatEquipmentSummary(summary)
+      section.appendChild(summaryEl)
       const chipList = document.createElement('ul')
       chipList.className = 'segment-equipment-chip-list'
-      for (const [, ms] of groups) {
-        const rep = ms[0]
+      for (const c of getEquipmentCounts(seg, segMarkers)) {
         const li = document.createElement('li')
         li.className = 'segment-equipment-chip'
+        if (c.take === 0) li.classList.add('segment-equipment-chip--done')
         const count = document.createElement('span')
         count.className = 'segment-equipment-chip-count'
-        count.textContent = `${ms.length}×`
+        count.textContent = `${c.take}×`
         li.appendChild(count)
-        li.appendChild(buildMarkerVisual(rep, { size: 28, zoomable: false }))
+        li.appendChild(buildMarkerVisual(c.sample, { size: 28, zoomable: false }))
         const nameEl = document.createElement('span')
         nameEl.className = 'segment-equipment-chip-name'
-        nameEl.textContent = rep.label ?? TYPE_LABELS[rep.type] ?? rep.type
+        nameEl.textContent = c.sample.label ?? TYPE_LABELS[c.type] ?? c.type
         li.appendChild(nameEl)
+        if (c.done > 0) {
+          const metaEl = document.createElement('span')
+          metaEl.className = 'equipment-count-meta'
+          metaEl.textContent = `${c.done}/${c.total} ${c.label}`
+          li.appendChild(metaEl)
+        }
         chipList.appendChild(li)
       }
       section.appendChild(chipList)
