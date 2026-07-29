@@ -168,3 +168,58 @@ describe('EquipmentModal jakaa saman laskennan (⊥ kolmea totuutta)', () => {
       .toBe(`${expected.done}/${expected.total} ${expected.label}`)
   })
 })
+
+// SegmentDetailsModal (järjestäjä) käyttää samaa laskentaa — t199 kattaa chipit vain
+// pelkillä `suunniteltu`-merkeillä (regressiovahti: mikään ei muutu ennen lähtöä).
+// Sekastatus jäi kattamatta ∴ tässä.
+describe('SegmentDetailsModal-chipit jakavat saman laskennan (V285)', () => {
+  const flush = () => new Promise(r => setTimeout(r, 0))
+
+  async function openModal(markers: SignMarker[], phase: Segment['phase'] = 'asettaminen') {
+    const { SegmentPanel } = await import('../src/ui/segment-panel')
+    const { createSegmentStore, createSegment } = await import('../src/logic/segments')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) } as Response))
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const store = createSegmentStore()
+    createSegment(store, {
+      routeIds: ['35km'], startDist: 0, endDist: 12000, equipment: [],
+      phase, displayName: 'Testipätkä', description: '',
+    })
+    new SegmentPanel(container, [], store, vi.fn(), { getMarkers: () => markers })
+    ;(container.querySelector('.segment-info') as HTMLButtonElement).click()
+    await flush()
+  }
+
+  function chip(): HTMLElement {
+    return document.querySelector<HTMLElement>('.segment-equipment-chip')!
+  }
+
+  it('chipin luku = ota mukaan, meta kertoo jo asetetut', async () => {
+    await openModal([
+      mk('left', 'suunniteltu'), mk('left', 'asetettu'), mk('left', 'asetettu'),
+    ])
+    expect(chip().querySelector('.segment-equipment-chip-count')!.textContent).toBe('1×')
+    expect(chip().querySelector('.equipment-count-meta')!.textContent).toBe('2/3 asetettu')
+  })
+
+  it('kokonaan asetettu tyyppi → --done-chip, ⊥ katoa listalta', async () => {
+    await openModal([mk('left', 'asetettu'), mk('left', 'asetettu')])
+    expect(chip().classList.contains('segment-equipment-chip--done')).toBe(true)
+    expect(chip().querySelector('.segment-equipment-chip-count')!.textContent).toBe('0×')
+  })
+
+  it('sektiorivi näkyy myös järjestäjälle — sama luku kuin talkoolaisella', async () => {
+    const markers = [mk('left', 'asetettu'), mk('right', 'suunniteltu')]
+    await openModal(markers)
+    const jarjestaja = document.querySelector('.equipment-summary')!.textContent
+    document.body.innerHTML = ''
+    const talkoolainen = mountInline(makeSeg(), markers).querySelector('.equipment-summary')!.textContent
+    expect(jarjestaja).toBe(talkoolainen)
+  })
+
+  it('ei_tarpeen-merkki ⊥ kasvata chipin nimittäjää', async () => {
+    await openModal([mk('left', 'asetettu'), mk('left', 'ei_tarpeen')])
+    expect(chip().querySelector('.equipment-count-meta')!.textContent).toBe('1/1 asetettu')
+  })
+})
