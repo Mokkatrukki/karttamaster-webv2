@@ -165,6 +165,12 @@ function initSchema(db: Database): void {
 
     -- T221/T75: yleiskäyttöinen kommentti — kiinnitys merkkiin/pätkään/vapaaseen pisteeseen.
     -- target_type='point' → lat/lon pakolliset (vapaa karttapiste); 'marker'/'segment' → target_id.
+    -- ⚠ T380/T381/V275: KUOLLUT SKEEMA. API-reitti /api/comments & koko frontend poistettu
+    -- T380/T381:ssä — nämä kaksi taulua odottavat DROPia joka ajetaan VASTA kun T380 on ollut
+    -- tuotannossa & vanhat selainvälilehdet ovat ehtineet päivittyä. ⊥ kirjoita näihin uutta
+    -- koodia: karttakohteen lisätieto asuu markers.location_note / segments.description
+    -- -ohjekentissä (V275). Poistohetkellä: DROP TABLE IF EXISTS + tämä lohko pois.
+    -- HUOM: tämä on template literal ∴ backtick tässä kommentissa katkaisisi SQL-merkkijonon.
     CREATE TABLE IF NOT EXISTS comments (
       id TEXT PRIMARY KEY,
       target_type TEXT NOT NULL,
