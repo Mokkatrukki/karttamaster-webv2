@@ -332,11 +332,38 @@ function initSchema(db: Database): void {
   // T360/V259: järjestäjän ohitus — merkki pois pätkästä geometrian yli. NULL = ei ohituksia.
   try { db.exec('ALTER TABLE segments ADD COLUMN excluded_marker_ids TEXT') } catch { /* already exists */ }
 
+  // T383/V276/V277: markers.template_id -backfill sanatarkalla label-täsmäyksellä.
+  backfillMarkerTemplateIds(db)
+
   const existing = db.query<{ count: number }, []>(
     "SELECT COUNT(*) as count FROM map_state WHERE key='status'"
   ).get()
   if (!existing || existing.count === 0) {
     db.run("INSERT INTO map_state (key, value) VALUES ('status', 'luonnos')")
+  }
+}
+
+// T383/V276/V277: 67 tuotantomerkkiä on `template_id IS NULL` vaikka niiden `label` täsmää
+// SANATARKASTI `templates.label`iin. Liitos on aina templates.id (V276) — tämä backfill on
+// V277:n AINOA konepoikkeus: ehto on sanatarkka (⊥ fuzzy, ⊥ normalisointi, ⊥ case-insensitive)
+// ∴ deterministinen, ei arvaus. Fuzzy-ehdotukset elävät vain `src/logic/template-match.ts`:ssä
+// (T384) ja vaativat järjestäjän kuittauksen per rivi (T386).
+//
+// COUNT(*)=1 -ehto on OLENNAINEN: kaksi templatea samalla labelilla = monitulkintainen liitos
+// ∴ ihmisen asia, kone ⊥ arvaa. Täsmäämättömät jäävät nulliksi & päätyvät T386:n listalle.
+// Idempotentti: WHERE template_id IS NULL ∴ 2. ajo päivittää 0 riviä eikä ylikirjoita linkattuja.
+// Hiljainen datamigraatio on täsmälleen se mitä 2026-07-25 opetti välttämään ∴ rivimäärä lokiin.
+export function backfillMarkerTemplateIds(db: Database): void {
+  const res = db.run(
+    `UPDATE markers SET template_id = (
+       SELECT t.id FROM templates t WHERE t.label = markers.label
+     )
+     WHERE template_id IS NULL
+       AND label IS NOT NULL
+       AND (SELECT COUNT(*) FROM templates t WHERE t.label = markers.label) = 1`,
+  )
+  if (res.changes > 0) {
+    console.log(`[migraatio T383] markers.template_id backfill: ${res.changes} riviä linkattu label-täsmäyksellä`)
   }
 }
 

@@ -3,7 +3,7 @@ import { Database } from 'bun:sqlite'
 import { existsSync, unlinkSync, mkdtempSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { createDb } from './db'
+import { createDb, backfillMarkerTemplateIds } from './db'
 
 // B84/V121: vanha markers-taulu (ennen T129/T132 bearing-poistoa) säilyttää
 // `bearing NOT NULL` -sarakkeen → INSERT ilman bearingia kaatuu. Migraatio pudottaa sen.
@@ -232,5 +232,101 @@ describe('T297/V209: segments.slug-migraatio + backfill', () => {
     const again = db2.query<{ id: string; slug: string }, []>('SELECT id, slug FROM segments ORDER BY id').all()
     expect(again.map(r => r.slug)).toEqual(['varikko-1', 'patka-2', 'patka-2-2'])
     db2.close()
+  })
+})
+
+// T383/V276/V277: markers.template_id -backfill. Liitos on templates.id (V276); ehto on
+// SANATARKKA label-täsmäys — V277:n ainoa konepoikkeus, ∴ ⊥ fuzzy ⊥ case-insensitive.
+describe('T383/V276/V277: markers.template_id label-backfill', () => {
+  function seedDb(): Database {
+    const db = createDb(':memory:')
+    const now = '2026-07-29T00:00:00Z'
+    const tpl = (id: string, label: string) =>
+      db.run('INSERT INTO templates (id, label, color, updated_at) VALUES (?, ?, ?, ?)', [id, label, '#000', now])
+    tpl('vasen-1', 'vasen')
+    tpl('ylos-1', 'Ylös')
+    tpl('dup-a', 'Kaksoislabel')
+    tpl('dup-b', 'Kaksoislabel')
+    tpl('kymmenen-1', '10,1 km')
+    return db
+  }
+
+  function marker(db: Database, id: string, label: string | null, templateId: string | null): void {
+    db.run(
+      `INSERT INTO markers (id, type, lat, lon, distance_from_start, route_ids, status, label, template_id, updated_at)
+       VALUES (?, 'sign', 65.6, 27.9, 0, '["30"]', 'suunniteltu', ?, ?, '2026-07-29T00:00:00Z')`,
+      [id, label, templateId],
+    )
+  }
+
+  const templateIdOf = (db: Database, id: string): string | null =>
+    db.query<{ template_id: string | null }, [string]>('SELECT template_id FROM markers WHERE id = ?')
+      .get(id)?.template_id ?? null
+
+  test('V276: sanatarkka label-täsmäys täyttää template_id:n', () => {
+    const db = seedDb()
+    marker(db, 'M1', 'vasen', null)
+    marker(db, 'M2', 'Ylös', null)
+    backfillMarkerTemplateIds(db)
+    expect(templateIdOf(db, 'M1')).toBe('vasen-1')
+    expect(templateIdOf(db, 'M2')).toBe('ylos-1')
+    db.close()
+  })
+
+  test('V277: täsmäämätön label jää nulliksi — ⊥ fuzzy, ⊥ case-insensitive', () => {
+    const db = seedDb()
+    marker(db, 'M1', 'VASEN', null)      // case-ero
+    marker(db, 'M2', '10,1km', null)     // välilyöntiero
+    marker(db, 'M3', 'Taittopöytä', null) // vieras nimi
+    marker(db, 'M4', null, null)          // ei labelia lainkaan
+    backfillMarkerTemplateIds(db)
+    expect(templateIdOf(db, 'M1')).toBeNull()
+    expect(templateIdOf(db, 'M2')).toBeNull()
+    expect(templateIdOf(db, 'M3')).toBeNull()
+    expect(templateIdOf(db, 'M4')).toBeNull()
+    db.close()
+  })
+
+  test('V277: duplikaattilabel (COUNT>1) ⊥ päivitä — monitulkintainen on ihmisen asia', () => {
+    const db = seedDb()
+    marker(db, 'M1', 'Kaksoislabel', null)
+    backfillMarkerTemplateIds(db)
+    expect(templateIdOf(db, 'M1')).toBeNull()
+    db.close()
+  })
+
+  test('jo linkatun merkin template_id ⊥ ylikirjoitu', () => {
+    const db = seedDb()
+    marker(db, 'M1', 'vasen', 'kasin-asetettu')
+    backfillMarkerTemplateIds(db)
+    expect(templateIdOf(db, 'M1')).toBe('kasin-asetettu')
+    db.close()
+  })
+
+  test('idempotentti: 2. ajo päivittää 0 riviä', () => {
+    const db = seedDb()
+    marker(db, 'M1', 'vasen', null)
+    marker(db, 'M2', 'Taittopöytä', null)
+    backfillMarkerTemplateIds(db)
+    expect(templateIdOf(db, 'M1')).toBe('vasen-1')
+
+    // Toinen ajo: WHERE template_id IS NULL sulkee jo linkatun pois ∴ vain M2 tarkastellaan,
+    // eikä sekään täsmää → 0 muutosta.
+    const before = db.query<{ id: string; template_id: string | null }, []>(
+      'SELECT id, template_id FROM markers ORDER BY id',
+    ).all()
+    backfillMarkerTemplateIds(db)
+    const after = db.query<{ id: string; template_id: string | null }, []>(
+      'SELECT id, template_id FROM markers ORDER BY id',
+    ).all()
+    expect(after).toEqual(before)
+    db.close()
+  })
+
+  test('createDb ajaa backfillin automaattisesti eikä kaadu tyhjään kantaan', () => {
+    expect(() => {
+      const db = createDb(':memory:')
+      db.close()
+    }).not.toThrow()
   })
 })
