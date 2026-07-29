@@ -172,3 +172,42 @@ export function markersForSegment(
   const all = peers.some(p => p.id === segment.id) ? peers : [segment, ...peers]
   return resolveSegmentMarkers(all, markers).get(segment.id) ?? []
 }
+
+/**
+ * T401/V291 (KORJATTU buildin aikana — mitattu tällä moduulilla): mihin pätkiin poimittavat
+ * merkit JO kuuluvat.
+ *
+ * Alkuperäinen oletus oli että poiminta reitittömään tehtävään SIIRTÄÄ omistajuuden. Se on
+ * VÄÄRÄ: eksplisiittinen tahto ohittaa geometrian vain `tracked`-pätkien kesken (`:119`
+ * `tracked.filter(isExplicitMember)`), kun taas reititön tehtävä (⊥ `track`) menee
+ * `legacy`-haaraan (`:108`) & saa merkkinsä OMAAN ämpäriinsä osallistumatta eksklusiivisuuteen.
+ * ∴ merkki säilyy nykyisellä pätkällään & näkyy LISÄKSI uudessa tehtävässä — operaatio on
+ * ADDITIIVINEN.
+ *
+ * Tämä funktio kertoo siis "mihin nämä kuuluvat jo", ⊥ "mitä menetetään". Ero on koko
+ * vahvistusdialogin sisältö: väärä sana opettaisi käyttäjän epäilemään oikeaakin varoitusta.
+ *
+ * Kohde-tehtävän oma jäsenyys (`targetSegmentId`) rajataan pois — se ⊥ ole "toinen" omistaja.
+ */
+export function existingSegmentOwners(
+  markerIds: string[],
+  segments: MembershipSegment[],
+  markers: SignMarker[],
+  targetSegmentId?: string,
+): Array<{ markerId: string; segmentId: string }> {
+  const wanted = new Set(markerIds)
+  if (wanted.size === 0) return []
+
+  const out: Array<{ markerId: string; segmentId: string }> = []
+  for (const [segId, list] of resolveSegmentMarkers(segments, markers)) {
+    if (segId === targetSegmentId) continue
+    for (const m of list) {
+      if (!wanted.has(m.id)) continue
+      // Sama merkki voi kuulua useaan pätkään (jaettu osuus V25, eksplisiittinen tahto V259)
+      // ∴ pari (merkki, pätkä) on uniikki, ⊥ pelkkä merkki.
+      if (out.some(o => o.markerId === m.id && o.segmentId === segId)) continue
+      out.push({ markerId: m.id, segmentId: segId })
+    }
+  }
+  return out
+}

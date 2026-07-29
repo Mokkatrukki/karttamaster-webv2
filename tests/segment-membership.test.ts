@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { buildRoutePoints } from '../src/logic/bearing'
 import { deriveTrackFromBounds } from '../src/logic/segment-track'
-import { resolveSegmentMarkers, markersForSegment } from '../src/logic/segment-membership'
+import { resolveSegmentMarkers, markersForSegment, existingSegmentOwners } from '../src/logic/segment-membership'
 import { segmentKm } from '../src/logic/segment-order'
 import { getSegmentStatusCounts, getPhaseProgress } from '../src/logic/segments'
 import { focusState } from '../src/logic/marker-focus'
@@ -398,5 +398,58 @@ describe('V243/V259 — kartan korostusjoukko seuraa kanonista jäsenyyttä', ()
   it('ilman fokusta kaikki ovat focus-tilassa (ennallaan)', () => {
     const state = focusState(markers, undefined)
     expect([...state.values()].every(v => v === 'focus')).toBe(true)
+  })
+})
+
+// T401/V291 (korjattu buildissa): poiminta reitittömään tehtävään on ADDITIIVINEN ⊥ siirto.
+// Reititön pätkä menee `legacy`-haaraan (:108) & jää eksklusiivisuuden ulkopuolelle ∴ merkki
+// säilyy nykyisellä pätkällään. Funktio kertoo "mihin kuuluu jo", ⊥ "mitä menetetään".
+describe('existingSegmentOwners (T401/V291)', () => {
+  const line = route(1000, 100)
+  const segA = seg({
+    id: 'A',
+    displayName: 'Pätkä A',
+    routeIds: ['r1'],
+    primaryRouteId: 'r1',
+    startDist: line[0].distanceFromStart,
+    endDist: line[10].distanceFromStart,
+    track: deriveTrackFromBounds(line, line[0].distanceFromStart, line[10].distanceFromStart),
+  })
+  const onSeg = marker({ id: 'kuuluu', ...at(500, 5), routeIds: ['r1'] })
+  const orphan = marker({ id: 'orpo', ...at(500, 5000), routeIds: [] })
+
+  it('(i) orpo merkki → tyhjä tulos ∴ ⊥ mainintaa dialogissa', () => {
+    expect(existingSegmentOwners(['orpo'], [segA], [onSeg, orphan])).toEqual([])
+  })
+
+  it('(ii) pätkään kuuluva → segmentId oikein', () => {
+    expect(existingSegmentOwners(['kuuluu'], [segA], [onSeg, orphan])).toEqual([
+      { markerId: 'kuuluu', segmentId: 'A' },
+    ])
+  })
+
+  it('(iii) kohde-tehtävän oma jäsenyys rajataan pois', () => {
+    const target = seg({ id: 'T', displayName: 'Kohde', linkedMarkerIds: ['kuuluu'] })
+    const res = existingSegmentOwners(['kuuluu'], [segA, target], [onSeg], 'T')
+    expect(res.map(r => r.segmentId)).toEqual(['A'])
+  })
+
+  it('(iv) sama (merkki, pätkä) -pari ⊥ esiinny kahdesti', () => {
+    const target = seg({ id: 'T', linkedMarkerIds: ['kuuluu'] })
+    const res = existingSegmentOwners(['kuuluu'], [segA, target], [onSeg])
+    const keys = res.map(r => `${r.markerId}/${r.segmentId}`)
+    expect(keys.length).toBe(new Set(keys).size)
+  })
+
+  it('MITATTU: reititön tehtävä ⊥ vie merkkiä nykyiseltä pätkältä (V291-korjaus)', () => {
+    const target = seg({ id: 'T', displayName: 'Jälkihoito', linkedMarkerIds: ['kuuluu'] })
+    const owners = resolveSegmentMarkers([segA, target], [onSeg])
+    // Molemmat omistavat — juuri siksi dialogi ⊥ saa puhua menetyksestä.
+    expect(owners.get('A')!.map(m => m.id)).toEqual(['kuuluu'])
+    expect(owners.get('T')!.map(m => m.id)).toEqual(['kuuluu'])
+  })
+
+  it('tyhjä valinta → tyhjä tulos (⊥ turhaa laskentaa)', () => {
+    expect(existingSegmentOwners([], [segA], [onSeg])).toEqual([])
   })
 })

@@ -175,6 +175,25 @@ export function isolatedMarkerIds(
   return new Set(markersForSegment(seg, markers, peers).map(m => m.id))
 }
 
+/**
+ * T400/V293: suodatin-ctx rakennetaan TASAN TÄSSÄ. Aiemmin ainoa kopio oli inline
+ * `markers-wiring.ts`:n `onChange`-callbackissa ∴ jokainen uusi kuluttaja (merkkijono-paneeli)
+ * olisi rakentanut oman kopionsa & tuottanut listan joka on eri mieltä kartan kanssa — sama
+ * vika jonka V271 kieltää predikaatilta, siirrettynä sen syötteeseen.
+ */
+export function buildMarkerFilterContext(
+  filter: MapFilter,
+  segments: Segment[],
+  markers: SignMarker[],
+): MarkerFilterContext {
+  return {
+    isolatedMarkerIds: isolatedMarkerIds(filter, segments, markers),
+    // T391/V283/B165: orpojoukko on koko jäsenyysratkaisu (∀ pätkä × ∀ merkki) ∴ lasketaan
+    // vain kun suodatin sitä kysyy — ⊥ ilmainen.
+    orphanMarkerIds: filter.onlyOrphans ? orphanMarkerIds(segments, markers) : undefined,
+  }
+}
+
 // ── Persistointi (V5-kuvio, V272) ────────────────────────────────────────────────────────────
 // Suodatin persistoituu ∴ banneri on PAKOLLINEN: eilinen suodatin jonka syytä ⊥ näy luetaan
 // kadonneena datana (B131-luokka). Vioittunut/vanha JSON → oletukset, ⊥ kaadu.
