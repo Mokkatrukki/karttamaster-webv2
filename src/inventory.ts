@@ -8,6 +8,7 @@ import type { SignTemplate, SignLibrary } from './logic/sign-library'
 import type { InventoryItem, InventoryLocation, InventoryFields } from './logic/inventory'
 import { showToast } from './ui/toast'
 import { describeUndo, type UndoAction } from './logic/inventory-undo'
+import { renderMergePanel, unlinkedCount, type MergeActionResult } from './ui/inventory-merge-panel'
 
 const content = document.getElementById('inventory-content')!
 const logoutBtn = document.getElementById('btn-inventory-logout')!
@@ -23,26 +24,27 @@ let initialized = false // ensimmäisellä latauksella oletus = Kärry/paikka, E
 let viewMode: InventoryViewMode = 'read'
 
 // Server palauttaa snake_case — normalisoi camelCase-logiikkatyyppiin (resolveItemName lukee templateId).
-type ServerItem = InventoryItem & { location_id: string | null; template_id: string | null }
+type ServerItem = InventoryItem & { location_id: string | null; template_id: string | null; not_sign?: number }
 type ServerLocation = { id: string; name: string; sort_order: number }
 
 function normItem(r: ServerItem): InventoryItem {
-  return { ...r, locationId: r.location_id, templateId: r.template_id }
+  return { ...r, locationId: r.location_id, templateId: r.template_id, notSign: r.not_sign === 1 }
 }
 function normLoc(r: ServerLocation): InventoryLocation {
   return { id: r.id, name: r.name, sortOrder: r.sort_order }
 }
 
 /** camelCase-kentät → snake_case API-body. */
-function toBody(f: InventoryFields): Record<string, unknown> {
-  return { name: f.name, qty: f.qty, unit: f.unit, note: f.note, location_id: f.locationId, template_id: f.templateId }
+function toBody(f: InventoryFields & { notSign?: boolean }): Record<string, unknown> {
+  return { name: f.name, qty: f.qty, unit: f.unit, note: f.note, location_id: f.locationId, template_id: f.templateId, not_sign: f.notSign ? 1 : 0 }
 }
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
 /** Kokonais-item → InventoryFields (undo-revert PUT/POST tarvitsee koko kenttäsetin, V173). */
-function fieldsOf(i: InventoryItem): InventoryFields {
+function fieldsOf(i: InventoryItem): InventoryFields & { notSign: boolean } {
   return {
+    notSign: i.notSign === true, // V279: tarvike-lippu ei saa nollautua muun editin sivutuotteena
     name: i.name,
     qty: i.qty,
     unit: i.unit,
@@ -82,8 +84,16 @@ async function load(): Promise<void> {
       : selected === 'none'
         ? '/api/inventory?location_id=none'
         : `/api/inventory?location_id=${encodeURIComponent(selected)}`
-  const [itemsRes, templates] = await Promise.all([fetch(itemsUrl), fetchTemplateMap()])
+  // T386: yhdistämislaskuri koskee KOKO inventaariota ⊥ vain valittua paikkaa ∴ haetaan kaikki
+  // rivit erikseen (paitsi 'all'-välilehdellä, jossa lista jo on kaikki).
+  const allUrl = '/api/inventory'
+  const [itemsRes, templates, allRes] = await Promise.all([
+    fetch(itemsUrl),
+    fetchTemplateMap(),
+    selected === 'all' ? Promise.resolve(null) : fetch(allUrl),
+  ])
   const items = ((await itemsRes.json()) as ServerItem[]).map(normItem)
+  const allItems = allRes && allRes.ok ? ((await allRes.json()) as ServerItem[]).map(normItem) : items
 
   // V172: näytä "Kumoa"-toast viimeisimmästä mutaatiosta (vain edit-moodissa; mutaatiot
   // eivät muutenkaan aukea read-moodissa V169). Uusi mutaatio korvaa edellisen (showToast).
@@ -94,7 +104,7 @@ async function load(): Promise<void> {
 
   renderInventory(
     content,
-    { locations, items, selectedLocationId: selected, templates, viewMode },
+    { locations, items, selectedLocationId: selected, templates, viewMode, unlinkedCount: unlinkedCount(allItems) },
     {
       onSelectLocation: (sel) => {
         selected = sel
@@ -230,6 +240,90 @@ async function load(): Promise<void> {
       // T250/T25x: tekstirivi → merkki. Picker: valitse OLEMASSA oleva merkki (linkitä rivi) TAI
       // luo uusi (esitäytetty nimi). V186: ei kiinnitystapaa — sama tunnus kaikille, oletus keppi.
       onConvertToSign: (item) => void openConvertFlow(item),
+      // T386: yhdistämistyökalu omana näkymänään. Saa KAIKKI rivit (⊥ vain valitun paikan).
+      onOpenMerge: () => openMergePanel(allItems, locations, templates),
+    },
+  )
+}
+
+/** PUT yksi inventaariorivi annetuilla kentillä → MergeActionResult (virheteksti riville, V21). */
+async function putItem(item: InventoryItem, patch: Partial<InventoryFields & { notSign: boolean }>): Promise<MergeActionResult> {
+  try {
+    const r = await fetch(`/api/inventory/${item.id}`, {
+      method: 'PUT',
+      headers: JSON_HEADERS,
+      body: JSON.stringify(toBody({ ...fieldsOf(item), ...patch })),
+    })
+    if (r.ok) return { ok: true }
+    const body = (await r.json().catch(() => ({}))) as { error?: string }
+    return { ok: false, error: apiErrorText(r.status, body.error) }
+  } catch {
+    return { ok: false, error: 'Ei yhteyttä palvelimeen — rivi jäi listalle.' }
+  }
+}
+
+/** V21: virhe kertoo MIKSI. Tunnistetut backend-koodit suomeksi, tuntematon näyttää raakakoodin. */
+function apiErrorText(status: number, code?: string): string {
+  const known: Record<string, string> = {
+    not_sign_with_template: 'Tarvikkeeksi merkittyä riviä ei voi linkittää merkkiin.',
+    location_mismatch: 'Rivit ovat eri paikassa — määrät eivät summaudu vahingossa.',
+    same_item: 'Rivi on sama kuin kohde.',
+    not_found: 'Riviä ei löytynyt — se on ehkä poistettu.',
+    template_not_found: 'Merkkipohjaa ei löytynyt.',
+  }
+  if (code && known[code]) return known[code]
+  return `Tallennus epäonnistui (${status}${code ? `: ${code}` : ''}).`
+}
+
+/** T386: avaa yhdistämispaneeli. Jokainen kuittaus persistoituu heti; sulkeminen reloadaa listan. */
+function openMergePanel(
+  allItems: InventoryItem[],
+  locations: InventoryLocation[],
+  templates: Map<string, SignTemplate>,
+): void {
+  let backdrop: HTMLElement | null = null
+  const close = (): void => {
+    backdrop?.remove()
+    backdrop = null
+    void load() // kuittaukset ovat jo kannassa — reload synkkaa listan & laskurin
+  }
+
+  backdrop = renderMergePanel(
+    document.body,
+    { items: allItems, templates, locations },
+    {
+      onLink: (item, templateId) => putItem(item, { templateId }),
+      onNotSign: (item) => putItem(item, { notSign: true, templateId: null }),
+      onUndo: (item) => putItem(item, {}), // fieldsOf(item) = ENNEN-tila (V173b)
+      onMerge: async (source, target) => {
+        try {
+          const r = await fetch('/api/inventory/merge', {
+            method: 'POST',
+            headers: JSON_HEADERS,
+            body: JSON.stringify({ sourceId: source.id, targetId: target.id }),
+          })
+          if (r.ok) return { ok: true }
+          const body = (await r.json().catch(() => ({}))) as { error?: string }
+          return { ok: false, error: apiErrorText(r.status, body.error) }
+        } catch {
+          return { ok: false, error: 'Ei yhteyttä palvelimeen — rivi jäi listalle.' }
+        }
+      },
+      onCreateTemplate: (item) => {
+        const library: SignLibrary = createLibrary()
+        for (const [id, t] of templates) library.set(id, t)
+        const modal = new SignTemplateModal(library, {
+          onChanged: () => { /* linkitys tapahtuu onSaveTemplaten kautta */ },
+          onSaveTemplate: async (tpl, isNew) => {
+            if (isNew) await createTemplateRemote(tpl) // näkyy heti kirjastossa + kartalla (V165)
+            else await updateTemplateRemote(tpl)
+            await putItem(item, { templateId: tpl.id })
+            close() // uusi template ⊥ ole paneelin templates-mapissa → reload hakee sen
+          },
+        })
+        modal.open(null, { label: item.name, favorite: false }) // esitäytetty nimi rivin nimestä
+      },
+      onClose: close,
     },
   )
 }

@@ -16,6 +16,8 @@ export interface InventoryView {
   selectedLocationId: LocationSelection
   templates: Map<string, SignTemplate>
   viewMode: InventoryViewMode // T251: oletus 'read' (V169); sessiokohtainen entryssä (V170)
+  /** T386: linkittämättömien rivien määrä KOKO inventaariosta (⊥ vain valitusta paikasta). */
+  unlinkedCount?: number
 }
 
 export interface InventoryPageCallbacks {
@@ -30,6 +32,7 @@ export interface InventoryPageCallbacks {
   onOpenSign?: (templateId: string) => void // T247: avaa SignTemplateModal (muokkaus)
   onConvertToSign?: (item: InventoryItem) => void // T250: tekstirivi → merkki (uusi malli esitäytetyllä nimellä)
   onToggleViewMode?: () => void // T251: read ↔ edit (state entryssä, sessiokohtainen V170)
+  onOpenMerge?: () => void // T386: avaa yhdistämistyökalu (vain edit-modessa)
 }
 
 const ERR_TEXT: Record<string, string> = {
@@ -105,17 +108,39 @@ function buildModeToggle(view: InventoryView, cb: InventoryPageCallbacks): HTMLB
  */
 function mountModeToggle(container: HTMLElement, view: InventoryView, cb: InventoryPageCallbacks): void {
   const toggle = buildModeToggle(view, cb)
+  const merge = buildMergeButton(view, cb) // T386: naapuri, vain edit-modessa
   const actions = document.getElementById('inventory-header')?.querySelector('.inventory-header-actions')
   if (actions) {
     actions.querySelector('.inv-mode-toggle')?.remove() // dedup: load() re-renderöi joka mutaatiolla
+    actions.querySelector('.inv-merge-open')?.remove()
     actions.insertBefore(toggle, actions.firstChild) // ← Kartta / Kirjaudu ulos jäävät perään
+    if (merge) actions.insertBefore(merge, toggle.nextSibling)
   } else {
     const bar = document.createElement('div')
     bar.className = 'inv-topbar'
     bar.id = 'inv-topbar'
     bar.appendChild(toggle)
+    if (merge) bar.appendChild(merge)
     container.appendChild(bar)
   }
+}
+
+/**
+ * T386: "🔗 Yhdistä (N)" — N = linkittämättömien rivien määrä. Laskuri ITSE on työkalun arvo:
+ * järjestäjä näkee että työtä on jäljellä & milloin se loppui. Vain edit-modessa (V169).
+ */
+function buildMergeButton(view: InventoryView, cb: InventoryPageCallbacks): HTMLButtonElement | null {
+  if (view.viewMode !== 'edit' || !cb.onOpenMerge) return null
+  const n = view.unlinkedCount ?? 0
+  const btn = document.createElement('button')
+  btn.type = 'button'
+  btn.className = 'inv-merge-open'
+  btn.id = 'inv-merge-open'
+  btn.textContent = `🔗 Yhdistä (${n})`
+  btn.disabled = n === 0
+  btn.title = n === 0 ? 'Kaikki rivit yhdistetty' : 'Yhdistä linkittämättömät rivit merkkipohjiin'
+  btn.addEventListener('click', () => cb.onOpenMerge?.())
+  return btn
 }
 
 /** T251: kontekstirivi tabien alle — "<paikka> · N tavaraa" (+ Muokkaustila-merkki editissä). Antaa ryhdin. */

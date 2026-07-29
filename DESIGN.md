@@ -717,6 +717,25 @@ Kartta avautuu **katselutilassa** joka latauksella; kaikki kartan MUTATOIVAT ele
 - LeftPanel-linkki (`.left-panel-link`, `href="/inventory.html"`) — ks. alla vanha huom.
 - **Undo-toast (T253, V172/V173):** jokainen mutaatio edit-modessa (poisto, −/+, siirto, paikan poisto) → `showToast` "Kumoa"-toastilla (ks. §K Toast). Client-only: yksi undo-slotti, reload → katoaa. Näkyy vain `viewMode='edit'`. Revert olemassa oleviin `/api/inventory`-reitteihin (POST uudelleen / PUT vanha arvo).
 
+### InventoryMergePanel — järjestäjän "Yhdistä"-työkalu (`src/ui/inventory-merge-panel.ts`, T386/V277/V279)
+
+**Ongelma:** 101 inventaariorivistä osa on merkkejä joita ⊥ ole linkattu merkkipohjaan. Nimivertailu osaa ehdottaa, mutta kone ⊥ saa kirjoittaa liitosta (V277) ∴ tarvitaan näkymä jossa ihminen kuittaa rivin kerrallaan.
+
+- **Oma näkymä, ⊥ inventaariosivun laajennus.** `inventory-page.ts` on jo pilkkorajalla; yhdistämisellä on oma tilansa (kuittausjono) joka ⊥ kuulu listasivulle.
+- **Avaus:** `.inv-merge-open` "🔗 Yhdistä (N)" `.inv-mode-toggle`n naapurina `#inventory-header .inventory-header-actions`issa, **vain edit-modessa** (V169). Sekundäärityyli (`field-tint` + `border-strong`) — moodi-toggle säilyy ainoana accent-päänappina. **N = laskuri KOKO inventaariosta** (⊥ vain valitusta paikasta): laskuri itse on työkalun arvo — järjestäjä näkee että työtä on jäljellä & milloin se loppui. `N=0` → nappi disabloitu, `title="Kaikki rivit yhdistetty"`.
+- **Paneeli** (`.inv-merge-backdrop` + `.inv-merge-panel`, `role=dialog`): `min(720px, 96vw)`, `max-height:88vh`, oma vieritys listassa. Leveämpi kuin `.inv-sign-picker` (480px) — rivillä on nimi + 3 ehdotusta + 3 toimintoa. Header: otsikko + `.inv-merge-count` "N riviä" + "Sulje".
+- **Rivi** (`.inv-merge-row`): `.inv-merge-row-name` (nimi, 600) + `.inv-merge-row-meta` "`N kpl · <paikka>`" → paikka on näkyvissä koska se ratkaisee yhdistämisen (sama kyltti eri paikassa ⊥ ole duplikaatti).
+- **Ehdotukset** (`.inv-merge-suggestion`, max 3, `min-height:44px` §A/V268): `buildMarkerVisual` 32px + label. Accent-reuna = "tämä kirjoittaa jotain". **Vain kynnyksen (`SUGGESTION_THRESHOLD`) ylittävät** — heikko arvaus houkuttelisi väärään linkitykseen & väärä liitos on pahempi kuin puuttuva (V276). Ei osumia → `.inv-merge-nosug` "Ei ehdotuksia".
+- **V277 — kolme tietoista rajaa:** ⊥ esivalintaa (mikään ehdotus ⊥ ole valmiiksi valittu), ⊥ checkboxeja, **⊥ "linkitä kaikki varmat" -massanappia**. Jokainen rivi kuitataan erikseen. Tämä on regressiovahdittu DOM-testissä.
+- **Toiminnot** (`.inv-merge-actions`, `.inv-btn`-pohja): "Luo merkkipohja" (→ `SignTemplateModal` luontitilassa, esitäytetty nimi) · "Ei merkki" (`.inv-merge-notsign`, muted → PUT `not_sign=1`, rivi katoaa **pysyvästi**, V279) · duplikaattitapauksessa `.inv-merge-dup` (accent-reuna) "Yhdistä riviin X (N+M)" — määrät näkyvissä ETUKÄTEEN, koska summaus ⊥ ole peruttavissa yhtä helposti kuin linkitys.
+- **Kestää keskeytyksen:** jokainen kuittaus persistoituu HETI omalla pyynnöllään — **⊥ "Tallenna kaikki" -nappia**. 101 rivin urakka ⊥ mahdu yhteen istuntoon ∴ sulkeminen kesken ⊥ saa hukata tehtyä työtä. Kuittaus poistaa rivin listalta paikallisesti (⊥ koko sivun reloadia → vierityskohta säilyy); sulkeminen reloadaa listan & laskurin.
+- **Virhe (V21):** epäonnistunut pyyntö → rivi JÄÄ listalle + `.inv-merge-error` (`danger-soft`-tausta, `role=alert`) kertoo **MIKSI** suomeksi (backend-koodi käännettynä, tuntematon → status+koodi). Hiljainen epäonnistuminen olisi pahin mahdollinen: järjestäjä luulisi työn tehdyksi.
+- **Undo:** `showToast` "Kumoa" (ks. §K Toast, V172 yksi slotti) linkitykselle & "Ei merkki":lle → palauttaa rivin ENNEN-tilaan ja listalle. Merge ⊥ saa Kumoaa: lähderivi on poistettu serveriltä ∴ kumous vaatisi rivin uudelleenluonnin — siksi määrät näytetään napissa etukäteen.
+- **Tyhjätila:** `.inv-merge-empty` "Kaikki rivit yhdistetty ✓".
+- **XSS (V164):** kaikki nimet `textContent`.
+- **Rooli: järjestäjä, desktop ensisijainen** — 101 rivin läpikäynti ⊥ ole kärry-mobiilityötä. Mobiili välttävä: `≤560px` paneeli täysleveä + toimintonapit venyvät riville.
+- **Ei uusia väritokeneja** — accent / field-tint / border / danger §C:stä.
+
 ### Toast — jaettu (`src/ui/toast.ts`, T253)
 - **Idiomi = snackbar:** kelluva ilmoitus alareunaan keskitettynä (`position:fixed; left:50%; transform:translateX(-50%); bottom:16px + safe-area-inset-bottom`). `z-index:5000` (modaalien 4000 yläpuolella, auth-gate 9999 alapuolella).
 - **Kiinteä tumma tausta MOLEMMISSA teemoissa** (EI teemakäänteinen): `--toast-bg #1F2A24` / `--toast-fg #F6F9F5`. Syy: jos bg kääntyisi (`--text-body`), accent-action jäisi dark-teemassa vaalealle pohjalle → 2.87:1 FAIL. Kiinteä tumma → action säilyy AA:na. **Nämä tokenit EIVÄT saa mennä `:root[dark]`-overrideen.**

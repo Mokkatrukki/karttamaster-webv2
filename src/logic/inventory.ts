@@ -13,6 +13,8 @@ export interface InventoryItem {
   // v2 (T244): valinnaiset — additiivinen, ei riko v1-käyttöä
   locationId?: string | null
   templateId?: string | null
+  /** T385/V279: true = tarvike, LOPULLINEN tila — ⊥ saa template_id:tä, ⊥ näy yhdistämislistalla. */
+  notSign?: boolean
 }
 
 /** Paikka (säiliö): Kärry, Varasto… (T243 inventory_locations). */
