@@ -106,12 +106,12 @@ test.describe('Merkki kartalle', () => {
     await page.waitForTimeout(500)
 
     // Floating picker näkyy kirjaston suosikeilla (default 4 ovat favorite:true).
-    // T237/V245: laskenta kohdistuu MALLILISTAAN — "💬 Huomio" on listan ulkopuolinen alapalkki
-    // (.floating-picker-footer) eikä merkkityyppi, joten se ei kuulu tähän lukuun.
+    // T380/V275: picker sisältää VAIN merkkityyppejä — "💬 Huomio" -alapalkki poistettu
+    // huomiosysteemin mukana. Vahti pitää pickerin puhtaana: ⊥ ei-merkki-riviä takaisin.
     await expect(page.locator('#floating-picker')).toHaveClass(/open/)
     const pickerBtns = page.locator('#floating-picker .floating-picker-list .sign-type-btn')
     await expect(pickerBtns).toHaveCount(4)
-    await expect(page.locator('#floating-picker .floating-picker-comment')).toHaveCount(1)
+    await expect(page.locator('#floating-picker .floating-picker-comment')).toHaveCount(0)
     const pickerText = await page.locator('#floating-picker').innerText()
     expect(pickerText).toContain('Oikealle')
     expect(pickerText).toContain('Vasemmalle')

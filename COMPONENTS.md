@@ -79,7 +79,6 @@ server/       ← Hono + Bun + SQLite
 | SignIcon | `src/map/icons.ts` | ✓ T172 | critical-paths: "toolbar-dropdown", "yhdistelmämerkki" | [map.md](docs/components/map.md) |
 | DriveMode | `src/map/drive.ts` | ✓ | critical-paths: "Drive mode" | [map.md](docs/components/map.md) |
 | MarkerManager | `src/map/markers.ts` | ✓ T335 (setFocusSegment: himmennä muut kuin pätkän merkit, V243; reapplyElementState kokoaa setIconin pudottamat luokat) | critical-paths: "Merkki kartalle", "Drag-to-move", "Merkin zoom-skaalaus", "tallennus epäonnistuu", "merkkien korostus" | [map.md](docs/components/map.md) |
-| CommentLayer | `src/map/comment-layer.ts` | ✓ T221/T237 (point-huomioiden pinnit, diff-render; `setFocusActive`: himmennä fokus-tilassa, ⊥ piilota — V243/V245) | tests/t237-comment-focus-dim.test.ts, e2e/t237-huomio.spec.ts | [map.md](docs/components/map.md) |
 | RouteBar | `src/map/route-bar.ts` | ✓ (T224: piilotettu talkoolaiselta, `#route-bar` hidden) | — | [map.md](docs/components/map.md) |
 | RouteVisibilityControl | `src/map/route-visibility-control.ts` | ✓ T377 (DOM luovutettu MapFilterBarille; jäljellä sovellus: polylinet + merkit + pätkäviivat + getActiveRoute-sopimus, V271) | tests/t204-route-visibility-control.test.ts | [map.md](docs/components/map.md) |
 | BasemapDimControl | `src/map/basemap-dim-control.ts` | ✓ T287 (pohjan näkyvyys-slider ⋯-valikossa, tilePane-opacity, V201) | — | [map.md](docs/components/map.md) |
@@ -102,7 +101,7 @@ server/       ← Hono + Bun + SQLite
 | AreasWiring | `src/app/areas-wiring.ts` | ✓ T155 | area-interaction | [ui.md](docs/components/ui.md) |
 | SegmentsWiring | `src/app/segments-wiring.ts` | ✓ T155 | e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | MarkersWiring | `src/app/markers-wiring.ts` | ✓ T182,T224 (zoom-to-segment, alapalkki piilotettu, next-highlight, gps-drive-panel poistettu) | critical-paths: "Merkki kartalle", "Drive mode", "tallennus epäonnistuu" | [ui.md](docs/components/ui.md) |
-| SectionHeader | `src/ui/section-header.ts` | ✓ T371 (left-panelin section-headerin AINOA toteutus, V267 — 3 kopiota poistettu; kuluttajat: SignLibraryPanel, SegmentPanel, AreaPanel, CommentPanel) | tests/t371-section-header.test.ts | [ui.md](docs/components/ui.md) |
+| SectionHeader | `src/ui/section-header.ts` | ✓ T371 (left-panelin section-headerin AINOA toteutus, V267 — 3 kopiota poistettu; kuluttajat: SignLibraryPanel, SegmentPanel, AreaPanel) | tests/t371-section-header.test.ts | [ui.md](docs/components/ui.md) |
 | SignLibraryPanel | `src/ui/sign-library-panel.ts` | ✓ T176, T235 (194r lista/grid; modaali irrotettu), T371 (header jaetusta apurista) | critical-paths: "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
 | SignTemplateModal | `src/ui/sign-template-modal.ts` | ✓ T235 (malli-detalji/muokkaus-modaali, irrotettu SignLibraryPanelista; XSS-escape B19/V44) | (kattaa sign-library-panel-testit) | [ui.md](docs/components/ui.md) |
 | RoleSelector | `src/ui/role-selector.ts` | ✓ T12 (V80: toggle dead code) | critical-paths: "Rooli backendistä" | [ui.md](docs/components/ui.md) |
@@ -114,7 +113,7 @@ server/       ← Hono + Bun + SQLite
 | EquipmentModal | `src/ui/equipment-modal.ts` | ✓ T224/C (talkoolaisen varustelista tilavana modaalina) | tests/t224-equipment-modal.test.ts | [ui.md](docs/components/ui.md) |
 | SegmentEquipment | `src/ui/segment-equipment.ts` | ✓ T262/V182 (KOTI-inline-varustelista + varustarkastus-checkoff; hero kartta-only; "Muokkaa"→EquipmentModal) | tests/t262-segment-equipment.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | SegmentMarkerList | `src/ui/segment-marker-list.ts` | ✓ T263/V183, T264 (KOTI "Kaikki merkit" -tab, ryhmitelty asetetut/asettamatta/ei tarpeen; rivi→MarkerDetailModal) | tests/t263-segment-marker-list.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
-| SegmentKotiTabs | `src/ui/segment-koti-tabs.ts` | ✓ T264/V184 (koti-välilehdet: Varustelista·Kaikki merkit·Kommentit) · T354/V257 JAETTU: sama komponentti myös järjestäjän SegmentDetailsModalissa, scrollerSelector-parametri erottaa kuoret — ⊥ toista tabitoteutusta | tests/t264-segment-koti-tabs.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
+| SegmentKotiTabs | `src/ui/segment-koti-tabs.ts` | ✓ T264/V184 (koti-välilehdet: Varustelista·Kaikki merkit — Kommentit poistettu T380/V275) · T354/V257 JAETTU: sama komponentti myös järjestäjän SegmentDetailsModalissa, scrollerSelector-parametri erottaa kuoret — ⊥ toista tabitoteutusta | tests/t264-segment-koti-tabs.test.ts; e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | PhaseSwitcher | `src/ui/phase-switcher.ts` | ✓ T148,T180 (stopPropagation, B80) | e2e/t180-phase-switcher-menu.spec.ts | [ui.md](docs/components/ui.md) |
 | AuthScreen | `src/ui/auth-screen.ts` | ✓ T51, T272 (Model B: talkoolainen=yleissalasana, deep-link pending→login→avaa pätkä) | critical-paths: "yleissalasana" | [ui.md](docs/components/ui.md) |
 | AuditLogPage | `src/ui/audit-log-page.ts` | ✓ T332 (vahvistus selviää uudelleenlatauksesta V241/B130), T321 (globaali loki + per-rivi undo, /loki) | e2e/t321-audit-log.spec.ts, tests/t321-audit-log-page.test.ts | [ui.md](docs/components/ui.md) |
@@ -125,9 +124,6 @@ server/       ← Hono + Bun + SQLite
 | ModalHelpers | `src/ui/modal-helpers.ts` | ✓ T172 | — | [ui.md](docs/components/ui.md) |
 | MarkerVisualRow | `src/ui/marker-visual-row.ts` | ✓ T198 | tests/t198-marker-visual-row.test.ts | [ui.md](docs/components/ui.md) |
 | ImageLightbox | `src/ui/image-lightbox.ts` | ✓ T337 (jaettu kuori: valokuvat + kylttivisuaali, V246/B132) | tests/t337-image-lightbox.test.ts | [ui.md](docs/components/ui.md) |
-| ImageDownscale | `src/ui/image-downscale.ts` | ✓ T338 (canvas-pienennys 1600px/JPEG ennen lähetystä, V262) | tests/t237-comment-point-modal.test.ts | [ui.md](docs/components/ui.md) |
-| CommentPointModal | `src/ui/comment-point-modal.ts` | ✓ T237/T338 (huomion luonti kartalta + katselu + kuvat + poisto, V245) | tests/t237-comment-point-modal.test.ts | [ui.md](docs/components/ui.md) |
-| CommentPanel | `src/ui/comment-panel.ts` | ✓ T340 (järjestäjän sivupalkin Huomiot-lista, V245), T372 (V61-haitari, kiinni oletuksena) | tests/t237-comment-point-modal.test.ts, e2e/t237-huomio.spec.ts | [ui.md](docs/components/ui.md) |
 | Toast | `src/ui/toast.ts` | ✓ T253 (jaettu "Kumoa"-toast, client-only undo V172; auto-dismiss, yksi kerrallaan, 44px §R) | tests/t253-toast.test.ts | [ui.md](docs/components/ui.md) |
 | AreaDetailsModal | `src/ui/area-details-modal.ts` | ✓ | — | [ui.md](docs/components/ui.md) |
 | AreaPanel | `src/ui/area-panel.ts` | ✓ | area-interaction | [ui.md](docs/components/ui.md) |

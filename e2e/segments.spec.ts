@@ -211,15 +211,15 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(page.locator('.segment-koti-tabs')).toBeHidden()
   })
 
-  test('T264 — koti-välilehdet: 3 tabia, tab-vaihto, valmis+rajat Kaikki merkit -tabissa, #btn-varuste pois', async ({ page }) => {
+  test('T264/T380 — koti-välilehdet: 2 tabia, tab-vaihto, valmis+rajat Kaikki merkit -tabissa, #btn-varuste pois', async ({ page }) => {
     await mockAuthAsTalkoolainen(page)
     await mockTalkoolainenSegment(page, { withMarker: true })
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/s/TEST01')
     await page.waitForTimeout(1500)
 
-    // 3 tabia, Varustelista aktiivinen oletuksena.
-    await expect(page.locator('.segment-koti-tab')).toHaveCount(3)
+    // T380/V275: 2 tabia (Kommentit poistettu), Varustelista aktiivinen oletuksena.
+    await expect(page.locator('.segment-koti-tab')).toHaveCount(2)
     await expect(page.locator('.segment-koti-tab.is-active')).toContainText('Varustelista')
     await expect(page.locator('.segment-view-equipment')).toBeVisible()
 
@@ -235,9 +235,9 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(merkit.locator('.segment-view-complete')).toBeVisible()
     await expect(merkit.locator('.segment-view-bounds')).toBeVisible()
 
-    // "Kommentit" -tab.
-    await page.locator('.segment-koti-tab[data-tab="kommentit"]').click()
-    await expect(page.locator('.segment-koti-panel[data-tab="kommentit"] .segment-view-comments')).toBeVisible()
+    // T380/V275: "Kommentit"-tabia ⊥ enää ole — koti-tabit ovat varuste + merkit.
+    await expect(page.locator('.segment-koti-tab[data-tab="kommentit"]')).toHaveCount(0)
+    await expect(page.locator('.segment-view-comments')).toHaveCount(0)
     await expect(page.locator('.segment-view-equipment')).toBeHidden()
   })
 

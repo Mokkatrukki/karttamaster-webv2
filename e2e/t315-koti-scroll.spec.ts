@@ -117,6 +117,8 @@ test('T315/V226 — koti-tabin vaihto nollaa jaetun scrollerin (uusi tabi ei ava
   await page.locator('#segment-view').evaluate(el => { el.scrollTop = el.scrollHeight })
   expect(await page.locator('#segment-view').evaluate(el => el.scrollTop)).toBeGreaterThan(0)
 
-  await page.locator('.segment-koti-tab[data-tab="kommentit"]').click()
+  // T380/V275: vaihto Varustelista-tabiin (Kommentit-tab poistettu) — vahti koskee TAB-VAIHTOA,
+  // ⊥ tiettyä tabia ∴ mikä tahansa toinen tabi todistaa saman scroller-nollauksen.
+  await page.locator('.segment-koti-tab[data-tab="varuste"]').click()
   expect(await page.locator('#segment-view').evaluate(el => el.scrollTop)).toBe(0)
 })

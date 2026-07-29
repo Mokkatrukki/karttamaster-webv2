@@ -231,10 +231,11 @@ export class SegmentHero {
     }
     menu.appendChild(moveItem)
 
-    // T228: "Laita kommentti" → avaa detail-modaalin Kommentti-kenttä (löydettävä per-merkki-kommentti).
+    // T228/T380/V275: "Lisää ohje" → avaa detail-modaalin ohjekentän (locationNote). Merkin
+    // lisätieto on yksisuuntainen ohje ⊥ keskustelu — vanha nimi lupasi lankaa jota ⊥ ollut.
     const commentItem = document.createElement('button')
     commentItem.className = 'btn btn--ghost segment-view-next-menu-item segment-view-next-comment'
-    commentItem.textContent = 'Laita kommentti'
+    commentItem.textContent = 'Lisää ohje'
     if (actions.onComment) {
       commentItem.addEventListener('click', () => { menu.hidden = true; actions.onComment?.(current.id) })
     } else {
@@ -255,21 +256,6 @@ export class SegmentHero {
       addItem.title = 'Tulossa'
     }
     menu.appendChild(addItem)
-
-    // T237/V245: "💬 Huomio" — vapaa havainto kartalle ("tämä voisi korjata"). ⊥ ole merkki:
-    // ei tyyppiä, statusta eikä osuutta pätkän laskureihin. Talkoolaisen sisääntulo on TÄSSÄ
-    // valikossa, ⊥ merkkivalikossa: talkoolainen ⊥ avaa merkkipickeriä kuin lisätäkseen merkin,
-    // ja huomio on eri aikomus (kenttäpalaute 2026-07-25).
-    const noteItem = document.createElement('button')
-    noteItem.className = 'btn btn--ghost segment-view-next-menu-item segment-view-next-note'
-    noteItem.textContent = '💬 Huomio'
-    if (actions.onAddComment) {
-      noteItem.addEventListener('click', () => { menu.hidden = true; actions.onAddComment?.() })
-    } else {
-      noteItem.disabled = true
-      noteItem.title = 'Tulossa'
-    }
-    menu.appendChild(noteItem)
 
     // "Ota kuva" — talkoolaisen kuvankaappaus tulossa (T221/T103-alue).
     const photoItem = document.createElement('button')

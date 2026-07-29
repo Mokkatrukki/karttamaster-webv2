@@ -116,14 +116,14 @@ describe('T224 — pätkäkeskeinen näkymä', () => {
       expect(movedId).toBe('m7')
     })
 
-    it('"Ota kuva" disabled (tulossa); "Laita kommentti" disabled ilman onComment', () => {
+    it('"Ota kuva" disabled (tulossa); "Lisää ohje" disabled ilman onComment', () => {
       const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }))
       view.update([makeMarker({ status: 'suunniteltu' })])
       expect((container.querySelector('.segment-view-next-photo') as HTMLButtonElement).disabled).toBe(true)
       expect((container.querySelector('.segment-view-next-comment') as HTMLButtonElement).disabled).toBe(true)
     })
 
-    it('T228: "Laita kommentti" enabloitu + kutsuu onComment kun annettu', () => {
+    it('T228/T380: "Lisää ohje" enabloitu + kutsuu onComment kun annettu', () => {
       let commentId: string | null = null
       const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, undefined, {
         onComment: (id) => { commentId = id },
@@ -131,6 +131,8 @@ describe('T224 — pätkäkeskeinen näkymä', () => {
       view.update([makeMarker({ id: 'm9', status: 'suunniteltu' })])
       const btn = container.querySelector('.segment-view-next-comment') as HTMLButtonElement
       expect(btn.disabled).toBe(false)
+      // V275: nimi ! luvata ohjetta ⊥ keskustelua — "Laita kommentti" luettiin lankana jota ⊥ ollut.
+      expect(btn.textContent).toBe('Lisää ohje')
       btn.click()
       expect(commentId).toBe('m9')
     })

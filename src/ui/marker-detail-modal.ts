@@ -6,7 +6,6 @@ import { listTemplates } from '../logic/sign-library'
 import { validActions, canTransition } from '../logic/marker-status'
 import { registerEscClose, signPreviewHtml } from './modal-helpers'
 import { openImageLightbox } from './image-lightbox'
-import { CommentThread } from './comment-thread'
 
 const STATUS_LABELS: Record<MarkerStatus, string> = {
   suunniteltu: 'Suunniteltu',
@@ -247,17 +246,9 @@ export class MarkerDetailModal {
 
     body.appendChild(imagesSection)
 
-    // T221/T75: geneerinen kommenttilanka merkille (eri asia kuin per-merkki locationNote yllä).
-    // Kuka tahansa autentikoitu voi lähettää; poisto vain järjestäjä+. Talkoolaisen koodi
-    // esitäyttää nimikentän. Lataa kommentit modaalin avautuessa.
-    const thread = new CommentThread({
-      targetType: 'marker',
-      targetId: marker.id,
-      canDelete: isJarjestaja,
-      authorName: this.getTalkoolainenCode(),
-    })
-    body.appendChild(thread.el)
-    void thread.load()
+    // T380/V275: kommenttilanka POISTETTU. Merkin lisätieto asuu YKSIN `locationNote`-kentässä
+    // yllä — kaksi kenttää samaan tarkoitukseen johti siihen että sama vaarahavainto kirjoitettiin
+    // molempiin (tuotanto 2026-07-26). Keskustelu käydään WhatsAppissa.
 
     frag.appendChild(body)
 

@@ -23,9 +23,6 @@ export class PlaceMode {
     // T307/V218: merkin sijoitus on muokkaustilan toiminto. Injektoitavissa testeille;
     // tuotannossa sama jaettu tila kuin raahauksella ja rajakahvoilla (⊥ rinnakkaisia mekanismeja).
     private readonly mapMode: MapModeState = sharedMapMode,
-    // T237: "💬 Huomio" -valinta pickeristä. Puuttuu → riviä ei renderöidä lainkaan
-    // (esim. testit / näkymät joissa huomiota ei tueta).
-    private readonly onPlaceComment?: (lat: number, lon: number) => void,
   ) {
     this.floatingPicker = document.getElementById('floating-picker')!
     this.bindEvents()
@@ -81,21 +78,8 @@ export class PlaceMode {
       </button>`
     }).join('')
 
-    // T237/V245: huomio EI ole merkkityyppi ∴ se ei ole listan JÄSEN vaan sen ULKOPUOLINEN
-    // alapalkki. Kaksi syytä samalle rakenteelle:
-    //   1) semantiikka — tasavertaisena mallilistassa se luettaisiin merkkityypiksi;
-    //   2) tavoitettavuus (kenttähavainto 2026-07-25) — suosikkeja on kymmeniä ∴ listan
-    //      LOPPUUN sijoitettu rivi valuu ruudun ulkopuolelle eikä sitä löydä.
-    // Lista vierii, alapalkki pysyy paikallaan.
-    const commentHtml = this.onPlaceComment
-      ? `<div class="floating-picker-footer">
-        <button class="sign-type-btn floating-picker-comment" data-comment="1">
-          <span class="sign-swatch comment-swatch">💬</span>
-          Huomio
-        </button>
-      </div>`
-      : ''
-    this.floatingPicker.innerHTML = `<div class="floating-picker-list">${templateHtml}</div>${commentHtml}`
+    // T380/V275: pickerin "💬 Huomio" -alapalkki poistettu huomiosysteemin mukana.
+    this.floatingPicker.innerHTML = `<div class="floating-picker-list">${templateHtml}</div>`
     this.floatingPicker.classList.add('open')
     requestAnimationFrame(() => {
       const { offsetWidth: w, offsetHeight: h } = this.floatingPicker
@@ -116,13 +100,6 @@ export class PlaceMode {
       if (!btn || !this.pendingDblClick) return
       if (!this.mapMode.canPlaceMarkers()) { this.closePicker(); return }
       const { lat, lon } = this.pendingDblClick
-      // T237: huomio-haara ENNEN merkin luontia — tämä rivi ⊥ ole SignTemplate ∴ markerManager.add
-      // saisi undefined-tyypin ja loisi rikkinäisen merkin.
-      if (btn.dataset.comment) {
-        this.closePicker()
-        this.onPlaceComment?.(lat, lon)
-        return
-      }
       const parts = btn.dataset.parts ? JSON.parse(btn.dataset.parts) : undefined
       // T215/V143: viimeinen arg = templateId (= data-type, joka on template.id) → denormalisoi
       // template-viite myös picker-polulla (kuten sidebar armFromSidebar). Ilman tätä talkoolaisen

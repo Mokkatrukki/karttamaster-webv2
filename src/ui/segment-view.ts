@@ -9,7 +9,6 @@ import { SegmentHero, markerLabel } from './segment-hero'
 import { SegmentEquipment } from './segment-equipment'
 import { SegmentMarkerList } from './segment-marker-list'
 import { SegmentKotiTabs } from './segment-koti-tabs'
-import { CommentThread, type CommentThreadApi } from './comment-thread'
 import type { SignMarker } from '../logic/types'
 
 // T14/T208 (talkoolainen): pätkänäkymän toiminta-callbackit. Erillinen positional-parametreista
@@ -25,8 +24,8 @@ export interface SegmentViewActions {
   onShowOnMap?: (id: string) => void
   // T224 (B) "Siirretty" overflow — talkoolainen siirtää merkin (→ T222 merkin siirto kentällä).
   onMoveMarker?: (id: string) => void
-  // T228: "Laita kommentti" overflow — avaa MarkerDetailModal (Kommentti/locationNote-kenttä).
-  // Per-merkki-kommentti on jo olemassa (jaettu detail-modaali); tämä tekee siitä löydettävän herosta.
+  // T228/T380/V275: "Lisää ohje" — avaa merkin ohjekentän (locationNote). Yksisuuntainen ohje,
+  // ⊥ keskustelu: nimi oli ennen "Laita kommentti" & se luettiin lankana jota ⊥ ollut.
   onComment?: (id: string) => void
   // T78/V43: talkoolainen muokkaa oman pätkän rajoja kentällä (laajenna/lyhennä). Metrit.
   onEditBounds?: (startDistM: number, endDistM: number) => void
@@ -46,17 +45,9 @@ export interface SegmentViewActions {
   onNavigate?: (markerId: string | null) => void
   // T232 (E)/T229: "+ Merkki" hero-overflowsta → avaa sign-picker kartan keskelle (POST omalle pätkälle).
   onAddMarker?: () => void
-  // T237/V245: "💬 Huomio" hero-overflowsta → pudottaa vapaan huomion kartan keskelle.
-  // Huomio ⊥ ole merkki ∴ oma callbackinsa — jaettu onAddMarkerin kanssa se ajautuisi
-  // "kumpi tyyppi tämä oli" -haaraksi wiringissä.
-  onAddComment?: () => void
   // T218/V143 (skenaario 2): keräyslistan "haettu"-kuittaus. Kuka tahansa autentikoitu, EI
   // ownership-gatea. collected=true → kerätty, false → suunniteltu (peruutus).
   onCollectMarker?: (id: string, collected: boolean) => void
-  // T221/T75: pätkän geneerinen kommenttilanka — kirjoittajan nimi (talkoolaisen koodi) esitäyttöön.
-  commentAuthorName?: string
-  // T221: injektoitava kommentti-api (Vitest-jsdom). Oletus = oikea logic/comments-slice.
-  commentApi?: CommentThreadApi
 }
 
 export class SegmentView {
@@ -83,8 +74,6 @@ export class SegmentView {
   private currentMarkers: SignMarker[] = []
   // T221/T75: pätkän geneerinen kommenttilanka (targetType='segment'). Talkoolainen näkee/lisää,
   // ei poista (canDelete=false). Eri asia kuin per-merkki-kommentit (MarkerDetailModal).
-  private readonly commentEl: HTMLElement
-  private commentThread: CommentThread | null = null
   // T234: "Seuraava merkki" -hero eristetty omaan luokkaansa (SegmentHero). SegmentView on
   // koordinaattori; hero omistaa selectedNavId-tilan ja ◀▶-selailun (V159).
   private readonly hero: SegmentHero
@@ -123,19 +112,8 @@ export class SegmentView {
     this.completeSection = b.completeSection
     this.completeBtn = b.completeBtn
     this.completeStatus = b.completeStatus
-    this.commentEl = b.commentEl
     this.panel = b.panel
     container.appendChild(b.panel)
-    // T221/T75: pätkän kommenttilanka. Talkoolainen-näkymä → canDelete=false (poisto järjestäjä+).
-    this.commentThread = new CommentThread({
-      targetType: 'segment',
-      targetId: this.segment.id,
-      canDelete: false,
-      authorName: this.actions.commentAuthorName,
-      api: this.actions.commentApi,
-    })
-    this.commentEl.appendChild(this.commentThread.el)
-    void this.commentThread.load()
     this.hero = new SegmentHero(this.nextEl, {
       getSegment: () => this.segment,
       getMarkers: () => this.currentMarkers,
@@ -154,12 +132,12 @@ export class SegmentView {
       onOpenDetail: (id) => this.actions.onFocusMarker?.(id),
     })
     // T264/V184: koti-välilehdet. Reparentoi elementit paneleihin (varuste / kaikki merkit +
-    // valmis + rajat / kommentit). "Lisää ⋯" -accordion (moreSection) piilotetaan → valmis/rajat/
-    // kommentit tabeissa, ei haitarin alla. Tabit vain koti-moodissa (kartta: CSS piilottaa, hero näkyy).
+    // valmis + rajat). "Lisää ⋯" -accordion (moreSection) piilotetaan → valmis/rajat tabeissa,
+    // ei haitarin alla. Tabit vain koti-moodissa (kartta: CSS piilottaa, hero näkyy).
+    // T380/V275: Kommentit-tab POISTETTU — kolmikko → kaksikko.
     this.kotiTabs = new SegmentKotiTabs([
       { id: 'varuste', label: '🎒 Varustelista', els: [this.equipmentEl] },
       { id: 'merkit', label: 'Kaikki merkit', els: [this.markerListEl, this.completeSection, this.boundsSection] },
-      { id: 'kommentit', label: 'Kommentit', els: [this.commentEl] },
     ])
     this.panel.insertBefore(this.kotiTabs.root, this.bulkBtn)
     this.renderGpsBtn()
@@ -373,7 +351,6 @@ export class SegmentView {
     completeSection: HTMLElement
     completeBtn: HTMLButtonElement
     completeStatus: HTMLElement
-    commentEl: HTMLElement
   } {
     const panel = document.createElement('div')
     panel.id = 'segment-view'
@@ -545,9 +522,6 @@ export class SegmentView {
     // T260/R4: pätkän kommenttilanka-container SIIRRETTY "Lisää ⋯":n alle (thread konstruktorissa).
     // Ei enää liimattuna koti-etusivulle (käyttäjäpalaute "en ymmärrä mikä toi kommentti juttu on
     // etusivulla") — koko-pätkän kommentit saavutettavissa valikosta. Per-merkki-kommentit = merkkimodaali.
-    const commentEl = document.createElement('div')
-    commentEl.className = 'segment-view-comments'
-    moreBody.appendChild(commentEl)
 
     panel.appendChild(moreSection)
 
@@ -555,7 +529,7 @@ export class SegmentView {
       panel, progressEl, gpsBtn, nextEl, equipmentEl, markerListEl, collectionEl, bulkBtn,
       inspectSection, inspectBtn, inspectNoteInput, inspectStatus,
       moreSection, boundsSection,
-      completeSection, completeBtn, completeStatus, commentEl,
+      completeSection, completeBtn, completeStatus,
     }
   }
 

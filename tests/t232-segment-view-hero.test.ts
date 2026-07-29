@@ -212,12 +212,15 @@ describe('T232 — kokoava hero', () => {
       expect((container.querySelector('.segment-view-more') as HTMLElement).hidden).toBe(true)
     })
 
-    it('kommentit "Kommentit"-tab-panelin sisällä (ei accordionissa)', () => {
+    // T380/V275: Kommentit-tab POISTETTU — kolmikko → kaksikko (varuste + merkit).
+    // Vahti kieltää KETJUN paluun: merkin ohje asuu locationNote-kentässä, ⊥ omassa tabissaan.
+    it('Kommentit-tabia ⊥ ole — koti-tabit ovat varuste + merkit (V275)', () => {
       const view = new SegmentView(container, makeSeg())
       view.update([makeMarker()])
-      const panel = container.querySelector('.segment-koti-panel[data-tab="kommentit"]')
-      expect(panel).not.toBeNull()
-      expect(panel?.querySelector('.segment-view-comments')).not.toBeNull()
+      expect(container.querySelector('.segment-koti-panel[data-tab="kommentit"]')).toBeNull()
+      expect(container.querySelector('.segment-view-comments')).toBeNull()
+      const tabs = [...container.querySelectorAll('.segment-koti-panel')].map(p => (p as HTMLElement).dataset.tab)
+      expect(tabs).toEqual(['varuste', 'merkit'])
     })
 
     it('complete + bounds "Kaikki merkit" -tab-panelin sisällä (ei accordionissa/hero-primaryssä)', () => {
