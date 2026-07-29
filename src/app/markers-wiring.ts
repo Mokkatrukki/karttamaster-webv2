@@ -19,6 +19,8 @@ import { getRole } from '../logic/role'
 import { MarkerDetailModal } from '../ui/marker-detail-modal'
 import { getSegmentForCode, getMarkersForSegment, updateSegment, segmentPrimaryRouteId, segmentPeers } from '../logic/segments'
 import { boundsPatch } from '../logic/segment-backfill'
+import { backfillNearestRoute } from '../logic/marker-route-backfill'
+import { pushMarkerNearestRoute } from '../logic/sync'
 import type { Segment } from '../logic/segments'
 import { fitMapToSegment } from '../map/segment-fit'
 import { firstUnsetMarker, distanceAhead } from '../logic/navigation'
@@ -171,6 +173,20 @@ export function wireMarkers(
       }
     }
   }, initialMarkers, distM => showWarning(`⚠ Merkki kaukana reitistä (${Math.round(distM)} m)`), msg => showWarning(msg, 5000))
+
+  // T392/V284: merkin lähin reitti johdetaan geometriasta heti kun GPX:t ovat ladattu.
+  // B145/V260-amend-kuvio: SIVULATAUS ⊥ SAA OLLA KIRJOITUS talkoolaiselta — taustakirjoitus jota
+  // hän ⊥ pyytänyt voi 401:llä nostaa reauth-overlayn & lukita kenttänäkymän (V18-luokan vika).
+  // Arvo on silti MUISTISSA ∴ tämän istunnon jäsenyys noudattaa jo uutta sääntöä; vain serverin
+  // kopio odottaa järjestäjän istuntoa.
+  const nearestBackfilled = backfillNearestRoute(markerManager.getAll(), routes)
+  if (getRole() !== 'talkoolainen') {
+    for (const m of nearestBackfilled) {
+      // Outboxin OHI: johdettu arvo ⊥ tarvitse durabiliteettia (seuraava lataus laskee sen
+      // uudelleen) & taustamigraatio ⊥ saa nostaa reauth-overlaytä.
+      void pushMarkerNearestRoute(m.id, m.nearestRouteId!, m.nearestRouteDistM!)
+    }
+  }
 
   markerDetailModal = new MarkerDetailModal(
     markerManager,

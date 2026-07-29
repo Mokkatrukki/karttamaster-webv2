@@ -101,11 +101,16 @@ export interface MarkerPositionSnapshot {
   distanceFromStart: number
   distanceByRoute?: Record<string, number[]>
   routeIds: string[]
+  // T392/V284: sijainti määrää lähimmän reitin ∴ ne siirtyvät & rollbackaantuvat yhdessä.
+  // Erillään jätettynä siirretty merkki kantaisi VANHAN sijainnin jäsenyysperustetta.
+  nearestRouteId?: string
+  nearestRouteDistM?: number
 }
 
 export type PositionedMarker = Pick<
   SignMarker,
   'lat' | 'lon' | 'distanceFromStart' | 'distanceByRoute' | 'routeIds'
+  | 'nearestRouteId' | 'nearestRouteDistM'
 >
 
 /** Snapshot ENNEN mutaatiota — rollbackin (V220) ainoa totuus siitä mihin palataan. */
@@ -117,6 +122,8 @@ export function snapshotMarkerPosition(m: PositionedMarker): MarkerPositionSnaps
     // kopio: alkuperäinen objekti ei jää jaettuun viittaukseen jota uusi arvo voisi mutatoida
     ...(m.distanceByRoute ? { distanceByRoute: { ...m.distanceByRoute } } : {}),
     routeIds: [...m.routeIds],
+    ...(m.nearestRouteId ? { nearestRouteId: m.nearestRouteId } : {}),
+    ...(m.nearestRouteDistM !== undefined ? { nearestRouteDistM: m.nearestRouteDistM } : {}),
   }
 }
 
@@ -127,6 +134,8 @@ export function applyMarkerPosition(m: PositionedMarker, pos: MarkerPositionSnap
   m.distanceFromStart = pos.distanceFromStart
   m.distanceByRoute = pos.distanceByRoute ? { ...pos.distanceByRoute } : undefined
   m.routeIds = [...pos.routeIds]
+  m.nearestRouteId = pos.nearestRouteId
+  m.nearestRouteDistM = pos.nearestRouteDistM
 }
 
 /**

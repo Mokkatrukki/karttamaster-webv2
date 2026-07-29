@@ -322,6 +322,12 @@ function initSchema(db: Database): void {
   // putoaa km-haaraan (markerInOwnSegment) ∴ välitila on laillinen, ei rikki. Jälki syntyy
   // clientissä (T361) kun GPX:t ovat latautuneet — EI backfilliä täällä: reittigeometriaa ei
   // ole kannassa, joten serveri ei voi johtaa sitä (sama syy kuin distance_by_route).
+  // T392/V284: merkin lähin reitti + kohtisuora etäisyys siihen. Jäsenyys torjuu pätkän joka on
+  // kauempana kuin toinen reitti. NULL = ei vielä laskettu → client backfillaa (reittigeometriaa
+  // ei ole kannassa ∴ serveri EI voi johtaa tätä, sama syy kuin distance_by_route/track).
+  try { db.exec('ALTER TABLE markers ADD COLUMN nearest_route_id TEXT') } catch { /* already exists */ }
+  try { db.exec('ALTER TABLE markers ADD COLUMN nearest_route_dist_m REAL') } catch { /* already exists */ }
+
   try { db.exec('ALTER TABLE segments ADD COLUMN track TEXT') } catch { /* already exists */ }
   // T360/V259: järjestäjän ohitus — merkki pois pätkästä geometrian yli. NULL = ei ohituksia.
   try { db.exec('ALTER TABLE segments ADD COLUMN excluded_marker_ids TEXT') } catch { /* already exists */ }

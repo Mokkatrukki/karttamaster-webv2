@@ -22,6 +22,12 @@ export interface SignMarker {
   // vertasi reitin A km:ää reitin B km-väliin → vääriä merkkejä. Puuttuu vanhalta datalta →
   // `distanceForRoute` fallbackaa `distanceFromStart`iin (⊥ kantamigraatiota, ks. §C-parkki).
   distanceByRoute?: Record<string, number[]>
+  // T392/V284: merkin LÄHIN reitti & kohtisuora etäisyys siihen. Lasketaan luonti-/siirtohetkellä
+  // (`nearestRouteByPath`) ∴ jäsenyys voi torjua pätkän joka on kauempana kuin toinen reitti,
+  // ilman että reittigeometria kulkee 29 kutsupaikan läpi. Puuttuu vanhalta datalta → sääntöä
+  // ⊥ sovelleta (entinen käytös), backfill täyttää.
+  nearestRouteId?: string
+  nearestRouteDistM?: number
 
   status: MarkerStatus    // lifecycle: suunniteltu → asetettu → tarkistettu → kerätty | ei_tarpeen
   locationNote?: string   // vapaa teksti: mihin tarkasti kiinnitetään

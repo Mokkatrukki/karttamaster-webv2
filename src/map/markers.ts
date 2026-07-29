@@ -6,6 +6,7 @@ import { compactLabel, signVisualParts } from '../logic/sign-visual'
 import { genId } from '../logic/uid'
 import type { SignPart } from '../logic/sign-library'
 import { FAR_FROM_ROUTE_M } from '../logic/marker-assign'
+import { nearestRouteByPath } from '../logic/multi-route'
 import {
   resolveMoveAssignment,
   inferKmAxisRouteId,
@@ -246,6 +247,8 @@ export class MarkerManager {
         // (markerInOwnSegment) ! nähdä sama km-lähde kuin frontendin suodatin, muuten
         // talkoolainen näkee merkin listalla mutta saa siitä 403:n (B100-oppi toisin päin).
         distance_by_route: marker.distanceByRoute ?? null,
+        nearest_route_id: marker.nearestRouteId ?? null,
+        nearest_route_dist_m: marker.nearestRouteDistM ?? null,
         route_ids: marker.routeIds,
         status: marker.status,
         location_note: marker.locationNote ?? null,
@@ -337,18 +340,26 @@ export class MarkerManager {
     routeIds: string[]
     distanceFromStart: number
     distanceByRoute: Record<string, number[]>
+    nearestRouteId?: string
+    nearestRouteDistM?: number
   } {
     const asg = resolveMoveAssignment(lat, lon, this.routes, opts)
     if (asg.distFromNearestRouteM > FAR_FROM_ROUTE_M) this.onFarFromRoute?.(asg.distFromNearestRouteM)
+    // T392/V284: lähin reitti KOHTISUORALLA mitalla — sama mittari jolla jäsenyys mittaa jäljen
+    // (`distanceToTrackM`). `asg.distFromNearestRouteM` on kärkipiste-etäisyys (V221 varoitusta
+    // varten) ∴ ⊥ kelpaa tähän vertailuun.
+    const nearest = nearestRouteByPath(lat, lon, this.routes)
     return {
       routeIds: asg.routeIds,
       distanceFromStart: asg.distanceFromStart,
       distanceByRoute: asg.distanceByRoute,
+      ...(nearest ? { nearestRouteId: nearest.routeId, nearestRouteDistM: nearest.distM } : {}),
     }
   }
 
   add(lat: number, lon: number, type: MarkerType, color?: string, label?: string, iconId?: string, parts?: SignPart[], imageId?: string, templateId?: string): SignMarker {
-    const { routeIds, distanceFromStart, distanceByRoute } = this.nearestRouteAssignment(lat, lon)
+    const { routeIds, distanceFromStart, distanceByRoute, nearestRouteId, nearestRouteDistM } =
+      this.nearestRouteAssignment(lat, lon)
 
     const marker: SignMarker = {
       id: genId(),
@@ -356,6 +367,8 @@ export class MarkerManager {
       distanceFromStart,
       distanceByRoute,
       routeIds,
+      ...(nearestRouteId ? { nearestRouteId } : {}),
+      ...(nearestRouteDistM !== undefined ? { nearestRouteDistM } : {}),
       status: DEFAULT_STATUS,
       ...(color ? { color } : {}),
       ...(label ? { label } : {}),
@@ -404,14 +417,19 @@ export class MarkerManager {
     let fixed = 0
     this.markers.forEach((m) => {
       if (m.routeIds.length > 0) return
-      const { routeIds, distanceFromStart, distanceByRoute } = this.nearestRouteAssignment(m.lat, m.lon)
+      const { routeIds, distanceFromStart, distanceByRoute, nearestRouteId, nearestRouteDistM } =
+        this.nearestRouteAssignment(m.lat, m.lon)
       m.routeIds = routeIds
       m.distanceFromStart = distanceFromStart
       m.distanceByRoute = distanceByRoute
+      m.nearestRouteId = nearestRouteId
+      m.nearestRouteDistM = nearestRouteDistM
       this.apiPut(m.id, {
         route_ids: routeIds,
         distance_from_start: distanceFromStart,
         distance_by_route: distanceByRoute,
+        nearest_route_id: nearestRouteId,
+        nearest_route_dist_m: nearestRouteDistM,
       })
       if (m.routeIds.some((id) => this.visibleRouteIds.includes(id)) && !this.leafletMarkers.has(m.id)) {
         this.addLeafletMarker(m)
@@ -558,11 +576,14 @@ export class MarkerManager {
   private async handleDragEnd(m: SignMarker, lm: L.Marker): Promise<void> {
     const { lat, lng } = lm.getLatLng()
     const before = snapshotMarkerPosition(m)
-    const { routeIds, distanceFromStart, distanceByRoute } = this.nearestRouteAssignment(lat, lng, {
-      preferRouteId: this.kmAxisRouteFn?.() ?? undefined,
-      fallbackAxisRouteId: inferKmAxisRouteId(m),
+    const { routeIds, distanceFromStart, distanceByRoute, nearestRouteId, nearestRouteDistM } =
+      this.nearestRouteAssignment(lat, lng, {
+        preferRouteId: this.kmAxisRouteFn?.() ?? undefined,
+        fallbackAxisRouteId: inferKmAxisRouteId(m),
+      })
+    applyMarkerPosition(m, {
+      lat, lon: lng, distanceFromStart, distanceByRoute, routeIds, nearestRouteId, nearestRouteDistM,
     })
-    applyMarkerPosition(m, { lat, lon: lng, distanceFromStart, distanceByRoute, routeIds })
     this.onUpdate()
 
     const { delivered, status } = await this.apiPutAwaited(m.id, {
@@ -571,6 +592,8 @@ export class MarkerManager {
       distance_from_start: distanceFromStart,
       distance_by_route: distanceByRoute,
       route_ids: routeIds,
+      nearest_route_id: nearestRouteId,
+      nearest_route_dist_m: nearestRouteDistM,
     })
     if (delivered || !isServerRejection(status)) return
 

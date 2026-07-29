@@ -32,6 +32,15 @@ import { distanceToTrackM } from './segment-track'
  */
 export const MEMBERSHIP_THRESHOLD_M = 200
 
+/**
+ * T392/V284: kuinka paljon KAUEMPANA pätkän jälki saa olla kuin merkin lähin reitti. ⊥ nolla:
+ * jaetulla osuudella reitit kulkevat samaa tietä & senttimetrien ero ratkaisisi omistuksen
+ * arvalla. 25 m erottaa "sama tie" & "toinen tie". Mitattu tuotannosta: sääntö siirtää 9
+ * merkkiä orvoiksi (G62 −3, Pätkä 1 −2, Pätkä 4 −2, Pätkä 8 −1, Pätkä 5a −1) ∴ se poistaa
+ * väärät ⊥ riko oikeita.
+ */
+export const ROUTE_TOLERANCE_M = 25
+
 /** Pätkän kentät joita jäsenyys lukee. */
 export type MembershipSegment = Pick<
   Segment,
@@ -127,7 +136,15 @@ export function resolveSegmentMarkers(
       }
       // V283/B165: kynnyksen ulkopuolinen voittaja ⊥ ole voittaja — merkki jää ORVOKSI.
       // Orpous on työjono (järjestäjä tekee sinne pätkän tai kerää suodattimella), ⊥ virhe.
-      if (winner && best <= MEMBERSHIP_THRESHOLD_M) add(winner.id, marker)
+      //
+      // V284: & voittajan ! olla lähinnä myös REITTIEN kesken. Merkki 30 m päässä sgf-125:stä
+      // ⊥ kuulu sgf-62:n pätkälle vaikka sekin on 150 m säteellä (molemmat ≤100 m korridori,
+      // V25). `nearestRouteDistM` puuttuu vanhalta datalta → sääntöä ⊥ sovelleta (backfill
+      // täyttää; välitila on entinen käytös, ⊥ tyhjä kartta).
+      const routeLimit = marker.nearestRouteDistM !== undefined
+        ? marker.nearestRouteDistM + ROUTE_TOLERANCE_M
+        : Infinity
+      if (winner && best <= MEMBERSHIP_THRESHOLD_M && best <= routeLimit) add(winner.id, marker)
     }
   }
 

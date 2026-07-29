@@ -9,6 +9,10 @@ interface ServerMarker {
   distance_from_start: number
   // T300/V212/B115: km per reitti. NULL/puuttuu = legacy → distanceForRoute fallbackaa.
   distance_by_route?: Record<string, number[]> | null
+  // T392/V284: lähin reitti + kohtisuora etäisyys. NULL/puuttuu = backfill kesken → jäsenyys
+  // ⊥ sovella reittisääntöä (entinen käytös).
+  nearest_route_id?: string | null
+  nearest_route_dist_m?: number | null
   route_ids: string[]
   status: string
   location_note: string | null
@@ -42,6 +46,8 @@ function fromServer(row: ServerMarker): SignMarker {
     lon: row.lon,
     distanceFromStart: row.distance_from_start,
     ...(row.distance_by_route ? { distanceByRoute: row.distance_by_route } : {}),
+    ...(row.nearest_route_id != null ? { nearestRouteId: row.nearest_route_id } : {}),
+    ...(row.nearest_route_dist_m != null ? { nearestRouteDistM: row.nearest_route_dist_m } : {}),
     routeIds: row.route_ids,
     status: row.status as MarkerStatus,
     ...(row.location_note != null ? { locationNote: row.location_note } : {}),
@@ -72,5 +78,23 @@ export async function fetchMarkers(): Promise<MarkersResult> {
     return { ok: true, markers: rows.map(fromServer) }
   } catch {
     return { ok: false, error: 'network' }
+  }
+}
+
+/**
+ * T392/V284: lähimmän reitin backfill-push — tarkoituksella outboxin OHI (B145-kuvio, sama
+ * peruste kuin `pushSegmentTrack`). Arvo on JOHDETTU (lat/lon + GPX) ∴ epäonnistunut push
+ * korjautuu itsestään seuraavalla latauksella; durabiliteetti ei ole sen arvoinen että
+ * taustamigraatio saisi laukaista reauth-overlayn.
+ */
+export async function pushMarkerNearestRoute(id: string, routeId: string, distM: number): Promise<void> {
+  try {
+    await fetch(`/api/markers/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nearest_route_id: routeId, nearest_route_dist_m: distM }),
+    })
+  } catch {
+    // Verkkovirhe: seuraava lataus johtaa arvon uudelleen.
   }
 }

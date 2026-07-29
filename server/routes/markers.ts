@@ -22,6 +22,8 @@ interface MarkerRow {
   lon: number
   distance_from_start: number
   distance_by_route: string | null
+  nearest_route_id: string | null
+  nearest_route_dist_m: number | null
   route_ids: string
   status: string
   location_note: string | null
@@ -79,6 +81,8 @@ markersRoutes.post('/', requireAuth(), async (c) => {
     lon?: number
     distance_from_start?: number
     distance_by_route?: Record<string, number[]> | null
+    nearest_route_id?: string | null
+    nearest_route_dist_m?: number | null
     route_ids?: string[]
     status?: string
     location_note?: string
@@ -125,7 +129,7 @@ markersRoutes.post('/', requireAuth(), async (c) => {
   const createdBy = session.talkoolainen_code ?? session.display_name
   db.transaction(() => {
     db.run(
-      'INSERT INTO markers (id, type, lat, lon, distance_from_start, distance_by_route, route_ids, status, location_note, color, label, icon_id, image_id, template_id, parts_json, description, updated_at, updated_by, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO markers (id, type, lat, lon, distance_from_start, distance_by_route, nearest_route_id, nearest_route_dist_m, route_ids, status, location_note, color, label, icon_id, image_id, template_id, parts_json, description, updated_at, updated_by, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         body.type,
@@ -133,6 +137,8 @@ markersRoutes.post('/', requireAuth(), async (c) => {
         body.lon,
         body.distance_from_start,
         body.distance_by_route != null ? JSON.stringify(body.distance_by_route) : null,
+        body.nearest_route_id ?? null,
+        body.nearest_route_dist_m ?? null,
         JSON.stringify(body.route_ids),
         body.status ?? 'suunniteltu',
         body.location_note ?? null,
@@ -197,6 +203,8 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
     type?: string
     distance_from_start?: number
     distance_by_route?: Record<string, number[]> | null
+    nearest_route_id?: string | null
+    nearest_route_dist_m?: number | null
     route_ids?: string[]
     description?: string | null
     icon_id?: string | null
@@ -256,6 +264,9 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
     values.push(body.distance_by_route != null ? JSON.stringify(body.distance_by_route) : null)
   }
   if (body.route_ids !== undefined) { fields.push('route_ids = ?'); values.push(JSON.stringify(body.route_ids)) }
+  // T392/V284: lähin reitti seuraa sijaintia (client laskee, serverillä ⊥ ole reittigeometriaa).
+  if (body.nearest_route_id !== undefined) { fields.push('nearest_route_id = ?'); values.push(body.nearest_route_id ?? null) }
+  if (body.nearest_route_dist_m !== undefined) { fields.push('nearest_route_dist_m = ?'); values.push(body.nearest_route_dist_m ?? null) }
   if (body.icon_id !== undefined) { fields.push('icon_id = ?'); values.push(body.icon_id) }
   if (body.image_id !== undefined) { fields.push('image_id = ?'); values.push(body.image_id) }
   if (body.template_id !== undefined) { fields.push('template_id = ?'); values.push(body.template_id) }

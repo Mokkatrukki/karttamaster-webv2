@@ -161,6 +161,21 @@ export function distanceToTrackM(track: SegmentTrack, lat: number, lon: number):
 }
 
 /**
+ * T392/V284: kohtisuora etäisyys MIHIN TAHANSA pistejonoon — reittiin tai jälkeen. Jäsenyys
+ * vertaa näitä kahta keskenään (`dJälki ≤ lähin reitti + 25 m`) ∴ mittarin ! olla sama
+ * molemmilla puolilla: kärkipiste-etäisyys erehtyy V261:n mittauksen mukaan jopa 41.9 m, mikä
+ * on ENEMMÄN kuin koko toleranssi — sekamittaus tekisi säännöstä satunnaisen.
+ */
+export function distanceToPathM(
+  points: Array<{ lat: number; lon: number }>,
+  lat: number,
+  lon: number,
+): number {
+  // `d` ⊥ vaikuta etäisyyteen (vain `nearestOnTrack`in km-paluuseen) ∴ nolla kelpaa.
+  return distanceToTrackM(points.map(p => ({ lat: p.lat, lon: p.lon, d: 0 })), lat, lon)
+}
+
+/**
  * V259: merkin km PÄTKÄN akselilla (0…pituus) — matka jäljen alusta lähimpään kohtaan.
  * `null` = ei jälkeä ∴ kutsuja ⊥ arvaa lukemaa (V139 reititön tehtävä, tai jälki puuttuu vielä
  * V260-välitilassa).
