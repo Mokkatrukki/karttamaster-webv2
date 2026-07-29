@@ -2,8 +2,8 @@
 
 Tarkoitus: säästää Playwright-flakyn uudelleentutkinta. Siirretty auto-memorystä repoon 2026-07-21.
 
-## Suite-tila (2026-07-25)
-**133 passed, 0 failed** (T324/T325/T332). Edellinen: 93 passed 2026-07-10.
+## Suite-tila (2026-07-29)
+**172 passed, 0 failed** (B167, 2026-07-29). Edellinen: 133 passed 2026-07-25 (T324/T325/T332).
 
 ## Opetus: kun E2E "flakaa", tutki TÄMÄ järjestys ENNEN kuin syytät headlessiä
 
@@ -37,6 +37,15 @@ tässä setupissa. Todelliset juurisyyt olivat muualla:
    mutta failasi koko suitessa: `/loki`-undo asetti vahvistuksen DOM-solmuun jonka sen oma
    uudelleenlataus pyyhki. Yksikkötesti oli vihreä koska `onReload` oli `vi.fn()` joka ei
    renderöi. Ordering-riippuvainen punainen ⇒ etsi kilpajuoksu, älä lisää odotusta.
+
+7. **Fixturen koordinaatti ⊥ saa olla keksitty** (B167, 2026-07-29). Kuusi testiä muuttui punaiseksi
+   ilman että niiden koodiin koskettiin: T391/V283 toi pätkäjäsenyyteen 200 m kynnyksen
+   (`MEMBERSHIP_THRESHOLD_M`), & fixtureiden ruudukko (`lat: 65.6 + i * 0.001`) on **1191 m**
+   smtb-30:n jäljestä. Kynnyksetön vanha sääntö hyväksyi sen, uusi ⊥. Oireet eivät näytä
+   jäsenyydeltä: lista 30 → 6 riviä, hero ⊥ renderöi ◀▶, merkki sai `marker-dimmed--locked`
+   & lakkasi olemasta raahattava. Sääntö: pätkämerkin lat/lon ! tulla siitä GPX:stä jonka appi
+   lataa — `e2e/helpers/route-points.ts` (`pointAtDistance`, `pointsAlongRoute`) lukee tiedoston
+   ajossa ∴ reittipäivitys siirtää fixturet mukanaan. Sama opetus kuin §4, eri akseli.
 
 ## Talkoolainen-E2E-sudenkuoppa (V27)
 Talkoolaisen koodi tulee **URL-polusta `/s/<koodi>`**, EI `/api/auth/me`-mockista.

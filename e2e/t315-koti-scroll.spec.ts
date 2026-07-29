@@ -9,6 +9,7 @@
  */
 import { test, expect, type Page } from 'playwright/test'
 import { mockAuthAsTalkoolainen } from './helpers/auth'
+import { pointsAlongRoute } from './helpers/route-points'
 
 const CODE = 'SCROLL1'
 const MANY = 30
@@ -19,8 +20,11 @@ async function mockBigSegment(page: Page): Promise<void> {
     assignedCode: CODE, displayName: 'Scrollipätkä', description: '', equipment: [],
     phase: 'asettaminen', inspected: false, completed: false,
   }
+  // V283: 30 pistettä reitin JÄLJELTÄ. Entinen `65.6 + i*0.001` -ruudukko oli ~1.2 km sivussa
+  // ∴ 200 m kynnys pudotti 24/30 merkkiä pätkältä & lista jäi 6 riviin.
+  const pts = pointsAlongRoute(MANY)
   const markers = Array.from({ length: MANY }, (_, i) => ({
-    id: `mk-${i}`, type: i % 2 ? 'right' : 'left', lat: 65.6 + i * 0.001, lon: 27.6 + i * 0.001,
+    id: `mk-${i}`, type: i % 2 ? 'right' : 'left', lat: pts[i][0], lon: pts[i][1],
     distance_from_start: 1000 + i * 1000, route_ids: ['smtb-30'], status: 'suunniteltu',
     location_note: null, color: null, label: `Merkki ${i + 1}`, icon_id: null, image_id: null,
     template_id: null, parts_json: null, description: null, images: [], created_by: null,

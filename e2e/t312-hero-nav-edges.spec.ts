@@ -6,6 +6,7 @@
  */
 import { test, expect, type Page } from 'playwright/test'
 import { mockAuthAsTalkoolainen } from './helpers/auth'
+import { pointAtDistance } from './helpers/route-points'
 
 const CODE = 'NAV01'
 const SHORT = 'A'
@@ -22,10 +23,17 @@ async function mockNavSegment(page: Page): Promise<void> {
     color: null, icon_id: null, image_id: null, template_id: null, parts_json: null,
     description: null, images: [], created_by: null,
   }
+  // V283: koordinaatti reitin jäljeltä — keksitty ruudukko jää 200 m kynnyksen ulkopuolelle
+  // eikä pätkä omista merkkejä ∴ hero ei renderöi nuolia lainkaan.
+  const at = (m: number): { lat: number; lon: number } => {
+    const [lat, lon] = pointAtDistance(m)
+    return { lat, lon }
+  }
   const markers = [
-    { ...base, id: 'm-short', lat: 65.60, lon: 27.60, distance_from_start: 2000, label: SHORT },
-    { ...base, id: 'm-long', lat: 65.61, lon: 27.61, distance_from_start: 4000, label: LONG },
-    { ...base, id: 'm-third', lat: 65.62, lon: 27.62, distance_from_start: 6000, label: 'C' },
+    // Etäisyydet mahtuvat testireitin pituuteen ∴ kolme ERI pistettä (clamp veisi kaksi samaan).
+    { ...base, id: 'm-short', ...at(1000), distance_from_start: 1000, label: SHORT },
+    { ...base, id: 'm-long', ...at(2500), distance_from_start: 2500, label: LONG },
+    { ...base, id: 'm-third', ...at(4000), distance_from_start: 4000, label: 'C' },
   ]
   await page.route(new RegExp(`/api/segments/by-code/${CODE}$`), r =>
     r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(seg) }))

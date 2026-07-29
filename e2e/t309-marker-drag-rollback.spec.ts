@@ -9,8 +9,12 @@
  */
 import { test, expect, type Page } from 'playwright/test'
 import { mockAuthAsTalkoolainen, mockTemplates } from './helpers/auth'
+import { pointAtDistance } from './helpers/route-points'
 
 const CODE = 'DRG01'
+
+// V283: jäsenyys pudottaa >200 m jäljestä olevan merkin ∴ koordinaatti tulee oikeasta GPX:stä.
+const [MK_LAT, MK_LON] = pointAtDistance(2000)
 
 const SEG = {
   id: 'seg-drag', routeIds: ['smtb-30'], primaryRouteId: 'smtb-30',
@@ -20,7 +24,7 @@ const SEG = {
 }
 
 const MARKER = {
-  id: 'm-drag', type: 'right', lat: 65.6, lon: 27.6,
+  id: 'm-drag', type: 'right', lat: MK_LAT, lon: MK_LON,
   distance_from_start: 2000, distance_by_route: { 'smtb-30': [2000] },
   route_ids: ['smtb-30'], status: 'suunniteltu', label: 'Raahattava',
   location_note: null, color: null, icon_id: null, image_id: null,
