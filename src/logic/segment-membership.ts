@@ -11,10 +11,26 @@ import { distanceToTrackM } from './segment-track'
 // talkoolaista sai saman kyltin & toinen ajoi metsään turhaan. Eksklusiivisuus ⊥ ole
 // tarkistus jonka voi unohtaa — se on RAKENNE: kysymys on "kuka omistaa", ⊥ "kuuluuko".
 //
-// V259: lähin jälki voittaa AINA, kynnystä ⊥ ole. Kynnys tuottaisi orpoja & merkki ilman
-// pätkää on näkymätön talkoolaiselle (`markers-wiring.ts` rajaa näkymän jäsenyyteen).
-// Ehdokasjoukko rajaa sen sijaan reittijäsenyys (V25, 100 m korridori): merkki joka ⊥ ole
-// pätkän reitillä ⊥ ole ehdokas ∴ gravel-merkit ⊥ tartu MTB-pätkiin.
+// V259: lähin jälki voittaa — mutta VAIN kynnyksen sisällä (V283-amend, B165). Ehdokasjoukkoa
+// rajaa reittijäsenyys (V25, 100 m korridori): merkki joka ⊥ ole pätkän reitillä ⊥ ole ehdokas
+// ∴ gravel-merkit ⊥ tartu MTB-pätkiin.
+//
+// Alkuperäinen V259 jätti kynnyksen pois ("kynnys tuottaisi orpoja & orpo on näkymätön
+// talkoolaiselle") & luotti reittijäsenyyteen rajaajana. Se pitää VAIN kun reitti on kokonaan
+// jaettu pätkiin: reitin ENSIMMÄINEN pätkä ⊥ ole ketään vastaan ∴ se voittaa jokaisen merkin
+// koko reitin pituudelta. Mitattu tuotannosta 2026-07-29 (B165): G62 (sgf-62:n ainoa pätkä,
+// jälki 14.3 km) omisti 38 merkkiä joista 21 oli yli KILOMETRIN päässä sen jäljestä, kauimmainen
+// 10.5 km. Orpo merkki on laillinen & välttämätön RAKENNUSVAIHEEN tila — se kertoo että reittiä
+// ⊥ ole vielä jaettu. Väärä omistus ⊥ kerro mitään; se lähettää talkoolaisen 10 km harhaan.
+
+/**
+ * V283/B165: kuinka kaukaa pätkä saa omistaa merkin. Mitattu tuotantodatasta: 200 m & 300 m
+ * antavat saman oikean tuloksen (G62 38→14) & naapuripätkät menettävät 0–1 merkkiä ∴ arvo ⊥ ole
+ * herkkä — se erottaa "tien toisella puolen" (kymmeniä metrejä) & "eri puolella reittiä"
+ * (kilometrejä). ⊥ kiristä ilman mittausta: GPX on paikoin harva (V261: sgf-125 max pisteväli
+ * 767 m) & merkki asetetaan risteykseen ⊥ viivan päälle.
+ */
+export const MEMBERSHIP_THRESHOLD_M = 200
 
 /** Pätkän kentät joita jäsenyys lukee. */
 export type MembershipSegment = Pick<
@@ -109,7 +125,9 @@ export function resolveSegmentMarkers(
           winner = seg
         }
       }
-      if (winner) add(winner.id, marker)
+      // V283/B165: kynnyksen ulkopuolinen voittaja ⊥ ole voittaja — merkki jää ORVOKSI.
+      // Orpous on työjono (järjestäjä tekee sinne pätkän tai kerää suodattimella), ⊥ virhe.
+      if (winner && best <= MEMBERSHIP_THRESHOLD_M) add(winner.id, marker)
     }
   }
 

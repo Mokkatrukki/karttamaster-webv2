@@ -202,14 +202,24 @@ describe('V259 — eksplisiittinen tahto voittaa geometrian', () => {
   const near = deriveTrackFromBounds(r1, 0, 500)
   const far = deriveTrackFromBounds(r1, 500, 1000)
 
-  it('excludedMarkerIds poistaa merkin vaikka jälki olisi lähin — seuraavaksi lähin saa sen', () => {
+  // T391/V283-amend: "seuraavaksi lähin saa sen" pätee VAIN kynnyksen sisällä. Ennen kynnystä
+  // tämä testi kuvasi tilaa jossa 400 m päässä oleva pätkä peri poissuljetun merkin — juuri se
+  // etäisyydetön periytyminen oli B165:n juuri. Poissulkeminen ⊥ ole omistuksen siirto.
+  it('excludedMarkerIds poistaa merkin — seuraavaksi lähin saa sen VAIN kynnyksen sisällä', () => {
     const a = seg({ id: 'a', routeIds: ['r1'], startDist: 0, endDist: 500, track: near, excludedMarkerIds: ['x'] })
     const b = seg({ id: 'b', routeIds: ['r1'], startDist: 500, endDist: 1000, track: far })
-    const m = marker({ id: 'x', ...at(100, 5), routeIds: ['r1'] })
 
-    const owners = resolveSegmentMarkers([a, b], [m])
+    // 100 m kohdalla: b:n jälki alkaa vasta 500 m ∴ 400 m päässä → ⊥ kenenkään, orpo.
+    const kaukana = marker({ id: 'x', ...at(100, 5), routeIds: ['r1'] })
+    const owners = resolveSegmentMarkers([a, b], [kaukana])
     expect(owners.get('a')!).toEqual([])
-    expect(owners.get('b')!.map(y => y.id)).toEqual(['x'])
+    expect(owners.get('b')!).toEqual([])
+
+    // 450 m kohdalla: b on 50 m päässä ∴ perii merkin kuten ennenkin.
+    const lahella = marker({ id: 'x', ...at(450, 5), routeIds: ['r1'] })
+    const owners2 = resolveSegmentMarkers([a, b], [lahella])
+    expect(owners2.get('a')!).toEqual([])
+    expect(owners2.get('b')!.map(y => y.id)).toEqual(['x'])
   })
 
   it('linkedMarkerIds liittää merkin vaikka toinen jälki olisi lähempänä', () => {

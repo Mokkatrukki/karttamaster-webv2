@@ -5,7 +5,7 @@ import { RouteBar } from '../map/route-bar'
 import { RouteVisibilityControl } from '../map/route-visibility-control'
 import { MapFilterBar } from '../ui/map-filter-bar'
 import type { MapFilter } from '../logic/map-filter'
-import { isolatedMarkerIds } from '../logic/map-filter'
+import { isolatedMarkerIds, orphanMarkerIds } from '../logic/map-filter'
 import { ProgressBar } from '../ui/progress-bar'
 import { PlaceMode } from '../ui/place-mode'
 import { renderMarkerList } from '../ui/marker-list'
@@ -428,6 +428,11 @@ export function wireMarkers(
         if (routeVis && filter.visibleRouteIds) routeVis.setVisibleRoutes(filter.visibleRouteIds)
         markerManager.setMapFilter(filter, {
           isolatedMarkerIds: isolatedMarkerIds(filter, Array.from(segmentStore.values()), markerManager.getAll()),
+          // T391/V283/B165: orpojoukko lasketaan vain kun sitä kysytään — se on koko
+          // jäsenyysratkaisu (kaikki pätkät × kaikki merkit), ⊥ ilmainen.
+          orphanMarkerIds: filter.onlyOrphans
+            ? orphanMarkerIds(Array.from(segmentStore.values()), markerManager.getAll())
+            : undefined,
         })
         setSegmentMapFilter(filter)
         renderSegmentOverlay()

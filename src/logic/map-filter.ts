@@ -2,7 +2,7 @@ import type { MarkerStatus, SignMarker } from './types'
 import type { Segment, SegmentLineState } from './segments'
 import { segmentLineState, getPhaseProgress } from './segments'
 import { segmentVisibleOnRoutes } from './segment-visibility'
-import { markersForSegment } from './segment-membership'
+import { markersForSegment, resolveSegmentMarkers } from './segment-membership'
 
 // T376/V271: kartan näkyvyys-/himmennyspäätös ratkeaa TASAN TÄSSÄ moduulissa. `src/map/`-kerros
 // SOVELTAA palautetun tilan, ⊥ päätä sitä — sääntö joka elää kahdessa paikassa on kaksi eri
@@ -31,6 +31,10 @@ export interface MapFilter {
   markerStatuses: Set<MarkerStatus>
   segmentStates: Set<SegmentLineState>
   dimLevel: DimLevel
+  /** V283/B165: "vain merkit joilla ⊥ ole pätkää" — järjestäjän työjono kartalla. Orpous
+   *  syntyy jäsenyyskynnyksestä ∴ tämä akseli on se ulospääsy jonka kynnys vaatii: puute ! olla
+   *  näkyvä, muuten kynnys vaihtaisi väärän omistuksen hiljaiseen katoamiseen. */
+  onlyOrphans: boolean
 }
 
 export const ALL_MARKER_STATUSES: MarkerStatus[] = ['suunniteltu', 'asetettu', 'tarkistettu', 'kerätty', 'ei_tarpeen']
@@ -51,6 +55,7 @@ export function defaultMapFilter(): MapFilter {
     segmentStates: new Set(ALL_SEGMENT_STATES),
     // V243-amend: OLETUS = vahva. "Piilota" vain eksplisiittisestä valinnasta.
     dimLevel: 'vahva',
+    onlyOrphans: false,
   }
 }
 
@@ -68,6 +73,7 @@ export function activeFilterCount(f: MapFilter): number {
   if (f.markerStatuses.size < ALL_MARKER_STATUSES.length) n++
   if (f.segmentStates.size < ALL_SEGMENT_STATES.length) n++
   if (f.dimLevel === 'piilota') n++
+  if (f.onlyOrphans) n++
   return n
 }
 
@@ -95,6 +101,9 @@ export interface MarkerFilterContext {
   /** Isoloidun pätkän merkit (V259-jäsenyys, kutsuja laskee `markersForSegment`illa TAI antaa
    *  `segments` alla & tämä moduuli laskee). */
   isolatedMarkerIds?: Set<string>
+  /** V283/B165: merkit ilman omistajaa (`orphanMarkerIds`). Puuttuu → `onlyOrphans` ⊥ rajaa
+   *  mitään: suodatin joka ⊥ tiedä joukkoaan ⊥ saa piilottaa koko karttaa. */
+  orphanMarkerIds?: Set<string>
 }
 
 /**
@@ -112,6 +121,7 @@ export function markerVisibility(
     if (!marker.routeIds.some(id => f.visibleRouteIds!.includes(id))) return 'hidden'
   }
   if (ctx.isolatedMarkerIds && !ctx.isolatedMarkerIds.has(marker.id)) return filteredOut(f)
+  if (f.onlyOrphans && ctx.orphanMarkerIds && !ctx.orphanMarkerIds.has(marker.id)) return filteredOut(f)
   if (!f.markerStatuses.has(marker.status)) return filteredOut(f)
   return 'full'
 }
@@ -139,6 +149,19 @@ export function segmentVisibility(
   return 'full'
 }
 
+/**
+ * V283/B165: merkit joilla ⊥ ole omistajaa. Rakennusvaiheessa tämä on järjestäjän TYÖJONO —
+ * "tänne ⊥ ole vielä tehty pätkää". Laskee `resolveSegmentMarkers`illa ∴ ⊥ omaa jäsenyyssääntöä
+ * (V271: sama predikaatti, yksi paikka).
+ */
+export function orphanMarkerIds(segments: Segment[], markers: SignMarker[]): Set<string> {
+  const owned = new Set<string>()
+  for (const list of resolveSegmentMarkers(segments, markers).values()) {
+    for (const m of list) owned.add(m.id)
+  }
+  return new Set(markers.filter(m => !owned.has(m.id)).map(m => m.id))
+}
+
 /** Isoloidun pätkän merkkijoukko — V259-jäsenyys, ⊥ omaa sääntöä. */
 export function isolatedMarkerIds(
   f: MapFilter,
@@ -164,6 +187,7 @@ interface StoredFilter {
   markerStatuses?: string[]
   segmentStates?: string[]
   dimLevel?: string
+  onlyOrphans?: boolean
 }
 
 export function loadMapFilter(): MapFilter {
@@ -201,6 +225,7 @@ export function loadMapFilter(): MapFilter {
     dimLevel: parsed.dimLevel === 'kevyt' || parsed.dimLevel === 'vahva' || parsed.dimLevel === 'piilota'
       ? parsed.dimLevel
       : base.dimLevel,
+    onlyOrphans: parsed.onlyOrphans === true,
   }
 }
 
@@ -211,6 +236,7 @@ export function saveMapFilter(f: MapFilter): void {
     markerStatuses: [...f.markerStatuses],
     segmentStates: [...f.segmentStates],
     dimLevel: f.dimLevel,
+    onlyOrphans: f.onlyOrphans,
   }
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(stored))

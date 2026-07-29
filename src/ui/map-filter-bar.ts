@@ -318,6 +318,14 @@ export class MapFilterBar {
       row.querySelector('.map-filter-check')!.classList.add('map-filter-check--status')
       panel.appendChild(row)
     }
+    // T391/V283/B165: orpotyöjono samaan akseliin kuin muu merkkirajaus — jäsenyyskynnys
+    // tuottaa orpoja & tämä on se ulospääsy jonka kynnys vaatii ("tänne ⊥ ole vielä pätkää").
+    const orphanRow = this.row('Vain ilman pätkää', true, () => {
+      this.filter = { ...this.filter, onlyOrphans: !this.filter.onlyOrphans }
+      this.commit()
+    })
+    orphanRow.dataset.filterRow = 'orphans'
+    panel.appendChild(orphanRow)
     return wrap
   }
 
@@ -407,7 +415,19 @@ export class MapFilterBar {
 
     // Merkkistatukset
     this.syncPressed('markers', ALL_MARKER_STATUSES, st => f.markerStatuses.has(st), STATUS_LABEL)
-    this.setTriggerValue('markers', f.markerStatuses.size === ALL_MARKER_STATUSES.length ? 'kaikki' : `${f.markerStatuses.size}/${ALL_MARKER_STATUSES.length}`)
+    // T391/V283: orpovalinta on OMA akselinsa statusten rinnalla ∴ se ⊥ mahdu `syncPressed`in
+    // status-silmukkaan (eri arvoavaruus). Trigger-arvo kertoo sen erikseen — muuten päällä
+    // oleva rajaus jäisi näkymättömäksi suljetun valikon taakse (V272).
+    const orphanRow = this.dropdowns.get('markers')?.panel
+      .querySelector<HTMLButtonElement>('[data-filter-row="orphans"]')
+    if (orphanRow) {
+      orphanRow.setAttribute('aria-pressed', String(f.onlyOrphans))
+      orphanRow.querySelector('.map-filter-check')!.textContent = f.onlyOrphans ? '✓' : ''
+    }
+    const statusValue = f.markerStatuses.size === ALL_MARKER_STATUSES.length
+      ? 'kaikki'
+      : `${f.markerStatuses.size}/${ALL_MARKER_STATUSES.length}`
+    this.setTriggerValue('markers', f.onlyOrphans ? 'ilman pätkää' : statusValue)
 
     // Himmennysporras (yksinvalinta)
     this.syncPressed('dim', ['kevyt', 'vahva', 'piilota'] as DimLevel[], lvl => f.dimLevel === lvl, DIM_LABEL)
