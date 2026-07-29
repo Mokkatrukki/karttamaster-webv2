@@ -131,7 +131,18 @@ export async function wireSegments(
     onFocusChange(seg?.id)
   }
 
-  let tempCreationMarker: L.CircleMarker | null = null
+  // T388/V280/B162: ankkuripalaute on LISTA ⊥ yksi markeri. Ennen tätä kartalle piirtyi tasan
+  // ensiklikin kiekko & klikit 2..n eivät näkyneet missään ∴ luonti näytti kuolleelta vaikka
+  // tila päivittyi oikein. `previewLine` näyttää kertyvän jäljen ENNEN "Valmis"-nappia.
+  const tempAnchorMarkers: L.CircleMarker[] = []
+  let tempPreviewLine: L.Polyline | null = null
+
+  const clearCreationFeedback = (): void => {
+    for (const m of tempAnchorMarkers) m.remove()
+    tempAnchorMarkers.length = 0
+    tempPreviewLine?.remove()
+    tempPreviewLine = null
+  }
 
   const segmentPanel = new SegmentPanel(
     document.getElementById('segment-panel-container')!,
@@ -140,25 +151,38 @@ export async function wireSegments(
     () => renderSegmentOverlay(),
     {
       getActivePhase: talkoolainenCode ? undefined : getActivePhase,
-      onFirstPoint: (lat, lon) => {
-        tempCreationMarker?.remove()
-        tempCreationMarker = L.circleMarker([lat, lon], {
-          radius: 9, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.85, weight: 2,
-          className: 'segment-creation-marker',
-          // B147: Leafletin circleMarker on INTERAKTIIVINEN oletuksena ∴ 18px kiekko söi kartan
-          // click-eventin & seuraava ankkuriklikki katosi hiljaa (⊥ ankkuria, ⊥ virhetekstiä).
-          // Ennen T362:ta oire oli piilossa: flow tarvitsi yhden lisäklikin joka tehtiin kaukana.
-          // Klik-klik klikkaa reittiä PITKIN ∴ peräkkäiset pisteet ovat pienellä zoomilla
-          // pikselien päässä toisistaan. Tämä markeri on PALAUTE ⊥ kohde — se ⊥ ota klikkejä.
-          // (Snap-markerit `segment-overlay.ts:213` pysyvät interaktiivisina: niillä on oma
-          // click-handler & ne ON tarkoitettu klikattaviksi.)
-          interactive: false,
-        }).addTo(map)
+      onAnchorsChanged: (anchors, preview) => {
+        clearCreationFeedback()
+        // Jälki ENSIN ∴ kiekot jäävät viivan päälle (viiva ⊥ peitä sitä mihin klikattiin).
+        if (preview.length >= 2) {
+          tempPreviewLine = L.polyline(preview.map(p => [p.lat, p.lon] as [number, number]), {
+            color: '#ef4444', weight: 5, opacity: 0.75, dashArray: '8 6',
+            className: 'segment-creation-preview',
+            interactive: false,
+          }).addTo(map)
+        }
+        for (const [i, a] of anchors.entries()) {
+          // Viimeinen ankkuri erottuu: se on se jota "Poista viimeinen" koskee ∴ peruutus on
+          // tietoinen ele ⊥ arvaus (sama peruste kuin modaalin listan scroll, T362).
+          const isLast = i === anchors.length - 1
+          tempAnchorMarkers.push(L.circleMarker([a.lat, a.lon], {
+            radius: isLast ? 9 : 6,
+            color: '#ef4444', fillColor: isLast ? '#ef4444' : '#fff',
+            fillOpacity: isLast ? 0.85 : 1, weight: 2,
+            className: 'segment-creation-marker',
+            // B147: Leafletin circleMarker on INTERAKTIIVINEN oletuksena ∴ 18px kiekko söi kartan
+            // click-eventin & seuraava ankkuriklikki katosi hiljaa (⊥ ankkuria, ⊥ virhetekstiä).
+            // Ennen T362:ta oire oli piilossa: flow tarvitsi yhden lisäklikin joka tehtiin kaukana.
+            // Klik-klik klikkaa reittiä PITKIN ∴ peräkkäiset pisteet ovat pienellä zoomilla
+            // pikselien päässä toisistaan. Tämä markeri on PALAUTE ⊥ kohde — se ⊥ ota klikkejä.
+            // T388: sama koskee esikatseluviivaa — se on ankkuriketjun päällä.
+            // (Snap-markerit `segment-overlay.ts:213` pysyvät interaktiivisina: niillä on oma
+            // click-handler & ne ON tarkoitettu klikattaviksi.)
+            interactive: false,
+          }).addTo(map))
+        }
       },
-      onFirstPointClear: () => {
-        tempCreationMarker?.remove()
-        tempCreationMarker = null
-      },
+      onAnchorsClear: () => clearCreationFeedback(),
       // T307/V218: rajakahvat ovat muokkaustilan toiminto — katselussa no-op (kartalla ei
       // ilmesty raahattavia päätepisteitä). Numeerinen rajojen muokkaus (hero/modaali) ei
       // ole kartan ele ∴ ei tämän portin takana.

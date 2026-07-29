@@ -22,8 +22,8 @@ function setup(store?: SegmentStore) {
     onExitCreationMode: vi.fn(),
     onShowSnapMarkers: vi.fn(),
     onHideSnapMarkers: vi.fn(),
-    onFirstPoint: vi.fn(),
-    onFirstPointClear: vi.fn(),
+    onAnchorsChanged: vi.fn(),
+    onAnchorsClear: vi.fn(),
     onNotify: vi.fn(),
   }
 
@@ -115,7 +115,7 @@ describe('T94 — pätkäluonti-modal tilakone', () => {
     ;(document.querySelector('#btn-segment-create') as HTMLButtonElement).click()
     panel.onMapClick(65.0, 25.0)
 
-    expect(callbacks.onFirstPoint).toHaveBeenCalledOnce()
+    expect(callbacks.onAnchorsChanged).toHaveBeenCalledOnce()
     const modal = document.querySelector('.segment-creation-modal')!
     // Reitti näkyvissä — hiljainen valinta oli puolet bugista.
     expect(document.querySelector('[data-testid="creation-route"]')!.textContent).toContain('r1')

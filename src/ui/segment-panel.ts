@@ -1,5 +1,10 @@
 import { nearestPointIndex, haversineDistance } from '../logic/bearing'
-import { buildTrackFromAnchors, nextAnchorIndex, type AnchorHit } from '../logic/segment-track'
+import {
+  buildTrackFromAnchors,
+  nextAnchorIndex,
+  type AnchorHit,
+  type TrackPoint,
+} from '../logic/segment-track'
 import {
   validateNoOverlap,
   getSegmentStatusCounts,
@@ -13,14 +18,21 @@ import {
 import type { SegmentStore, Segment } from '../logic/segments'
 import { SHARED_THRESHOLD_M, type RouteConfig } from '../logic/multi-route'
 import type { SignMarker } from '../logic/types'
-import { SegmentCreationModal, type CreationState } from './segment-creation-modal'
+import {
+  SegmentCreationModal,
+  type CreationState,
+  type CreationAnchor,
+} from './segment-creation-modal'
 import { SegmentDetailsModal } from './segment-details-modal'
 import { openSegmentRowMenu } from './segment-row-menu'
 import { createSectionHeader, type SectionHeader } from './section-header'
 
 export interface SegmentPanelCallbacks {
-  onFirstPoint?: (lat: number, lon: number) => void
-  onFirstPointClear?: () => void
+  // T388/V280/B162: JOKAINEN ankkuri saa karttapalautteen, ⊥ vain ensimmäinen. `preview` on
+  // kertyvä jälki (`buildTrackFromAnchors`) tai tyhjä kun ankkureita on vain yksi — kartta
+  // piirtää sen sellaisenaan ∴ se mitä järjestäjä näkee ON se mikä tallentuu.
+  onAnchorsChanged?: (anchors: CreationAnchor[], preview: TrackPoint[]) => void
+  onAnchorsClear?: () => void
   onEnterEditMode?: (seg: Segment, onSave: (startDist: number, endDist: number) => void) => void
   onExitEditMode?: () => void
   onSaveError?: (err: unknown) => void
@@ -119,7 +131,7 @@ export class SegmentPanel {
     this.state = { mode: 'idle' }
     this.statusEl.hidden = true
     this.creationModal.close()
-    this.callbacks.onFirstPointClear?.()
+    this.callbacks.onAnchorsClear?.()
     this.callbacks.onHideSnapMarkers?.()
     this.callbacks.onExitCreationMode?.()
     this.applyCollapsed()
@@ -155,7 +167,7 @@ export class SegmentPanel {
         routeLabel: route?.label ?? first.routeId,
         anchors: [first.hit],
       }
-      this.callbacks.onFirstPoint?.(first.hit.lat, first.hit.lon)
+      this.emitAnchors()
       this.creationModal.updatePhase(this.state)
       return
     }
@@ -168,12 +180,16 @@ export class SegmentPanel {
       // +1: sama piste kahdesti ⊥ ole ankkuri (buildTrackFromAnchors vaatii aidon kasvun).
       const hit = nextAnchorIndex(route.routePoints, lat, lon, last.idx + 1, SHARED_THRESHOLD_M)
       if (!hit) {
-        this.creationModal.setError(
-          `Ei osumaa reitillä ${st.routeLabel} eteenpäin — klikkaa reittiviivan varrelta`,
-        )
+        // T388/V280/B163: virhe ! näkyä samassa katseessa kuin klikki. `setError` jää modaalin
+        // pohjalle ankkurilistan alle ∴ mobiilissa taitteen taakse — vaikeneva kartta luetaan
+        // rikkinäisyytenä. Molemmat kanavat, ⊥ vain modaali.
+        const msg = `Ei osumaa reitillä ${st.routeLabel} eteenpäin — klikkaa reittiviivan varrelta pätkän suuntaan`
+        this.creationModal.setError(msg)
+        this.callbacks.onNotify?.(msg)
         return
       }
       this.state = { ...st, anchors: [...st.anchors, hit] }
+      this.emitAnchors()
       this.creationModal.updatePhase(this.state)
     }
   }
@@ -182,7 +198,23 @@ export class SegmentPanel {
   private undoAnchor(): void {
     if (this.state.mode !== 'polku' || this.state.anchors.length < 2) return
     this.state = { ...this.state, anchors: this.state.anchors.slice(0, -1) }
+    this.emitAnchors()
     this.creationModal.updatePhase(this.state)
+  }
+
+  // T388/V280/B162: yksi paikka joka kertoo kartalle ankkurien tilan. Ennen tätä kutsu oli
+  // TASAN vaihe1-haarassa ∴ kartalle jäi ensiklikin kiekko & klikit 2..n katosivat näkymättömiin.
+  // Esikatselujälki lasketaan SAMALLA funktiolla jolla `finishPath` tallentaa (V258) ∴ näytetty
+  // ja tallennettu geometria ⊥ voi erota.
+  private emitAnchors(): void {
+    if (this.state.mode !== 'polku') return
+    const st = this.state
+    const route = this.routes.find(r => r.id === st.routeId)
+    const preview =
+      route && st.anchors.length >= 2
+        ? buildTrackFromAnchors(route.routePoints, st.anchors.map(a => a.idx))
+        : []
+    this.callbacks.onAnchorsChanged?.(st.anchors, preview)
   }
 
   /** T362/V258: "Valmis" — ankkureista jälki, jäljestä rajat. */
@@ -217,7 +249,7 @@ export class SegmentPanel {
       endDist,
       track,
     }
-    this.callbacks.onFirstPointClear?.()
+    this.callbacks.onAnchorsClear?.()
     this.callbacks.onHideSnapMarkers?.()
     this.creationModal.updatePhase(this.state)
   }

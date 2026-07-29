@@ -41,8 +41,8 @@ function setup() {
   vi.stubGlobal('crypto', { randomUUID: () => 'test-id-' + Math.random() })
 
   const panel = new SegmentPanel(container, ROUTES, store, vi.fn(), {
-    onFirstPoint: vi.fn(),
-    onFirstPointClear: vi.fn(),
+    onAnchorsChanged: vi.fn(),
+    onAnchorsClear: vi.fn(),
     onShowSnapMarkers: vi.fn(),
     onHideSnapMarkers: vi.fn(),
     onEnterCreationMode: vi.fn(),

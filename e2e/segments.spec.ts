@@ -330,11 +330,18 @@ test.describe('T25 — SegmentPanel', () => {
     await expect(page.locator('.segment-creation-anchor').nth(1)).toContainText('Välipiste 1')
     await expect(page.locator('.segment-creation-anchor').last()).toContainText('Loppu')
 
+    // T388/V280/B162: KARTALLA ! olla merkki jokaisesta ankkurista + kertyvä esikatselujälki.
+    // Modaalin `<li>`-määrä yllä ⊥ todista tätä — se oli vihreä koko B162:n ajan.
+    await expect(page.locator('#map .segment-creation-marker')).toHaveCount(4)
+    await expect(page.locator('#map .segment-creation-preview')).toHaveCount(1)
+
     // "Poista viimeinen" → 3 ankkuria, viimeinen on taas "Loppu"
     await page.click('.btn-segment-anchor-undo')
     await page.waitForTimeout(200)
     await expect(page.locator('.segment-creation-anchor')).toHaveCount(3)
     await expect(page.locator('.segment-creation-anchor').last()).toContainText('Loppu')
+    // Peruttu ankkuri ⊥ jää kartalle haamuksi.
+    await expect(page.locator('#map .segment-creation-marker')).toHaveCount(3)
 
     await page.click('.btn-segment-path-done')
     await page.waitForTimeout(200)
