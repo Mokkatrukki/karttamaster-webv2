@@ -1,4 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
+import { existsSync, unlinkSync, mkdtempSync } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { Hono } from 'hono'
 import { createDb } from './db'
 import { dbMiddleware } from './middleware/auth'
@@ -403,5 +406,152 @@ describe('V186: keppi poistettu', () => {
     const r = await app.request(`/api/inventory/${item.id}`, { method: 'PUT', headers: jh(), body: JSON.stringify({ template_id: 'oik', qty: 3, keppi: false }) })
     expect(r.status).toBe(200)
     expect(((await r.json()) as { qty: number }).qty).toBe(3)
+  })
+})
+
+// T385/V279/V276/V163 — tarvike-lippu + duplikaattirivien yhdistäminen.
+describe('T385: not_sign + POST /merge', () => {
+  let db: Database
+  let app: ReturnType<typeof makeApp>
+  beforeEach(() => { db = createDb(':memory:'); seedTestUsers(db); app = makeApp(db) })
+  afterEach(() => db.close())
+  const jh = () => jsonHeaders(authHeaders(db, 'järjestäjä'))
+
+  const post = async (body: unknown): Promise<Response> =>
+    app.request('/api/inventory', { method: 'POST', headers: jh(), body: JSON.stringify(body) })
+  const mkItem = async (body: unknown): Promise<InventoryItem> => (await (await post(body)).json()) as InventoryItem
+  const merge = (sourceId: string, targetId: string): Promise<Response> =>
+    app.request('/api/inventory/merge', { method: 'POST', headers: jh(), body: JSON.stringify({ sourceId, targetId }) })
+
+  // ── V279: tarvike on LOPULLINEN tila ─────────────────────────────────────
+
+  test('V279: not_sign=1 + template_id yhtä aikaa → 400 (POST)', async () => {
+    seedTemplate(db, 'tpl', 'Kyltti')
+    const r = await post({ template_id: 'tpl', qty: 1, not_sign: 1 })
+    expect(r.status).toBe(400)
+    expect(((await r.json()) as { error: string }).error).toBe('not_sign_with_template')
+  })
+
+  test('V279: not_sign=1 + template_id yhtä aikaa → 400 (PUT)', async () => {
+    seedTemplate(db, 'tpl', 'Kyltti')
+    const item = await mkItem({ name: 'Taittopöytä', qty: 1, not_sign: 1 })
+    const r = await app.request(`/api/inventory/${item.id}`, {
+      method: 'PUT', headers: jh(), body: JSON.stringify({ template_id: 'tpl', qty: 1, not_sign: 1 }),
+    })
+    expect(r.status).toBe(400)
+  })
+
+  test('not_sign persistoituu ja palautuu GETissä (default 0)', async () => {
+    const tarvike = await mkItem({ name: 'Fenix mainoslippu', qty: 2, not_sign: 1 })
+    const tavallinen = await mkItem({ name: 'Kapeneva tie, kolmio', qty: 3 })
+    expect(tarvike.not_sign).toBe(1)
+    expect(tavallinen.not_sign).toBe(0)
+
+    const list = (await (await app.request('/api/inventory', { headers: authHeaders(db, 'järjestäjä') })).json()) as InventoryItem[]
+    expect(list.find(i => i.id === tarvike.id)?.not_sign).toBe(1)
+    expect(list.find(i => i.id === tavallinen.id)?.not_sign).toBe(0)
+  })
+
+  test('PUT voi kääntää not_sign takaisin nollaan (⊥ yksisuuntainen lukko backendissä)', async () => {
+    const item = await mkItem({ name: 'Epäselvä rivi', qty: 1, not_sign: 1 })
+    const r = await app.request(`/api/inventory/${item.id}`, {
+      method: 'PUT', headers: jh(), body: JSON.stringify({ name: 'Epäselvä rivi', qty: 1 }),
+    })
+    expect(r.status).toBe(200)
+    expect(((await r.json()) as InventoryItem).not_sign).toBe(0)
+  })
+
+  // ── merge ────────────────────────────────────────────────────────────────
+
+  test('merge summaa qty:n targettiin & poistaa sourcen', async () => {
+    const loc = (await (await app.request('/api/inventory/locations', {
+      method: 'POST', headers: jh(), body: JSON.stringify({ name: 'Kärry' }),
+    })).json()) as { id: string }
+    const target = await mkItem({ name: 'Kapeneva tie, kolmio', qty: 4, location_id: loc.id })
+    const source = await mkItem({ name: 'Kapeneva tie, kolmio', qty: 5, location_id: loc.id })
+
+    const r = await merge(source.id, target.id)
+    expect(r.status).toBe(200)
+    expect(((await r.json()) as InventoryItem).qty).toBe(9)
+
+    const list = (await (await app.request('/api/inventory', { headers: authHeaders(db, 'järjestäjä') })).json()) as InventoryItem[]
+    expect(list.map(i => i.id)).toEqual([target.id])
+  })
+
+  test('merge toimii myös paikattomille riveille (molemmilla location_id NULL)', async () => {
+    const target = await mkItem({ name: 'Huolto, service, 200m', qty: 4 })
+    const source = await mkItem({ name: 'Huolto, service, 200m', qty: 5 })
+    const r = await merge(source.id, target.id)
+    expect(r.status).toBe(200)
+    expect(((await r.json()) as InventoryItem).qty).toBe(9)
+  })
+
+  test('eri location_id → 400, kumpikaan rivi ⊥ muutu (paikka on MERKITSEVÄ)', async () => {
+    const karry = (await (await app.request('/api/inventory/locations', {
+      method: 'POST', headers: jh(), body: JSON.stringify({ name: 'Kärry' }),
+    })).json()) as { id: string }
+    const varasto = (await (await app.request('/api/inventory/locations', {
+      method: 'POST', headers: jh(), body: JSON.stringify({ name: 'Kelkkavarasto' }),
+    })).json()) as { id: string }
+    const a = await mkItem({ name: '26 asteen nousu', qty: 2, location_id: karry.id })
+    const b = await mkItem({ name: '26 asteen nousu', qty: 3, location_id: varasto.id })
+
+    const r = await merge(a.id, b.id)
+    expect(r.status).toBe(400)
+    expect(((await r.json()) as { error: string }).error).toBe('location_mismatch')
+
+    const list = (await (await app.request('/api/inventory', { headers: authHeaders(db, 'järjestäjä') })).json()) as InventoryItem[]
+    expect(list.length).toBe(2)
+    expect(list.find(i => i.id === b.id)?.qty).toBe(3)
+  })
+
+  test('itseensä yhdistäminen → 400 (⊥ tuplaa määrää)', async () => {
+    const item = await mkItem({ name: 'Peikko', qty: 4 })
+    const r = await merge(item.id, item.id)
+    expect(r.status).toBe(400)
+    expect(((await r.json()) as { error: string }).error).toBe('same_item')
+
+    const after = (await (await app.request('/api/inventory', { headers: authHeaders(db, 'järjestäjä') })).json()) as InventoryItem[]
+    expect(after[0].qty).toBe(4)
+  })
+
+  test('puuttuva id → 404', async () => {
+    const item = await mkItem({ name: 'Peikko', qty: 4 })
+    expect((await merge('ei-ole', item.id)).status).toBe(404)
+    expect((await merge(item.id, 'ei-ole')).status).toBe(404)
+  })
+
+  test('puuttuvat id-kentät → 400', async () => {
+    const r = await app.request('/api/inventory/merge', { method: 'POST', headers: jh(), body: JSON.stringify({}) })
+    expect(r.status).toBe(400)
+  })
+
+  test('V163: talkoolainen → 403 (merge on järjestäjän työkalu)', async () => {
+    const r = await app.request('/api/inventory/merge', {
+      method: 'POST',
+      headers: { ...authHeaders(db, 'talkoolainen'), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceId: 'a', targetId: 'b' }),
+    })
+    expect(r.status).toBe(403)
+  })
+})
+
+// T385: not_sign-ALTER idempotenssi — createDb ajetaan samaan tiedostoon kahdesti.
+describe('T385: not_sign-ALTER idempotentti', () => {
+  test('2× createDb samaan kantaan ⊥ kaadu & sarake on kerran', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'km-notsign-'))
+    const p = join(dir, 'x.db')
+    try {
+      const db1 = createDb(p)
+      db1.run("INSERT INTO inventory_items (id, name, qty, created_at, updated_at) VALUES ('i1', 'Taittopöytä', 1, '2026-07-29', '2026-07-29')")
+      db1.close()
+      const db2 = createDb(p)
+      const cols = db2.query<{ name: string }, []>('PRAGMA table_info(inventory_items)').all().map(c => c.name)
+      expect(cols.filter(n => n === 'not_sign').length).toBe(1)
+      expect(db2.query<{ not_sign: number }, []>("SELECT not_sign FROM inventory_items WHERE id='i1'").get()?.not_sign).toBe(0)
+      db2.close()
+    } finally {
+      for (const s of ['', '-wal', '-shm']) { try { if (existsSync(p + s)) unlinkSync(p + s) } catch { /* ignore */ } }
+    }
   })
 })

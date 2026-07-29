@@ -332,6 +332,10 @@ function initSchema(db: Database): void {
   // T360/V259: järjestäjän ohitus — merkki pois pätkästä geometrian yli. NULL = ei ohituksia.
   try { db.exec('ALTER TABLE segments ADD COLUMN excluded_marker_ids TEXT') } catch { /* already exists */ }
 
+  // T385/V279: "tämä ⊥ ole merkki, älä kysy uudelleen". Tarvike on LOPULLINEN tila, ⊥ "vielä
+  // linkittämätön merkki" — ilman tätä T386:n yhdistämislista ⊥ tyhjene koskaan.
+  try { db.exec('ALTER TABLE inventory_items ADD COLUMN not_sign INTEGER NOT NULL DEFAULT 0') } catch { /* already exists */ }
+
   // T383/V276/V277: markers.template_id -backfill sanatarkalla label-täsmäyksellä.
   backfillMarkerTemplateIds(db)
 

@@ -18,6 +18,8 @@ export interface InventoryItem {
   location: string | null
   location_id: string | null
   template_id: string | null
+  /** V279: 1 = tarvike, LOPULLINEN tila — ⊥ saa koskaan template_id:tä, ⊥ näy yhdistämislistalla. */
+  not_sign: number
   note: string | null
   created_by: string | null
   created_at: string
@@ -38,6 +40,7 @@ type InventoryInput = {
   note?: unknown
   location_id?: unknown
   template_id?: unknown
+  not_sign?: unknown
 }
 
 type ValidatedItem = {
@@ -47,6 +50,7 @@ type ValidatedItem = {
   note: string | null
   location_id: string | null
   template_id: string | null
+  not_sign: 0 | 1
 }
 
 function strOrNull(x: unknown): string | null {
@@ -65,6 +69,11 @@ function strOrNull(x: unknown): string | null {
  */
 function validate(db: Database, body: InventoryInput): { ok: true; v: ValidatedItem } | { ok: false; error: string } {
   const templateId = strOrNull(body.template_id)
+
+  // V279: tarvike ⊥ saa koskaan template_id:tä. Ristiriita on datavirhe ⊥ tulkintakysymys
+  // ∴ torjutaan backendissä — muuten rivi olisi yhtä aikaa "ei merkki" ja "tämä merkki".
+  const notSign = body.not_sign === true || body.not_sign === 1 ? 1 : 0
+  if (notSign === 1 && templateId) return { ok: false, error: 'not_sign_with_template' }
 
   let name: string
   if (templateId) {
@@ -86,7 +95,7 @@ function validate(db: Database, body: InventoryInput): { ok: true; v: ValidatedI
   // V186: kiinnitystapa (keppi/irto) POISTETTU — ei enää luku/kirjoitus (DB-sarake orpo).
   return {
     ok: true,
-    v: { name, qty, unit: strOrNull(body.unit), note: strOrNull(body.note), location_id: strOrNull(body.location_id), template_id: templateId },
+    v: { name, qty, unit: strOrNull(body.unit), note: strOrNull(body.note), location_id: strOrNull(body.location_id), template_id: templateId, not_sign: notSign },
   }
 }
 
@@ -175,10 +184,39 @@ inventoryRoutes.post('/', ...guard, async (c) => {
   const id = randomUUID()
   const now = new Date().toISOString()
   db.run(
-    'INSERT INTO inventory_items (id, name, qty, unit, note, location_id, template_id, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [id, res.v.name, res.v.qty, res.v.unit, res.v.note, res.v.location_id, res.v.template_id, session.display_name ?? null, now, now],
+    'INSERT INTO inventory_items (id, name, qty, unit, note, location_id, template_id, not_sign, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, res.v.name, res.v.qty, res.v.unit, res.v.note, res.v.location_id, res.v.template_id, res.v.not_sign, session.display_name ?? null, now, now],
   )
   return c.json(getItem(db, id), 201)
+})
+
+/**
+ * T385/V279: kahden aidon duplikaattirivin yhdistäminen — summaa source targettiin & poistaa sourcen.
+ * MÄÄRITELTÄVÄ ENNEN /:id-routeja (staattinen segmentti voittaa parametrin).
+ *
+ * PAIKKA ON MERKITSEVÄ: eri `location_id` ⇒ 400. Tuotannossa "26 asteen nousu" elää sekä Kärryssä
+ * ETTÄ Kelkkavarastossa & ne ⊥ ole duplikaatteja vaan kaksi eri kasaa ∴ ne ⊥ saa summautua vahingossa.
+ * Aidot duplikaatit joita tämä palvelee: "Kapeneva tie, kolmio"×2 samassa paikassa.
+ */
+inventoryRoutes.post('/merge', ...guard, async (c) => {
+  const db: Database = c.get('db')
+  const body = await c.req.json<{ sourceId?: unknown; targetId?: unknown }>().catch(() => ({}))
+  const sourceId = strOrNull(body.sourceId)
+  const targetId = strOrNull(body.targetId)
+  if (!sourceId || !targetId) return c.json({ error: 'ids_required' }, 400)
+  if (sourceId === targetId) return c.json({ error: 'same_item' }, 400)
+
+  const source = getItem(db, sourceId)
+  const target = getItem(db, targetId)
+  if (!source || !target) return c.json({ error: 'not_found' }, 404)
+  if (source.location_id !== target.location_id) return c.json({ error: 'location_mismatch' }, 400)
+
+  const now = new Date().toISOString()
+  db.transaction(() => {
+    db.run('UPDATE inventory_items SET qty = ?, updated_at = ? WHERE id = ?', [target.qty + source.qty, now, targetId])
+    db.run('DELETE FROM inventory_items WHERE id = ?', [sourceId])
+  })()
+  return c.json(getItem(db, targetId))
 })
 
 inventoryRoutes.put('/:id', ...guard, async (c) => {
@@ -190,8 +228,8 @@ inventoryRoutes.put('/:id', ...guard, async (c) => {
 
   const now = new Date().toISOString()
   const result = db.run(
-    'UPDATE inventory_items SET name = ?, qty = ?, unit = ?, note = ?, location_id = ?, template_id = ?, updated_at = ? WHERE id = ?',
-    [res.v.name, res.v.qty, res.v.unit, res.v.note, res.v.location_id, res.v.template_id, now, id],
+    'UPDATE inventory_items SET name = ?, qty = ?, unit = ?, note = ?, location_id = ?, template_id = ?, not_sign = ?, updated_at = ? WHERE id = ?',
+    [res.v.name, res.v.qty, res.v.unit, res.v.note, res.v.location_id, res.v.template_id, res.v.not_sign, now, id],
   )
   if (result.changes === 0) return c.json({ error: 'not_found' }, 404)
   return c.json(getItem(db, id))
