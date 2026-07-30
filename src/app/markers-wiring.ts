@@ -435,6 +435,10 @@ function wireMarkersInner(
           // action, joka heittää suunniteltu-tilaisille — sama syy kuin bulkCollect yllä). Kuka tahansa
           // autentikoitu, ei ownership-gatea; kerätty ↔ suunniteltu. bulkSetStatus persistoi + onUpdate.
           onCollectMarker: (id, collected) => markerManager.bulkSetStatus([id], collected ? 'kerätty' : 'suunniteltu'),
+          // T409/V292: koti-tabin valikoiva bulk-kuittaus. SAMA reitti kuin järjestäjän
+          // paneelilla (rivi ~608) & purkuvaiheen bulkCollectilla ∴ ⊥ uutta mutaatiopolkua:
+          // bulkSetStatus persistoi + laukaisee onUpdate → lista & kartta päivittyvät kerralla.
+          onBulkStatus: (ids, status) => markerManager.bulkSetStatus(ids, status),
         },
       )
       const segMarkers0 = getMarkersForSegment(seg, markerManager.getAll(), segmentPeers(segmentStore, seg))

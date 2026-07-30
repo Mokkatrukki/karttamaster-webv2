@@ -329,15 +329,17 @@ Järjestäjän merkkijono: "mitkä merkit jäivät asettamatta ja miltä pätkil
   - N = 0: `background: field-tint`, `color: text-muted`, `cursor: not-allowed`
 - Vain järjestäjälle: piilossa `[data-role="talkoolainen"]`
 
-### BulkActionBar talkoolainen (`.bulk-action-bar`, T17) — ⚠️ EI TOTEUTUKSESSA (T405)
-**Huom 2026-07-30:** tämä sopimus oli `marker-list.ts`:ssä joka poistui T404:ssä. Talkoolainen ⊥ ole päässyt siihen T264:n jälkeen (`#btn-list` piilotettu) ∴ kyky on ollut poissa jo ennen poistoa (V292). T405 palauttaa sen koti-tabin listaan TÄLLÄ sopimuksella.
-- Sijainti: `#marker-modal`:n alaosa — `position: sticky; bottom: 0`
+### BulkActionBar talkoolainen (`.bulk-action-bar`, T17) — ✓ TOTEUTUKSESSA (T409)
+**Huom 2026-07-30:** sopimus oli `marker-list.ts`:ssä joka poistui T404:ssä. Talkoolainen ⊥ ollut päässyt siihen T264:n jälkeen (`#btn-list` piilotettu) ∴ kyky oli poissa jo ennen poistoa (V292). **T409 palautti sen koti-tabin listaan** (`segment-marker-list.ts`) tällä sopimuksella.
+- Sijainti: koti-tabin "Kaikki merkit" -listan alaosa (⊥ enää `#marker-modal` — modaali poistui T404:ssä). Ei `sticky`: lista on jaetun koti-scrollerin sisällä (T315/V226) & tarttuva bar veisi 44px pystytilaa jokaisesta scrollasennosta
+- Checkbox `.marker-item-checkbox` per **ei-terminaali** rivi (`isTerminal` → `kerätty` ⊥ saa ruutua). Ruutu 44×44 klikkialue / 22px näkyvä (`appearance:none`, ✓ valittuna). Checkboxiton rivi tasataan `--nocheck`-paddingilla
 - Tausta: `surface-card`, `border-top: border-subtle`, padding `10px 14px`
 - Layout: `flex-wrap: wrap` — kaksirivinen 340px modaalissa:
   - Rivi 1: `[☐ Valitse kaikki]` (`label { width: 100% }` pakottaa omalle riville)
   - Rivi 2: `[✓ Aseta valituille]` + `[Ei tarpeen]` (molemmat `flex:1`)
-- Napit `min-height: 44px`, disabled-tila `field-tint` kun 0 valittuna
-- Vain talkoolaiselle: piilossa järjestäjällä
+- Napit `min-height: 44px`, disabled-tila `field-tint` kun 0 valittuna. Nappiteksti kantaa laskurin: `✓ Aseta valituille (N)` / `Ei tarpeen (N)`
+- Bar renderöityy vain jos valittavia rivejä on ≥1 — pysyvästi disabloitu pinta ⊥ vie 44px puhelimessa
+- Vain talkoolaiselle: piilossa järjestäjällä (järjestäjän vastine on `.marker-overview-actionbar` + BulkStatusToolbar)
 
 ### Listarivit (`.marker-item`)
 - Layout: kompakti yksirivinen flex-row — `[checkbox?][icon][type-label][💬?][km][status-badge][delete?]`

@@ -3291,6 +3291,60 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   flex-direction: column;
 }
 .segment-view-markers-item + .segment-view-markers-item { border-top: 1px solid var(--border-default); }
+/* T409: rivi = [checkbox?][rivipainike]. Checkbox on `<li>`:n lapsi ⊥ painikkeen sisällä
+   (sisäkkäinen kontrolli painikkeessa ⊥ ole validia HTML:ää) ∴ `<li>` on flex-rivi. */
+.segment-view-markers-item { display: flex; align-items: center; }
+.segment-view-markers-item--nocheck { padding-left: 44px; }
+/* B53/V21/§R: kosketuskohde 44×44 hanskat kädessä. Natiivi checkbox ⊥ kunnioita paddingia
+   ∴ `zoom`-tyylitys omalla piirrolla: 44px klikkiruutu, 22px näkyvä ruutu keskellä. Sääntö on
+   RAJATTU pätkälistaan — `.marker-item-checkbox` on jaettu järjestäjän paneelin kanssa & sen
+   ulkoasun muutos ⊥ kuulu tähän taskiin. */
+.segment-view-markers-item .marker-item-checkbox,
+.bulk-action-bar .bulk-select-all {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: grid;
+  place-content: center;
+}
+.segment-view-markers-item .marker-item-checkbox::before,
+.bulk-action-bar .bulk-select-all::before {
+  content: '';
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--field-tint);
+  display: grid;
+  place-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--confirm-text);
+}
+/* Valittu = täytetty ruutu + ✓. Pelkkä täyttö ⊥ riitä: väri yksin ⊥ ole tila jonka näkee
+   aurinkoisessa metsässä (§R kontrasti) & se on ainoa vihje siitä mihin bulk kohdistuu. */
+.segment-view-markers-item .marker-item-checkbox:checked::before,
+.bulk-action-bar .bulk-select-all:checked::before {
+  content: '✓';
+  background: var(--confirm);
+  border-color: var(--confirm);
+}
+/* Koko "Valitse kaikki" -label on kosketuskohde, ⊥ vain 22px ruutu. */
+.bulk-action-bar > label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  font-size: 13px;
+  cursor: pointer;
+}
 .segment-view-markers-row {
   display: flex;
   align-items: center;

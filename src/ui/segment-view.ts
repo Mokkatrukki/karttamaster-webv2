@@ -1,5 +1,5 @@
 import { bulkCollect } from '../logic/segment-actions'
-import { isTerminal } from '../logic/marker-status'
+import { isTerminal, type MarkerStatus } from '../logic/marker-status'
 import { getPhaseProgress, formatPhaseProgress } from '../logic/segments'
 import { orderMarkersInSegment } from '../logic/segment-order'
 import type { Segment, EquipmentItem } from '../logic/segments'
@@ -48,6 +48,10 @@ export interface SegmentViewActions {
   // T218/V143 (skenaario 2): keräyslistan "haettu"-kuittaus. Kuka tahansa autentikoitu, EI
   // ownership-gatea. collected=true → kerätty, false → suunniteltu (peruutus).
   onCollectMarker?: (id: string, collected: boolean) => void
+  // T409/V292 (VISION §Kenttätyö): koti-tabin "Kaikki merkit" -listan valikoiva bulk-kuittaus.
+  // Erillinen `onBulkCollect`ista (purkuvaiheen "merkitse KAIKKI kerätyksi") — eri kysymys:
+  // kaikki ⊥ valitut. Kytkemättä lista renderöityy ilman checkboxeja (kyky on opt-in).
+  onBulkStatus?: (ids: string[], status: MarkerStatus) => void
 }
 
 export class SegmentView {
@@ -130,6 +134,11 @@ export class SegmentView {
       getMarkers: () => this.currentMarkers,
       getSegment: () => this.segment,
       onOpenDetail: (id) => this.actions.onFocusMarker?.(id),
+      // T409: kytketään vain jos sovellus tarjoaa mutaatioreitin — testit jotka rakentavat
+      // SegmentView:n ilman actionsia näkevät saman listan kuin ennen (⊥ checkboxeja).
+      onBulkStatus: this.actions.onBulkStatus
+        ? (ids, status) => this.actions.onBulkStatus?.(ids, status)
+        : undefined,
     })
     // T264/V184: koti-välilehdet. Reparentoi elementit paneleihin (varuste / kaikki merkit +
     // valmis + rajat). "Lisää ⋯" -accordion (moreSection) piilotetaan → valmis/rajat tabeissa,
