@@ -23,15 +23,16 @@ export function markerScaleForZoom(zoom: number): number {
 // piiloutuva nimi tekee kartasta arvoituksen — järjestäjän ! nähdä MITKÄ pätkät ovat missä
 // ilman zoomausta, & merkit eivät katoa sekään ∴ lappu ⊥ saa olla ainoa kerros joka katoaa.
 // Ongelma ei ollut lapun OLEMASSAOLO vaan sen KOKO kaukana: 11px-lappu ∀ pätkälle zoomilla
-// ~13,4 peitti maaston. 0,4× = ~4,4px teksti = luettava vain lähempänä, mutta pätkän paikka
-// & määrä näkyvät yhä.
+// ~13,4 peitti maaston. 0,25× = ~2,8px teksti (säädetty 0,4:stä käyttäjäpalautteen jälkeen) =
+// pelkkä tumma tahra kartalla: pätkän paikka & määrä näkyvät, nimi ⊥ ole luettava — se onkin
+// tarkoitus, sillä 15 luettavaa nimeä yhtä aikaa ON se ongelma jota tämä ratkaisee.
 //
 // Eri kaari kuin merkillä TIETOISESTI: teksti saavuttaa täyden koon jo 16:ssa (⊥ 19) & ⊥ kasva
 // yli 1,0:n — merkki on kuva joka kestää suurennuksen, lappu on typografiaa jonka §K lukitsee
 // 11px/700:aan (DESIGN §K SegmentLabel).
 export const SEGMENT_LABEL_SCALE_ZOOM_MIN = 12
 export const SEGMENT_LABEL_SCALE_ZOOM_MAX = 16
-export const SEGMENT_LABEL_SCALE_MIN = 0.4
+export const SEGMENT_LABEL_SCALE_MIN = 0.25
 export const SEGMENT_LABEL_SCALE_MAX = 1
 
 // `isOwn` = talkoolaisen oma tehtävä → AINA täysi koko: hänen ainoa työkohteensa ⊥ kutistu

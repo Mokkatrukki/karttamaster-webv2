@@ -58,8 +58,10 @@ test.describe('T419 — nimilapun zoom-skaala (V309)', () => {
     // ⊥ katoa milloinkaan: näkyvä & mitattava myös kauimmaisella zoomilla (V309-amend).
     await expect(page.locator('.segment-label')).toBeVisible()
     expect(far.opacity).toBeGreaterThan(0)
-    expect(far.fontSize).toBeLessThan(6)   // 11px * 0,4 = 4,4px
-    expect(far.fontSize).toBeGreaterThan(3)
+    // 11px * 0,25 = 2,75px. Yläraja 4 pitää säädön KIREÄNÄ: jos joku palauttaa 0,4:n (4,4px)
+    // tai selain clamppaa minimifonttikokoon, testi kertoo sen — ⊥ hyväksy "suunnilleen pieni".
+    expect(far.fontSize).toBeLessThan(4)
+    expect(far.fontSize).toBeGreaterThan(0)
 
     await zoomAtLabel(page, 17)
     const near = await labelMetrics(page)
