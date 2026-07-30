@@ -6,6 +6,7 @@
  */
 import { test, expect } from 'playwright/test'
 import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTalkoolainenSegment, mockSegmentWrites, mockMarkers } from './helpers/auth'
+import { zoomToShowSegmentLabels } from './helpers/label-zoom'
 
 /**
  * T362: klikkaa OIKEITA reittipisteitä. Aiemmin testit klikkasivat reittipolun bounding boxin
@@ -648,6 +649,11 @@ test.describe('T25 — SegmentPanel', () => {
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
+
+    // T418/V309: lappu näkyy vain zoom ≥ 14 — tämä testi mittaa lapun ULKOASUA ∴ se ! olla
+    // portin yllä (piilotettu lappu on `opacity:0`, mitattavat värit säilyisivät mutta testin
+    // väite "järjestäjä NÄKEE ✓-lapun" ⊥ pitäisi).
+    await zoomToShowSegmentLabels(page, { text: 'Valmispätkä' })
 
     // Lappu: ✓-prefix + --done-luokka
     const label = page.locator('.segment-label', { hasText: 'Valmispätkä' })

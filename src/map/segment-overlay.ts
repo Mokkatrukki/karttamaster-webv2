@@ -4,7 +4,7 @@ import type { RoutePoint, SignMarker } from '../logic/types'
 import type { Segment, SegmentStore, SegmentLineState } from '../logic/segments'
 import { segmentLineColor, segmentLineState, getPhaseProgress, segmentPrimaryRouteId } from '../logic/segments'
 import { segmentLayerStyles } from '../logic/segment-style'
-import { segmentVisibleOnRoutes } from '../logic/segment-visibility'
+import { segmentVisibleOnRoutes, segmentLabelVisible } from '../logic/segment-visibility'
 import type { MapFilter } from '../logic/map-filter'
 import { defaultMapFilter, segmentVisibility, DIM_OPACITY } from '../logic/map-filter'
 
@@ -102,11 +102,32 @@ export class SegmentOverlay {
   private contextLocked = true
   private visibleRouteIds?: string[]
   private mapFilter: MapFilter = defaultMapFilter()
+  // T418/V310: lapun kantajat + omistajuuslippu. Portti ! soveltua kahdesta suunnasta
+  // (zoomend & render) ∴ lista on tilaa, ⊥ renderin paikallinen muuttuja.
+  private labelLines: { line: L.Polyline; isOwn: boolean }[] = []
 
   constructor(
     private readonly map: L.Map,
     private readonly routes: RouteRef[],
-  ) {}
+  ) {
+    // T418/V309: sama kuvio kuin `area-overlay.ts:26` — kynnys elää logic-kerroksessa,
+    // Leaflet vain kuuntelee zoomia.
+    map.on('zoomend', () => this.applyLabelZoomGate())
+  }
+
+  // T418/V310/V311: piilotus on LUOKKA lapun elementillä, ⊥ `unbindTooltip` (välkkyvä
+  // kato/paluu joka zoomilla) & ⊥ `segmentLabelOptions()`-luokkajonossa (se on puhdas
+  // funktio jonka tarkkaa `className`-arvoa kolme testitiedostoa väittää — zoom on ajon
+  // tilaa, ⊥ lapun syntyvää identiteettiä).
+  private applyLabelZoomGate(): void {
+    const zoom = this.map.getZoom()
+    for (const { line, isOwn } of this.labelLines) {
+      const el = line.getTooltip()?.getElement()
+      // V311: `opacity:0` yksin jättäisi näkymättömän osumapinnan (lappu on klikattava
+      // sisääntulo, T347) ∴ CSS-luokka kantaa MYÖS `pointer-events:none`.
+      el?.classList.toggle('segment-label--hidden', !segmentLabelVisible(zoom, isOwn))
+    }
+  }
 
   setOnSegmentClick(cb: (seg: Segment) => void): void {
     this.onSegmentClick = cb
@@ -217,6 +238,9 @@ export class SegmentOverlay {
         }
         if (line && seg.displayName) {
           line.bindTooltip(labelPrefix + seg.displayName, segmentLabelOptions(style.interactive, done, style.dimmed))
+          // T418/V309: `contextOwnId === undefined` = järjestäjä ∴ isOwn false & portti pätee —
+          // hän nimenomaan haluaa puhtaan yleiskuvan. Talkoolaisen OMA pätkä ohittaa zoomin.
+          this.labelLines.push({ line, isOwn: this.contextOwnId !== undefined && seg.id === this.contextOwnId })
         }
         if (line && this.onSegmentClick && style.interactive) {
           const clickedSeg = seg
@@ -227,11 +251,18 @@ export class SegmentOverlay {
         }
       }
     }
+    // T418/V310: render bindaa tooltipit UUDELLEEN ∴ pelkkä `zoomend`-kuuntelija jättäisi
+    // uudelleenpiirretyt laput syntymätilaansa: pätkän mutaatio kauas zoomattuna → laput
+    // ilmestyisivät takaisin ilman yhtään zoomia. Sama katvealue kuin `markers.ts:244`.
+    this.applyLabelZoomGate()
   }
 
   clear(): void {
     this.layers.forEach(l => l.remove())
     this.layers = []
+    // Lapun kantajat poistuivat `layers`in mukana ∴ lista ! nollautua samassa paikassa —
+    // muuten portti iteroi irrotettuja polylineja & lista kasvaa joka renderissä.
+    this.labelLines = []
   }
 
   isEditMode(): boolean {

@@ -862,12 +862,14 @@ Kartta avautuu **katselutilassa** joka latauksella; kaikki kartan MUTATOIVAT ele
 | Reuna | `1px solid rgba(255,255,255,0.15)`, `radius-sm`, `box-shadow 0 2px 8px rgba(0,0,0,0.4)` |
 | Osoitin | `cursor: pointer` **vain** `.segment-label.leaflet-interactive` |
 | Himmeä (`--dim`) | `opacity: .4`, `font-weight: 600`, `pointer-events: none` |
+| Piilossa (`--hidden`) ✓ T418/V309 | `opacity: 0` **+ `pointer-events: none`** — pari on pakollinen: lappu on klikattava sisääntulo ∴ pelkkä läpinäkyvyys jättäisi näkymättömän osumapinnan kartalle (V311). Luokka on AJON tilaa (`segment-overlay.ts` togglaa) ⊥ `segmentLabelOptions()`in luokkajonossa |
 | Valmis (`--done`) ✓ T348/T349 | `border: 2px solid var(--segment-done)` (**ei `--confirm`** — B136/V253, karttapinta-token) + `padding: 5px 7px` (reunan kasvu kompensoitu ∴ osumapinta säilyy) + teksti saa `✓ `-prefixin (`segment-overlay.ts`). **Tausta pysyy kiinteänä navynä & teksti valkoisena** — vihreä tulee VAIN reunuksesta (B106: lapun tausta ei seuraa teemaa ∴ vihreä tausta rikkoisi kontrastisopimuksen) |
 
 - **`--dim` & `--done` eivät ole toisensa poissulkevia** (T348): talkoolaisen konteksti-lappu voi olla valmis ∴ luokkajono kootaan yhdessä paikassa (`segmentLabelOptions(interactive, done)`), ei kutsupaikalla.
 - **Klikattavuus tulee yhdestä lähteestä:** `segmentLabelOptions(style.interactive)` saa saman `interactive`-lipun kuin polyline (`contextSegmentStyle`, V142) ∴ talkoolaisen näkymässä vain oma pätkä on klikattava — muiden lappu on läpäisevä (kaksi lukkoa: Leaflet-optio + `pointer-events:none`).
 - **Klikkiä EI kytketä tooltipiin.** Leaflet tekee `addEventParent(this._source)` tooltipin avautuessa ∴ lapun klikki propagoi polylinelle ja olemassa oleva `line.on('click')` avaa `SegmentDetailsModal`in. Oma kuuntelija lapulle = modaali avautuu kahdesti.
 - **44px-poikkeus (§A/§R) — tietoinen ja kirjattu.** Kartan nimilappu ei täytä 44px-minimiä. Perustelu: 44px-lappu peittäisi naapuripätkän reitin tiheässä ruudukossa (lappu on kartan sisältöä, ei chromea); tämän sisääntulon käyttäjä on **järjestäjä** (desktop + hiiri); talkoolaisen mobiilipolku ei riipu tästä — hänen kontekstilappunsa ovat ei-klikattavia ja oma pätkä avautuu herosta/sivupalkista, jotka täyttävät 44px:n. Poikkeus koskee VAIN karttalappua — ⊥ yleistä sitä muihin komponentteihin.
+- **Lappu on ZOOM-EHDOLLISTA sisältöä** (T418/V309): näkyy vain `zoom ≥ 14` — paitsi talkoolaisen OMA pätkä joka näkyy ∀ zoomilla (orientaatio metsässä > yleisilme). Järjestäjän oletusnäkymä on `fitBounds` ∀ reitille → zoom ~13,4 ∴ ennen porttia ∀ lappu piirtyi päällekkäin maaston yli & kartta luettiin nimilistana ⊥ karttana. Kynnys 14 ≠ AreaOverlayn feature-lappujen 16 tietoisesti: pätkä on km-mittainen viiva (lappu ankkuroituu pitkään kohteeseen), feature on piste.
 - Käyttäjä: järjestäjä.
 
 ### MarkerFocus — fokus-/himmennystila kartalla (`src/map/markers.ts` + `.marker-dimmed`) ✓ T334/T335
