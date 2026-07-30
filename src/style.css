@@ -5840,6 +5840,8 @@ select,
 textarea,
 label {
   touch-action: manipulation;
+}
+
 /* ── MarkerOverviewPanel (T402/V290): järjestäjän merkkijono ──────────────────────────────
    Telakoitu paneeli #app-mainin kolmantena lapsena — ⊥ modaali & ⊥ overlay: rivin klikkaus
    liikuttaa karttaa ∴ kartta ! pysyä näkyvänä (V114). Left-panel torjuttiin mitatulla
