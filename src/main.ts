@@ -23,6 +23,19 @@ import { initTheme } from './logic/theme'
 // V132/T202: palauta käyttäjän valitsema teema ennen renderiä (estää välkkeen).
 initTheme()
 
+// T408/V293: zoom kuuluu KARTALLE. `maximum-scale=1.0, user-scalable=no` on pyyntö jonka iOS
+// Safari on ohittanut iOS 10:stä (2016) lähtien, ja `touch-action` ei kata Safarin omia
+// `gesture*`-tapahtumia. Ilman tätä pinch toolbarin tai heron päällä zoomaa koko sovelluksen —
+// kartta-app jossa chrome venyy ruudun ulkopuolelle on käytännössä rikki (hanskat, kirkas
+// aurinko: ele osuu kehykseen jatkuvasti). Kartan sisällä ele jätetään Leafletille.
+for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) {
+  document.addEventListener(ev, (e: Event) => {
+    const t = e.target
+    if (t instanceof Element && t.closest('#map')) return
+    e.preventDefault()
+  }, { passive: false })
+}
+
 
 const { map, toolbarMenu, gpsNavigator } = initMap()
 

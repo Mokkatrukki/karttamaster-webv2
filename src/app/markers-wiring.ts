@@ -32,6 +32,8 @@ import type { SignMarker } from '../logic/types'
 import type { SegmentPanel } from '../ui/segment-panel'
 import { mapMode, type MapMode, type MapModeState } from '../logic/map-mode'
 import { initMapModeToggle } from '../ui/map-mode-toggle'
+import { createGpsControl } from '../ui/gps-control'
+import { gpsControlState } from '../logic/gps-follow'
 
 // T307/V218: `document.body.dataset.mapMode` asetetaan TÄSTÄ yhdestä paikasta (CSS-korostus
 // T308 + E2E-assertit lukevat sen). UI-toggle EI kirjoita attribuuttia itse — se kutsuu
@@ -55,17 +57,38 @@ export function gpsButtonLabel(state: GpsState): string {
 // Oma sijainti on laitteen tieto ∴ jos tämä elää `if (seg)`-lohkon sisällä, nappi renderöityy
 // kuuntelijatta aina kun pätkää ei löydy (lataus kaatui / koodilla ei pätkää) → klikkaus ei tee
 // mitään eikä mikään kerro siitä. Paikannusvirhe ei myöskään saa olla hiljainen (V247).
+//
+// T407/V294: sama `sync` ruokkii nyt KOLME pintaa — kartan `#gps-control`, ⋯-valikon
+// `#btn-tk-gps` ja heron `.segment-view-gps-btn`. Yksi tilalähde (`GpsNavigator`), yksi
+// käännösfunktio (`gpsControlState`) ∴ pinnat eivät voi olla eri mieltä (B133-luokka).
 export function wireGpsButton(
-  gps: Pick<GpsNavigator, 'start' | 'stop' | 'getState'>,
+  gps: Pick<GpsNavigator, 'start' | 'stop' | 'getState' | 'setFollow' | 'isFollowing' | 'onFollowChange'>,
   showWarning: (msg: string, ms?: number) => void,
 ): (state: GpsState, msg?: string) => void {
+  const control = createGpsControl({
+    onTap: (action) => {
+      if (action === 'start') { gps.start(sync); return }
+      if (action === 'recenter') { gps.setFollow(true); sync(gps.getState()); return }
+      gps.stop()
+      sync('pois')
+    },
+  })
+  document.getElementById('map-area')?.appendChild(control.el)
+  // Hero (`#segment-view`) syntyy vasta pätkähaun jälkeen ∴ tarkkaillaan sen SÄILIÖTÄ, joka
+  // on index.html:ssä alusta asti. Säiliön korkeus = heron korkeus (se on ainoa lapsi).
+  control.observeHero(document.getElementById('segment-view-container'))
+
   const sync = (state: GpsState, msg?: string): void => {
+    control.setState(gpsControlState(state, gps.isFollowing()))
     document.querySelectorAll<HTMLElement>('#btn-tk-gps, .segment-view-gps-btn').forEach(btn => {
       btn.textContent = gpsButtonLabel(state)
       btn.classList.toggle('gps-active', state !== 'pois')
     })
     if (msg) showWarning(`⚠ ${msg}`, 5000)
   }
+  // V295: kartan panorointi purkaa seurannan → nappi ! vaihtua "Keskitä"-tilaan HETI. Ilman
+  // tätä kanavaa nappi lukisi "Seuraa" kunnes seuraava fix sattuu saapumaan.
+  gps.onFollowChange(() => sync(gps.getState()))
   document.getElementById('btn-tk-gps')?.addEventListener('click', () => {
     if (gps.getState() !== 'pois') { gps.stop(); sync('pois'); return }
     gps.start(sync)
@@ -246,11 +269,14 @@ export function wireMarkers(
   // Edellisen session vahvistamattomat kirjoitukset voivat olla vielä jonossa käynnistyessä.
   markerManager.setPendingKeys(outbox.pendingResourceKeys())
 
-  if (talkoolainenCode) {
-    // T341/V247 (B133): GPS ENNEN pätkähakua — oma sijainti ei riipu pätkästä. Jos tämä
-    // siirtyy `if (seg)`:n sisään, talkoolainen jää ilman GPS:ää aina kun pätkä puuttuu.
-    const syncGpsLabel = wireGpsButton(gpsNavigator, showWarning)
+  // T341/V247 (B133): GPS ENNEN pätkähakua — oma sijainti ei riipu pätkästä. Jos tämä
+  // siirtyy `if (seg)`:n sisään, talkoolainen jää ilman GPS:ää aina kun pätkä puuttuu.
+  // T407/V294: myös ROOLIN ulkopuolella — `#gps-control` on kartalla molemmille. Järjestäjä on
+  // VISION §Mobiili mukaan välillä itse kentällä ilman läppäriä; oma sijainti on laitteen tieto
+  // eikä rooliominaisuus. ⋯-valikon `#btn-tk-gps` pysyy talkoolaisen omana (V155).
+  const syncGpsLabel = wireGpsButton(gpsNavigator, showWarning)
 
+  if (talkoolainenCode) {
     const seg = getSegmentForCode(segmentStore, talkoolainenCode)
     if (seg) {
       // T230/V93 + T257/R8: pätkän valmiiksi-merkintä. Jaettu SegmentView-heron (onComplete)

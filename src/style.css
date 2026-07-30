@@ -520,7 +520,11 @@ button {
 /* T287/V201: #map ON leaflet-container (L.map('map')) → valkoinen tausta tilePanen alla.
    Himmennys (tilePane-opacity ↓) paljastaa PUHTAAN valkoisen (paperikarttamaster) ettei
    tumma teema-tausta kuulla läpi → slider 0 % = täysin valkoinen pohja. */
-#map { flex: 1; min-height: 0; touch-action: manipulation; background: #fff; }
+/* T408/V293: EI `touch-action`-sääntöä tänne. `#map` = 1,0,0 kumoaisi Leafletin oman
+   `.leaflet-container{touch-action:none}`n (0,1,0) → selain nappaa pinchin, ja koska iOS
+   ohittaa `user-scalable=no`n, pinch zoomaisi SIVUN kartan sijaan. Leaflet asettaa oikean
+   arvon itse handlerien mukaan (drag+touchZoom → none). ⊥ palauta `manipulation`ia. */
+#map { flex: 1; min-height: 0; background: #fff; }
 #map.place-mode { cursor: crosshair !important; }
 #map.place-mode .leaflet-container { cursor: crosshair !important; }
 
@@ -5802,4 +5806,106 @@ body[data-map-mode="muokkaus"] #map-filter-bar:not([hidden]) ~ .marker-focus-pil
   gap: 8px;
   min-height: 44px;
   text-align: left;
+}
+
+/* ═══ T407/V294 — GpsControl: paikannus kartalla, yksi napautus ═══
+   Nappi ON tilanäyttö (erillinen indikaattori = toinen totuus, B133). Neljä tilaa erottuvat
+   SANOIN — aurinko pesee värit ja hanskat estävät tarkan katseen. */
+
+#gps-control {
+  position: absolute;
+  right: 8px;
+  /* Talkoolaisen hero omistaa alalaidan → gps-control.ts mittaa sen korkeuden ja kirjoittaa
+     tämän muuttujan. Ei kiinteää 46vh-arvausta: pieni hero jättäisi napin leijumaan keskelle. */
+  /* 24px oletus: Leafletin attribuutiorivi asuu alareunassa & 8px jätti napin sen päälle
+     (lähdemerkintä ! pysyä luettavana — Maanmittauslaitoksen lisenssiehto). */
+  bottom: var(--gps-control-bottom, 24px);
+  z-index: 1100; /* Leaflet-panet 200–700 & hero 1000 yllä, modaalit 3000 alla */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px; /* §R 44px + hanskamarginaali */
+  min-width: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-card);
+  color: var(--text-body); /* §K-kontrastisääntö: teksti aina tintin päällä, ⊥ valkoista täytöllä */
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.22);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* Kaksi kanavaa per tila (reuna + tintti) — värisokeus & auringonpaiste eivät saa
+   pudottaa tilaa yhden signaalin varaan. */
+#gps-control.gps-control--haetaan {
+  background: var(--warn-highlight);
+  border-color: var(--warn, #b45309);
+  animation: gps-control-pulse 1.4s ease-in-out infinite;
+}
+/* Reuna = "paikannus on päällä"; tintin puute = "kartta ei seuraa". */
+#gps-control.gps-control--vapaa {
+  border: 2px solid var(--gps-active);
+}
+#gps-control.gps-control--seuraa {
+  border: 2px solid var(--gps-active);
+  background: color-mix(in srgb, var(--gps-active) 16%, var(--surface-card));
+}
+
+@keyframes gps-control-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #gps-control.gps-control--haetaan { animation: none; }
+}
+
+/* Kartta piilossa (talkoolaisen koti-moodi) ∴ karttakontrolli ei tarkoita mitään (V175-kuvio). */
+#app[data-view-mode="koti"] #gps-control { display: none; }
+
+/* ═══ T408/V293 — zoom kuuluu kartalle, ⊥ sovelluskehykselle ═══
+   `user-scalable=no` on pyyntö jonka iOS Safari on ohittanut iOS 10:stä lähtien ∴ toteutus
+   tulee tästä: jokainen kehyspinta julistaa sallitun eleensä, mikään ei jää `auto`ksi. */
+
+html { -webkit-text-size-adjust: 100%; } /* iOS kasvattaa fonttia maisema-asennossa → 44px-napit venyvät */
+
+/* Scrollaavat kehyspinnat: pysty (tai vaaka) panorointi sallittu, pinch ei. */
+#toolbar-menu,
+#left-panel,
+#left-panel-content,
+#segment-view,
+#marker-modal,
+#marker-modal-items,
+.marker-detail-modal,
+.equipment-modal,
+.segment-details-modal,
+.segment-creation-modal,
+.area-view-modal,
+#snapshot-modal,
+.map-filter-groups {
+  touch-action: pan-y;
+}
+
+/* Ei-scrollaavat kehyspinnat: mikään selaimen ele ei kuulu niille. */
+#toolbar,
+#route-bar,
+#status-panel,
+#map-filter-bar,
+.map-mode-pill {
+  touch-action: none;
+}
+
+/* Kaksoisnapautus-zoom kuolee `manipulation`illa — napin tuplanapautus on kenttäkäytössä
+   tavallista (hanskat, epätarkka osuma) eikä se saa zoomata sivua. */
+button,
+[role="button"],
+a,
+input,
+select,
+textarea,
+label {
+  touch-action: manipulation;
 }

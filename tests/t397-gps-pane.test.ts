@@ -9,52 +9,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('leaflet', async () => ({ default: (await import('./helpers/leaflet-mock')).L }))
 import { installLeafletMock, L } from './helpers/leaflet-mock'
 import { GpsNavigator } from '../src/map/gps-navigator'
-
-interface FakeMap {
-  panes: Record<string, HTMLElement>
-  createPaneCalls: string[]
-  getPane: (n: string) => HTMLElement | undefined
-  createPane: (n: string) => HTMLElement
-  panTo: () => void
-}
-
-function fakeMap(): FakeMap {
-  const m: FakeMap = {
-    panes: {},
-    createPaneCalls: [],
-    getPane: (n) => m.panes[n],
-    createPane: (n) => {
-      m.createPaneCalls.push(n)
-      const el = document.createElement('div')
-      m.panes[n] = el
-      return el
-    },
-    panTo: () => {},
-  }
-  return m
-}
-
-// Ohjattava geolocation: talteen otettu success-callback laukaistaan käsin.
-function stubGeolocation(): { fire: (lat: number, lon: number) => void; clearCalls: number } {
-  const state = { cb: null as ((p: unknown) => void) | null, clearCalls: 0 }
-  vi.stubGlobal('navigator', {
-    geolocation: {
-      watchPosition: (ok: (p: unknown) => void) => {
-        state.cb = ok
-        return 1
-      },
-      clearWatch: () => {
-        state.clearCalls++
-      },
-    },
-  })
-  return {
-    fire: (lat, lon) => state.cb?.({ coords: { latitude: lat, longitude: lon } }),
-    get clearCalls() {
-      return state.clearCalls
-    },
-  }
-}
+// T406: jaettu karttatuplaus — ⊥ oma kopio (kolme kopiota ajautuu erilleen).
+import { fakeMap, stubGeolocation } from './helpers/gps-map-mock'
 
 function circleMarkerOpts(call = 0): Record<string, unknown> {
   return L.circleMarker.mock.calls[call][1] as Record<string, unknown>
