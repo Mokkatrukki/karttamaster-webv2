@@ -9,6 +9,7 @@ import { isolatedMarkerIds, orphanMarkerIds, loadMapFilter } from '../logic/map-
 import { MarkerOverviewPanel } from '../ui/marker-overview-panel'
 import { getActivePhase } from '../logic/phase-view'
 import { createAndPushSegment } from '../logic/segment-create'
+import { addMarkersToSegment } from '../logic/segment-actions'
 import { existingSegmentOwners } from '../logic/segment-membership'
 import { getSegmentsForPhase } from '../logic/segments'
 import { ProgressBar } from '../ui/progress-bar'
@@ -630,6 +631,41 @@ function wireMarkersInner(
         segmentPanel.refreshCounts()
         renderSegmentOverlay()
         showWarning(`✓ Tehtävä "${seg.displayName}" luotu (${markerIds.length} merkkiä)`, 4000)
+      },
+      // T415/V305: valitut OLEMASSA OLEVAAN tehtävään. Jaettu apuri (`addMarkersToSegment`)
+      // ∴ additiivisuus & idempotenssi ovat samat kaikilla kolmella kutsupaikalla (V305).
+      // Kohde tulee samasta vaiherajatusta listasta kuin `getSegments` (V290/V91).
+      onAddToSegment: (markerIds, segmentId) => {
+        const target = segmentStore.get(segmentId)
+        if (!target) return
+        const next = addMarkersToSegment(target, markerIds)
+        if (next === target) {
+          showWarning('Kaikki valitut kuuluvat jo tähän tehtävään', 3000)
+          return
+        }
+        updateSegment(segmentStore, segmentId, {
+          linkedMarkerIds: next.linkedMarkerIds,
+          excludedMarkerIds: next.excludedMarkerIds,
+        })
+        // V115/V220-kanava: hiljainen optimismi on kielletty — epäonnistuminen ! näkyä.
+        const flagErr = (): void => showWarning('⚠ Merkkien lisäys ei tallentunut — yritä uudelleen', 5000)
+        updateSegmentRemote(segmentId, {
+          linkedMarkerIds: next.linkedMarkerIds,
+          excludedMarkerIds: next.excludedMarkerIds,
+        })
+          .then(ok => { if (!ok) flagErr() })
+          .catch(() => flagErr())
+        segmentPanel.refreshCounts()
+        renderSegmentOverlay()
+        const name = target.displayName?.trim() || target.id
+        const added = (next.linkedMarkerIds?.length ?? 0) - (target.linkedMarkerIds?.length ?? 0)
+        showWarning(`✓ ${added} merkkiä lisätty tehtävään "${name}"`, 4000)
+      },
+      // T415: merkkimäärä valikkoriville — laskenta on jäsenyyden asia (V259) ∴ UI ⊥ laske itse.
+      getSegmentMarkerCount: id => {
+        const seg = segmentStore.get(id)
+        if (!seg) return 0
+        return getMarkersForSegment(seg, markerManager.getAll(), segmentPeers(segmentStore, seg)).length
       },
       // V291: mihin valitut kuuluvat JO — operaatio on additiivinen ∴ tämä on informaatio
       // ⊥ varoitus menetyksestä (mitattu: reititön tehtävä ⊥ vie merkkiä nykyiseltä pätkältä).

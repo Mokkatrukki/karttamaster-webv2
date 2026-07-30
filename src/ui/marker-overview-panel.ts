@@ -48,6 +48,12 @@ export interface MarkerOverviewContext {
   onCreateTask?(markerIds: string[]): void
   /** T403: mihin pätkiin valitut kuuluvat jo (V291 — additiivinen, ⊥ menetys). */
   getExistingOwners?(markerIds: string[]): Array<{ markerId: string; segmentId: string }>
+  /** T415/V305: valitut OLEMASSA OLEVAAN tehtävään. Kohde = aktiivisen vaiheen pätkä
+   *  (`getSegments`, V290/V91). Puuttuu → kohdevalintaa ⊥ renderöidä. */
+  onAddToSegment?(markerIds: string[], segmentId: string): void
+  /** T415: pätkän nykyinen merkkimäärä valikkoriville. Laskenta on `resolveSegmentMarkers`in
+   *  asia (V259) ∴ UI ⊥ laske sitä itse — kutsuja antaa. Puuttuu → rivi ilman lukua. */
+  getSegmentMarkerCount?(segmentId: string): number
   /** V117/T185: outboxissa odottavat kirjoitukset. Vahvistamaton merkki ! näkyä
    *  persistentisti "tallentamatta" — transientti banneri ⊥ riitä. */
   getPendingIds?(): Set<string>
@@ -191,7 +197,7 @@ export class MarkerOverviewPanel {
       this.body.appendChild(this.emptyState('Ei tuloksia'))
     }
     for (const g of searched) this.renderGroup(g)
-    if (this.ctx.onCreateTask || this.ctx.onBulkStatus) this.renderActionBar()
+    if (this.ctx.onCreateTask || this.ctx.onBulkStatus || this.ctx.onAddToSegment) this.renderActionBar()
   }
 
   /** Haku osuu nimeen & km-lukuun. Tyhjenevät ryhmät karsitaan ∴ otsikko ⊥ lupaa tyhjää. */
@@ -294,6 +300,7 @@ export class MarkerOverviewPanel {
     // Valinta on olemassa jos JOKIN valintaa käyttävä toiminto on kytketty — kumpi tahansa
     // yksin riittää (bulk-status ilman tehtävänluontia oli ensin valinnaton = kuollut pinta).
     const hasBulkAction = this.ctx.onCreateTask !== undefined || this.ctx.onBulkStatus !== undefined
+      || this.ctx.onAddToSegment !== undefined
     const selectable = groupKey !== 'suodatettu' && hasBulkAction
     if (selectable) {
       const cb = document.createElement('input')
@@ -399,6 +406,30 @@ export class MarkerOverviewPanel {
       bar.appendChild(statusRow)
     }
 
+    // T415/V305: valitut OLEMASSA OLEVAAN tehtävään. Kohdevalinta on NATIIVI `select` ⊥ oma
+    // popup: (a) se on yksi napautus myös hanskoilla (mobiilin oma valitsin), (b) ≤700px paneeli
+    // on bottom sheet (`z-index:1200`) ∴ oma leijuva valikko joutuisi kilpailemaan sheetin reunan
+    // kanssa & voisi jäädä sen alle, (c) sama kuvio kuin bulk-statusin rivillä yllä ∴ ⊥ toista
+    // valitsinkieltä samassa palkissa.
+    if (this.ctx.onAddToSegment) {
+      const targetRow = document.createElement('div')
+      targetRow.className = 'marker-overview-status-row marker-overview-target-row'
+      const select = document.createElement('select')
+      select.className = 'marker-overview-status-select marker-overview-target-select'
+      select.setAttribute('aria-label', 'Kohdetehtävä valituille')
+      const add = document.createElement('button')
+      add.type = 'button'
+      add.className = 'btn marker-overview-add-existing'
+      add.addEventListener('click', () => {
+        if (this.selected.size === 0 || !select.value) return
+        this.ctx.onAddToSegment?.([...this.selected], select.value)
+        this.selected.clear()
+        this.render()
+      })
+      targetRow.append(select, add)
+      bar.appendChild(targetRow)
+    }
+
     const btn = document.createElement('button')
     btn.type = 'button'
     btn.className = 'btn btn--confirm marker-overview-create'
@@ -416,10 +447,45 @@ export class MarkerOverviewPanel {
     this.refreshActionBar()
   }
 
+  /** T415: kohdetehtävä-valikon rivit. Valittu arvo SÄILYY päivityksen yli — valinnan muutos
+   *  kutsuu tätä uudelleen & kohteen nollautuminen kesken työn olisi kuollut pinta (V250). */
+  private refreshTargets(): void {
+    const select = this.body.querySelector<HTMLSelectElement>('.marker-overview-target-select')
+    if (!select) return
+    const prev = select.value
+    select.innerHTML = ''
+    for (const seg of this.ctx.getSegments()) {
+      const opt = document.createElement('option')
+      opt.value = seg.id
+      const name = seg.displayName?.trim() || seg.id
+      const count = this.ctx.getSegmentMarkerCount?.(seg.id)
+      // Reitillinen JA reititön samassa listassa (V305: sama operaatio molemmille) — mutta
+      // km-väli erottaa ne, jotta oikea kohde tunnistuu ilman muistia.
+      const span = seg.startDist !== undefined && seg.endDist !== undefined
+        ? `${(seg.startDist / 1000).toFixed(1)}–${(seg.endDist / 1000).toFixed(1)} km`
+        : 'reititön'
+      opt.textContent = count === undefined ? `${name} · ${span}` : `${name} · ${count} merkkiä · ${span}`
+      select.appendChild(opt)
+    }
+    if (prev && [...select.options].some(o => o.value === prev)) select.value = prev
+  }
+
   private refreshActionBar(): void {
     const n = this.selected.size
+    this.refreshTargets()
     const btn = this.body.querySelector<HTMLButtonElement>('.marker-overview-create')
     const apply = this.body.querySelector<HTMLButtonElement>('.marker-overview-apply-status')
+    const addExisting = this.body.querySelector<HTMLButtonElement>('.marker-overview-add-existing')
+    const targetSelect = this.body.querySelector<HTMLSelectElement>('.marker-overview-target-select')
+    if (addExisting) {
+      // Kohde puuttuu (aktiivisessa vaiheessa ⊥ ole yhtään pätkää) → nappi disabloitu NÄKYVÄSTI
+      // yhdessä valitsimen kanssa; "Luo tehtävä valituista" on silloin oikea polku.
+      const noTarget = !targetSelect || targetSelect.options.length === 0
+      addExisting.textContent = `Lisää valitut tehtävään (${n})`
+      addExisting.disabled = n === 0 || noTarget
+      addExisting.classList.toggle('is-disabled', n === 0 || noTarget)
+      if (targetSelect) targetSelect.disabled = noTarget
+    }
     // V250: disabloitu tila ! näkyä — jaetut `.btn--*` ⊥ määrittele `:disabled`ia ∴ ilman
     // omaa luokkaa nappi näyttäisi painettavalta & klikkaus ⊥ tekisi mitään (kuollut pinta).
     for (const [el, label] of [[btn, `Luo tehtävä valituista (${n})`], [apply, `Aseta valituille (${n})`]] as const) {

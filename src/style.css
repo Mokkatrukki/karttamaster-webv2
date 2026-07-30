@@ -6129,3 +6129,22 @@ body[data-role="talkoolainen"] .marker-overview { display: none; }
   color: var(--text-muted);
   cursor: not-allowed;
 }
+
+/* T415/V305: valitut OLEMASSA OLEVAAN tehtävään. Kohdevalitsin + nappi samalla rivillä kuin
+   bulk-status ∴ jaetut `.marker-overview-status-*`-tyylit riittävät; oma sääntö vain
+   napin leveydelle & disabloidulle tilalle (V250: disabloitu ! näkyä). */
+.marker-overview-add-existing {
+  min-height: 44px; /* §R */
+  min-width: 120px;
+}
+.marker-overview-add-existing:disabled,
+.marker-overview-add-existing.is-disabled {
+  background: var(--field-tint);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+/* Kohdevalitsin saa kaventua napin hyväksi mutta ⊥ kadota: 380px-paneelissa rivillä on
+   [valitsin][nappi 120px] ∴ valitsimen oma minimi estää sen puristumisen lukukelvottomaksi. */
+.marker-overview-target-select {
+  min-width: 0;
+}
