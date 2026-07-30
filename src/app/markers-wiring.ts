@@ -134,7 +134,28 @@ interface MarkersWiringDeps {
 // Suurin lohko init()-orkestroinnista — merkkejä käsittelevä osuus koskettaa myös
 // pätkän status-päivitystä (renderSegmentOverlay) ja tarkastusnäkymää (talkoolainen),
 // koska ne kuuntelevat MarkerManagerin onUpdate-tapahtumaa (sama kuin ennen pilkkoa).
+// V301/B169: init ⊥ saa kuolla hiljaa. Runko on yksi pitkä sekvenssi ∴ heitto rivillä N vie
+// kaikki N+1… mukanaan — B169:ssä käyttäjä sai tyhjän sivupalkin & kuolleen napin ILMAN
+// virhettä (sama hiljaisuuden luokka kuin V296/B168). Heitto EI nielaista: se näkyy
+// käyttäjälle bannerina, konsolissa stackina & etenee ylös niin että init pysähtyy äänekkäästi.
 export function wireMarkers(
+  map: L.Map,
+  routes: RouteConfig[],
+  polylines: L.Polyline[],
+  initialMarkers: SignMarker[],
+  talkoolainenCode: string | undefined,
+  deps: MarkersWiringDeps,
+): MarkersWiring {
+  try {
+    return wireMarkersInner(map, routes, polylines, initialMarkers, talkoolainenCode, deps)
+  } catch (err) {
+    deps.showWarning('⚠ Näkymän alustus epäonnistui — lataa sivu uudelleen', 0)
+    console.error('[wireMarkers] init epäonnistui', err)
+    throw err
+  }
+}
+
+function wireMarkersInner(
   map: L.Map,
   routes: RouteConfig[],
   polylines: L.Polyline[],
@@ -147,8 +168,12 @@ export function wireMarkers(
     setSegmentVisibleRoutes, setSegmentMapFilter, clearFocusSegment,
   } = deps
 
-  let progressBar!: ProgressBar
-  let statusPanel!: StatusPanel
+  // V300/B169: EI `let x!: T`. Non-null-assertio vaientaa juuri sen tarkistuksen joka nappaisi
+  // "callback lukee sidosta jota ⊥ vielä ole": `MapFilterBar`in ctor kutsuu `onChange`in
+  // synkronisesti (map-filter-bar.ts:88) ∴ `onUpdate` ajoi `progressBar.refreshDots()`in ennen
+  // kuin `progressBar` oli olemassa → koko `wireMarkers` heitti & sivupalkki jäi rakentamatta.
+  let progressBar: ProgressBar | null = null
+  let statusPanel: StatusPanel | null = null
   let segmentView: SegmentView | null = null
   let signLibrary: SignLibrary | null = null
   // T224 (b1)/T256: korosta pätkän seuraava asettamaton merkki kartalla (vain asettaminen-phase).
@@ -196,7 +221,7 @@ export function wireMarkers(
 
   const markerManager = new MarkerManager(map, routes, () => {
     refreshMarkerViews()
-    progressBar.refreshDots()
+    progressBar?.refreshDots()
     statusPanel?.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
     segmentPanel.refreshCounts()
     // T152/V96: merkin status-muutos päivittää myös kartan pätkän viivatyylin (ei vain sivupalkkia)
@@ -233,7 +258,7 @@ export function wireMarkers(
     getRole,
     () => {
       refreshMarkerViews()
-      progressBar.refreshDots()
+      progressBar?.refreshDots()
     },
     // T225/V151: talkoolaisen oma koodi → kova-poisto vain oman itse-luoman merkin kohdalla.
     () => talkoolainenCode,
@@ -433,7 +458,7 @@ export function wireMarkers(
   }
 
   const driveMode = new DriveMode(map, routes[0].routePoints, km => {
-    progressBar.update(km)
+    progressBar?.update(km)
   })
 
   // T204/V134: RouteBar-jako. Talkoolainen saa täyden drive-kontrollin (RouteBar: reittivalinta
@@ -454,7 +479,7 @@ export function wireMarkers(
       routes, polylines, map, driveMode, markerManager,
       routeSelectorEl,
       document.getElementById('route-track-fill') as HTMLElement,
-      () => { progressBar.update(0); progressBar.refreshDots() },
+      () => { progressBar?.update(0); progressBar?.refreshDots() },
     )
     document.getElementById('route-bar')?.setAttribute('hidden', '')
   } else {
@@ -467,6 +492,22 @@ export function wireMarkers(
     // kartan yläpuolella (yksi "mitä näkyy" -pinta, ⊥ kahta). Drive-osat olivat jo piilossa (V134).
     document.getElementById('route-bar')?.setAttribute('hidden', '')
   }
+
+  const activeRouteProvider = () => (routeBar ?? routeVis!).getActiveRoute()
+  const activeTotalProvider = () => (routeBar ?? routeVis!).getActiveTotalM()
+
+  // V300/B169: ProgressBar ENNEN MapFilterBaria. `MapFilterBar`in ctor ajaa `onChange`in
+  // synkronisesti (persistoitu suodatin ! päätyä kartalle heti, map-filter-bar.ts:88) →
+  // `routeVis.setVisibleRoutes` → `markerManager.onUpdate` → `progressBar.refreshDots()`.
+  // Aiemmin luonti oli VASTA barin jälkeen ∴ persistoitu `visibleRouteIds` kaatoi koko initin.
+  // Providerit ovat laiskoja closureja & `routeBar`/`routeVis` on jo ratkaistu tässä kohtaa.
+  progressBar = new ProgressBar(
+    activeRouteProvider,
+    activeTotalProvider,
+    driveMode,
+    markerManager,
+  )
+  progressBar.update(0)
 
   // T377/V272: suodatinbar kartan yläpuolelle. Järjestäjä saa 4 akselia, talkoolainen kapean
   // "Näytä"-valinnan (T379). Bar PÄÄTTÄÄ tilan; sovellus tapahtuu tässä callbackissa (V271).
@@ -498,17 +539,6 @@ export function wireMarkers(
     })
     filterBarEl.removeAttribute('hidden')
   }
-
-  const activeRouteProvider = () => (routeBar ?? routeVis!).getActiveRoute()
-  const activeTotalProvider = () => (routeBar ?? routeVis!).getActiveTotalM()
-
-  progressBar = new ProgressBar(
-    activeRouteProvider,
-    activeTotalProvider,
-    driveMode,
-    markerManager,
-  )
-  progressBar.update(0)
 
   // T224 (F)/V148: talkoolaisen seuraava-merkki-ohjaus asuu YKSIN SegmentView-herossa (ylhäällä).
   // Vanha alapalkin GpsDrivePanel (⇒ Seuraava / ✓ Aseta / Ei tarpeen) poistettu duplikaationa —
