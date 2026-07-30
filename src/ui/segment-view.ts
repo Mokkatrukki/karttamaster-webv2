@@ -40,6 +40,10 @@ export interface SegmentViewActions {
   // T341/V247: napin teksti navigaattorin tilasta ('Haetaan…' ennen ensimmäistä fixiä).
   // Puuttuessa fallback boolean-labeliin — ui-kerros ei importtaa map-kerrosta (kerrosraja).
   gpsLabel?: () => string
+  // T413/V304: viimeisin GPS-fix reitittömän tehtävän "seuraava merkki" -oletusvalintaan.
+  // Provider ⊥ instanssi (sama kuvio kuin isGpsActive/gpsLabel): UI ei tunne Leafletia.
+  // Puuttuessa tai null-paluulla hero palautuu km-järjestykseen (V304 fallback).
+  gpsPosition?: () => { lat: number; lon: number } | null
   // T232 (F)/V159: hero:n valittu merkki muuttui (◀▶-selailu/reconcile) → synkkaa kartan
   // ikoni-korostus (T256 setNextHighlight). null = ei valittua merkkiä (done/väärä phase) → tyhjennä.
   onNavigate?: (markerId: string | null) => void

@@ -1,4 +1,4 @@
-import { firstUnsetMarker, unsetMarkersOrdered, stepUnset } from '../logic/navigation'
+import { defaultUnsetSelection, unsetMarkersOrdered, stepUnset } from '../logic/navigation'
 import { displayKm } from '../logic/segment-order'
 import { type Segment } from '../logic/segments'
 import { buildMarkerVisual } from './marker-visual-row'
@@ -72,8 +72,11 @@ export class SegmentHero {
     const ordered = unsetMarkersOrdered(markers, segment)
     // V159 reconcile: valittu id kadonnut asettamattomien joukosta (asetettu/poistettu) → nollaa.
     if (this.selectedNavId && !ordered.some(m => m.id === this.selectedNavId)) this.selectedNavId = null
+    // T413/V304: OLETUSVALINTA (⊥ uudelleenvalinta) — reitittömällä tehtävällä lähin GPS-fixiin,
+    // muuten km-järjestyksen ensimmäinen. Hysteresis tulee yllä olevasta reconcilesta: valittu id
+    // säilyy niin kauan kuin se on asettamattomien listalla ∴ uusi fix ⊥ vaihda merkkiä alta.
     const current = (this.selectedNavId ? ordered.find(m => m.id === this.selectedNavId) : null)
-      ?? firstUnsetMarker(markers, segment)
+      ?? defaultUnsetSelection(markers, segment, actions.gpsPosition?.() ?? null)
     this.selectedNavId = current?.id ?? null
 
     if (!current) {

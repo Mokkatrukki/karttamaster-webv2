@@ -1,6 +1,7 @@
 import type { SignMarker } from './types'
 import { distancesForRoute } from './marker-distance'
 import { orderMarkersInSegment, type SegmentOrder } from './segment-order'
+import { haversineDistance } from './bearing'
 
 // T328/V237: pätkäkontekstin akseli EI enää kulje `routeId`-parametrina vaan tulee pätkästä.
 // Hero/lista tuntevat pätkän jo ∴ akselia ei voi unohtaa (B126/B129 syntyivät unohduksesta).
@@ -29,6 +30,52 @@ export function unsetMarkersOrdered(
   const unset = markers.filter((m) => m.status === 'suunniteltu')
   const { onRoute, offRoute }: SegmentOrder = orderMarkersInSegment(unset, segment)
   return [...onRoute, ...offRoute]
+}
+
+// T413/V304: onko tehtävä REITITÖN (V139)? Reitilliseksi kelpaa vain pätkä jolla on kaikki kolme
+// kenttää — puolikas reitti (rajat ilman routeIdsia) ⊥ anna `segmentKm`ille akselia ∴ se on
+// järjestyksen kannalta reititön. `null`-pätkä (orpojen lista) lasketaan reitittömäksi.
+export function isRoutelessSegment(segment: OrderingSegment): boolean {
+  if (!segment) return true
+  return (
+    !segment.routeIds ||
+    segment.routeIds.length === 0 ||
+    segment.startDist === undefined ||
+    segment.endDist === undefined
+  )
+}
+
+// T413/V304: lähin asettamaton merkki GPS-sijaintiin METREISSÄ. Sisar `nearestUnsetMarker`ille,
+// joka mittaa km-akselilla (V235) — reitittömällä tehtävällä sitä akselia ⊥ ole olemassa ∴
+// vertailu on maantieteellinen. Tasapeli ratkeaa merkin id:llä (determinismi ⊥ lista-indeksi,
+// V96-kuvio): sama syöte antaa saman merkin joka renderillä.
+export function nearestUnsetByGps(
+  markers: SignMarker[],
+  pos: { lat: number; lon: number },
+): SignMarker | null {
+  let best: SignMarker | null = null
+  let bestM = Infinity
+  for (const m of markers) {
+    if (m.status !== 'suunniteltu') continue
+    const d = haversineDistance(pos, m)
+    if (d < bestM || (d === bestM && best !== null && m.id < best.id)) { bestM = d; best = m }
+  }
+  return best
+}
+
+// T413/V304: "seuraava merkki" -OLETUSVALINTA — YKSI päätöspaikka. Reititön tehtävä + GPS-fix →
+// lähin metrisesti (muuten järjestys tulisi `distanceFromStart`ista, joka on reitittömälle
+// joukolle mielivaltainen akseli → talkoolainen pomppii). Muissa tapauksissa nykykäytös
+// bitti bitiltä: reitillinen pätkä pitää km-järjestyksensä (V237/V238) & fixin puute palautuu
+// `firstUnsetMarker`iin. HUOM: tätä kutsutaan VAIN kun validia valintaa ⊥ ole (hero reconcile) —
+// GPS ⊥ saa vaihtaa jo valittua merkkiä alta (V304 hysteresis).
+export function defaultUnsetSelection(
+  markers: SignMarker[],
+  segment: OrderingSegment,
+  pos: { lat: number; lon: number } | null,
+): SignMarker | null {
+  if (pos && isRoutelessSegment(segment)) return nearestUnsetByGps(markers, pos)
+  return firstUnsetMarker(markers, segment)
 }
 
 // T231/V159: hero-◀▶ — seuraava/edellinen asettamaton merkki `currentId`:stä. Clamp päihin

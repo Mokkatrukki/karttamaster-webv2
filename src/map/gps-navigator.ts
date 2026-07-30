@@ -108,6 +108,14 @@ export class GpsNavigator {
     return this.follow.get()
   }
 
+  // T413/V304: viimeisin fix ULOS kutsujalle. `dot` on privaatti ∴ ilman tätä `src/ui/` ei saa
+  // sijaintia ilman että Leaflet-instanssi vuotaa UI-kerrokseen (arkkitehtuuriraja). null =
+  // ei vielä fixiä → kutsuja palautuu km-järjestykseen (V304 fallback), ⊥ arvaa nollakoordinaattia.
+  getPosition(): { lat: number; lon: number } | null {
+    const at = this.dot?.getLatLng()
+    return at ? { lat: at.lat, lon: at.lng } : null
+  }
+
   onFollowChange(cb: (following: boolean) => void): void {
     this.followListener = cb
   }

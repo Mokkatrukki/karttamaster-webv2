@@ -421,6 +421,9 @@ function wireMarkersInner(
           // T341/V247: hero-nappi lukee saman tilan kuin ⋯-nappi — "Haetaan…" ennen ensimmäistä
           // fixiä, ei valheellista "GPS päällä" (B133).
           gpsLabel: () => gpsButtonLabel(gpsNavigator.getState()),
+          // T413/V304: reitittömän tehtävän "seuraava merkki" -oletusvalinta lukee viimeisimmän
+          // fixin. Provider ⊥ instanssi: `src/ui/` ⊥ saa nähdä GpsNavigatoria (Leaflet-raja).
+          gpsPosition: () => gpsNavigator.getPosition(),
           // T232 (F)/V159: hero:n valittu merkki (◀▶-selailu/reconcile) → synkkaa kartan korostus.
           // null = ei valittua (done/väärä phase) → tyhjennä. Korostus SEURAA valintaa, ei suoraan
           // firstUnsetMarkeria (estää "highlight osoittaa eri merkkiin kuin hero" -epäjohdonmukaisuuden).
