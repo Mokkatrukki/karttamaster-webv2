@@ -2,8 +2,8 @@
 
 Tarkoitus: säästää Playwright-flakyn uudelleentutkinta. Siirretty auto-memorystä repoon 2026-07-21.
 
-## Suite-tila (2026-07-29)
-**172 passed, 0 failed** (B167, 2026-07-29). Edellinen: 133 passed 2026-07-25 (T324/T325/T332).
+## Suite-tila (2026-07-30)
+**178 passed, 0 failed** (T400–T404 + T405–T408 yhdistetty). Edellinen: 172 passed 2026-07-29 (B167).
 
 ## Opetus: kun E2E "flakaa", tutki TÄMÄ järjestys ENNEN kuin syytät headlessiä
 
@@ -46,6 +46,19 @@ tässä setupissa. Todelliset juurisyyt olivat muualla:
    & lakkasi olemasta raahattava. Sääntö: pätkämerkin lat/lon ! tulla siitä GPX:stä jonka appi
    lataa — `e2e/helpers/route-points.ts` (`pointAtDistance`, `pointsAlongRoute`) lukee tiedoston
    ajossa ∴ reittipäivitys siirtää fixturet mukanaan. Sama opetus kuin §4, eri akseli.
+
+8. **Sviitin NELJÄ ENSIMMÄISTÄ testiä maksavat viten kylmäkäynnistyksen** (2026-07-30, T404-merge).
+   `area-interaction.spec.ts` on aakkosissa ensimmäinen ∴ sen testit ovat `[1/178]`–`[4/178]` &
+   ne odottavat kiinteillä rajoilla (`waitForTimeout(2000)` + `waitForFunction(…, 8000)`).
+   Kun koneella pyöri samaan aikaan muuta (vitest-ajo, `bun run build`, juuri tapetun ajon
+   orpo vite sammumassa), vite kääntää 700+ moduulia hitaammin & nämä neljä kaatuivat —
+   **yksinään 4/4 vihreä 17 s:ssa, puhtaassa täydessä ajossa vihreä.** ⊥ tuotebugi & ⊥ syy
+   löysentää odotusta: raja on jo 8 s. Sääntö: **aja E2E yksin.** Jos juuri tapoit ajon,
+   varmista portit vapaiksi (`ss -ltn | grep -E ':5180|:3099'`) ENNEN uutta — orpo vite
+   pitää porttia & `reuseExistingServer:false` kaataa koko ajon heti
+   (`Error: http://localhost:5180 is already used`).
+   Diagnoosivinkki: `--reporter=line` käyttää `\r`-ylikirjoitusta ∴ lokista puuttuvat rivit
+   eivät ole ajamattomia testejä — lue `tr '\r' '\n' < loki`.
 
 ## Talkoolainen-E2E-sudenkuoppa (V27)
 Talkoolaisen koodi tulee **URL-polusta `/s/<koodi>`**, EI `/api/auth/me`-mockista.
