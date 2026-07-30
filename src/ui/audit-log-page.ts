@@ -8,6 +8,7 @@ import type { AuditEntry } from '../logic/audit-sync'
 import { undoAuditEntry } from '../logic/audit-sync'
 import {
   describeAuditEntry,
+  isUndoableAction,
   moveDeviationM,
   filterEntries,
   distinctActors,
@@ -194,6 +195,15 @@ function buildRow(entry: AuditEntry, opts: AuditLogPageOpts, status: HTMLElement
     showLink.href = `/#marker=${entry.marker_id}`
     showLink.textContent = 'Kartalle'
     actions.appendChild(showLink)
+  }
+
+  // T417/V308: jäsenyysrivi (link/unlink) ⊥ ole peruutettavissa tältä reitiltä ∴ nappia ⊥
+  // renderöidä LAINKAAN. Disabloitu nappi olisi tässä väärä valinta: se lupaa toiminnon joka ⊥
+  // tule koskaan mahdolliseksi tällä rivillä (V250 — kuollut pinta). Peruutus tapahtuu pätkän
+  // kautta (poista merkki tehtävästä), & se on eri näkymä eri oikeuksilla.
+  if (!isUndoableAction(entry.action)) {
+    row.append(actor, what, where, when, deviation, actions)
+    return row
   }
 
   const undoBtn = document.createElement('button')

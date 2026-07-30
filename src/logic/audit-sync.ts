@@ -1,7 +1,9 @@
 // T227: supervision — merkki-audit-lokin haku + massaperuutus (järjestäjä/admin).
 // Backend: server/routes/audit.ts (GET /api/audit, POST /api/audit/undo).
 
-export type AuditAction = 'add' | 'move' | 'remove' | 'status'
+// T417/V308: link/unlink = merkin jäsenyys tehtävässä muuttui (T415/T416). Ne ⊥ ole
+// peruutettavissa merkkireitiltä ∴ `isUndoableAction` (audit-log.ts) portittaa UI:n.
+export type AuditAction = 'add' | 'move' | 'remove' | 'status' | 'link' | 'unlink'
 
 export interface AuditEntry {
   id: string

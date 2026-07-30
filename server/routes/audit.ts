@@ -87,6 +87,15 @@ auditRoutes.post('/undo/:auditId', requireAuth(), requireRole('admin', 'järjest
   if (!row) return c.json({ error: 'not_found' }, 404)
   if (row.undone_at) return c.json({ error: 'already_undone' }, 409)
 
+  // T417/V308: jäsenyysrivi (link/unlink) ⊥ ole peruutettavissa TÄSTÄ — peruutus on pätkän patch
+  // (`linkedMarkerIds`), ⊥ merkin restore. Ilman tätä porttia rivi läpäisisi payload-vahdin
+  // (payload on olemassa), ei osuisi yhteenkään haaraan alla & kirjaisi käänteisrivin
+  // muuttamatta mitään: käyttäjä lukisi "peruttu" tekemättömästä työstä (V250 kuollut pinta,
+  // pahempi muodossa joka VALEHTELEE). Whitelist ⊥ blacklist: uusi action ⊥ vuoda peruttavaksi.
+  if (!['add', 'move', 'status', 'remove'].includes(row.action)) {
+    return c.json({ error: 'not_undoable' }, 400)
+  }
+
   const payload = row.payload_json ? (JSON.parse(row.payload_json) as Record<string, unknown>) : null
   const marker = db.query<Record<string, unknown>, [string]>(
     'SELECT * FROM markers WHERE id = ?',

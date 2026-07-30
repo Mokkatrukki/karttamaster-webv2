@@ -6,7 +6,10 @@ import { distanceToTrackM, parseTrack } from './track-geo'
 // T226/V152: audit-action-enum. add=luonti (undo=DELETE, ei ennen-tilaa),
 // move=siirto (ennen-tila: lat/lon/dist/route_ids), status=tilamuutos (ennen-tila: status),
 // remove=poisto (ennen-tila: koko rivi, ei V153-restorea mutta audit-näkyvyys).
-export type AuditAction = 'add' | 'move' | 'remove' | 'status'
+// T417/V308: link/unlink = merkin JÄSENYYS tehtävässä muuttui (`linkedMarkerIds`/`excludedMarkerIds`,
+// T415/T416). EIVÄT ole peruutettavia tältä reitiltä — peruutus on pätkän patch, ⊥ merkin
+// restore ∴ undo-portti torjuu ne eksplisiittisesti (`audit.ts`), ⊥ hiljaisena no-oppina.
+export type AuditAction = 'add' | 'move' | 'remove' | 'status' | 'link' | 'unlink'
 
 // V149: ε-toleranssi GPS-driftille — pätkän reunalle laillisesti sijoitettu merkki EI saa 403:a.
 export const RANGE_EPS_M = 50
@@ -23,6 +26,11 @@ export function logMarkerAudit(
     // T316/V227: mutatoitu merkki. Annettuna pätkä JOHDETAAN siitä — sessio ei ole luotettava
     // lähde, koska yleissalasana-sessio on kooditon (B124). Puuttuu → session koodi (legacy-polku).
     marker?: OwnershipCandidate
+    // T417/V308: KOHDEPÄTKÄN koodi eksplisiittisesti. Jäsenyysmuutoksessa kysymys on "mihin
+    // tehtävään tämä liitettiin" ∴ johtaminen merkin sijainnista antaisi VÄÄRÄN vastauksen:
+    // liitetty merkki on nimenomaan se joka ⊥ osu pätkään geometrisesti. null = kohteella ⊥ koodia
+    // (assignoimaton pätkä) — payload kantaa silloin nimen.
+    segmentCode?: string | null
   },
 ): void {
   // T316/V227: pätkä johdetaan merkistä, MUTTA session koodi voittaa kun se osuu — päällekkäisillä
@@ -31,9 +39,11 @@ export function logMarkerAudit(
   const ownCode = entry.session.talkoolainen_code
   const ownMatch = ownCode != null && entry.marker != null
     && markerInOwnSegment(ownSegments(db, entry.session), entry.marker)
-  const segmentCode = ownMatch
-    ? ownCode
-    : (entry.marker ? segmentCodeForMarker(db, entry.marker) : null) ?? ownCode
+  const segmentCode = entry.segmentCode !== undefined
+    ? entry.segmentCode
+    : ownMatch
+      ? ownCode
+      : (entry.marker ? segmentCodeForMarker(db, entry.marker) : null) ?? ownCode
   db.run(
     'INSERT INTO marker_audit (id, marker_id, action, actor, actor_role, segment_code, created_at, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     [

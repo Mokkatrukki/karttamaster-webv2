@@ -78,7 +78,7 @@ server/       ← Hono + Bun + SQLite
 | SignImages | `src/logic/sign-images.ts` | ✓ T158 (Vite glob, 89 kuvaa T161:stä) | — | [logic.md](docs/components/logic.md) |
 | Sync | `src/logic/sync.ts` | ✓ T226 (createdBy-mäppäys) | — | [logic.md](docs/components/logic.md) |
 | AuditSync | `src/logic/audit-sync.ts` | ✓ T320 (+ fetchAuditLog suodattimin + undoAuditEntry eritellyin virhein) | tests/audit-sync.test.ts, tests/t320-audit-log.test.ts | [logic.md](docs/components/logic.md) |
-| AuditLog | `src/logic/audit-log.ts` | ✓ T320 (verbit + poikkeama metreinä + suodatinpredikaatit + ketjut) | tests/t320-audit-log.test.ts | [logic.md](docs/components/logic.md) |
+| AuditLog | `src/logic/audit-log.ts` | ✓ T320 (verbit + poikkeama metreinä + suodatinpredikaatit + ketjut), T417/V308 (`link`/`unlink`-verbit + `isUndoableAction` jaettuna porttina serverin whitelistin kanssa + `linkTargetName` payloadista) | tests/t320-audit-log.test.ts; tests/t417-link-audit-ui.test.ts | [logic.md](docs/components/logic.md) |
 | TalkooIdentity | `src/logic/talkoo-identity.ts` | ✓ T317 (nimen validointi + muistaminen laitteessa) | tests/t317-talkoo-nimi.test.ts | [logic.md](docs/components/logic.md) |
 | WriteOutbox | `src/logic/write-outbox.ts` + `outbox-instance.ts` | ✓ T183 (durable kirjoitusjono, V116) | — | [logic.md](docs/components/logic.md) |
 | MarkerScale | `src/logic/marker-scale.ts` | ✓ T175 | — | [logic.md](docs/components/logic.md) |
@@ -145,15 +145,15 @@ server/       ← Hono + Bun + SQLite
 | FeedbackWidget | `src/devtools/feedback-widget.ts` | ✓ devtools | feedback-widget | — |
 | BackendServer | `server/index.ts` | ✓ T41 | — | [backend.md](docs/components/backend.md) |
 | DatabaseLayer | `server/db.ts` | ✓ | — | [backend.md](docs/components/backend.md) |
-| SegmentsAPI | `server/routes/segments.ts` | ✓ T360 (track + excluded_marker_ids kuljetus; PUT säilyttää jäljen jos patch ei mainitse sitä) | — | [backend.md](docs/components/backend.md) |
+| SegmentsAPI | `server/routes/segments.ts` | ✓ T360 (track + excluded_marker_ids kuljetus; PUT säilyttää jäljen jos patch ei mainitse sitä), T416/V307 (talkoolaisen `linkedMarkerIds` = UNIONI ⊥ korvaus; vanhentunut client ⊥ typistä listaa), T417/V308 (jäsenyysdelta lokiin samassa transaktiossa) | server/t416-linked-markers.test.ts; server/t417-link-audit.test.ts | [backend.md](docs/components/backend.md) |
 | AuthRoutes | `server/routes/auth.ts` | ✓ T317/T322 (talkoo-login vaatii nimen + POST /api/auth/name kesken session) | — | [backend.md](docs/components/backend.md) |
 | Settings | `server/settings.ts` | ✓ T267 (settings-taulu key-value: talkoo_password_hash + faq_markdown; getSetting/setSetting) | — | [backend.md](docs/components/backend.md) |
 | AdminRoutes | `server/routes/admin.ts` | ✓ T121, T267/T269 (talkoo-salasana + FAQ PUT) | — | [backend.md](docs/components/backend.md) |
 | FaqRoutes | `server/routes/faq.ts` | ✓ T269 (GET /api/faq, ∀ autentikoitu; PUT admin.ts) | — | [backend.md](docs/components/backend.md) |
 | MarkersAPI | `server/routes/markers.ts` | ✓ T226 (kanoninen ownership + audit-kirjaus + created_by) | — | [backend.md](docs/components/backend.md) |
-| MarkerAudit | `server/marker-audit.ts` | ✓ T360 (allSegments + ownerSegmentIds: lähin jälki voittaa, peilaa clientin segment-membershipiä V259; aiemmin T316 segmentCodeForMarker V227) | — | [backend.md](docs/components/backend.md) |
+| MarkerAudit | `server/marker-audit.ts` | ✓ T360 (allSegments + ownerSegmentIds: lähin jälki voittaa, peilaa clientin segment-membershipiä V259; aiemmin T316 segmentCodeForMarker V227), T417/V308 (`link`/`unlink`-actionit + `segmentCode`-ohitus: jäsenyysrivillä pätkää ⊥ johdeta merkin sijainnista) | server/t417-link-audit.test.ts | [backend.md](docs/components/backend.md) |
 | TrackGeo | `server/track-geo.ts` | ✓ T360 (kohtisuora piste→jälki-etäisyys, TARKOITUKSELLINEN duplikaatti src/logic/segment-track.ts:stä; V261, oma peilitesti) | — | [backend.md](docs/components/backend.md) |
-| AuditAPI | `server/routes/audit.ts` | ✓ T319 (+ per-rivi-undo /undo/:auditId + GET-suodattimet) | — | [backend.md](docs/components/backend.md) |
+| AuditAPI | `server/routes/audit.ts` | ✓ T319 (+ per-rivi-undo /undo/:auditId + GET-suodattimet), T417/V308 (undo-whitelist: link/unlink → 400 not_undoable ⊥ hiljainen no-op) | server/t417-link-audit.test.ts | [backend.md](docs/components/backend.md) |
 | InventoryAPI | `server/routes/inventory.ts` | ✓ T243 (v2: paikat `inventory_locations`-CRUD + `template_id`-merkkilinkki V165 + location_id-suodatus V166; snapshot-name; V161/V162/V163) | — | [backend.md](docs/components/backend.md) |
 | TemplatesAPI | `server/routes/templates.ts` | ✓ T192 | — | [backend.md](docs/components/backend.md) |
 | AreasAPI | `server/routes/areas.ts` | ✓ | area-interaction | [backend.md](docs/components/backend.md) |

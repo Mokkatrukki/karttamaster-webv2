@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto'
 import type { Database } from 'bun:sqlite'
 import type { AuthEnv } from '../middleware/auth'
 import { requireAuth, requireRole } from '../middleware/auth'
+import { logMarkerAudit } from '../marker-audit'
 
 interface SegmentRow {
   id: string
@@ -225,7 +226,24 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
     return union.length > 0 ? JSON.stringify(union) : null
   })()
 
+  // T417/V308: jäsenyysmuutoksen DELTA — mitä liitettiin & mitä irrotettiin. Loki kirjaa DIFFIN
+  // ⊥ koko listaa: lista kasvaa & ihminen lukee muutoksen, ⊥ tilaa (V231-linja). Vertailu tehdään
+  // TALLENNETTAVAA arvoa vasten (`linkedPatch`) ⊥ pyynnön runkoa: talkoolaisen unioni & järjestäjän
+  // korvaus tuottavat eri lopputuloksen samasta rungosta ∴ runko ⊥ kerro mitä oikeasti muuttui.
+  const parseIds = (json: string | null): string[] => {
+    if (!json) return []
+    try {
+      const v = JSON.parse(json) as unknown
+      return Array.isArray(v) ? (v as string[]) : []
+    } catch { return [] }
+  }
+  const linkedBefore = parseIds(existing.linked_marker_ids)
+  const linkedAfter = parseIds(linkedPatch)
+  const linkedAdded = linkedAfter.filter(mid => !linkedBefore.includes(mid))
+  const linkedRemoved = linkedBefore.filter(mid => !linkedAfter.includes(mid))
+
   const now = new Date().toISOString()
+  const applyUpdate = (): void => {
   db.run(
     `UPDATE segments SET
       route_ids = ?, primary_route_id = ?, start_dist = ?, end_dist = ?, assigned_code = ?, slug = ?,
@@ -260,6 +278,28 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
       id,
     ],
   )
+
+  // T417/V308: kirjaus SAMASSA transaktiossa mutaation kanssa (V120-linja) — muuten muutos voi
+  // elää ilman jälkeä. Yksi rivi per MERKKI: loki on merkkikeskeinen (`marker_audit.marker_id`)
+  // & kysymys jota se palvelee on "miksi TÄMÄ merkki on tässä tehtävässä".
+  const segCode = ('assignedCode' in body ? (body.assignedCode?.toUpperCase() ?? null) : existing.assigned_code)
+  const segName = ('displayName' in body ? (body.displayName ?? existing.display_name) : existing.display_name)
+  for (const [action, ids] of [['link', linkedAdded], ['unlink', linkedRemoved]] as const) {
+    for (const mid of ids) {
+      logMarkerAudit(db, {
+        markerId: mid,
+        action,
+        session,
+        segmentCode: segCode,
+        payload: { segmentId: id, segmentName: segName },
+      })
+    }
+  }
+  }
+
+  // Transaktio AINA, ⊥ vain kun deltaa on: ehdollinen atomisuus tarkoittaisi että sama
+  // kirjoituspolku käyttäytyy eri tavalla syötteen mukaan — vaikein luokka virheitä lukea.
+  db.transaction(applyUpdate)()
 
   const row = db.query<SegmentRow, [string]>('SELECT * FROM segments WHERE id = ?').get(id)!
   return c.json(rowToSegment(row))

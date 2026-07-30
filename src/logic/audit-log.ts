@@ -12,6 +12,29 @@ export const ACTION_VERB: Record<AuditAction, string> = {
   move: 'siirsi merkkiä',
   remove: 'poisti merkin',
   status: 'muutti tilan',
+  // T417/V308: jäsenyysmuutos. Verbi sanoo TEHTÄVÄN ⊥ merkin, koska merkki ei liikkunut eikä
+  // muuttunut — vain se mihin työhön se kuuluu. Sekaannus "siirsi" kanssa olisi juuri se
+  // väärinluenta jota 2026-07-25-incidentin jälkiselvittely ei kestä.
+  link: 'liitti merkin tehtävään',
+  unlink: 'irrotti merkin tehtävästä',
+}
+
+// T417/V308: mitkä rivit voi perua merkkireitiltä (`POST /api/audit/:id/undo`). Sama whitelist
+// kuin serverillä (`server/routes/audit.ts`) — UI ⊥ saa tarjota nappia jonka serveri torjuu
+// (V250 kuollut pinta). link/unlink perutaan pätkän kautta, ⊥ merkin restorella.
+const UNDOABLE: ReadonlySet<AuditAction> = new Set<AuditAction>(['add', 'move', 'remove', 'status'])
+
+export function isUndoableAction(action: AuditAction): boolean {
+  return UNDOABLE.has(action)
+}
+
+/** T417/V308: jäsenyysrivin payloadista luettu kohdetehtävän nimi. null = ⊥ ole jäsenyysrivi. */
+export function linkTargetName(entry: { action: AuditAction; payload: unknown }): string | null {
+  if (entry.action !== 'link' && entry.action !== 'unlink') return null
+  const p = entry.payload as Record<string, unknown> | null
+  if (p == null || typeof p !== 'object') return null
+  const name = typeof p.segmentName === 'string' ? p.segmentName.trim() : ''
+  return name.length > 0 ? name : null
 }
 
 export interface AuditDescription {
@@ -27,7 +50,9 @@ export function describeAuditEntry(entry: AuditEntry): AuditDescription {
     actorLabel: entry.actor?.trim() || 'tuntematon',
     timeLabel: formatTime(entry.created_at),
     // B124-legacy: 263 riviä ilman pätkäkoodia. Näytetään rehellisesti, ei arvata takautuvasti.
-    segmentLabel: entry.segment_code ?? 'pätkä tuntematon',
+    // T417/V308: jäsenyysrivillä kohde on payloadissa NIMENÄ — assignoimattomalla pätkällä ⊥ ole
+    // koodia, & "pätkä tuntematon" olisi väärin rivillä joka nimenomaan kertoo kohteen.
+    segmentLabel: entry.segment_code ?? linkTargetName(entry) ?? 'pätkä tuntematon',
   }
 }
 
