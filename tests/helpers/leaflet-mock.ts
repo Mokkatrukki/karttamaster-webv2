@@ -58,7 +58,18 @@ export function installLeafletMock(): void {
   L.polygon = vi.fn(() => defaultShape())
   L.polyline = vi.fn(() => defaultShape())
   // T397: `setLatLng` kuuluu myös shapeen — GpsNavigator siirtää olemassa olevaa pistettä.
-  L.circleMarker = vi.fn(() => ({ ...defaultShape(), setLatLng: vi.fn().mockReturnThis() }))
+  // T406: `getLatLng` — `setFollow(true)` keskittää olemassa olevaan fixiin heti.
+  L.circleMarker = vi.fn(() => ({
+    ...defaultShape(),
+    setLatLng: vi.fn().mockReturnThis(),
+    getLatLng: vi.fn(() => ({ lat: 0, lng: 0 })),
+  }))
+  // T406/V296: tarkkuushalo sijaintipisteen ympärillä.
+  L.circle = vi.fn(() => ({
+    ...defaultShape(),
+    setLatLng: vi.fn().mockReturnThis(),
+    setRadius: vi.fn().mockReturnThis(),
+  }))
   L.DomEvent = { stopPropagation: vi.fn() }
 }
 

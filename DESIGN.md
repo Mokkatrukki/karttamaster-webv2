@@ -139,7 +139,8 @@ pidettävä synkassa tämän taulukon kanssa (Leaflet-SVG ei peri CSS-tokeneja).
 ## §R Responsive ja touch
 
 - **Strategia:** mobiili-first, flexbox/grid, ei media queries ellei pakko
-- **Viewport:** `maximum-scale=1.0, user-scalable=no` (karttasovellusvaatimus)
+- **Viewport:** `maximum-scale=1.0, user-scalable=no` (karttasovellusvaatimus) — **PYYNTÖ, ⊥ toteutus**
+  (iOS Safari on ohittanut sen iOS 10:stä lähtien). Toteutus: §R Zoom-sopimus alla.
 - **Breakpoints:** ei kiinteitä — `min()`, `clamp()`, `vw`-yksiköt
 - **Modaali-leveys:** `min(340px, 92vw)` — toimii 320px Android-puhelimella
 
@@ -168,6 +169,27 @@ fokuksen, Enter/Space-aktivoinnin ja vahdin kattavuuden ilmaiseksi.
 **V135-poikkeus:** `.left-panel-section-header` on rakenne-elementti (osion otsikko), ei `.btn`-variantti
 — se on `<button>` semantiikan ja kosketuskoon vuoksi, mutta ei kuulu nappipaletin variantteihin.
 Älä yritä pakottaa sitä `.btn--ghost`iksi: taustaton, koko leveys, 11px uppercase, `border-bottom`.
+
+### Zoom kuuluu kartalle (T408/V293)
+
+Kehys ⊥ zoomaa — vain kartta. Kolme sääntöä:
+
+1. **`#map` ⊥ saa omaa `touch-action`ia.** ID-selektori (1,0,0) kumoaisi Leafletin
+   `.leaflet-container{touch-action:none}`n (0,1,0) → selain nappaa pinchin & iOS zoomaa SIVUN
+   kartan sijaan. `#map{touch-action:manipulation}` oli juuri tämä vika. Leaflet asettaa arvon
+   itse handlerien mukaan.
+2. **Jokainen kehyspinta julistaa eleensä.** Scrollaavat (`#toolbar-menu`, `#left-panel`,
+   `#segment-view`, modaalikuoret, `.map-filter-groups`) → `touch-action: pan-y`; ei-scrollaavat
+   (`#toolbar`, `#route-bar`, `#status-panel`, `#map-filter-bar`, `.map-mode-pill`) → `none`.
+   Mikään ⊥ jää selaimen oletukselle.
+3. **`button, [role=button], a, input, select, textarea, label` → `manipulation`** (tappaa
+   kaksoisnapautus-zoomin: hanskat → epätarkka osuma toistuu) + **`gesturestart/change/end`
+   `preventDefault` dokumentissa** kaikelle `#map`in ulkopuolella (Safari-only ele jota
+   `touch-action` ⊥ kata, `src/main.ts`). `html{-webkit-text-size-adjust:100%}` estää iOS:n
+   maisema-asennon fonttikasvun venyttämästä 44px-nappeja.
+
+**Sääntö:** uusi kelluva/kiinteä kehyspinta → lisää se sääntöön 2. Uusi `touch-action` `#map`iin →
+regressio (E2E `t408-pinch-zoom.spec.ts` vahtii).
 
 ### Scroll ja overscroll (B108/V187 — mobiili "kaikki liikkuu" -korjaus)
 
@@ -867,6 +889,43 @@ Kartta avautuu **katselutilassa** joka latauksella; kaikki kartan MUTATOIVAT ele
 
 ---
 
+### GpsControl (`#gps-control`, `src/ui/gps-control.ts`) — paikannus kartalla ✓ T407/V294
+
+Talkoolaisen kriittisin kenttätoiminto oli ⋯-valikossa = 3 napautusta (⋯ → GPS → sulje valikko)
+∴ se rikkoi VISION §Talkoolainen "max 2 napin päässä". Kartalla on **TASAN yksi** pysyvä kontrolli
+joka on **sekä laukaisin että tilanäyttö** — erillinen indikaattori olisi toinen totuus samasta
+tilasta (B133-luokka).
+
+- **Sijainti:** `position:absolute; right:8px; bottom:var(--gps-control-bottom, 24px)`, `z-index:1100`
+  (Leaflet-panet 200–700 & talkoolaisen hero 1000 yllä, modaalit 3000 alla). 24px oletus jättää
+  Leafletin attribuutiorivin luettavaksi (lisenssiehto).
+- **Hero väistetään MITATTUNA:** `gps-control.ts` tarkkailee `#segment-view-container`ia
+  `ResizeObserver`illa ja kirjoittaa `--gps-control-bottom = heroH + 16px`. ⊥ kiinteää `46vh`-arvausta:
+  hero kutistuu sisällön mukaan → nappi jäisi leijumaan keskelle ruutua.
+- **Koko:** `min-height/min-width:48px` — §R:n 44px + hanskamarginaali. `radius:999px`,
+  `surface-card`, `padding:0 14px`, `box-shadow: 0 2px 10px rgba(0,0,0,.22)`.
+- **Neljä tilaa, kaksi kanavaa kummassakin (reuna + tintti)** — aurinko pesee värit, hanskat
+  estävät tarkan katseen ∴ tila erottuu SANOIN, ⊥ pelkällä värillä:
+
+  | tila | teksti | reuna | tausta |
+  |------|--------|-------|--------|
+  | `pois` | `📍 GPS` | 1px `border-strong` | `surface-card` |
+  | `haetaan` | `📍 Haetaan…` | 1px `--warn` | `--warn-highlight` + 1,4 s pulssi |
+  | `vapaa` | `📍 Keskitä` | 2px `--gps-active` | `surface-card` (reuna = "GPS on", tintin puute = "⊥ seuraa") |
+  | `seuraa` | `🧭 Seuraa` | 2px `--gps-active` | `color-mix(--gps-active 16%, surface-card)` |
+
+- **Kontrastisääntö (§K-linja):** teksti aina `--text-body` TINTIN päällä — ⊥ valkoista täytön päällä.
+- **Napautuskierto:** `pois→seuraa →(käyttäjän panorointi)→ vapaa →seuraa`; `seuraa`-napautus sammuttaa,
+  `haetaan`-napautus peruu. Merkitys tulee `gpsTapAction()`ista (`src/logic/gps-follow.ts`) ∴ nappi ja
+  ⋯-valikko ⊥ voi tulkita eri tavoin.
+- **Saavutettavuus:** näkyvä teksti = saavutettava nimi (V197) ∴ **⊥ `aria-label`ia**; `title` on lisäselite.
+  `aria-pressed` = seuraako kartta (`vapaa` = false — paikannus on päällä muttei seuraa).
+- `prefers-reduced-motion: reduce` → pulssi pois.
+- **Koti-moodi:** `#app[data-view-mode="koti"] #gps-control{display:none}` — kartta on piilossa ∴
+  karttakontrolli ei tarkoita mitään (V175-kuvio).
+
+---
+
 ## §A Accessibility
 
 - **Kontrasti:** WCAG AA, ≥4.5:1 normaali teksti, ≥3:1 iso teksti (≥18px tai ≥14px bold)
@@ -877,7 +936,8 @@ Kartta avautuu **katselutilassa** joka latauksella; kaikki kartan MUTATOIVAT ele
   - `#btn-route-next` (▶) — puuttuu ⚠️
   - `.route-tab-vis` (silmä-ikoni) — puuttuu ⚠️
 - **Focus:** älä poista `outline` ilman custom-focus-indikaattoria
-- **`user-scalable=no`:** tiedostettu rajoitus, karttasovellusvaatimus
+- **`user-scalable=no`:** tiedostettu rajoitus, karttasovellusvaatimus. Sen VOIMAANSAATTO on
+  `touch-action`-sopimus (§R Zoom kuuluu kartalle, T408/V293) — meta-tagi yksin ei riitä iOS:llä.
 
 ---
 
