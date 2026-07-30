@@ -332,7 +332,7 @@ Järjestäjän merkkijono: "mitkä merkit jäivät asettamatta ja miltä pätkil
 ### BulkActionBar talkoolainen (`.bulk-action-bar`, T17) — ✓ TOTEUTUKSESSA (T409)
 **Huom 2026-07-30:** sopimus oli `marker-list.ts`:ssä joka poistui T404:ssä. Talkoolainen ⊥ ollut päässyt siihen T264:n jälkeen (`#btn-list` piilotettu) ∴ kyky oli poissa jo ennen poistoa (V292). **T409 palautti sen koti-tabin listaan** (`segment-marker-list.ts`) tällä sopimuksella.
 - Sijainti: koti-tabin "Kaikki merkit" -listan alaosa (⊥ enää `#marker-modal` — modaali poistui T404:ssä). Ei `sticky`: lista on jaetun koti-scrollerin sisällä (T315/V226) & tarttuva bar veisi 44px pystytilaa jokaisesta scrollasennosta
-- Checkbox `.marker-item-checkbox` per **ei-terminaali** rivi (`isTerminal` → `kerätty` ⊥ saa ruutua). Ruutu 44×44 klikkialue / 22px näkyvä (`appearance:none`, ✓ valittuna). Checkboxiton rivi tasataan `--nocheck`-paddingilla
+- Checkbox `.marker-item-checkbox` per **ei-terminaali** rivi (`isTerminal` → `kerätty` ⊥ saa ruutua). Ruudun kaava: ks. §Listarivit (T412: sääntö on jaettu järjestäjän paneelin kanssa, ⊥ duplikaattia). Checkboxiton rivi tasataan `--nocheck`-paddingilla
 - Tausta: `surface-card`, `border-top: border-subtle`, padding `10px 14px`
 - Layout: `flex-wrap: wrap` — kaksirivinen 340px modaalissa:
   - Rivi 1: `[☐ Valitse kaikki]` (`label { width: 100% }` pakottaa omalle riville)
@@ -343,6 +343,7 @@ Järjestäjän merkkijono: "mitkä merkit jäivät asettamatta ja miltä pätkil
 
 ### Listarivit (`.marker-item`)
 - Layout: kompakti yksirivinen flex-row — `[checkbox?][icon][type-label][💬?][km][status-badge][delete?]`
+- **Checkbox `.marker-item-checkbox` (T412/V303, jaettu järjestäjän paneelin & talkoolaisen pätkälistan kesken):** `appearance:none` + 44×44 klikkialue + `::before` 22px ruutu (`2px border-default`, `radius-sm`, `field-tint`), valittuna `confirm`-täyttö + ✓. **⊥ padding-box-kaavaa** — selain ohittaa natiivin checkboxin `padding`in & `width`in (B171: mitattu 13×13). Luvattu mitta on testattu: `e2e/t412-checkbox-touch-target.spec.ts`
 - Padding: `10px 14px`, **min-height: 44px** (§R touch-target pakollinen)
 - Separator: `border-card`, hover: `hover`, uusi kohta: `warn-highlight`
 - `marker-type-label`: `flex:1`, `12px text-muted`, truncated (ellipsis)
