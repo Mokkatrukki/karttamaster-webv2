@@ -833,8 +833,11 @@ test.describe('T335 — merkkien korostus (V243)', () => {
     await expect(page.locator('.leaflet-marker-icon.marker-dimmed')).toHaveCount(1)
     await expect(page.locator('.leaflet-marker-icon[title="VIERAS"]')).toHaveClass(/marker-dimmed/)
     await expect(page.locator('.leaflet-marker-icon[title="OMA"]')).not.toHaveClass(/marker-dimmed/)
-    // V142: talkoolaisella himmennetty on myös read-only
-    await expect(page.locator('.leaflet-marker-icon[title="VIERAS"]')).toHaveClass(/marker-dimmed--locked/)
+    // V142 + T416/V306-amend: talkoolaisella himmennetty on read-only MUTTA ottaa yhden
+    // toiminnon ("Lisää tehtävääni") ∴ kanava on `--claimable` ⊥ `--locked`. Lukko kapeni,
+    // se ei kadonnut: muokkauspintaa (detail-modaali, raahaus, status) ⊥ tarjota.
+    await expect(page.locator('.leaflet-marker-icon[title="VIERAS"]')).toHaveClass(/marker-dimmed--claimable/)
+    await expect(page.locator('.leaflet-marker-icon[title="VIERAS"]')).not.toHaveClass(/marker-dimmed--locked/)
     await expect(page.locator('.leaflet-marker-icon[title="VIERAS"]')).toBeVisible()
   })
 
