@@ -8,6 +8,8 @@ import type { MapFilter } from '../logic/map-filter'
 import { isolatedMarkerIds, orphanMarkerIds, loadMapFilter } from '../logic/map-filter'
 import { MarkerOverviewPanel } from '../ui/marker-overview-panel'
 import { getActivePhase } from '../logic/phase-view'
+import { createAndPushSegment } from '../logic/segment-create'
+import { existingSegmentOwners } from '../logic/segment-membership'
 import { getSegmentsForPhase } from '../logic/segments'
 import { ProgressBar } from '../ui/progress-bar'
 import { PlaceMode } from '../ui/place-mode'
@@ -551,6 +553,26 @@ export function wireMarkers(
       onOpenDetail: onOpenMarkerDetail,
       // T179-oppi: telakka muuttaa #map-arean leveyttä → Leaflet ! saada tietää.
       onVisibilityChange: () => map.invalidateSize(),
+      // T403/V295: luonti on kolmikko (createSegment + pushSegment + näkymän päivitys) ∴ se
+      // kulkee jaetun apurin kautta — unohtunut push = pätkä joka elää vain selaimessa (V18).
+      // V295: `phase` AKTIIVISESTA vaiheesta, muuten tehtävä katoaa siitä listasta josta se
+      // juuri luotiin (paneeli on vaiherajattu, V290).
+      onCreateTask: markerIds => {
+        const seg = createAndPushSegment(segmentStore, {
+          // V139: reititön tehtävä — EI route-kenttiä. createSegment ohittaa V11/V25 (T212).
+          equipment: [],
+          phase: getActivePhase(),
+          displayName: `Jälkihoito ${new Date().toLocaleDateString('fi-FI')}`,
+          linkedMarkerIds: markerIds,
+        })
+        segmentPanel.refreshCounts()
+        renderSegmentOverlay()
+        showWarning(`✓ Tehtävä "${seg.displayName}" luotu (${markerIds.length} merkkiä)`, 4000)
+      },
+      // V291: mihin valitut kuuluvat JO — operaatio on additiivinen ∴ tämä on informaatio
+      // ⊥ varoitus menetyksestä (mitattu: reititön tehtävä ⊥ vie merkkiä nykyiseltä pätkältä).
+      getExistingOwners: ids =>
+        existingSegmentOwners(ids, getSegmentsForPhase(segmentStore, getActivePhase()), markerManager.getAll()),
     })
     // T402: panorointi kompensoi telakan leveyden ∴ "näytä kartalla" ⊥ osoita paneelin alle.
     markerManager.setPanPaddingRight(() => markerOverview?.visibleWidth() ?? 0)

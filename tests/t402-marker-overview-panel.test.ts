@@ -220,3 +220,117 @@ describe('MarkerOverviewPanel (T402)', () => {
     expect(h.el.querySelector('.marker-overview-actionbar')).toBeNull()
   })
 })
+
+// T403/V291/V294/V250: valinta → reititön tehtävä.
+describe('MarkerOverviewPanel — valinta & tehtävän luonti (T403)', () => {
+  const segments = [seg('Pätkä 1')]
+  const markers = [marker('m1'), marker('m2'), marker('orpo', { lat: 60.0, lon: 20.0, routeIds: [] })]
+
+  function withSelection(extra: Parameters<typeof mount>[0] = {}) {
+    const onCreateTask = vi.fn()
+    const h = mount({
+      open: true,
+      segments,
+      markers,
+      onCreateTask,
+      getExistingOwners: ids =>
+        ids.filter(id => id !== 'orpo').map(id => ({ markerId: id, segmentId: 'Pätkä 1' })),
+      ...extra,
+    })
+    const cb = (id: string) =>
+      h.el.querySelector<HTMLInputElement>(`.marker-overview-item[data-id="${id}"] .marker-item-checkbox`)!
+    const btn = () => h.el.querySelector<HTMLButtonElement>('.marker-overview-create')!
+    const note = () => h.el.querySelector<HTMLElement>('.marker-overview-note')!
+    return { ...h, onCreateTask, cb, btn, note }
+  }
+
+  it('(i) 0 valittua → nappi disabloitu JA disabloitu tila näkyy (V250)', () => {
+    const h = withSelection()
+    expect(h.btn().textContent).toBe('Luo tehtävä valituista (0)')
+    expect(h.btn().disabled).toBe(true)
+    expect(h.btn().classList.contains('is-disabled')).toBe(true)
+    h.btn().click()
+    expect(h.onCreateTask).not.toHaveBeenCalled()
+  })
+
+  it('(ii) valinta säilyy re-renderin yli (kartan päivitys ⊥ nollaa valintaa)', () => {
+    const h = withSelection()
+    h.cb('m1').click()
+    expect(h.btn().textContent).toContain('(1)')
+    h.panel.render()
+    expect(h.cb('m1').checked).toBe(true)
+    expect(h.btn().textContent).toContain('(1)')
+  })
+
+  it('(iii) omistajallisia valittu → info-rivi listaa pätkänimet (V291: "kuuluu myös")', () => {
+    const h = withSelection()
+    h.cb('m1').click()
+    expect(h.note().hidden).toBe(false)
+    expect(h.note().textContent).toContain('kuuluu myös pätkiin: Pätkä 1')
+    expect(h.note().textContent).toContain('säilyvät')
+    // ⊥ puhu menetyksestä — sitä ⊥ tapahdu (mitattu V291-korjaus).
+    expect(h.note().textContent).not.toContain('siirtyy')
+  })
+
+  it('(iv) vain orpoja valittu → info-riviä EI ole', () => {
+    const h = withSelection()
+    h.cb('orpo').click()
+    expect(h.note().hidden).toBe(true)
+    expect(h.btn().disabled).toBe(false)
+  })
+
+  it('(v) luonti kutsuu callbackia valituilla id:illä & tyhjentää valinnan', () => {
+    const h = withSelection()
+    h.cb('m1').click()
+    h.cb('m2').click()
+    h.btn().click()
+    expect(h.onCreateTask).toHaveBeenCalledTimes(1)
+    expect(new Set(h.onCreateTask.mock.calls[0][0])).toEqual(new Set(['m1', 'm2']))
+    expect(h.btn().textContent).toContain('(0)')
+    expect(h.cb('m1').checked).toBe(false)
+  })
+
+  it('(vi) V294: suodattimen ulkopuolinen rivi ⊥ ole valittavissa', () => {
+    const h = mount({
+      open: true,
+      segments,
+      markers: [marker('m1'), marker('piilossa', { status: 'kerätty' })],
+      filter: { markerStatuses: new Set<MarkerStatus>(['suunniteltu']) },
+      onCreateTask: vi.fn(),
+    })
+    // Avaa suodatettu ryhmä → rivi näkyy mutta ilman checkboxia.
+    ;(h.el.querySelector('.marker-overview-group[data-group="suodatettu"] .marker-overview-group-header') as HTMLElement).click()
+    const row = h.el.querySelector('.marker-overview-item[data-id="piilossa"]')!
+    expect(row.querySelector('.marker-item-checkbox')).toBeNull()
+    expect(h.el.querySelector('.marker-overview-item[data-id="m1"] .marker-item-checkbox')).toBeTruthy()
+  })
+
+  it('V294: suodattimen muutos pudottaa kadonneen merkin valinnasta (⊥ näkymätön valinta)', () => {
+    let statuses = new Set<MarkerStatus>(['suunniteltu', 'asetettu'])
+    const onCreateTask = vi.fn()
+    const store = new Map<string, string>([['karttamaster-marker-overview-open', '1']])
+    vi.stubGlobal('localStorage', {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: () => {},
+      clear: () => {},
+    })
+    const el = document.createElement('div')
+    document.body.appendChild(el)
+    const panel = new MarkerOverviewPanel(el, {
+      getMarkers: () => [marker('m1'), marker('kohta-pois', { status: 'asetettu' })],
+      getSegments: () => segments,
+      getFilter: () => ({ ...defaultMapFilter(), markerStatuses: statuses }),
+      onPanTo: () => {},
+      onOpenDetail: () => {},
+      onCreateTask,
+    })
+    panel.render()
+    el.querySelector<HTMLInputElement>('.marker-overview-item[data-id="kohta-pois"] .marker-item-checkbox')!.click()
+    expect(el.querySelector('.marker-overview-create')!.textContent).toContain('(1)')
+
+    statuses = new Set<MarkerStatus>(['suunniteltu'])
+    panel.render()
+    expect(el.querySelector('.marker-overview-create')!.textContent).toContain('(0)')
+  })
+})

@@ -1,5 +1,4 @@
-import { createSegment } from '../logic/segments'
-import { pushSegment } from '../logic/segment-sync'
+import { createAndPushSegment } from '../logic/segment-create'
 import type { Segment, SegmentStore } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
 import type { SegmentTrack } from '../logic/segment-track'
@@ -288,7 +287,7 @@ export class SegmentCreationModal {
     saveBtn.addEventListener('click', () => {
       const displayName = nameInput.value.trim() || `Pätkä ${this.segmentCounter}`
       const description = descInput.value.trim() || undefined
-      const seg = createSegment(this.store, {
+      const seg = createAndPushSegment(this.store, {
         routeIds, primaryRouteId, startDist, endDist,
         // T362/V258: jälki syntyy klikatuista ankkureista ∴ pätkä on eksklusiivisen
         // jäsenyyden (V259) piirissä heti — ⊥ odota T361:n backfilliä.
@@ -298,7 +297,6 @@ export class SegmentCreationModal {
         displayName,
         description,
       })
-      pushSegment(seg).catch(() => {})
       this.close()
       this.onSaved(seg)
     })
@@ -412,7 +410,7 @@ export class SegmentCreationModal {
       const markerTypeFilter = typeSelect?.value || undefined
       const linkedMarkerIds = checkedIds.size > 0 ? Array.from(checkedIds) : undefined
       // V139: reititön → EI route-kenttiä. createSegment ohittaa V11/V25 (T212).
-      const seg = createSegment(this.store, {
+      const seg = createAndPushSegment(this.store, {
         equipment: [],
         phase: this.getPhase(),
         displayName,
@@ -420,7 +418,6 @@ export class SegmentCreationModal {
         linkedMarkerIds,
         markerTypeFilter,
       })
-      pushSegment(seg).catch(() => {})
       this.close()
       this.onSaved(seg)
     })
