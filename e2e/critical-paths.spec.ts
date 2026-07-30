@@ -64,8 +64,12 @@ test.describe('Merkki kartalle', () => {
     await page.waitForTimeout(200)
     await page.click('#btn-list')
     await page.waitForTimeout(300)
-    const listText = await page.locator('#marker-modal').innerText()
+    // T404: `#marker-modal` poistui — korvaaja on telakoitu `#marker-overview` (T402).
+    await expect(page.locator('#marker-overview')).toBeVisible()
+    const listText = await page.locator('#marker-overview').innerText()
     expect(listText).not.toContain('Ei merkkejä')
+    // Telakka ⊥ peitä karttaa: molemmat näkyvissä yhtä aikaa (V114 — rivin klikkaus panoroi).
+    await expect(page.locator('#map')).toBeVisible()
   })
 
   test('merkin tallennus epäonnistuu palvelimella → näkyvä virheilmoitus (T182/V115/B82)', async ({ page }) => {

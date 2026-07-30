@@ -1,5 +1,5 @@
 import { routePositionPct } from '../logic/bearing'
-import { renderSignDots } from './marker-list'
+import { renderSignDots } from './route-sign-dots'
 import type { RouteConfig } from '../logic/multi-route'
 import type { DriveMode } from '../map/drive'
 import type { MarkerManager } from '../map/markers'

@@ -9,6 +9,7 @@ import type { MapFilter } from '../logic/map-filter'
 import { displayKm } from '../logic/segment-order'
 import type { Segment } from '../logic/segments'
 import type { MarkerStatus } from '../logic/marker-status'
+import { ALL_MARKER_STATUSES } from '../logic/map-filter'
 import type { SignMarker } from '../logic/types'
 
 // T402/V290: järjestäjän merkkijono — "mitkä merkit jäivät asettamatta ja miltä pätkiltä".
@@ -47,6 +48,12 @@ export interface MarkerOverviewContext {
   onCreateTask?(markerIds: string[]): void
   /** T403: mihin pätkiin valitut kuuluvat jo (V291 — additiivinen, ⊥ menetys). */
   getExistingOwners?(markerIds: string[]): Array<{ markerId: string; segmentId: string }>
+  /** V117/T185: outboxissa odottavat kirjoitukset. Vahvistamaton merkki ! näkyä
+   *  persistentisti "tallentamatta" — transientti banneri ⊥ riitä. */
+  getPendingIds?(): Set<string>
+  /** T404-parity: järjestäjän bulk-status. Vanha modaali osasi tämän (T101/§K
+   *  BulkStatusToolbar) ∴ korvaaja ! osata — muuten poisto vie kyvyn. */
+  onBulkStatus?(markerIds: string[], status: MarkerStatus): void
 }
 
 export class MarkerOverviewPanel {
@@ -57,6 +64,11 @@ export class MarkerOverviewPanel {
   private readonly collapsed = new Set<OverviewGroupKey>(['suodatettu'])
   /** T403: valitut merkit. Säilyy renderin yli — kartan päivitys ⊥ saa nollata valintaa. */
   private readonly selected = new Set<string>()
+  /** V117: vahvistamattomat kirjoitukset (outbox) — luetaan joka renderissä. */
+  private pending = new Set<string>()
+  /** T404-parity: listan oma haku. Transientti (⊥ persistoidu) — se on selailun apu, ⊥ tila
+   *  jota käyttäjä palaisi etsimään. Säilyy renderin yli kuten valinta. */
+  private search = ''
 
   constructor(
     private readonly el: HTMLElement,
@@ -76,10 +88,10 @@ export class MarkerOverviewPanel {
     this.open = stored === '1'
     this.applyOpen(false)
 
-    // Esc sulkee — telakka on iso pinta & näppäimistöllä ! olla ulospääsy.
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && this.open) this.close()
-    })
+    // Esc-sulkeminen EI ole täällä: `main.ts`:llä on JÄRJESTETTY Esc-ketju (place mode →
+    // pätkäluonti → edit mode → picker → tämä paneeli → drive mode). Oma document-kuuntelija
+    // olisi toinen omistaja samalle näppäimelle ∴ Esc sulkisi paneelin myös silloin kun
+    // käyttäjä perui jotain muuta. Ketju kutsuu `close()`:a.
   }
 
   isOpen(): boolean {
@@ -123,6 +135,7 @@ export class MarkerOverviewPanel {
 
   render(): void {
     if (!this.open) return
+    this.pending = this.ctx.getPendingIds?.() ?? new Set()
     const markers = this.ctx.getMarkers()
     const segments = this.ctx.getSegments()
     const filter = this.ctx.getFilter()
@@ -136,13 +149,18 @@ export class MarkerOverviewPanel {
 
     // Valinnasta pois kaikki mikä ⊥ enää ole valittavissa (V294): suodattimen taakse mennyt
     // merkki ⊥ saa jäädä näkymättömäksi osaksi valintaa.
+    const visible = this.search ? this.applySearch(groups) : groups
     const selectable = new Set(
-      groups.filter(g => g.key !== 'suodatettu').flatMap(g => g.subgroups.flatMap(s => s.markers.map(m => m.id))),
+      visible.filter(g => g.key !== 'suodatettu').flatMap(g => g.subgroups.flatMap(s => s.markers.map(m => m.id))),
     )
     for (const id of [...this.selected]) if (!selectable.has(id)) this.selected.delete(id)
 
+    // T404-parity: haku rajaa RENDERÖITÄVÄT rivit (⊥ kartan suodatin — se on `map-filter`in
+    // asia, V271). Haku osuu nimeen & km-lukuun, kuten vanhassa listassa.
+    const searched = this.search ? this.applySearch(groups) : groups
+
     this.el.innerHTML = ''
-    const total = groups.filter(g => g.key !== 'suodatettu').reduce((n, g) => n + g.count, 0)
+    const total = searched.filter(g => g.key !== 'suodatettu').reduce((n, g) => n + g.count, 0)
 
     this.header = createSectionHeader({
       name: 'Merkit',
@@ -154,6 +172,8 @@ export class MarkerOverviewPanel {
     this.header.el.classList.add('marker-overview-header')
     this.header.el.setAttribute('aria-label', 'Sulje merkkilista')
     this.el.appendChild(this.header.el)
+
+    this.el.appendChild(this.searchBox())
 
     this.body.innerHTML = ''
     this.el.appendChild(this.body)
@@ -167,8 +187,55 @@ export class MarkerOverviewPanel {
       this.body.appendChild(this.emptyState('Kaikki merkit asetettu ✓', 'marker-overview-done'))
     }
 
-    for (const g of groups) this.renderGroup(g)
-    if (this.ctx.onCreateTask) this.renderActionBar()
+    if (this.search && total === 0 && !searched.some(g => g.count > 0)) {
+      this.body.appendChild(this.emptyState('Ei tuloksia'))
+    }
+    for (const g of searched) this.renderGroup(g)
+    if (this.ctx.onCreateTask || this.ctx.onBulkStatus) this.renderActionBar()
+  }
+
+  /** Haku osuu nimeen & km-lukuun. Tyhjenevät ryhmät karsitaan ∴ otsikko ⊥ lupaa tyhjää. */
+  private applySearch(groups: OverviewGroup[]): OverviewGroup[] {
+    const q = this.search.toLowerCase()
+    const out: OverviewGroup[] = []
+    for (const g of groups) {
+      const subgroups = g.subgroups
+        .map(sub => ({
+          segment: sub.segment,
+          markers: sub.markers.filter(m => {
+            const km = (displayKm(m, sub.segment) / 1000).toFixed(2)
+            return `${markerLabel(m)} ${km}`.toLowerCase().includes(q)
+          }),
+        }))
+        .filter(sub => sub.markers.length > 0)
+      if (subgroups.length === 0) continue
+      out.push({ ...g, subgroups, count: subgroups.reduce((n, s) => n + s.markers.length, 0) })
+    }
+    return out
+  }
+
+  private searchBox(): HTMLElement {
+    const wrap = document.createElement('div')
+    wrap.className = 'marker-overview-search-row'
+    const input = document.createElement('input')
+    input.type = 'text'
+    input.className = 'marker-overview-search'
+    input.placeholder = 'Hae merkki…'
+    input.setAttribute('aria-label', 'Hae merkki')
+    input.value = this.search
+    input.addEventListener('input', () => {
+      this.search = input.value
+      this.render()
+      // Uudelleenrender vaihtaa elementin ∴ fokus & kursori palautetaan käsin, muuten
+      // kirjoittaminen katkeaisi joka merkkiin.
+      const next = this.el.querySelector<HTMLInputElement>('.marker-overview-search')
+      if (next) {
+        next.focus()
+        next.setSelectionRange(next.value.length, next.value.length)
+      }
+    })
+    wrap.appendChild(input)
+    return wrap
   }
 
   private emptyState(text: string, extraClass?: string): HTMLElement {
@@ -218,10 +285,16 @@ export class MarkerOverviewPanel {
     const li = document.createElement('li')
     li.className = 'marker-item marker-overview-item'
     li.dataset.id = m.id
+    // V117/T185: vahvistamaton kirjoitus näkyy persistentisti — sama luokka & lappu kuin
+    // vanhassa listassa (⊥ uutta visuaalia). Outbox-muutos → refreshMarkerViews → tämä.
+    if (this.pending.has(m.id)) li.classList.add('marker-item--pending')
 
     // V294: suodattimen ulkopuolinen rivi ⊥ ole valittavissa — bulk ⊥ saa koskea riviin jota
     // käyttäjä ⊥ näe kartalla. Vanha lista teki saman (marker-list.ts:34,283).
-    const selectable = groupKey !== 'suodatettu' && this.ctx.onCreateTask !== undefined
+    // Valinta on olemassa jos JOKIN valintaa käyttävä toiminto on kytketty — kumpi tahansa
+    // yksin riittää (bulk-status ilman tehtävänluontia oli ensin valinnaton = kuollut pinta).
+    const hasBulkAction = this.ctx.onCreateTask !== undefined || this.ctx.onBulkStatus !== undefined
+    const selectable = groupKey !== 'suodatettu' && hasBulkAction
     if (selectable) {
       const cb = document.createElement('input')
       cb.type = 'checkbox'
@@ -265,6 +338,14 @@ export class MarkerOverviewPanel {
     status.textContent = STATUS_LABELS[m.status] ?? m.status
     main.appendChild(status)
 
+    if (this.pending.has(m.id)) {
+      const tag = document.createElement('span')
+      tag.className = 'marker-pending-tag'
+      tag.title = 'Odottaa tallennusta palvelimelle'
+      tag.textContent = 'tallentamatta'
+      main.appendChild(tag)
+    }
+
     li.appendChild(main)
 
     // V62: ⊥ inline-poistoa rivillä — ··· avaa modaalin jossa tuhoavat teot ovat.
@@ -291,6 +372,33 @@ export class MarkerOverviewPanel {
     note.hidden = true
     bar.appendChild(note)
 
+    // T404-parity: järjestäjän bulk-status (§K BulkStatusToolbar). Vanha modaali osasi tämän
+    // ∴ korvaaja osaa — poisto ⊥ saa viedä kykyä.
+    if (this.ctx.onBulkStatus) {
+      const statusRow = document.createElement('div')
+      statusRow.className = 'marker-overview-status-row'
+      const select = document.createElement('select')
+      select.className = 'marker-overview-status-select'
+      select.setAttribute('aria-label', 'Status valituille')
+      for (const st of ALL_MARKER_STATUSES) {
+        const opt = document.createElement('option')
+        opt.value = st
+        opt.textContent = STATUS_LABELS[st]
+        select.appendChild(opt)
+      }
+      const apply = document.createElement('button')
+      apply.type = 'button'
+      apply.className = 'btn marker-overview-apply-status'
+      apply.addEventListener('click', () => {
+        if (this.selected.size === 0) return
+        this.ctx.onBulkStatus?.([...this.selected], select.value as MarkerStatus)
+        this.selected.clear()
+        this.render()
+      })
+      statusRow.append(select, apply)
+      bar.appendChild(statusRow)
+    }
+
     const btn = document.createElement('button')
     btn.type = 'button'
     btn.className = 'btn btn--confirm marker-overview-create'
@@ -300,7 +408,7 @@ export class MarkerOverviewPanel {
       this.selected.clear()
       this.render()
     })
-    bar.appendChild(btn)
+    if (this.ctx.onCreateTask) bar.appendChild(btn)
 
     // Sticky-palkki on scroll-sisällön VIIMEINEN lapsi (T311/V223) ∴ se ⊥ peitä viimeistä
     // riviä eikä jätä orpoa gappia (B101). `position:fixed` on kielletty tässä kuviossa.
@@ -309,16 +417,18 @@ export class MarkerOverviewPanel {
   }
 
   private refreshActionBar(): void {
-    const btn = this.body.querySelector<HTMLButtonElement>('.marker-overview-create')
-    const note = this.body.querySelector<HTMLElement>('.marker-overview-note')
-    if (!btn) return
     const n = this.selected.size
-    btn.textContent = `Luo tehtävä valituista (${n})`
+    const btn = this.body.querySelector<HTMLButtonElement>('.marker-overview-create')
+    const apply = this.body.querySelector<HTMLButtonElement>('.marker-overview-apply-status')
     // V250: disabloitu tila ! näkyä — jaetut `.btn--*` ⊥ määrittele `:disabled`ia ∴ ilman
     // omaa luokkaa nappi näyttäisi painettavalta & klikkaus ⊥ tekisi mitään (kuollut pinta).
-    btn.disabled = n === 0
-    btn.classList.toggle('is-disabled', n === 0)
-
+    for (const [el, label] of [[btn, `Luo tehtävä valituista (${n})`], [apply, `Aseta valituille (${n})`]] as const) {
+      if (!el) continue
+      el.textContent = label
+      el.disabled = n === 0
+      el.classList.toggle('is-disabled', n === 0)
+    }
+    const note = this.body.querySelector<HTMLElement>('.marker-overview-note')
     if (!note) return
     const owners = n > 0 ? this.ctx.getExistingOwners?.([...this.selected]) ?? [] : []
     if (owners.length === 0) {

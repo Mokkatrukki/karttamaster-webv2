@@ -79,7 +79,7 @@ test.describe('T38 — Merkin tyyppi vaihdettavissa', () => {
   // Robustoitu 2026-07-10: pudotettu flaky dblclick→picker-marker-luonti (headless-chromium ei
   // rekisteröi Leaflet-dblclickia luotettavasti, ks. flaky-e2e-tests-muisti). Merkki seedataan
   // /api/markers-mockilla → testaa aidon invariantin (type-select roolin mukaan) DOM-polulla:
-  // #btn-list (aina toolbarissa, ei enää turha #btn-menu) → .marker-item → detail-modaali.
+  // #btn-list (aina toolbarissa) → merkkijono-telakka → ···-nappi → detail-modaali (T404).
   const seededMarker = {
     id: 'mk-t38', type: 'right', lat: 65.62, lon: 27.62, distance_from_start: 5000,
     route_ids: ['smtb-30'], status: 'suunniteltu', location_note: null, color: null,
@@ -97,13 +97,17 @@ test.describe('T38 — Merkin tyyppi vaihdettavissa', () => {
 
     // T277/B110: `#auth-screen` menettää `open`-luokan (auth-screen.hide()) ENNEN kuin
     // `init()` awaittaa fetchMarkers+loadGpx ja kiinnittää `#btn-list`-handlerin. Race →
-    // ensimmäinen klikki voi kadota ennen handleria/merkkien latausta ja `.marker-item`
-    // jää renderöimättä (flaky, 1/3). Retry avaus kunnes lista on auki — deterministinen.
+    // ensimmäinen klikki voi kadota ennen handleria/merkkien latausta ja rivi jää
+    // renderöimättä (flaky, 1/3). Retry avaus kunnes lista on auki — deterministinen.
+    //
+    // T404: `#btn-list` on nyt TOGGLE (telakka, ⊥ modaali) ∴ sokea uudelleenklikkaus SULKISI
+    // juuri avatun paneelin. Klikataan vain kun paneeli ⊥ ole näkyvissä.
     await expect(async () => {
-      await page.click('#btn-list')
-      await expect(page.locator('.marker-item')).toHaveCount(1, { timeout: 1000 })
+      if (!(await page.locator('#marker-overview').isVisible())) await page.click('#btn-list')
+      await expect(page.locator('.marker-overview-item')).toHaveCount(1, { timeout: 1000 })
     }).toPass({ timeout: 15000 })
-    await page.click('.marker-item')
+    // Rivin klikkaus PANOROI (T402); detail avautuu ···-napista (V62-linja).
+    await page.click('.marker-overview-menu')
 
     // Type-select näkyy järjestäjälle
     const sel = page.locator('.marker-detail-type-select')

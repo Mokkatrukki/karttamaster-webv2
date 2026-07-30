@@ -287,14 +287,16 @@ Järjestäjän merkkijono: "mitkä merkit jäivät asettamatta ja miltä pätkil
 - **≤700px = bottom sheet** (sama kuvio kuin `.map-filter-groups`, B160/V274): `position:fixed;bottom:0;width:100%;max-height:70dvh;z-index:1200` (yli MapFilterBarin 1100 & hero-kortin 1000), varjo ylös. Kartta jää YLÄPUOLELLE näkyviin — ⊥ full-screen, panorointi on toiminnon toinen puoli. Scroll-alue `overscroll-behavior:contain` (§R-sääntö).
 - **⊥ uusia värejä** ∴ §C ennallaan: `--surface-app`, `--border-subtle/default/card`, `--text-body/muted/meta`, `--confirm`, `--field-tint`, `--hover`.
 
-### Marker-modaali (`#marker-modal`)
+### ~~Marker-modaali (`#marker-modal`)~~ — KORVATTU T404:ssä
+**Poistettu 2026-07-30.** Korvaaja: §K MarkerOverviewPanel (telakka). Historia jää tänne V86-kuviolla, ⊥ poisteta — alla oleva kuvaus EI ole enää voimassa.
 - Tausta: `bg-card`, border: `border-default`, `border-radius: 14px`
 - Shadow: `0 16px 48px rgba(0,0,0,0.5)`
 - Backdrop: `overlay` + `backdrop-filter: blur(2px)`
 - Leveys järjestäjä: `min(560px, 92vw)`, `max-height: 82vh`
 - Leveys talkoolainen: `min(340px, 92vw)`, `max-height: 60vh` (tai T74 bottom sheet)
 
-### BulkStatusToolbar (`.bulk-status-toolbar`, järjestäjä-modal sisällä)
+### ~~BulkStatusToolbar (`.bulk-status-toolbar`)~~ — KORVATTU T404:ssä
+**Poistettu 2026-07-30.** Järjestäjän bulk-status elää nyt merkkijonon sticky-toimintopalkissa (`.marker-overview-status-row`, §K MarkerOverviewPanel) — kyky säilyi, kuori vaihtui.
 - Sijainti: `#marker-modal-header`:n jälkeen, ennen listaa — `position: sticky; top: 0`
 - Tausta: `surface-raised`, `border-bottom: border-subtle`, padding `8px 14px`
 - Kolme elementtiä flex-row: `[☐ Valitse kaikki]` + `[status-dropdown]` + `[Aseta-nappi]`
@@ -305,7 +307,8 @@ Järjestäjän merkkijono: "mitkä merkit jäivät asettamatta ja miltä pätkil
   - N = 0: `background: field-tint`, `color: text-muted`, `cursor: not-allowed`
 - Vain järjestäjälle: piilossa `[data-role="talkoolainen"]`
 
-### BulkActionBar talkoolainen (`.bulk-action-bar`, T17)
+### BulkActionBar talkoolainen (`.bulk-action-bar`, T17) — ⚠️ EI TOTEUTUKSESSA (T405)
+**Huom 2026-07-30:** tämä sopimus oli `marker-list.ts`:ssä joka poistui T404:ssä. Talkoolainen ⊥ ole päässyt siihen T264:n jälkeen (`#btn-list` piilotettu) ∴ kyky on ollut poissa jo ennen poistoa (V292). T405 palauttaa sen koti-tabin listaan TÄLLÄ sopimuksella.
 - Sijainti: `#marker-modal`:n alaosa — `position: sticky; bottom: 0`
 - Tausta: `surface-card`, `border-top: border-subtle`, padding `10px 14px`
 - Layout: `flex-wrap: wrap` — kaksirivinen 340px modaalissa:

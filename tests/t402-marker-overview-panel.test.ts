@@ -61,6 +61,8 @@ function mount(opts: {
   open?: boolean
   onCreateTask?: (ids: string[]) => void
   getExistingOwners?: (ids: string[]) => Array<{ markerId: string; segmentId: string }>
+  onBulkStatus?: (ids: string[], status: MarkerStatus) => void
+  getPendingIds?: () => Set<string>
 } = {}): Harness {
   // CLAUDE.md: localStorage AINA vi.stubGlobal (Node v26 -konflikti). `unstubGlobals:true`
   // palauttaa globaalit ennen jokaista testiä ∴ siivousta ⊥ kirjoiteta.
@@ -87,6 +89,8 @@ function mount(opts: {
     onVisibilityChange: visibility,
     onCreateTask: opts.onCreateTask,
     getExistingOwners: opts.getExistingOwners,
+    onBulkStatus: opts.onBulkStatus,
+    getPendingIds: opts.getPendingIds,
   })
   if (opts.open) panel.render()
   return { panel, el, panTo, openDetail, visibility }
@@ -214,7 +218,7 @@ describe('MarkerOverviewPanel (T402)', () => {
     expect(subheads).toContain('Ei pätkää (1)')
   })
 
-  it('⊥ valintaa jos onCreateTask puuttuu (checkbox on toiminnon affordanssi ⊥ koriste)', () => {
+  it('⊥ valintaa jos yhtään bulk-toimintoa ⊥ ole (checkbox on affordanssi ⊥ koriste)', () => {
     const h = mount({ open: true, segments: [seg('A')], markers: [marker('m1')] })
     expect(h.el.querySelectorAll('.marker-item-checkbox').length).toBe(0)
     expect(h.el.querySelector('.marker-overview-actionbar')).toBeNull()
@@ -332,5 +336,116 @@ describe('MarkerOverviewPanel — valinta & tehtävän luonti (T403)', () => {
     statuses = new Set<MarkerStatus>(['suunniteltu'])
     panel.render()
     expect(el.querySelector('.marker-overview-create')!.textContent).toContain('(0)')
+  })
+})
+
+// T404-parity: kyvyt jotka olivat vanhassa `#marker-modal`issa ! säilyä korvaajassa —
+// muuten poisto on kyvyn menetys ⊥ siivous. Nämä korvaavat t101/t102/t185-testit.
+describe('MarkerOverviewPanel — parity poistuneelle modaalille (T404)', () => {
+  const segments = [seg('A')]
+
+  it('V117: pending-merkki saa marker-item--pending + "tallentamatta"-lapun', () => {
+    const h = mount({
+      open: true,
+      segments,
+      markers: [marker('m1'), marker('odottaa')],
+      getPendingIds: () => new Set(['odottaa']),
+    })
+    const row = h.el.querySelector('.marker-overview-item[data-id="odottaa"]')!
+    expect(row.classList.contains('marker-item--pending')).toBe(true)
+    expect(row.querySelector('.marker-pending-tag')!.textContent).toBe('tallentamatta')
+    // Vahvistettu merkki ⊥ saa korostusta
+    const clean = h.el.querySelector('.marker-overview-item[data-id="m1"]')!
+    expect(clean.classList.contains('marker-item--pending')).toBe(false)
+    expect(clean.querySelector('.marker-pending-tag')).toBeNull()
+  })
+
+  it('V117: vahvistus (avain poistuu) → korostus katoaa re-renderillä', () => {
+    let pending = new Set(['m1'])
+    const el = document.createElement('div')
+    document.body.appendChild(el)
+    vi.stubGlobal('localStorage', {
+      getItem: () => '1', setItem: () => {}, removeItem: () => {}, clear: () => {},
+    })
+    const panel = new MarkerOverviewPanel(el, {
+      getMarkers: () => [marker('m1')],
+      getSegments: () => segments,
+      getFilter: () => defaultMapFilter(),
+      onPanTo: () => {},
+      onOpenDetail: () => {},
+      getPendingIds: () => pending,
+    })
+    panel.render()
+    expect(el.querySelector('.marker-item--pending')).toBeTruthy()
+    pending = new Set()
+    panel.render()
+    expect(el.querySelector('.marker-item--pending')).toBeNull()
+  })
+
+  it('haku rajaa rivit nimen mukaan (T102-parity)', () => {
+    const h = mount({
+      open: true,
+      segments,
+      markers: [marker('m1', { label: 'Nuoli oikealle' }), marker('m2', { label: 'Huoltopiste' })],
+    })
+    const input = h.el.querySelector<HTMLInputElement>('.marker-overview-search')!
+    input.value = 'huolto'
+    input.dispatchEvent(new Event('input'))
+    const ids = [...h.el.querySelectorAll<HTMLElement>('.marker-overview-item')].map(x => x.dataset.id)
+    expect(ids).toEqual(['m2'])
+  })
+
+  it('haku rajaa km-luvun mukaan & tyhjä tulos sanoo "Ei tuloksia"', () => {
+    const h = mount({ open: true, segments, markers: [marker('m1')] })
+    const input = () => h.el.querySelector<HTMLInputElement>('.marker-overview-search')!
+    input().value = '5.5'
+    input().dispatchEvent(new Event('input'))
+    expect(h.el.querySelector('.marker-overview-item')).toBeTruthy()
+
+    input().value = 'ei-osu-mihinkään'
+    input().dispatchEvent(new Event('input'))
+    expect(h.el.querySelector('.marker-overview-item')).toBeNull()
+    expect(h.el.querySelector('.marker-overview-empty')!.textContent).toBe('Ei tuloksia')
+  })
+
+  it('haussa piiloon jäänyt rivi putoaa valinnasta (V294 koskee myös hakua)', () => {
+    const h = mount({
+      open: true,
+      segments,
+      markers: [marker('m1', { label: 'Nuoli' }), marker('m2', { label: 'Huolto' })],
+      onCreateTask: vi.fn(),
+    })
+    h.el.querySelector<HTMLInputElement>('.marker-overview-item[data-id="m2"] .marker-item-checkbox')!.click()
+    expect(h.el.querySelector('.marker-overview-create')!.textContent).toContain('(1)')
+
+    const input = h.el.querySelector<HTMLInputElement>('.marker-overview-search')!
+    input.value = 'nuoli'
+    input.dispatchEvent(new Event('input'))
+    expect(h.el.querySelector('.marker-overview-create')!.textContent).toContain('(0)')
+  })
+
+  it('bulk-status kutsuu callbackia oikeilla id:illä & statuksella (T101-parity)', () => {
+    const onBulkStatus = vi.fn()
+    const h = mount({ open: true, segments, markers: [marker('m1'), marker('m2')], onBulkStatus })
+    const apply = h.el.querySelector<HTMLButtonElement>('.marker-overview-apply-status')!
+    expect(apply.disabled).toBe(true)
+    expect(apply.classList.contains('is-disabled')).toBe(true)
+
+    h.el.querySelector<HTMLInputElement>('.marker-overview-item[data-id="m1"] .marker-item-checkbox')!.click()
+    expect(apply.textContent).toBe('Aseta valituille (1)')
+    expect(apply.disabled).toBe(false)
+
+    const select = h.el.querySelector<HTMLSelectElement>('.marker-overview-status-select')!
+    select.value = 'asetettu'
+    apply.click()
+    expect(onBulkStatus).toHaveBeenCalledWith(['m1'], 'asetettu')
+    // Valinta tyhjenee toiminnon jälkeen — sama merkki ⊥ jää vahingossa seuraavaan tekoon.
+    expect(h.el.querySelector('.marker-overview-apply-status')!.textContent).toContain('(0)')
+  })
+
+  it('status-valikossa on kaikki 5 statusta', () => {
+    const h = mount({ open: true, segments, markers: [marker('m1')], onBulkStatus: vi.fn() })
+    const opts = [...h.el.querySelectorAll('.marker-overview-status-select option')].map(o => (o as HTMLOptionElement).value)
+    expect(opts).toEqual(['suunniteltu', 'asetettu', 'tarkistettu', 'kerätty', 'ei_tarpeen'])
   })
 })

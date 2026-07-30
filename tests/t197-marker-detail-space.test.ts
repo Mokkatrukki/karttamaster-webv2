@@ -2,7 +2,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { LeftPanel } from '../src/ui/left-panel'
 import { MarkerDetailModal } from '../src/ui/marker-detail-modal'
-import { renderMarkerList } from '../src/ui/marker-list'
 import type { SignMarker } from '../src/logic/types'
 
 // localStorage-mock (Node v26 konflikti — CLAUDE.md)
@@ -110,44 +109,9 @@ describe('T197 / V127 — LeftPanel.collapse mobiilissa', () => {
   })
 })
 
-// ── V127: merkin valinta dispatchaa eventin vain detail-polussa ──
-describe('T197 / V127 — marker-list select dispatchaa marker-detail-opened', () => {
-  const setupDom = () => {
-    document.body.innerHTML =
-      '<div id="marker-count"></div>' +
-      '<div id="marker-modal" class="modal--järjestäjä"><div id="marker-modal-items"></div></div>'
-  }
-
-  it('detail-polku (onOpenDetail annettu) → dispatchaa eventin', () => {
-    setupDom()
-    const marker = makeMarker()
-    const manager = makeManager(marker)
-    const onOpenDetail = vi.fn()
-    renderMarkerList(manager as any, undefined, undefined, null, onOpenDetail, undefined)
-
-    const spy = vi.fn()
-    document.addEventListener('marker-detail-opened', spy)
-    const item = document.querySelector('.marker-item') as HTMLElement
-    item.click()
-
-    expect(onOpenDetail).toHaveBeenCalledWith('m1')
-    expect(spy).toHaveBeenCalledTimes(1)
-    document.removeEventListener('marker-detail-opened', spy)
-  })
-
-  it('panTo-only-polku (ei onOpenDetail) → EI dispatchaa (V127)', () => {
-    setupDom()
-    const marker = makeMarker()
-    const manager = makeManager(marker)
-    renderMarkerList(manager as any, undefined, undefined, null, undefined, undefined)
-
-    const spy = vi.fn()
-    document.addEventListener('marker-detail-opened', spy)
-    const item = document.querySelector('.marker-item') as HTMLElement
-    item.click()
-
-    expect(manager.panTo).toHaveBeenCalledWith('m1')
-    expect(spy).not.toHaveBeenCalled()
-    document.removeEventListener('marker-detail-opened', spy)
-  })
-})
+// ── V127 (amend T404): dispatcherin koti vaihtui ──
+// `marker-list.ts` oli tapahtuman AINOA lähettäjä & se poistui T404:ssä. Lähetys siirtyi
+// `markers-wiring.ts`:n `onOpenMarkerDetail`iin = detail-polun juureen ∴ KAIKKI detail-polut
+// (merkkijono, kartan merkkiklikkaus, pätkälistat) sulkevat mobiilipaneelin, ⊥ vain yksi lista.
+// Sitä ⊥ voi yksikkötestata ilman koko wiringiä; kuuntelijan puoli on katettu yllä
+// ("marker-detail-opened -event → collapse mobiilissa") & polku E2E:ssä.

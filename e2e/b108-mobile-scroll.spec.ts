@@ -25,11 +25,11 @@ test.describe('B108 — mobiili-scroll-hygienia', () => {
     await page.setViewportSize(MOBILE)
     await page.goto('/')
     await page.waitForTimeout(1500)
-    // #marker-modal-items renderöityy vasta modaalin auettua; testataan avaamatta
-    // suoraan CSS-selektorin kautta injektoidulla proto-elementillä.
+    // T404: `#marker-modal-items` → `.marker-overview-body` (telakka korvasi modaalin).
+    // Renderöityy vasta paneelin auettua ∴ testataan CSS-selektori injektoidulla proto-elementillä.
     const ob = await page.evaluate(() => {
       const el = document.createElement('div')
-      el.id = 'marker-modal-items'
+      el.className = 'marker-overview-body'
       document.body.appendChild(el)
       const v = getComputedStyle(el).overscrollBehaviorY
       el.remove()
@@ -66,9 +66,16 @@ test.describe('B108 — mobiili-scroll-hygienia', () => {
     await page.setViewportSize(MOBILE)
     await page.goto('/')
     await page.waitForTimeout(1500)
+    // T404: `#marker-modal-backdrop` poistui listasta (modaali poistettu) mutta sääntö on
+    // JAETTU ∴ vahditaan yhtä jäljellä olevaa — `.marker-detail-backdrop` luodaan
+    // dynaamisesti, joten testataan CSS-selektori injektoidulla proto-elementillä.
     const ta = await page.evaluate(() => {
-      const el = document.getElementById('marker-modal-backdrop')!
-      return getComputedStyle(el).touchAction
+      const el = document.createElement('div')
+      el.className = 'marker-detail-backdrop'
+      document.body.appendChild(el)
+      const v = getComputedStyle(el).touchAction
+      el.remove()
+      return v
     })
     expect(ta).toBe('none')
   })

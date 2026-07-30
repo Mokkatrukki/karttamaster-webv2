@@ -181,7 +181,8 @@ html:has(#app), body:has(#app) {
 /* B108/§R: kaikki sisäiset scroll-alueet pysäyttävät scroll-chainingin — kun lista/
    modaali/valikko scrollataan reunaan asti, liike EI valu taustan karttaan tai
    toiseen paneeliin. overscroll-behavior tuettu kaikissa selaimissa 2022 lähtien. */
-#marker-modal-items,
+/* T404: #marker-modal-items → .marker-overview-body (telakka korvasi modaalin). */
+.marker-overview-body,
 #toolbar-menu,
 #segment-view,
 #segment-panel,
@@ -816,21 +817,12 @@ button {
 }
 .route-sign-dot:hover .sign-tooltip { display: block; }
 
-/* ── Marker modal ── */
-
-#marker-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: var(--overlay);
-  z-index: 999;
-  display: none;
-  backdrop-filter: blur(2px);
-}
-#marker-modal-backdrop.open { display: block; }
+/* ── Merkkilistan jaetut osat (T404: modaalikuori poistettu, rivityylit jäivät) ── */
 
 /* B108/§R: modaalin backdrop nappaa kaikki kosketukset → drag backdropin päällä EI
-   panoroi alla olevaa karttaa. touch-action:none pysäyttää eleen backdropiin. */
-#marker-modal-backdrop,
+   panoroi alla olevaa karttaa. touch-action:none pysäyttää eleen backdropiin.
+   T404: `#marker-modal-backdrop` poistui listasta (modaali poistettu) — MUUT jäävät,
+   sääntö on jaettu ∴ sen katoaminen olisi vienyt kosketussuojan kaikilta modaaleilta. */
 .snapshot-modal-backdrop,
 .segment-details-modal-backdrop,
 .segment-creation-modal-backdrop,
@@ -841,26 +833,9 @@ button {
   overscroll-behavior: none;
 }
 
-#marker-modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(340px, 92vw);
-  max-height: 60vh;
-  background: var(--surface-card);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  display: none;
-  flex-direction: column;
-  overflow: hidden;
-}
-#marker-modal.open { display: flex; }
-#marker-modal.modal--järjestäjä { width: min(560px, 92vw); max-height: 82vh; }
-
-/* Bulk status toolbar */
+/* B53/V21/§R: kosketuskohde 44×44 — näkyvä ruutu pysyy kompaktina (22px), klikkausalue
+   laajennetaan padding-boxilla. Negatiivinen margin pitää layoutin ennallaan. Kriittinen
+   hanskat kädessä. */
 .bulk-status-toolbar {
   display: flex;
   align-items: center;
@@ -906,22 +881,7 @@ button {
   color: var(--text-muted);
   cursor: not-allowed;
 }
-/* B53/V21/§R: kosketuskohde 44×44 — näkyvä ruutu pysyy kompaktina (22px), klikkausalue
-   laajennetaan padding-boxilla. Negatiivinen margin pitää layoutin ennallaan. Kriittinen
-   talkoolaiselle hanskat kädessä (bulk check-in .marker-checkin-cb sama kohtelu). */
 .marker-item-checkbox,
-.marker-checkin-cb {
-  width: 22px;
-  height: 22px;
-  box-sizing: content-box;
-  padding: 11px;
-  margin: -11px;
-  accent-color: var(--accent);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-/* Bulk action bar — talkoolainen, sticky bottom */
 .bulk-action-bar {
   display: flex;
   flex-wrap: wrap;
@@ -966,34 +926,6 @@ button {
   border: none;
 }
 
-#marker-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border-card);
-  flex-shrink: 0;
-}
-#marker-modal-header h2 {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-body);
-}
-
-#btn-modal-close {
-  background: var(--hover);
-  border: none;
-  font-size: 14px;
-  color: var(--text-muted);
-  cursor: pointer;
-  min-height: 44px;
-  padding: 4px 12px;
-  border-radius: var(--radius-sm);
-  font-family: inherit;
-}
-#btn-modal-close:hover { background: var(--hover-strong); color: var(--text-body); }
-
-#marker-modal-items { overflow-y: auto; flex: 1; }
 
 .marker-item {
   display: flex;
@@ -5978,4 +5910,47 @@ body[data-role="talkoolainen"] .marker-overview { display: none; }
     border-top: 1px solid var(--border-default);
     box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.28);
   }
+}
+
+/* T404-parity: merkkijonon haku + bulk-status. Vanha modaali osasi molemmat (T101/T102) ∴
+   korvaaja osaa — poisto ⊥ saa viedä kykyä. */
+.marker-overview-search-row {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.marker-overview-search {
+  width: 100%;
+  min-height: 44px; /* §R */
+  padding: 8px 10px;
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  font: inherit;
+  font-size: 12px;
+}
+.marker-overview-status-row {
+  display: flex;
+  gap: 6px;
+}
+.marker-overview-status-select {
+  flex: 1;
+  min-height: 44px;
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  font: inherit;
+  font-size: 12px;
+}
+.marker-overview-apply-status {
+  min-height: 44px;
+  min-width: 120px;
+}
+.marker-overview-apply-status:disabled,
+.marker-overview-apply-status.is-disabled {
+  background: var(--field-tint);
+  color: var(--text-muted);
+  cursor: not-allowed;
 }
