@@ -7,7 +7,6 @@
  */
 import { test, expect, type Page } from 'playwright/test'
 import { mockAuthAsJarjestaja, mockAuthAsTalkoolainen, mockTemplates, mockTalkoolainenSegment, mockMarkers } from './helpers/auth'
-import { zoomToShowSegmentLabels } from './helpers/label-zoom'
 
 // Dev-server pyörii ulkopuolella (bun run dev) — playwright.config.ts baseURL
 
@@ -965,10 +964,6 @@ test.describe('T347 — pätkän nimilappu kartalla', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
 
-    // T418/V309: lappu on zoom-ehdollista sisältöä — oletuszoom ~13,4 (fitBounds ∀ reitille)
-    // jättäisi sen `--hidden`-tilaan (`pointer-events:none`) ∴ klikki ⊥ osu lainkaan.
-    await zoomToShowSegmentLabels(page, { text: 'Lappupätkä' })
-
     const label = page.locator('.segment-label', { hasText: 'Lappupätkä' })
     await expect(label).toBeVisible()
     // Leaflet merkitsee interaktiivisen tooltipin → pointer-events:auto + cursor:pointer
@@ -994,10 +989,6 @@ test.describe('T347 — pätkän nimilappu kartalla', () => {
       const c = m?.getCenter()
       return c ? `${c.lat.toFixed(4)},${c.lng.toFixed(4)}` : ''
     })
-    // T418/V309: piilotettu lappu ⊥ ota hiiren painallusta ∴ raahaus mittaisi tyhjää karttaa
-    // eikä sitä että lapun PÄÄLTÄ raahaus panoroi (testin koko väite).
-    await zoomToShowSegmentLabels(page, { text: 'Lappupätkä' })
-
     const before = await center()
 
     const box = await page.locator('.segment-label', { hasText: 'Lappupätkä' }).boundingBox()
@@ -1059,9 +1050,6 @@ test.describe('T375 — korostus himmentää pätkäviivat (V270)', () => {
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/')
     await page.waitForTimeout(1500)
-
-    // T418/V309: testi klikkaa himmennettyä lappua (V270) ∴ lappu ! olla zoom-portin yllä.
-    await zoomToShowSegmentLabels(page, { text: 'Kakkospätkä' })
 
     const labelB = page.locator('.segment-label', { hasText: 'Kakkospätkä' })
     await expect(labelB).toHaveCount(1)

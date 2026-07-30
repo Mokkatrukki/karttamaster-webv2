@@ -4,7 +4,8 @@ import type { RoutePoint, SignMarker } from '../logic/types'
 import type { Segment, SegmentStore, SegmentLineState } from '../logic/segments'
 import { segmentLineColor, segmentLineState, getPhaseProgress, segmentPrimaryRouteId } from '../logic/segments'
 import { segmentLayerStyles } from '../logic/segment-style'
-import { segmentVisibleOnRoutes, segmentLabelVisible } from '../logic/segment-visibility'
+import { segmentVisibleOnRoutes } from '../logic/segment-visibility'
+import { segmentLabelScaleForZoom } from '../logic/marker-scale'
 import type { MapFilter } from '../logic/map-filter'
 import { defaultMapFilter, segmentVisibility, DIM_OPACITY } from '../logic/map-filter'
 
@@ -102,7 +103,7 @@ export class SegmentOverlay {
   private contextLocked = true
   private visibleRouteIds?: string[]
   private mapFilter: MapFilter = defaultMapFilter()
-  // T418/V310: lapun kantajat + omistajuuslippu. Portti ! soveltua kahdesta suunnasta
+  // T418/V310: lapun kantajat + omistajuuslippu. Skaala ! soveltua kahdesta suunnasta
   // (zoomend & render) ∴ lista on tilaa, ⊥ renderin paikallinen muuttuja.
   private labelLines: { line: L.Polyline; isOwn: boolean }[] = []
 
@@ -110,22 +111,28 @@ export class SegmentOverlay {
     private readonly map: L.Map,
     private readonly routes: RouteRef[],
   ) {
-    // T418/V309: sama kuvio kuin `area-overlay.ts:26` — kynnys elää logic-kerroksessa,
-    // Leaflet vain kuuntelee zoomia.
-    map.on('zoomend', () => this.applyLabelZoomGate())
+    // T419/V309-amend: sama kuvio kuin `markers.ts:106` — merkki-ikoni & nimilappu kuuntelevat
+    // SAMAA eventtiä & skaalautuvat samalla logiikalla. Lappu ⊥ katoa milloinkaan (T418:n
+    // binäärinen portti kumottu käyttäjäpäätöksellä).
+    map.on('zoomend', () => this.applyLabelZoomScale())
   }
 
-  // T418/V310/V311: piilotus on LUOKKA lapun elementillä, ⊥ `unbindTooltip` (välkkyvä
-  // kato/paluu joka zoomilla) & ⊥ `segmentLabelOptions()`-luokkajonossa (se on puhdas
-  // funktio jonka tarkkaa `className`-arvoa kolme testitiedostoa väittää — zoom on ajon
-  // tilaa, ⊥ lapun syntyvää identiteettiä).
-  private applyLabelZoomGate(): void {
+  // T419/V310: skaala on CSS-muuttuja lapun elementillä (`--label-scale`), ⊥ `transform` —
+  // Leaflet omistaa tooltipin `transform`in (`setPosition` → `translate3d`) & ylikirjoittaisi
+  // sen joka positiopäivityksessä. `font-size`/`padding` calc:illa ∴ myös lapun TUMMA PILLERI
+  // kutistuu tekstin mukana (pelkkä tekstin skaalaus jättäisi ison laatikon pikkutekstin
+  // ympärille = huonompi kuin lähtötilanne).
+  //
+  // `tooltip.update()` pakottaa uudelleenkeskityksen: `direction:'center'` laskee siirtymän
+  // elementin leveydestä ∴ ilman sitä kutistunut lappu jäisi vanhan leveyden mukaan sivuun.
+  private applyLabelZoomScale(): void {
     const zoom = this.map.getZoom()
     for (const { line, isOwn } of this.labelLines) {
-      const el = line.getTooltip()?.getElement()
-      // V311: `opacity:0` yksin jättäisi näkymättömän osumapinnan (lappu on klikattava
-      // sisääntulo, T347) ∴ CSS-luokka kantaa MYÖS `pointer-events:none`.
-      el?.classList.toggle('segment-label--hidden', !segmentLabelVisible(zoom, isOwn))
+      const tooltip = line.getTooltip()
+      const el = tooltip?.getElement()
+      if (!el || !tooltip) continue
+      el.style.setProperty('--label-scale', String(segmentLabelScaleForZoom(zoom, isOwn)))
+      tooltip.update()
     }
   }
 
@@ -252,9 +259,10 @@ export class SegmentOverlay {
       }
     }
     // T418/V310: render bindaa tooltipit UUDELLEEN ∴ pelkkä `zoomend`-kuuntelija jättäisi
-    // uudelleenpiirretyt laput syntymätilaansa: pätkän mutaatio kauas zoomattuna → laput
-    // ilmestyisivät takaisin ilman yhtään zoomia. Sama katvealue kuin `markers.ts:244`.
-    this.applyLabelZoomGate()
+    // uudelleenpiirretyt laput syntymäkokoonsa: pätkän mutaatio kauas zoomattuna → laput
+    // hyppäisivät täyteen kokoon ilman yhtään zoomia. Sama katvealue kuin `markers.ts:244`
+    // ("zoom-skaala ! soveltaa uudelleen — yksi paikka, ⊥ neljä kutsupaikkaa jotka unohtavat").
+    this.applyLabelZoomScale()
   }
 
   clear(): void {

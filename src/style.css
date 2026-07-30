@@ -3629,13 +3629,18 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   /* B106: tausta on AINA tumma (fixed navy) → tekstin oltava AINA vaalea. Aiemmin var(--text-body)
      → vaaleassa teemassa tumma teksti tummalla pillillä = lukukelvoton ("Pätkä 1 ei näy"). */
   color: #fff;
-  font-size: 11px;
+  /* T419/V309-amend: lappu KUTISTUU zoomin mukana kuten merkki-ikoni (`marker-scale.ts`) —
+     ⊥ katoa milloinkaan. `--label-scale` (0,4…1) tulee `segment-overlay.ts`:stä `zoomend`issä.
+     Skaala on font-size+padding calc:illa ⊥ `transform`illa: Leaflet omistaa tooltipin
+     `transform`in (translate3d-positio) & ylikirjoittaisi sen. Pilleri kutistuu tekstin
+     MUKANA ∴ kaukana on pieni pilleri, ⊥ iso laatikko pikkutekstin ympärillä. */
+  font-size: calc(11px * var(--label-scale, 1));
   font-weight: 700;
   font-family: var(--font-ui);
   /* T347: lappu on klikattava sisääntulo ∴ osumapinta kasvaa 17px → ~26px. 44px-sääntöä (§A) EI
      täytetä — kirjattu poikkeus (DESIGN.md §K SegmentLabel): 44px-lappu peittäisi naapuripätkän
      reitin tiheässä ruudukossa, & tämän sisääntulon käyttäjä on järjestäjä (desktop+hiiri). */
-  padding: 6px 8px;
+  padding: calc(6px * var(--label-scale, 1)) calc(8px * var(--label-scale, 1));
   border-radius: var(--radius-sm);
   white-space: nowrap;
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
@@ -3652,20 +3657,13 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   /* B136/V253: --segment-done, EI --confirm. Lappu istuu kiinteällä navyllä (B106) kartan
      päällä ∴ se on karttapintaa: reunuksen ! täsmätä viivan JS-väriin joka ei vaihdu teemasta. */
   border: 2px solid var(--segment-done);
-  padding: 5px 7px; /* 6px 8px − 1px reunan kasvu ∴ lapun ulkomitta & osumapinta säilyy (T347) */
+  /* 6px 8px − 1px reunan kasvu ∴ lapun ulkomitta & osumapinta säilyy (T347). Skaalaus T419. */
+  padding: calc(5px * var(--label-scale, 1)) calc(7px * var(--label-scale, 1));
 }
 /* V142: talkoolaisen näkymä — muiden tehtävien nimilaput himmeät (konteksti, ei fokus). */
 .segment-label--dim {
   opacity: 0.4;
   font-weight: 600;
-  pointer-events: none;
-}
-/* T418/V309/V311: kaukaa zoomattuna lappu on pois — järjestäjän yleiskuva ⊥ hukku nimiin.
-   `pointer-events:none` on PAKOLLINEN pari `opacity:0`:lle: lappu on klikattava sisääntulo
-   (T347) ∴ pelkkä läpinäkyvyys jättäisi näkymättömän osumapinnan keskelle karttaa, joka
-   avaisi modaalin kohteesta jota ⊥ ole ruudulla. Luokan toggloi `segment-overlay.ts`. */
-.segment-label--hidden {
-  opacity: 0;
   pointer-events: none;
 }
 
