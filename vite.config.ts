@@ -17,6 +17,7 @@ const ISOLATED = [
   'tests/t158-sign-visual.test.ts',
   'tests/t309-marker-drag-rollback.test.ts',
   'tests/t335-marker-focus-map.test.ts',
+  'tests/t416-claimable-marker.test.ts',
   'tests/t237-comment-focus-dim.test.ts',
   'tests/t397-gps-pane.test.ts',
   // (b) moduulitason tila / history / sessionStorage

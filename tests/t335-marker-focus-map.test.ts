@@ -106,9 +106,9 @@ describe('MarkerManager.setFocusSegment (T335/V243)', () => {
     expect(mgr.hasFocusSegment()).toBe(false)
   })
 
-  it('locked (talkoolainen, V142) lisää lukkoluokan — järjestäjällä ei', () => {
+  it("lock:'locked' lisää lukkoluokan — järjestäjän 'vapaa' ei (V142/V270)", () => {
     const a = setup()
-    a.mgr.setFocusSegment(SEGMENT, { locked: true })
+    a.mgr.setFocusSegment(SEGMENT, { lock: 'locked' })
     expect(a.elOut.classList.contains('marker-dimmed--locked')).toBe(true)
 
     const b = setup()
@@ -119,7 +119,7 @@ describe('MarkerManager.setFocusSegment (T335/V243)', () => {
 
   it('status-päivitys ⊥ pudota fokus-luokkaa (setIcon korvaa elementin)', () => {
     const { mgr, elOut } = setup()
-    mgr.setFocusSegment(SEGMENT, { locked: true })
+    mgr.setFocusSegment(SEGMENT, { lock: 'locked' })
     mgr.updateStatus('m-out', 'aseta')
     expect(elOut.classList.contains('marker-dimmed')).toBe(true)
     expect(elOut.classList.contains('marker-dimmed--locked')).toBe(true)

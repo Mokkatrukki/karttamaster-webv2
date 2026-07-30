@@ -38,6 +38,7 @@ import type { SegmentPanel } from '../ui/segment-panel'
 import { mapMode, type MapMode, type MapModeState } from '../logic/map-mode'
 import { initMapModeToggle } from '../ui/map-mode-toggle'
 import { createGpsControl } from '../ui/gps-control'
+import { createMarkerClaimSheet } from '../ui/marker-claim-sheet'
 import { gpsControlState } from '../logic/gps-follow'
 
 // T307/V218: `document.body.dataset.mapMode` asetetaan TÄSTÄ yhdestä paikasta (CSS-korostus
@@ -269,10 +270,48 @@ function wireMarkersInner(
   // T335/V243: talkoolaisella korostus on AUTOMAATTI, ei kytkin — hän katsoo vain omaa pätkäänsä
   // (max 2 nappia -periaate: ei kolmatta valintaa metsässä). Sama omistajapäättely kuin
   // `segmentOverlay.setContextOwn` (segments-wiring) → yksi lähde, ei toisintoa.
-  // locked: himmennetty ei ota klikkejä — talkoolaisen vieras merkki on read-only (V142).
+  // T416/V306: lukko on `claimable` ⊥ `locked` — himmennetty merkki pysyy read-onlyna (⊥ raahaus,
+  // ⊥ status, ⊥ kenttämuokkaus) mutta ottaa YHDEN klikin joka avaa "Lisää tehtävääni" -lehtisen.
   if (talkoolainenCode) {
     const own = getSegmentForCode(segmentStore, talkoolainenCode)
-    if (own) markerManager.setFocusSegment(own, { locked: true, peers: segmentPeers(segmentStore, own) })
+    if (own) markerManager.setFocusSegment(own, { lock: 'claimable', peers: segmentPeers(segmentStore, own) })
+  }
+
+  // T416/V305/V306: vieraan merkin liitos omaan tehtävään. Sama jaettu apuri kuin järjestäjän
+  // polulla ∴ additiivisuus & idempotenssi ovat identtiset (V305). Serveri laskee unionin
+  // uudelleen (V307) ∴ vanhentunut client ⊥ voi typistää listaa.
+  const claimSheet = createMarkerClaimSheet((markerId) => {
+    const code = talkoolainenCode
+    if (!code) return
+    const own = getSegmentForCode(segmentStore, code)
+    if (!own) return
+    const next = addMarkersToSegment(own, [markerId])
+    if (next === own) {
+      showWarning('Merkki kuuluu jo tehtävääsi', 3000)
+      return
+    }
+    updateSegment(segmentStore, own.id, {
+      linkedMarkerIds: next.linkedMarkerIds,
+      excludedMarkerIds: next.excludedMarkerIds,
+    })
+    const flagErr = (): void => showWarning('⚠ Merkin lisäys ei tallentunut — yritä uudelleen', 5000)
+    updateSegmentRemote(own.id, { linkedMarkerIds: next.linkedMarkerIds })
+      .then(ok => { if (!ok) flagErr() })
+      .catch(() => flagErr())
+    // Jäsenyys muuttui → fokus, lista & kartta ! lukea sama uusi joukko (⊥ vanha korostus).
+    const updated = segmentStore.get(own.id)
+    if (updated) markerManager.setFocusSegment(updated, { lock: 'claimable', peers: segmentPeers(segmentStore, updated) })
+    renderSegmentOverlay()
+    if (updated) segmentView?.update(getMarkersForSegment(updated, markerManager.getAll(), segmentPeers(segmentStore, updated)), updated)
+    showWarning('✓ Merkki lisätty tehtävääsi', 3000)
+  })
+  if (talkoolainenCode) {
+    markerManager.setClaimHandler((id) => {
+      const m = markerManager.getAll().find(x => x.id === id)
+      const own = getSegmentForCode(segmentStore, talkoolainenCode)
+      if (!m || !own) return
+      claimSheet.open(m, own.displayName?.trim() || 'oma tehtävä')
+    })
   }
 
   // T309/V221: siirron km-akseli = talkoolaisen oman pätkän PRIMARY-reitti (⊥ lähin reitti yli

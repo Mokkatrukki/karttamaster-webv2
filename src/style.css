@@ -3438,6 +3438,70 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   backdrop-filter: blur(2px);
   z-index: 3000;
 }
+
+/* T416/V306: MarkerClaimSheet — himmennetyn merkin ainoa toiminto. Bottom sheet ⊥ keskitetty
+   modaali: talkoolainen napautti merkkiä KARTALLA ∴ vastaus tulee alhaalta & jättää kartan
+   näkyviin (sama kuvio kuin .marker-overview ≤700px, B160/V274). Kaksi nappia, ⊥ kenttiä. */
+.marker-claim-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 3000;
+  touch-action: none;
+  overscroll-behavior: none;
+}
+.marker-claim-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+  background: var(--surface-card);
+  border-top: 1px solid var(--border-default);
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.32);
+  z-index: 3001;
+}
+@media (min-width: 701px) {
+  /* Desktopilla (järjestäjä talkoo-layoutissa, T274) sheet kapenee kortiksi keskelle alalaitaa. */
+  .marker-claim-sheet {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: min(420px, 94vw);
+    bottom: 16px;
+    border-radius: 14px;
+    border: 1px solid var(--border-default);
+  }
+}
+.marker-claim-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.marker-claim-titles { min-width: 0; }
+.marker-claim-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-body);
+}
+.marker-claim-meta {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+.marker-claim-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.marker-claim-confirm { min-height: 52px; }
+.marker-claim-close { min-height: 44px; }
 .equipment-modal {
   position: fixed;
   top: 50%;
@@ -3550,6 +3614,13 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
    PYSYY klikattavana — korostus on lukemisen apu, ei lukko ∴ luokkia on kaksi eikä CSS
    arvaa roolia. */
 .marker-dimmed--locked { pointer-events: none; }
+/* T416/V306: KOLMAS tila — himmennetty merkki jonka talkoolainen voi ottaa omaan tehtäväänsä.
+   Ottaa klikin (⊥ `pointer-events:none`) mutta EI muokkausta: klikki menee rajoitettuun
+   lehtiseen, raahaus estyy `draggableFn`illa (V150) & kursori kertoo että pinta on elävä. */
+.marker-dimmed--claimable {
+  pointer-events: auto;
+  cursor: pointer;
+}
 
 /* ── Segment label (Leaflet tooltip) ── */
 .segment-label {

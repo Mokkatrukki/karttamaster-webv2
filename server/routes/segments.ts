@@ -204,7 +204,26 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
         // sallitussa joukossa kuin rajat. Muuten talkoolaisen siirto tallentaisi rajat mutta
         // jättäisi vanhan jäljen → jäsenyys (V259) jäisi vastaamaan rajaa jota ei enää ole.
         track: raw.track,
+        // T416/V307: merkkiliitos on talkoolaiselle sallittu MUTTA vain ADDITIIVISENA — arvo
+        // lasketaan alla unionina, ⊥ oteta clientin listaa totuutena. Ilman tätä kenttää
+        // "Lisää tehtävääni" näyttäisi onnistuvan & katoaisi reloadissa (hiljainen datahäviö).
+        linkedMarkerIds: raw.linkedMarkerIds,
+        // `excludedMarkerIds` EI ole listalla: poisto on järjestäjän oikeus (V307).
       }
+
+  // T416/V307: talkoolaisen patch = `existing ∪ body` ∴ hän ⊥ voi poistaa toisen lisäystä eikä
+  // nollata listaa VANHENTUNEELLA clientilla (offline-outbox voi lähettää vanhan listan —
+  // korvaus söisi välissä tehdyt lisäykset). Järjestäjän patch säilyy KORVAAVANA: hän omistaa
+  // listan & poisto tapahtuu vain hänen kautta.
+  const linkedPatch = ((): string | null => {
+    if (!('linkedMarkerIds' in body) || body.linkedMarkerIds === undefined) return existing.linked_marker_ids
+    if (isOrganizer) {
+      return body.linkedMarkerIds.length > 0 ? JSON.stringify(body.linkedMarkerIds) : null
+    }
+    const current: string[] = existing.linked_marker_ids ? (JSON.parse(existing.linked_marker_ids) as string[]) : []
+    const union = [...current, ...body.linkedMarkerIds.filter(id => !current.includes(id))]
+    return union.length > 0 ? JSON.stringify(union) : null
+  })()
 
   const now = new Date().toISOString()
   db.run(
@@ -228,10 +247,8 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
       body.inspected !== undefined ? (body.inspected ? 1 : 0) : existing.inspected,
       body.inspectionNote !== undefined ? body.inspectionNote : existing.inspection_note,
       body.completed !== undefined ? (body.completed ? 1 : 0) : existing.completed,
-      // V140: merkkiliitos vain järjestäjän patchissa (talkoolaisen body ei sisällä näitä avaimia)
-      'linkedMarkerIds' in body
-        ? (body.linkedMarkerIds && body.linkedMarkerIds.length > 0 ? JSON.stringify(body.linkedMarkerIds) : null)
-        : existing.linked_marker_ids,
+      // V140/V307: järjestäjän patch KORVAA, talkoolaisen on UNIONI (laskettu yllä).
+      linkedPatch,
       'excludedMarkerIds' in body
         ? (body.excludedMarkerIds && body.excludedMarkerIds.length > 0 ? JSON.stringify(body.excludedMarkerIds) : null)
         : existing.excluded_marker_ids,

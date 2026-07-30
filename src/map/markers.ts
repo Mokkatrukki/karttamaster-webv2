@@ -27,6 +27,10 @@ import { defaultMapFilter, markerVisibility } from '../logic/map-filter'
 import type { MembershipSegment } from '../logic/segment-membership'
 import type { TaskMarkerSource } from '../logic/task-markers'
 
+// T416/V306/V270-amend: himmennetyn merkin interaktio-oikeus. Kolme arvoa ⊥ boolean — 'claimable'
+// (yksi sallittu toiminto) on oma tila jonka boolean niputtaisi 'locked'iin hiljaa.
+export type FocusLock = 'vapaa' | 'claimable' | 'locked'
+
 interface RouteRef { id: string; routePoints: RoutePoint[] }
 
 // V99/T160: kompakti kartta-teksti johdetaan labelista (custom-tyypeille; default-tyypit käyttävät nuolta)
@@ -54,9 +58,12 @@ export class MarkerManager {
   private focusSegment: TaskMarkerSource | undefined = undefined
   // V259: fokusjoukon kilpailijat — sama kanoninen jäsenyys kuin pätkän listalla (ck:check).
   private focusPeers: MembershipSegment[] = []
-  // V142: talkoolaisen näkymässä himmennetty merkki on myös read-only (pointer-events pois);
-  // järjestäjällä himmennetty PYSYY klikattavana — korostus on lukemisen apu, ⊥ lukko.
-  private focusLocked = false
+  // V142/V270 + T416/V306: himmennetyn merkin interaktio-oikeus on KOLMIARVOINEN. Järjestäjä
+  // saa 'vapaa' (hän omistaa kaiken), talkoolainen 'claimable' (yksi toiminto: lisää tehtävääni).
+  // 'locked' on jäljellä täydelle read-onlylle — boolean ei riittäisi erottamaan kahta viimeistä.
+  private focusLock: FocusLock = 'vapaa'
+  // T416/V306: 'claimable'-merkin klikkiväylä. null = kyky ⊥ kytketty → merkki ⊥ ota klikkiä.
+  private onClaimClick: ((id: string) => void) | null = null
   private dimmedIds = new Set<string>()
   // T376/T377/V271: suodatin päättää näkyvyyden (`full|dim|hidden`) — manager SOVELTAA.
   // Erillään fokuksesta: fokus on hetken työkalu, suodatin on persistoitu näkymätila, & merkki
@@ -145,12 +152,26 @@ export class MarkerManager {
   }
 
   // T335/V243: kartan fokus-tila — HIMMENNÄ muut, ⊥ piilota. `undefined` nollaa.
-  // `locked` = himmennetty ei ota klikkejä (talkoolainen, V142).
-  setFocusSegment(segment: TaskMarkerSource | undefined, opts: { locked?: boolean; peers?: MembershipSegment[] } = {}): void {
+  // T416/V306/V270-amend: `lock` on KOLMIARVOINEN ⊥ boolean:
+  //   'vapaa'     = järjestäjä — himmennetty pysyy täysin klikattavana (hän omistaa kaiken)
+  //   'claimable' = talkoolainen — himmennetty ⊥ muokattavissa MUTTA ottaa yhden klikin
+  //                 ("Lisää tehtävääni", T416); klikki kulkee `onClaimClick`iin ⊥ detail-modaaliin
+  //   'locked'    = himmennetty ⊥ ota klikkejä lainkaan (`pointer-events:none`)
+  // Boolean sallisi 'claimable'in luiskahtaa 'locked'iksi hiljaa ∴ tyyppi pakottaa valinnan.
+  setFocusSegment(
+    segment: TaskMarkerSource | undefined,
+    opts: { lock?: FocusLock; peers?: MembershipSegment[] } = {},
+  ): void {
     this.focusSegment = segment
     this.focusPeers = opts.peers ?? []
-    this.focusLocked = opts.locked ?? false
+    this.focusLock = opts.lock ?? 'vapaa'
     this.recomputeFocus()
+  }
+
+  // T416/V306: himmennetyn merkin AINOA toiminto talkoolaiselle. Kytkemättä `claimable`-tila
+  // käyttäytyy kuin 'locked' (kyky on opt-in) ∴ puolikas kytkentä ⊥ avaa muokkauspintaa.
+  setClaimHandler(cb: (id: string) => void): void {
+    this.onClaimClick = cb
   }
 
   // T377/V271: suodatin kartalle. `ctx.isolatedMarkerIds` tulee wiringistä (V259-jäsenyys) —
@@ -209,7 +230,14 @@ export class MarkerManager {
     const focusDim = this.dimmedIds.has(id)
     const dim = focusDim || this.filterDimmedIds.has(id)
     el.classList.toggle('marker-dimmed', dim)
-    el.classList.toggle('marker-dimmed--locked', focusDim && this.focusLocked)
+    // T416/V306: 'claimable' on OMA kanava ⊥ `--locked`in poisto — luokat ovat toisensa
+    // poissulkevia. Ilman kytkettyä käsittelijää 'claimable' käyttäytyy kuin 'locked' (opt-in).
+    const claimable = focusDim && this.focusLock === 'claimable' && this.onClaimClick !== null
+    el.classList.toggle('marker-dimmed--claimable', claimable)
+    el.classList.toggle(
+      'marker-dimmed--locked',
+      focusDim && (this.focusLock === 'locked' || (this.focusLock === 'claimable' && !claimable)),
+    )
   }
 
   // Leafletin `setIcon` korvaa DOM-elementin ∴ KAIKKI elementtiin kirjoitettu tila (luokat +
@@ -648,6 +676,13 @@ export class MarkerManager {
     // addEventListener('click', ...) on the element does not get that suppression.
     lm.on('click', (e) => {
       L.DomEvent.stopPropagation(e)
+      // T416/V306: 'claimable'-merkki EI avaa detail-modaalia (siinä on muokkauskentät joita
+      // talkoolainen ⊥ omista) vaan rajoitetun lehtisen. Luokka on totuus samasta lähteestä
+      // kuin CSS ∴ väylät ⊥ voi olla eri mieltä.
+      if (lm.getElement()?.classList.contains('marker-dimmed--claimable')) {
+        this.onClaimClick?.(m.id)
+        return
+      }
       this.onMarkerClick?.(m.id)
     })
   }
