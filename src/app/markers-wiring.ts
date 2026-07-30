@@ -5,7 +5,10 @@ import { RouteBar } from '../map/route-bar'
 import { RouteVisibilityControl } from '../map/route-visibility-control'
 import { MapFilterBar } from '../ui/map-filter-bar'
 import type { MapFilter } from '../logic/map-filter'
-import { isolatedMarkerIds, orphanMarkerIds } from '../logic/map-filter'
+import { isolatedMarkerIds, orphanMarkerIds, loadMapFilter } from '../logic/map-filter'
+import { MarkerOverviewPanel } from '../ui/marker-overview-panel'
+import { getActivePhase } from '../logic/phase-view'
+import { getSegmentsForPhase } from '../logic/segments'
 import { ProgressBar } from '../ui/progress-bar'
 import { PlaceMode } from '../ui/place-mode'
 import { renderMarkerList } from '../ui/marker-list'
@@ -155,8 +158,16 @@ export function wireMarkers(
     markerDetailModal?.open(id)
   }
 
+  // T402: merkkilistanäkymät päivittyvät YHDESTÄ paikasta. `renderMarkerList` toistui neljässä
+  // kutsupaikassa ∴ uusi näkymä olisi joutunut toistumaan niissä samoissa neljässä.
+  let markerOverview: MarkerOverviewPanel | null = null
+  const refreshMarkerViews = (highlightId?: string): void => {
+    renderMarkerList(markerManager, highlightId, currentSegmentMarkerIds(), signLibrary, onOpenMarkerDetail, markerPendingIds())
+    markerOverview?.render()
+  }
+
   const markerManager = new MarkerManager(map, routes, () => {
-    renderMarkerList(markerManager, undefined, currentSegmentMarkerIds(), signLibrary, onOpenMarkerDetail, markerPendingIds())
+    refreshMarkerViews()
     progressBar.refreshDots()
     statusPanel?.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
     segmentPanel.refreshCounts()
@@ -193,7 +204,7 @@ export function wireMarkers(
     () => signLibrary,
     getRole,
     () => {
-      renderMarkerList(markerManager, undefined, currentSegmentMarkerIds(), signLibrary, onOpenMarkerDetail, markerPendingIds())
+      refreshMarkerViews()
       progressBar.refreshDots()
     },
     // T225/V151: talkoolaisen oma koodi → kova-poisto vain oman itse-luoman merkin kohdalla.
@@ -241,7 +252,7 @@ export function wireMarkers(
   // Käsittelijä kattaa myös 2xx-vahvistuksen (avain poistuu → korostus katoaa).
   setOutboxChangeHandler((keys) => {
     markerManager.setPendingKeys(keys)
-    renderMarkerList(markerManager, undefined, currentSegmentMarkerIds(), signLibrary, onOpenMarkerDetail, markerPendingIds())
+    refreshMarkerViews()
   })
   // Edellisen session vahvistamattomat kirjoitukset voivat olla vielä jonossa käynnistyessä.
   markerManager.setPendingKeys(outbox.pendingResourceKeys())
@@ -519,16 +530,44 @@ export function wireMarkers(
   const markerModal = document.getElementById('marker-modal')!
 
   const openMarkerModal = (highlightId?: string) => {
-    renderMarkerList(markerManager, highlightId, currentSegmentMarkerIds(), signLibrary, onOpenMarkerDetail, markerPendingIds())
+    refreshMarkerViews(highlightId)
     markerModalBackdrop.classList.add('open')
     markerModal.classList.add('open')
+  }
+
+  // T402/V290: järjestäjän merkkijono — telakoitu paneeli, ⊥ modaali. `#btn-list` togglaa sen.
+  // Talkoolaiselle paneelia ⊥ luoda lainkaan: hänen "Kaikki merkit" on koti-tab (V183/V184) &
+  // `#btn-list` on häneltä piilotettu jo T264:ssä.
+  const markerOverviewEl = document.getElementById('marker-overview')
+  if (markerOverviewEl && !isTalkoolainen) {
+    markerOverview = new MarkerOverviewPanel(markerOverviewEl, {
+      getMarkers: () => markerManager.getAll(),
+      // V290/V91: VAIN aktiivisen vaiheen pätkät — sama fyysinen merkki elää eri pätkäjaossa
+      // eri vaiheessa ∴ vaiheiden yli koottu lista näyttäisi sen monta kertaa eri omistajilla.
+      getSegments: () => getSegmentsForPhase(segmentStore, getActivePhase()),
+      // V271: suodatin luetaan barista kun se on; muuten persistoidusta tilasta (sama lähde).
+      getFilter: () => mapFilterBar?.getFilter() ?? loadMapFilter(),
+      onPanTo: id => markerManager.panTo(id),
+      onOpenDetail: onOpenMarkerDetail,
+      // T179-oppi: telakka muuttaa #map-arean leveyttä → Leaflet ! saada tietää.
+      onVisibilityChange: () => map.invalidateSize(),
+    })
+    // T402: panorointi kompensoi telakan leveyden ∴ "näytä kartalla" ⊥ osoita paneelin alle.
+    markerManager.setPanPaddingRight(() => markerOverview?.visibleWidth() ?? 0)
+    markerOverview.render()
   }
   const closeMarkerModal = () => {
     markerModalBackdrop.classList.remove('open')
     markerModal.classList.remove('open')
   }
 
-  document.getElementById('btn-list')!.addEventListener('click', () => openMarkerModal())
+  // T402: järjestäjä → merkkijono-telakka; talkoolainen ⊥ pääse tänne (#btn-list piilotettu
+  // CSS:llä T264/V184). Vanha modaali jää toistaiseksi talkoolaisen kuolleeksi haaraksi ∴ se
+  // poistuu T404:ssä kokonaan.
+  document.getElementById('btn-list')!.addEventListener('click', () => {
+    if (markerOverview) markerOverview.toggle()
+    else openMarkerModal()
+  })
 
   // T264/V184: yläpalkin "🎒 Varustelista" -nappi POISTETTU — varuste on nyt koti-Varustelista-tab
   // (inline SegmentEquipment). EquipmentModal avautuu yhä koti-tabin "✎ Muokkaa varusteita" -napista.

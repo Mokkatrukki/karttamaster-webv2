@@ -5803,3 +5803,179 @@ body[data-map-mode="muokkaus"] #map-filter-bar:not([hidden]) ~ .marker-focus-pil
   min-height: 44px;
   text-align: left;
 }
+
+/* ── MarkerOverviewPanel (T402/V290): järjestäjän merkkijono ──────────────────────────────
+   Telakoitu paneeli #app-mainin kolmantena lapsena — ⊥ modaali & ⊥ overlay: rivin klikkaus
+   liikuttaa karttaa ∴ kartta ! pysyä näkyvänä (V114). Left-panel torjuttiin mitatulla
+   perusteella: sen sisältöleveys on 240px eikä `.marker-item`in 5 elementtiä mahdu siihen. */
+.marker-overview {
+  width: min(380px, 100vw);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface-app);
+  border-left: 1px solid var(--border-subtle);
+}
+.marker-overview[hidden] { display: none; }
+
+/* Vain järjestäjälle. CSS-selektori ⊥ `data-role-hide`-attribuutti: jälkimmäinen on
+   kertaluontoinen eikä reagoi T274:n live-view-flippiin (U7/GpkgControls-oppi). */
+body[data-role="talkoolainen"] .marker-overview { display: none; }
+
+.marker-overview-header { border-bottom: 1px solid var(--border-default); }
+
+.marker-overview-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* §R/B108: sisäinen scroll-alue pysäyttää scroll-chainingin — reunaan asti scrollattu
+     liike ⊥ valu taustan karttaan. */
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+}
+
+.marker-overview-group { display: block; }
+.marker-overview-group-header { background: none; }
+
+.marker-overview-subhead {
+  margin: 0;
+  padding: 6px 12px 2px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.marker-overview-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Suodattimen ulkopuolella -ryhmä on jäännös ⊥ työjono: himmeä mutta LUETTAVA (V290 —
+   se on olemassa juuri siksi ettei luku katoaisi hiljaa). */
+.marker-overview-group[data-group="suodatettu"] .marker-overview-list,
+.marker-overview-group[data-group="suodatettu"] .marker-overview-subhead {
+  opacity: 0.55;
+}
+
+.marker-overview-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 0 10px;
+  min-height: 44px; /* §R/§A pakollinen */
+  border-bottom: 1px solid var(--border-card);
+}
+.marker-overview-item:hover { background: var(--hover); }
+
+/* Rivin klikkauspinta = oikea <button> (V268: natiivi nappi tuo fokuksen, Enter/Space JA
+   näkyvyyden kosketusvahdille joka valitsee `button, [role=button]`). */
+.marker-overview-row {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.marker-overview-row .marker-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-width: 28px;
+}
+.marker-overview-row .marker-type-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-body);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.marker-overview-row .marker-km {
+  font-size: 11px;
+  color: var(--text-meta);
+  flex-shrink: 0;
+}
+
+.marker-overview-menu {
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  background: none;
+  border: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+}
+.marker-overview-menu:hover { color: var(--text-body); }
+
+.marker-overview-empty {
+  margin: 0;
+  padding: 14px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.marker-overview-done { color: var(--confirm); font-weight: 600; }
+
+/* Sticky-toimintopalkki (jaettu sopimus T311/V223): scroll-sisällön VIIMEINEN lapsi flow'ssa
+   + position:sticky. `fixed` on kielletty — se vaatisi käsin ylläpidettävän padding-bottomin
+   joka mätänee (B101). Palkki omistaa alalaidan välistyksen. */
+.marker-overview-actionbar {
+  margin-top: auto;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  background: var(--surface-app);
+  border-top: 1px solid var(--border-subtle);
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.marker-overview-note {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+.marker-overview-create {
+  width: 100%;
+  min-height: 52px;
+}
+/* V250: disabloitu tila ! näkyä. Jaetut `.btn--*` ⊥ määrittele `:disabled`ia ∴ ilman tätä
+   nappi näyttäisi painettavalta & klikkaus ⊥ tekisi mitään (kuollut pinta). */
+.marker-overview-create:disabled,
+.marker-overview-create.is-disabled {
+  background: var(--field-tint);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* ≤700px: telakka irtoaa bottom sheetiksi. Kartta jää YLÄPUOLELLE näkyviin — ⊥ full-screen,
+   koska panorointi on toiminnon toinen puoli (sama kuvio kuin .map-filter-groups, B160/V274). */
+@media (max-width: 700px) {
+  .marker-overview {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 70dvh;
+    z-index: 1200; /* yli #map-filter-barin (1100) & hero-kortin (1000) */
+    border-left: 0;
+    border-top: 1px solid var(--border-default);
+    box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.28);
+  }
+}
