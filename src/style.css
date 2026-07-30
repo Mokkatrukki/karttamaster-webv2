@@ -3607,6 +3607,16 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
     box-shadow: none;
   }
 
+  /* B170/V302: AVATTU paneeli on overlay-laatikko ∴ se ! olla suodatinbarin PÄÄLLÄ.
+     `#map-filter-bar` on `z-index:1100` (dropdownit kartan & hero-kortin yli) & paneeli oli
+     500 ∴ bar peitti `#left-panel-toggle`in (44×44 @ x209-253) & nappasi klikin — paneelia
+     ⊥ saanut kiinni lainkaan. 1150 ⊥ 1200: `.marker-overview`-pohjalevy (1200, ≤700px) ! jäädä
+     ylimmäksi. KUTISTETTU 32px kaista pysyy 500:ssa — bar sisentyy 40px sen ohi (T181) ∴ ⊥
+     konfliktia & kartta-alue ⊥ menetä barin leveyttä turhaan. */
+  #left-panel:not(.collapsed) {
+    z-index: 1150;
+  }
+
   /* T233/V155: talkoolaisen yläpalkki (Kaikki merkit + Varustelista + ⋯) ei saa hajota
      kapealla mobiililla (≤360px). Tiivistä napit + salli brändin kutistua (ellipsis),
      44px-touch säilyy (global button min-height). */
