@@ -123,7 +123,7 @@ async function init(talkoolainenCode?: string) {
     (msg) => showWarning(msg, 2500),
   )
 
-  const { markerManager, driveMode, progressBar, placeMode, markerModal, closeMarkerModal, mapFilterBar } = wireMarkers(
+  const { markerManager, driveMode, progressBar, placeMode, markerOverview, mapFilterBar } = wireMarkers(
     map, routes, polylines, initialMarkers, talkoolainenCode,
     {
       segmentStore, renderSegmentOverlay, segmentPanel, showWarning, gpsNavigator,
@@ -168,7 +168,8 @@ async function init(talkoolainenCode?: string) {
       if (segmentPanel.isCreationMode()) { segmentPanel.cancelCreation(); return }
       if (segmentOverlay.isEditMode())   { segmentOverlay.exitEditMode(); return }
       if (placeMode.isPickerOpen())      { placeMode.closePicker();   return }
-      if (markerModal.classList.contains('open')) { closeMarkerModal(); return }
+      // T404: merkkijono-telakka korvasi `#marker-modal`in samassa kohdassa ketjua.
+      if (markerOverview?.isOpen())      { markerOverview.close();   return }
       if (driveMode.isActive()) { driveMode.stop(); progressBar.update(0) }
       return
     }

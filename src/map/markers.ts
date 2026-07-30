@@ -470,9 +470,29 @@ export class MarkerManager {
     this.onUpdate()
   }
 
+  // T402: panorointi ! kompensoida oikean reunan telakka (MarkerOverviewPanel). `setView` ⊥ tue
+  // paddingia ∴ yhden pisteen `fitBounds` + `paddingBottomRight` — muuten "näytä kartalla"
+  // osoittaa paneelin ALLE & näkymän ydintoiminto on rikki. Yksi toteutus ∴ kaikki kutsujat
+  // (markers-wiring 3 kpl + merkkijono) pysyvät oikeina ilman roolihaaraa; kiinni oleva
+  // paneeli antaa leveyden 0 ∴ käytös on entinen.
+  private panPaddingRight: () => number = () => 0
+
+  setPanPaddingRight(fn: () => number): void {
+    this.panPaddingRight = fn
+  }
+
   panTo(id: string): void {
     const m = this.markers.find((x) => x.id === id)
-    if (m) this.map.setView([m.lat, m.lon], this.map.getZoom())
+    if (!m) return
+    const pad = this.panPaddingRight()
+    if (pad <= 0) {
+      this.map.setView([m.lat, m.lon], this.map.getZoom())
+      return
+    }
+    this.map.fitBounds([[m.lat, m.lon], [m.lat, m.lon]], {
+      paddingBottomRight: [pad, 0],
+      maxZoom: this.map.getZoom(),
+    })
   }
 
   setOnMarkerClick(cb: (id: string) => void): void {

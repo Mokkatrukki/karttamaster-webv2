@@ -164,7 +164,7 @@ test('admin_desktop_area-details-modal', async ({ page }) => {
   await snap(page, 'admin_desktop_area-details-modal')
 })
 
-test('admin_desktop_marker-modal', async ({ page }) => {
+test('admin_desktop_marker-overview', async ({ page }) => {
   await mockAuthAsJarjestaja(page)
   await page.setViewportSize(DESKTOP)
   await page.goto('/')
@@ -173,7 +173,7 @@ test('admin_desktop_marker-modal', async ({ page }) => {
   await page.waitForTimeout(300)
   await page.click('#btn-list')
   await page.waitForTimeout(500)
-  await snap(page, 'admin_desktop_marker-modal')
+  await snap(page, 'admin_desktop_marker-overview')
 })
 
 test('admin_desktop_marker-detail-modal', async ({ page }) => {
@@ -185,7 +185,8 @@ test('admin_desktop_marker-detail-modal', async ({ page }) => {
   await page.waitForTimeout(300)
   await page.click('#btn-list')
   await page.waitForTimeout(500)
-  await page.locator('.marker-item').first().click()
+  // T404: rivin klikkaus panoroi; detail avautuu ···-napista.
+  await page.locator('.marker-overview-menu').first().click()
   await page.waitForTimeout(400)
   await snap(page, 'admin_desktop_marker-detail-modal')
 })
@@ -212,7 +213,7 @@ test('admin_mobile_initial', async ({ page }) => {
   await snap(page, 'admin_mobile_initial')
 })
 
-test('admin_mobile_marker-modal', async ({ page }) => {
+test('admin_mobile_marker-overview', async ({ page }) => {
   await mockAuthAsJarjestaja(page)
   await page.setViewportSize(MOBILE)
   await page.goto('/')
@@ -221,7 +222,7 @@ test('admin_mobile_marker-modal', async ({ page }) => {
   await page.waitForTimeout(300)
   await page.click('#btn-list')
   await page.waitForTimeout(500)
-  await snap(page, 'admin_mobile_marker-modal')
+  await snap(page, 'admin_mobile_marker-overview')
 })
 
 // --- Talkoolainen desktop ---

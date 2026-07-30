@@ -183,4 +183,27 @@ describe('displayKm (B129)', () => {
     const orpo = makeMarker({ id: 'orpo', distanceFromStart: 40000, distanceByRoute: { 'smtb-55': [40000] } })
     expect(displayKm(orpo, PATKA4)).toBe(40000)
   })
+
+  // T400: löytyi merkkijonon rakentamisessa. Vioittunut jälki (piste ilman `d`:tä) sai
+  // `kmAlongTrackM`in palauttamaan NaN, joka on `number` ∴ läpäisi tyypin & päätyi
+  // `onRoute`-ryhmään. NaN-vertailu tekee sort-komparaattorista epäjohdonmukaisen →
+  // järjestys sekoaa HILJAA. Nyt NaN → null = olemassa oleva "ei akselia" -tie.
+  it('vioittunut jälki (NaN-km) → null, ei hiljaa sekoitettua järjestystä', () => {
+    const rikki = {
+      ...PATKA4,
+      track: [
+        { lat: 65.0, lon: 27.0 },
+        { lat: 65.1, lon: 27.0 },
+      ],
+    } as unknown as Segment
+    const m = makeMarker({ id: 'x', distanceFromStart: 1000 })
+    expect(segmentKm({ ...m, lat: 65.05, lon: 27.0 }, rikki)).toBeNull()
+
+    const a = { ...makeMarker({ id: 'a', distanceFromStart: 9000 }), lat: 65.09, lon: 27.0 }
+    const b = { ...makeMarker({ id: 'b', distanceFromStart: 1000 }), lat: 65.01, lon: 27.0 }
+    const { onRoute, offRoute } = orderMarkersInSegment([a, b], rikki)
+    expect(onRoute).toEqual([])
+    // offRoute lajittuu omalla skalaarillaan — deterministinen, ei NaN-arpaa.
+    expect(offRoute.map(m => m.id)).toEqual(['b', 'a'])
+  })
 })

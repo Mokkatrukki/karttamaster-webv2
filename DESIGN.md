@@ -294,14 +294,31 @@ Kartan "mitä näkyy" -kontrollit YHDESSÄ paikassa: ohut bar `#map-arean` ensim
 - "Tuo GPKG": avaa piilotetun file-inputin, `min-height: 44px` (§R pakollinen)
 - `.gpkg-import-status`: `12px`, `text-muted`, `display:block` oman rivinsä — ei riko menun leveyttä (`min-width:200px` riittää)
 
-### Marker-modaali (`#marker-modal`)
+### MarkerOverviewPanel (`.marker-overview`, `src/ui/marker-overview-panel.ts`) — T402/V290 ✓
+Järjestäjän merkkijono: "mitkä merkit jäivät asettamatta ja miltä pätkiltä". Korvaa `#marker-modal`in (poistuu T404).
+- **Vain järjestäjä:** `body[data-role="talkoolainen"] .marker-overview{display:none}` — CSS-selektori ⊥ `data-role-hide` (jälkimmäinen on kertaluontoinen eikä reagoi T274:n live-view-flippiin, U7/GpkgControls-oppi).
+- **Sijainti = TELAKKA ⊥ modaali ⊥ left-panel-sektio.** `#app-main`in kolmas lapsi `#map-arean` jälkeen, `width:min(380px,100vw)`, `border-left:border-subtle`, `surface-app`, täysi korkeus. **⊥ backdropia ⊥ overlaytä** — rivin klikkaus panoroi karttaa ∴ kartta ! pysyä näkyvänä & klikattavana (V114). Modaali peittäisi juuri sen minkä toiminto liikuttaa = vanhan näkymän käyttämättömyyden syy. Left-panel torjuttu MITATULLA perusteella: sisältöleveys 240px ∴ `.marker-item`in 5 elementtiä (checkbox·ikoni·label·km·status) ⊥ mahdu & status-badge putoaisi; lisäksi 194 merkin lista veisi SignLibrary/SegmentPanel/AreaPanel-kolumnin foldin taakse.
+- **Avaus:** `#btn-list` togglaa (`aria-expanded`), Esc sulkee, otsikon `▼` sulkee (⊥ kaksi eri "kiinni"-tilaa samalle pinnalle). Tila `localStorage('karttamaster-marker-overview-open')` (V5-kuvio) — työjono johon palataan ⊥ nollaudu sivulatauksessa. Toggle muuttaa `#map-arean` leveyttä ∴ **`map.invalidateSize()` pakollinen** (T179).
+- **Otsikot:** `createSectionHeader` (T371/V267) kolmella tasolla — paneelin otsikko `[▼ Merkit (N)]`, ryhmäotsikko `[▼ Asettamatta (N)]`, alaotsikko `.marker-overview-subhead` (11px uppercase text-muted, sama typografia kuin left-panelin osioilla ∴ ⊥ uutta otsikkotasoa).
+- **Ryhmittely status → pätkä** (`marker-overview.ts`): `Asettamatta` · `Asetetut` · `Ei tarpeen` — SAMA kolmijako & sanat kuin talkoolaisen koti-tabissa (V184) ∴ sana tarkoittaa samaa molemmille rooleille. Alaryhmä per pätkä, omistajaton VIIMEISENÄ nimellä `Ei pätkää (N)`.
+- **Rivi = `.marker-item`** + `buildMarkerVisual` (T198, `size:28`): `[checkbox?][ikoni][nimi flex:1][km][status-badge][···]`, `min-height:44px` (§R/§A). Klikkauspinta on oikea `<button>` (`.marker-overview-row`) — natiivi nappi tuo fokuksen, Enter/Space & näkyvyyden kosketusvahdille (V268). `···` avaa MarkerDetailModalin; V62: ⊥ inline-poistoa rivillä.
+- **`Suodattimen ulkopuolella (N)`** = VIIMEINEN ryhmä, oletuksena **kiinni** (▶), `opacity:.55` mutta luettava. Kartan suodatin (V271) rajaa listaa mutta merkit ⊥ katoa hiljaa — lista jonka luku ⊥ täsmää karttaan luetaan rikkinäisenä datana (B131-luokka). Erillistä banneria ⊥ tarvita: MapFilterBarin oma banneri (V272) on jo näkyvissä.
+- **Sticky-toimintopalkki** (T311/V223): `.marker-overview-actionbar` = scroll-sisällön VIIMEINEN lapsi + `position:sticky;bottom:0` (⊥ `fixed`, B101), `surface-app` + `border-top`, `padding-bottom: calc(10px + env(safe-area-inset-bottom))`. Sisältö: `.marker-overview-note` (11px text-muted, V291-informaatio) + `[Luo tehtävä valituista (N)]` `.btn--confirm` `width:100%` `min-height:52px`. **Disabloitu tila ! näkyä** (`field-tint`+`text-muted`+`cursor:not-allowed`) — jaetut `.btn--*` ⊥ määrittele `:disabled`ia ∴ ilman omaa sääntöä nappi näyttäisi painettavalta & klikkaus ⊥ tekisi mitään (V250 kuollut pinta).
+- **Valinta (T403):** checkbox `22×22px` `accent-color:var(--accent)`. `Suodattimen ulkopuolella` -rivit ovat valinnan ULKOPUOLELLA (V298) — bulk ⊥ saa koskea riviin jota käyttäjä ⊥ näe kartalla; suodattimen muutos pudottaa kadonneet id:t valinnasta & laskuri päivittyy.
+- **Tyhjätilat:** ⊥ merkkejä → `"Ei merkkejä"`; kaikki asetettu → `"Kaikki merkit asetettu ✓"` (`--confirm`, `.marker-overview-done`) & lista jää selattavaksi — onnistuminen ⊥ ole tyhjä lista.
+- **≤700px = bottom sheet** (sama kuvio kuin `.map-filter-groups`, B160/V274): `position:fixed;bottom:0;width:100%;max-height:70dvh;z-index:1200` (yli MapFilterBarin 1100 & hero-kortin 1000), varjo ylös. Kartta jää YLÄPUOLELLE näkyviin — ⊥ full-screen, panorointi on toiminnon toinen puoli. Scroll-alue `overscroll-behavior:contain` (§R-sääntö).
+- **⊥ uusia värejä** ∴ §C ennallaan: `--surface-app`, `--border-subtle/default/card`, `--text-body/muted/meta`, `--confirm`, `--field-tint`, `--hover`.
+
+### ~~Marker-modaali (`#marker-modal`)~~ — KORVATTU T404:ssä
+**Poistettu 2026-07-30.** Korvaaja: §K MarkerOverviewPanel (telakka). Historia jää tänne V86-kuviolla, ⊥ poisteta — alla oleva kuvaus EI ole enää voimassa.
 - Tausta: `bg-card`, border: `border-default`, `border-radius: 14px`
 - Shadow: `0 16px 48px rgba(0,0,0,0.5)`
 - Backdrop: `overlay` + `backdrop-filter: blur(2px)`
 - Leveys järjestäjä: `min(560px, 92vw)`, `max-height: 82vh`
 - Leveys talkoolainen: `min(340px, 92vw)`, `max-height: 60vh` (tai T74 bottom sheet)
 
-### BulkStatusToolbar (`.bulk-status-toolbar`, järjestäjä-modal sisällä)
+### ~~BulkStatusToolbar (`.bulk-status-toolbar`)~~ — KORVATTU T404:ssä
+**Poistettu 2026-07-30.** Järjestäjän bulk-status elää nyt merkkijonon sticky-toimintopalkissa (`.marker-overview-status-row`, §K MarkerOverviewPanel) — kyky säilyi, kuori vaihtui.
 - Sijainti: `#marker-modal-header`:n jälkeen, ennen listaa — `position: sticky; top: 0`
 - Tausta: `surface-raised`, `border-bottom: border-subtle`, padding `8px 14px`
 - Kolme elementtiä flex-row: `[☐ Valitse kaikki]` + `[status-dropdown]` + `[Aseta-nappi]`
@@ -312,7 +329,8 @@ Kartan "mitä näkyy" -kontrollit YHDESSÄ paikassa: ohut bar `#map-arean` ensim
   - N = 0: `background: field-tint`, `color: text-muted`, `cursor: not-allowed`
 - Vain järjestäjälle: piilossa `[data-role="talkoolainen"]`
 
-### BulkActionBar talkoolainen (`.bulk-action-bar`, T17)
+### BulkActionBar talkoolainen (`.bulk-action-bar`, T17) — ⚠️ EI TOTEUTUKSESSA (T405)
+**Huom 2026-07-30:** tämä sopimus oli `marker-list.ts`:ssä joka poistui T404:ssä. Talkoolainen ⊥ ole päässyt siihen T264:n jälkeen (`#btn-list` piilotettu) ∴ kyky on ollut poissa jo ennen poistoa (V292). T405 palauttaa sen koti-tabin listaan TÄLLÄ sopimuksella.
 - Sijainti: `#marker-modal`:n alaosa — `position: sticky; bottom: 0`
 - Tausta: `surface-card`, `border-top: border-subtle`, padding `10px 14px`
 - Layout: `flex-wrap: wrap` — kaksirivinen 340px modaalissa:

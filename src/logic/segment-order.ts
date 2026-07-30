@@ -51,7 +51,12 @@ export function segmentKm(
   // km-akselia & jäsenyys jälkeä, mikä on B129:n suku (näyttö & järjestys eri akselilta).
   // Merkin lat/lon on totuus (V212) ∴ ehdokaslistoja ⊥ tarvita: jäljellä on vain yksi lähin kohta.
   if (segment.track && segment.track.length > 0) {
-    return kmAlongTrackM(segment.track, marker.lat, marker.lon)
+    const km = kmAlongTrackM(segment.track, marker.lat, marker.lon)
+    // T400: vioittunut jälki (esim. `d` puuttuu) → `kmAlongTrackM` palauttaa NaN ⊥ null.
+    // NaN on `number` ∴ se läpäisisi tyypin, päätyisi `onRoute`-ryhmään & tekisi
+    // vertailufunktiosta epäjohdonmukaisen → järjestys sekoaa HILJAA. `null` on jo olemassa
+    // oleva "⊥ akselia" -tie: merkki näkyy "ei reitillä" -ryhmässä, ⊥ katoa & ⊥ valehtele.
+    return Number.isFinite(km) ? km : null
   }
 
   // V139: reititön pätkä (aluetehtävä) — ei km-akselia, ei järjestystä.

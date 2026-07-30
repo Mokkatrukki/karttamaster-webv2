@@ -181,7 +181,8 @@ html:has(#app), body:has(#app) {
 /* B108/§R: kaikki sisäiset scroll-alueet pysäyttävät scroll-chainingin — kun lista/
    modaali/valikko scrollataan reunaan asti, liike EI valu taustan karttaan tai
    toiseen paneeliin. overscroll-behavior tuettu kaikissa selaimissa 2022 lähtien. */
-#marker-modal-items,
+/* T404: #marker-modal-items → .marker-overview-body (telakka korvasi modaalin). */
+.marker-overview-body,
 #toolbar-menu,
 #segment-view,
 #segment-panel,
@@ -820,21 +821,12 @@ button {
 }
 .route-sign-dot:hover .sign-tooltip { display: block; }
 
-/* ── Marker modal ── */
-
-#marker-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: var(--overlay);
-  z-index: 999;
-  display: none;
-  backdrop-filter: blur(2px);
-}
-#marker-modal-backdrop.open { display: block; }
+/* ── Merkkilistan jaetut osat (T404: modaalikuori poistettu, rivityylit jäivät) ── */
 
 /* B108/§R: modaalin backdrop nappaa kaikki kosketukset → drag backdropin päällä EI
-   panoroi alla olevaa karttaa. touch-action:none pysäyttää eleen backdropiin. */
-#marker-modal-backdrop,
+   panoroi alla olevaa karttaa. touch-action:none pysäyttää eleen backdropiin.
+   T404: `#marker-modal-backdrop` poistui listasta (modaali poistettu) — MUUT jäävät,
+   sääntö on jaettu ∴ sen katoaminen olisi vienyt kosketussuojan kaikilta modaaleilta. */
 .snapshot-modal-backdrop,
 .segment-details-modal-backdrop,
 .segment-creation-modal-backdrop,
@@ -845,26 +837,9 @@ button {
   overscroll-behavior: none;
 }
 
-#marker-modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(340px, 92vw);
-  max-height: 60vh;
-  background: var(--surface-card);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  display: none;
-  flex-direction: column;
-  overflow: hidden;
-}
-#marker-modal.open { display: flex; }
-#marker-modal.modal--järjestäjä { width: min(560px, 92vw); max-height: 82vh; }
-
-/* Bulk status toolbar */
+/* B53/V21/§R: kosketuskohde 44×44 — näkyvä ruutu pysyy kompaktina (22px), klikkausalue
+   laajennetaan padding-boxilla. Negatiivinen margin pitää layoutin ennallaan. Kriittinen
+   hanskat kädessä. */
 .bulk-status-toolbar {
   display: flex;
   align-items: center;
@@ -910,22 +885,7 @@ button {
   color: var(--text-muted);
   cursor: not-allowed;
 }
-/* B53/V21/§R: kosketuskohde 44×44 — näkyvä ruutu pysyy kompaktina (22px), klikkausalue
-   laajennetaan padding-boxilla. Negatiivinen margin pitää layoutin ennallaan. Kriittinen
-   talkoolaiselle hanskat kädessä (bulk check-in .marker-checkin-cb sama kohtelu). */
 .marker-item-checkbox,
-.marker-checkin-cb {
-  width: 22px;
-  height: 22px;
-  box-sizing: content-box;
-  padding: 11px;
-  margin: -11px;
-  accent-color: var(--accent);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-/* Bulk action bar — talkoolainen, sticky bottom */
 .bulk-action-bar {
   display: flex;
   flex-wrap: wrap;
@@ -970,34 +930,6 @@ button {
   border: none;
 }
 
-#marker-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border-card);
-  flex-shrink: 0;
-}
-#marker-modal-header h2 {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-body);
-}
-
-#btn-modal-close {
-  background: var(--hover);
-  border: none;
-  font-size: 14px;
-  color: var(--text-muted);
-  cursor: pointer;
-  min-height: 44px;
-  padding: 4px 12px;
-  border-radius: var(--radius-sm);
-  font-family: inherit;
-}
-#btn-modal-close:hover { background: var(--hover-strong); color: var(--text-body); }
-
-#marker-modal-items { overflow-y: auto; flex: 1; }
 
 .marker-item {
   display: flex;
@@ -5908,4 +5840,221 @@ select,
 textarea,
 label {
   touch-action: manipulation;
+/* ── MarkerOverviewPanel (T402/V290): järjestäjän merkkijono ──────────────────────────────
+   Telakoitu paneeli #app-mainin kolmantena lapsena — ⊥ modaali & ⊥ overlay: rivin klikkaus
+   liikuttaa karttaa ∴ kartta ! pysyä näkyvänä (V114). Left-panel torjuttiin mitatulla
+   perusteella: sen sisältöleveys on 240px eikä `.marker-item`in 5 elementtiä mahdu siihen. */
+.marker-overview {
+  width: min(380px, 100vw);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface-app);
+  border-left: 1px solid var(--border-subtle);
+}
+.marker-overview[hidden] { display: none; }
+
+/* Vain järjestäjälle. CSS-selektori ⊥ `data-role-hide`-attribuutti: jälkimmäinen on
+   kertaluontoinen eikä reagoi T274:n live-view-flippiin (U7/GpkgControls-oppi). */
+body[data-role="talkoolainen"] .marker-overview { display: none; }
+
+.marker-overview-header { border-bottom: 1px solid var(--border-default); }
+
+.marker-overview-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* §R/B108: sisäinen scroll-alue pysäyttää scroll-chainingin — reunaan asti scrollattu
+     liike ⊥ valu taustan karttaan. */
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+}
+
+.marker-overview-group { display: block; }
+.marker-overview-group-header { background: none; }
+
+.marker-overview-subhead {
+  margin: 0;
+  padding: 6px 12px 2px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.marker-overview-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Suodattimen ulkopuolella -ryhmä on jäännös ⊥ työjono: himmeä mutta LUETTAVA (V290 —
+   se on olemassa juuri siksi ettei luku katoaisi hiljaa). */
+.marker-overview-group[data-group="suodatettu"] .marker-overview-list,
+.marker-overview-group[data-group="suodatettu"] .marker-overview-subhead {
+  opacity: 0.55;
+}
+
+.marker-overview-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 0 10px;
+  min-height: 44px; /* §R/§A pakollinen */
+  border-bottom: 1px solid var(--border-card);
+}
+.marker-overview-item:hover { background: var(--hover); }
+
+/* Rivin klikkauspinta = oikea <button> (V268: natiivi nappi tuo fokuksen, Enter/Space JA
+   näkyvyyden kosketusvahdille joka valitsee `button, [role=button]`). */
+.marker-overview-row {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.marker-overview-row .marker-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-width: 28px;
+}
+.marker-overview-row .marker-type-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-body);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.marker-overview-row .marker-km {
+  font-size: 11px;
+  color: var(--text-meta);
+  flex-shrink: 0;
+}
+
+.marker-overview-menu {
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  background: none;
+  border: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+}
+.marker-overview-menu:hover { color: var(--text-body); }
+
+.marker-overview-empty {
+  margin: 0;
+  padding: 14px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.marker-overview-done { color: var(--confirm); font-weight: 600; }
+
+/* Sticky-toimintopalkki (jaettu sopimus T311/V223): scroll-sisällön VIIMEINEN lapsi flow'ssa
+   + position:sticky. `fixed` on kielletty — se vaatisi käsin ylläpidettävän padding-bottomin
+   joka mätänee (B101). Palkki omistaa alalaidan välistyksen. */
+.marker-overview-actionbar {
+  margin-top: auto;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  background: var(--surface-app);
+  border-top: 1px solid var(--border-subtle);
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.marker-overview-note {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+.marker-overview-create {
+  width: 100%;
+  min-height: 52px;
+}
+/* V250: disabloitu tila ! näkyä. Jaetut `.btn--*` ⊥ määrittele `:disabled`ia ∴ ilman tätä
+   nappi näyttäisi painettavalta & klikkaus ⊥ tekisi mitään (kuollut pinta). */
+.marker-overview-create:disabled,
+.marker-overview-create.is-disabled {
+  background: var(--field-tint);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* ≤700px: telakka irtoaa bottom sheetiksi. Kartta jää YLÄPUOLELLE näkyviin — ⊥ full-screen,
+   koska panorointi on toiminnon toinen puoli (sama kuvio kuin .map-filter-groups, B160/V274). */
+@media (max-width: 700px) {
+  .marker-overview {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 70dvh;
+    z-index: 1200; /* yli #map-filter-barin (1100) & hero-kortin (1000) */
+    border-left: 0;
+    border-top: 1px solid var(--border-default);
+    box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.28);
+  }
+}
+
+/* T404-parity: merkkijonon haku + bulk-status. Vanha modaali osasi molemmat (T101/T102) ∴
+   korvaaja osaa — poisto ⊥ saa viedä kykyä. */
+.marker-overview-search-row {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.marker-overview-search {
+  width: 100%;
+  min-height: 44px; /* §R */
+  padding: 8px 10px;
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  font: inherit;
+  font-size: 12px;
+}
+.marker-overview-status-row {
+  display: flex;
+  gap: 6px;
+}
+.marker-overview-status-select {
+  flex: 1;
+  min-height: 44px;
+  background: var(--field-tint);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  font: inherit;
+  font-size: 12px;
+}
+.marker-overview-apply-status {
+  min-height: 44px;
+  min-width: 120px;
+}
+.marker-overview-apply-status:disabled,
+.marker-overview-apply-status.is-disabled {
+  background: var(--field-tint);
+  color: var(--text-muted);
+  cursor: not-allowed;
 }

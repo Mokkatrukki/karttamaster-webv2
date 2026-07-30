@@ -5,10 +5,14 @@ import { RouteBar } from '../map/route-bar'
 import { RouteVisibilityControl } from '../map/route-visibility-control'
 import { MapFilterBar } from '../ui/map-filter-bar'
 import type { MapFilter } from '../logic/map-filter'
-import { isolatedMarkerIds, orphanMarkerIds } from '../logic/map-filter'
+import { isolatedMarkerIds, orphanMarkerIds, loadMapFilter } from '../logic/map-filter'
+import { MarkerOverviewPanel } from '../ui/marker-overview-panel'
+import { getActivePhase } from '../logic/phase-view'
+import { createAndPushSegment } from '../logic/segment-create'
+import { existingSegmentOwners } from '../logic/segment-membership'
+import { getSegmentsForPhase } from '../logic/segments'
 import { ProgressBar } from '../ui/progress-bar'
 import { PlaceMode } from '../ui/place-mode'
-import { renderMarkerList } from '../ui/marker-list'
 import { SegmentView } from '../ui/segment-view'
 import { SignLibraryPanel, createSignLibrary } from '../ui/sign-library-panel'
 import { saveLibrary, type SignLibrary, type SignTemplate } from '../logic/sign-library'
@@ -103,8 +107,8 @@ export interface MarkersWiring {
   routeBar: RouteBar | null
   progressBar: ProgressBar
   placeMode: PlaceMode
-  markerModal: HTMLElement
-  closeMarkerModal: () => void
+  // T404: `#marker-modal` POISTETTU. Esc-ketju (main.ts) sulkee merkkijono-telakan.
+  markerOverview: MarkerOverviewPanel | null
   // T237(d)/V243: main.ts kytkee tämän segments-wiringin fokus-refiin.
   // T377/V272: suodatinbar — main.ts kytkee sen korostustilaan (isolointi).
   mapFilterBar: MapFilterBar | null
@@ -176,10 +180,22 @@ export function wireMarkers(
   const onOpenMarkerDetail = (id: string) => {
     markerManager.panTo(id)
     markerDetailModal?.open(id)
+    // V127 (amend T404): mobiilissa overlay-`#left-panel` ! sulkeutua kun merkin detail avataan,
+    // muuten valittu merkki & modaali jäävät paneelin alle. Tapahtuman AINOA lähettäjä oli
+    // `marker-list.ts` joka poistui ∴ se siirtyy TÄHÄN — detail-polun juureen, ⊥ yhteen listaan.
+    // Kuuntelija: `left-panel.ts:19`. `panTo`-only-polku (rivin klikkaus) ⊥ lähetä tätä.
+    document.dispatchEvent(new CustomEvent('marker-detail-opened', { detail: { id } }))
+  }
+
+  // T402: merkkilistanäkymät päivittyvät YHDESTÄ paikasta. `renderMarkerList` toistui neljässä
+  // kutsupaikassa ∴ uusi näkymä olisi joutunut toistumaan niissä samoissa neljässä.
+  let markerOverview: MarkerOverviewPanel | null = null
+  const refreshMarkerViews = (): void => {
+    markerOverview?.render()
   }
 
   const markerManager = new MarkerManager(map, routes, () => {
-    renderMarkerList(markerManager, undefined, currentSegmentMarkerIds(), signLibrary, onOpenMarkerDetail, markerPendingIds())
+    refreshMarkerViews()
     progressBar.refreshDots()
     statusPanel?.update(calcAllRouteStatus(markerManager.getAll(), routes.map(r => r.id)))
     segmentPanel.refreshCounts()
@@ -216,7 +232,7 @@ export function wireMarkers(
     () => signLibrary,
     getRole,
     () => {
-      renderMarkerList(markerManager, undefined, currentSegmentMarkerIds(), signLibrary, onOpenMarkerDetail, markerPendingIds())
+      refreshMarkerViews()
       progressBar.refreshDots()
     },
     // T225/V151: talkoolaisen oma koodi → kova-poisto vain oman itse-luoman merkin kohdalla.
@@ -264,7 +280,7 @@ export function wireMarkers(
   // Käsittelijä kattaa myös 2xx-vahvistuksen (avain poistuu → korostus katoaa).
   setOutboxChangeHandler((keys) => {
     markerManager.setPendingKeys(keys)
-    renderMarkerList(markerManager, undefined, currentSegmentMarkerIds(), signLibrary, onOpenMarkerDetail, markerPendingIds())
+    refreshMarkerViews()
   })
   // Edellisen session vahvistamattomat kirjoitukset voivat olla vielä jonossa käynnistyessä.
   markerManager.setPendingKeys(outbox.pendingResourceKeys())
@@ -540,28 +556,60 @@ export function wireMarkers(
     signLibraryPanel?.refresh()
   })
 
-  // Marker modal
-  const markerModalBackdrop = document.getElementById('marker-modal-backdrop')!
-  const markerModal = document.getElementById('marker-modal')!
-
-  const openMarkerModal = (highlightId?: string) => {
-    renderMarkerList(markerManager, highlightId, currentSegmentMarkerIds(), signLibrary, onOpenMarkerDetail, markerPendingIds())
-    markerModalBackdrop.classList.add('open')
-    markerModal.classList.add('open')
+  // T402/V290: järjestäjän merkkijono — telakoitu paneeli, ⊥ modaali. `#btn-list` togglaa sen.
+  // Talkoolaiselle paneelia ⊥ luoda lainkaan: hänen "Kaikki merkit" on koti-tab (V183/V184) &
+  // `#btn-list` on häneltä piilotettu jo T264:ssä.
+  const markerOverviewEl = document.getElementById('marker-overview')
+  if (markerOverviewEl && !isTalkoolainen) {
+    markerOverview = new MarkerOverviewPanel(markerOverviewEl, {
+      getMarkers: () => markerManager.getAll(),
+      // V290/V91: VAIN aktiivisen vaiheen pätkät — sama fyysinen merkki elää eri pätkäjaossa
+      // eri vaiheessa ∴ vaiheiden yli koottu lista näyttäisi sen monta kertaa eri omistajilla.
+      getSegments: () => getSegmentsForPhase(segmentStore, getActivePhase()),
+      // V271: suodatin luetaan barista kun se on; muuten persistoidusta tilasta (sama lähde).
+      getFilter: () => mapFilterBar?.getFilter() ?? loadMapFilter(),
+      onPanTo: id => markerManager.panTo(id),
+      onOpenDetail: onOpenMarkerDetail,
+      // V117/T185: "tallentamatta" seurasi vanhaa listaa ∴ se ! seurata myös korvaajaa —
+      // muuten vahvistamaton kirjoitus katoaa näkyvistä (kääntäjä nappasi tämän T404:ssä).
+      getPendingIds: markerPendingIds,
+      // T404-parity: järjestäjän bulk-status kulkee SAMAA reittiä kuin ennen
+      // (`manager.bulkSetStatus`) ∴ ⊥ uutta mutaatiopolkua.
+      onBulkStatus: (ids, status) => markerManager.bulkSetStatus(ids, status),
+      // T179-oppi: telakka muuttaa #map-arean leveyttä → Leaflet ! saada tietää.
+      onVisibilityChange: () => map.invalidateSize(),
+      // T403/V299: luonti on kolmikko (createSegment + pushSegment + näkymän päivitys) ∴ se
+      // kulkee jaetun apurin kautta — unohtunut push = pätkä joka elää vain selaimessa (V18).
+      // V299: `phase` AKTIIVISESTA vaiheesta, muuten tehtävä katoaa siitä listasta josta se
+      // juuri luotiin (paneeli on vaiherajattu, V290).
+      onCreateTask: markerIds => {
+        const seg = createAndPushSegment(segmentStore, {
+          // V139: reititön tehtävä — EI route-kenttiä. createSegment ohittaa V11/V25 (T212).
+          equipment: [],
+          phase: getActivePhase(),
+          displayName: `Jälkihoito ${new Date().toLocaleDateString('fi-FI')}`,
+          linkedMarkerIds: markerIds,
+        })
+        segmentPanel.refreshCounts()
+        renderSegmentOverlay()
+        showWarning(`✓ Tehtävä "${seg.displayName}" luotu (${markerIds.length} merkkiä)`, 4000)
+      },
+      // V291: mihin valitut kuuluvat JO — operaatio on additiivinen ∴ tämä on informaatio
+      // ⊥ varoitus menetyksestä (mitattu: reititön tehtävä ⊥ vie merkkiä nykyiseltä pätkältä).
+      getExistingOwners: ids =>
+        existingSegmentOwners(ids, getSegmentsForPhase(segmentStore, getActivePhase()), markerManager.getAll()),
+    })
+    // T402: panorointi kompensoi telakan leveyden ∴ "näytä kartalla" ⊥ osoita paneelin alle.
+    markerManager.setPanPaddingRight(() => markerOverview?.visibleWidth() ?? 0)
+    markerOverview.render()
   }
-  const closeMarkerModal = () => {
-    markerModalBackdrop.classList.remove('open')
-    markerModal.classList.remove('open')
-  }
-
-  document.getElementById('btn-list')!.addEventListener('click', () => openMarkerModal())
+  // T404: `#btn-list` = merkkijono-telakan toggle. Vanha `#marker-modal` POISTETTU — se oli
+  // järjestäjän pintaa & talkoolaiselta piilotettu jo T264:ssä (V292) ∴ ⊥ fallback-haaraa.
+  document.getElementById('btn-list')?.addEventListener('click', () => markerOverview?.toggle())
 
   // T264/V184: yläpalkin "🎒 Varustelista" -nappi POISTETTU — varuste on nyt koti-Varustelista-tab
   // (inline SegmentEquipment). EquipmentModal avautuu yhä koti-tabin "✎ Muokkaa varusteita" -napista.
 
-  document.getElementById('btn-modal-close')!.addEventListener('click', closeMarkerModal)
-  markerModalBackdrop.addEventListener('click', closeMarkerModal)
-  markerModal.addEventListener('click', e => e.stopPropagation())
 
   document.getElementById('btn-route-next')!.addEventListener('click', () => driveMode.next())
   document.getElementById('btn-route-prev')!.addEventListener('click', () => driveMode.prev())
@@ -583,5 +631,5 @@ export function wireMarkers(
   // omassa kerroksessaan — koko kauden tuotantokäyttö oli 1 kommentti, & sekin duplikaatti
   // saman merkin ohjekentästä. Keskustelu käydään WhatsAppissa.
 
-  return { markerManager, driveMode, routeBar, progressBar, placeMode, markerModal, closeMarkerModal, mapFilterBar }
+  return { markerManager, driveMode, routeBar, progressBar, placeMode, markerOverview, mapFilterBar }
 }
