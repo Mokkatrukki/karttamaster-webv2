@@ -496,6 +496,12 @@ body[data-role="talkoolainen"] #gpkg-import-status {
   letter-spacing: 0;
 }
 #btn-menu:hover { color: var(--text-body); }
+/* T443/V329 × T45/V45: vaihe-chip (`#phase-name`) tuli SAMAAN yläpalkkiin ∴ 375px-leveydellä
+   flexin oletus (`flex-shrink: 1`) kutisti ⋯-napin 44 → 38px. `width: 44px` on VAIN pohja-arvo,
+   ⊥ takuu — flex kutistaa sen alta ellei sitä kielletä. Kosketuskohde ⊥ ole neuvoteltavissa
+   (talkoolainen, hanskat, mobiili) ∴ nappi ⊥ jousta lainkaan & jousto siirtyy tekstipinnoille
+   (brändi & chip lyhenevät ellipsiksellä, ≤480px-lohko). Vaihe ⊥ piiloudu — se kutistuu. */
+#btn-menu { flex-shrink: 0; min-width: 44px; }
 
 /* T203/V133: tilivalikko toolbar-menun yläosassa */
 .account-menu { display: flex; flex-direction: column; gap: 6px; }
@@ -3972,6 +3978,17 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   #app-brand { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
   #toolbar-actions { gap: 4px; }
   #toolbar-actions button { font-size: 12px; padding: 0 8px; }
+  /* T443/V329 × T45/V45: jousto TEKSTIPINNOILLE, ⊥ napeille. Napit pitävät 44px:n kaikissa
+     suunnissa; brändi & vaihe-chip lyhenevät ellipsiksellä. `min-width: 0` on pakollinen —
+     ilman sitä flex-lapsen minimi on sen sisältö & `text-overflow` ⊥ laukea koskaan.
+     V329: vaihe on näkyvissä AINA ∴ chip ⊥ mene `display:none`en mobiilissa — se kutistuu. */
+  #toolbar-actions button { flex-shrink: 0; }
+  .phase-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 3px 6px;
+  }
 }
 
 #left-panel-header {
