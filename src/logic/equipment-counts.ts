@@ -16,6 +16,7 @@
 import type { SignMarker } from './types'
 import type { Segment } from './segments'
 import { phaseTarget } from './phase-target'
+import { countsAsSign } from './marker-kind'
 
 export interface EquipmentCount {
   type: string
@@ -63,7 +64,9 @@ function counts(markers: SignMarker[], phase: Segment['phase']): { total: number
 // riveiltä kokonaan — se ei ole `0×`-haamurivi vaan asia jota ei ole.
 export function getEquipmentCounts(segment: Segment, markers: SignMarker[]): EquipmentCount[] {
   const groups = new Map<string, SignMarker[]>()
-  for (const m of markers) {
+  // T447/V331: varustelista vastaa "paljonko PAKKAAN" (V285) — kasaa ⊥ pakata mukaan, se
+  // syntyy maastossa. Rivi "Keräyskasa ×3" olisi kehotus ottaa autoon jotain jota ⊥ ole.
+  for (const m of markers.filter(countsAsSign)) {
     const arr = groups.get(m.type)
     if (arr) arr.push(m)
     else groups.set(m.type, [m])
@@ -82,8 +85,11 @@ export function getEquipmentCounts(segment: Segment, markers: SignMarker[]): Equ
 
 // Sektiorivi: "Pätkällä N merkkiä · M jo asetettu · ota mukaan K" (+ "· J ei tarpeen").
 export function getEquipmentSummary(segment: Segment, markers: SignMarker[]): EquipmentSummary {
-  const { total, done } = counts(markers, segment.phase)
-  const notNeeded = markers.filter(m => m.status === 'ei_tarpeen').length
+  // T447/V331: sama rajaus kuin riveillä — muuten sektiorivin "Pätkällä N merkkiä" ⊥ vastaisi
+  // omien riviensä summaa (kaksi lukua samasta joukosta, joista toinen valehtelee).
+  const signs = markers.filter(countsAsSign)
+  const { total, done } = counts(signs, segment.phase)
+  const notNeeded = signs.filter(m => m.status === 'ei_tarpeen').length
   return { total, done, take: total - done, notNeeded, label: targetFor(segment.phase).label }
 }
 

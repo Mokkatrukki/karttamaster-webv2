@@ -6,6 +6,7 @@ import {
   type SignTemplate,
 } from '../logic/sign-library'
 import { ensurePileTemplate } from '../logic/pile'
+import { markerKind } from '../logic/marker-kind'
 import { buildMarkerVisual, type MarkerVisualInput } from './marker-visual-row'
 import { SignTemplateModal } from './sign-template-modal'
 import { fetchInventoryLinkRows, linkInventoryItemToTemplate } from '../logic/inventory-sync'
@@ -113,7 +114,10 @@ export class SignLibraryPanel {
   }
 
   private render(): void {
-    const all = listTemplates(this.library)
+    // T447/V331: MERKKIkirjasto listaa kylttipohjat. Kasa-template on sovelluksen oma käsite
+    // (V315) jonka talkoolainen sijoittaa omalla napillaan (T424) ⊥ kirjastosta ∴ rivinä se on
+    // pohja jota kukaan ⊥ saa muokata eikä poistaa — & sen poisto katkaisisi koko kasaketjun.
+    const all = listTemplates(this.library).filter(t => markerKind(t.id) === 'kyltti')
     // T194/V126: Suosikit ensin omana väliotsikkonaan, sitten "Muut" label-aakkosjärjestyksessä.
     const byLabel = (a: SignTemplate, b: SignTemplate) => a.label.localeCompare(b.label, 'fi')
     const favorites = all.filter(t => t.favorite).sort(byLabel)

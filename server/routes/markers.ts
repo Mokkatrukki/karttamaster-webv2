@@ -42,6 +42,9 @@ interface MarkerRow {
   template_id: string | null
   parts_json: string | null
   pile_marker_ids: string | null
+  // T449/V333: kasan varaus. NULL = vapaa.
+  claimed_by: string | null
+  claimed_at: string | null
   description: string | null
   updated_at: string
   updated_by: string | null
@@ -353,6 +356,99 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
   publishChange(changeTypeOf(updated.type), id)
   return c.json(toJson(db, updated))
 })
+
+// ── T449/V333: KASAN VARAUS ─────────────────────────────────────────────────────────────────
+//
+// Kaksi autoa samalla listalla ajaa samalle kasalle (20 km hukkaan metsätietä) ∴ varaus
+// tarvitaan. Se on silti TOINEN VAIHDE ⊥ oletus: todennäköisin tapaus on yksi auto & sille
+// varauskoneisto ⊥ näy lainkaan (UI-puoli, T449a).
+//
+// Varaaja = `session.display_name` (olemassa) ∴ varaus ⊥ tuo uutta tunnistautumista.
+// Kuka tahansa autentikoitu saa varata & VAPAUTTAA: metsässä ⊥ ole ketään joka voisi ratkoa
+// oikeuskiistaa, & loki (V231) kertoo kuka teki mitä jos asiaa kysytään jälkikäteen.
+
+// POST /api/markers/:id/claim — "otan tämän". Jo varattu toiselle → 409 + nykyinen varaus,
+// ⊥ hiljainen ylikirjoitus: toisen porukan varauksen katoaminen huomaamatta on juuri se
+// päällekkäisajo jonka esto on koko pointti.
+markersRoutes.post('/:id/claim', requireAuth(), (c) => {
+  const db: Database = c.get('db')
+  const session: SessionData = c.get('session')
+  const id = c.req.param('id')
+
+  const existing = db.query<{ id: string; claimed_by: string | null; claimed_at: string | null; type: string }, [string]>(
+    'SELECT id, claimed_by, claimed_at, type FROM markers WHERE id = ?',
+  ).get(id)
+  if (!existing) return c.json({ error: 'not_found' }, 404)
+
+  // Oma varaus uudelleen = idempotentti (tuplanapautus hanskoilla ⊥ ole virhe).
+  if (existing.claimed_by != null && existing.claimed_by !== session.display_name) {
+    return c.json({ error: 'already_claimed', claimed_by: existing.claimed_by, claimed_at: existing.claimed_at }, 409)
+  }
+
+  const now = new Date().toISOString()
+  db.transaction(() => {
+    db.run('UPDATE markers SET claimed_by = ?, claimed_at = ? WHERE id = ?', [session.display_name, now, id])
+    const after = db.query<MarkerRow, [string]>('SELECT * FROM markers WHERE id = ?').get(id)!
+    // V231: varaus lokiin. ⊥ peruttavissa `audit.ts`:n whitelististä — vapautus on oma
+    // toimintonsa jonka kuka tahansa tekee, ⊥ undo-reitin erikoistapaus.
+    logMarkerAudit(db, {
+      markerId: id,
+      action: 'claim',
+      session,
+      payload: { claimed_by: session.display_name, claimed_at: now },
+      marker: markerAuditTarget(after),
+    })
+  })()
+
+  const row = db.query<MarkerRow, [string]>('SELECT * FROM markers WHERE id = ?').get(id)!
+  publishChange(changeTypeOf(row.type), id)
+  return c.json(toJson(db, row))
+})
+
+// DELETE /api/markers/:id/claim — "vapauta". KENEN TAHANSA käytettävissä (V333).
+// Vapaan kasan vapautus on no-op ⊥ virhe: idempotenssi on oikein kun kaksi porukkaa painaa
+// samaa nappia sekunnin välein.
+markersRoutes.delete('/:id/claim', requireAuth(), (c) => {
+  const db: Database = c.get('db')
+  const session: SessionData = c.get('session')
+  const id = c.req.param('id')
+
+  const existing = db.query<{ id: string; claimed_by: string | null; claimed_at: string | null }, [string]>(
+    'SELECT id, claimed_by, claimed_at FROM markers WHERE id = ?',
+  ).get(id)
+  if (!existing) return c.json({ error: 'not_found' }, 404)
+
+  if (existing.claimed_by != null) {
+    db.transaction(() => {
+      db.run('UPDATE markers SET claimed_by = NULL, claimed_at = NULL WHERE id = ?', [id])
+      const after = db.query<MarkerRow, [string]>('SELECT * FROM markers WHERE id = ?').get(id)!
+      logMarkerAudit(db, {
+        markerId: id,
+        action: 'unclaim',
+        session,
+        // Ennen-tila payloadiin: loki vastaa kysymykseen "kenen varaus purettiin".
+        payload: { claimed_by: existing.claimed_by, claimed_at: existing.claimed_at },
+        marker: markerAuditTarget(after),
+      })
+    })()
+  }
+
+  const row = db.query<MarkerRow, [string]>('SELECT * FROM markers WHERE id = ?').get(id)!
+  publishChange(changeTypeOf(row.type), id)
+  return c.json(toJson(db, row))
+})
+
+// Audit-rivin pätkäjohdanto tarvitsee merkin jäsenyyskentät (V227) — sama muoto kuin
+// PUT/POST-poluilla, yhdessä paikassa ettei kolmas kutsupaikka keksi omaansa.
+function markerAuditTarget(row: MarkerRow) {
+  return {
+    id: row.id,
+    routeIds: row.route_ids ? (JSON.parse(row.route_ids) as string[]) : [],
+    distFromStart: row.distance_from_start,
+    distByRoute: parseDistByRoute(row.distance_by_route),
+    templateId: row.template_id,
+  }
+}
 
 // DELETE /api/markers/:id — järjestäjä+ TAI talkoolainen VAIN oman itse-luoman merkin (V151).
 // Suunniteltu (created_by≠oma tai NULL) → 403; UI ohjaa soft ei_tarpeen -polulle (T225).

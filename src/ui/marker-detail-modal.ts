@@ -10,6 +10,9 @@ import { isPile, pileRemoval, pileRemovalConfirm } from '../logic/pile'
 import { navUrl, navTarget } from '../logic/nav-link'
 import { registerEscClose, signPreviewHtml } from './modal-helpers'
 import { openImageLightbox } from './image-lightbox'
+import { markerKind } from '../logic/marker-kind'
+import { resolvePileContents } from '../logic/pile-list'
+import { buildPileContentsList } from './pile-contents'
 
 const STATUS_LABELS: Record<MarkerStatus, string> = {
   suunniteltu: 'Suunniteltu',
@@ -164,6 +167,20 @@ export class MarkerDetailModal {
     }
     // navHref === null (kelvottomat koordinaatit) → riviä ei renderöidä lainkaan.
     // Ei disabloitua nappia: kuollut pinta (V250) eikä rikkinäistä linkkiä.
+
+    // T450c: kasan sisältö — autoporukka tietää mitä hakee ENNEN kuin on paikalla. Pelkkä
+    // lukumäärä ⊥ kerro mahtuuko kuormaan eikä tarvitaanko kärryä. SAMA renderöijä kuin
+    // jättövahvistuksessa (V331-suku: yksi paikka, ⊥ kaksi mielipidettä samasta sisällöstä).
+    if (markerKind(marker) === 'kasa') {
+      const contents = resolvePileContents(marker.pileMarkerIds, this.manager.getAll())
+      const section = document.createElement('div')
+      section.className = 'marker-detail-pile'
+      const heading = document.createElement('p')
+      heading.className = 'marker-detail-pile-title'
+      heading.textContent = 'Kasan sisältö'
+      section.append(heading, buildPileContentsList(contents))
+      body.appendChild(section)
+    }
 
     // locationNote textarea
     const noteLabel = document.createElement('label')

@@ -54,6 +54,26 @@ export function renderPatkatPage(container: HTMLElement, opts: PatkatPageOpts): 
   hero.append(h1, lead)
   container.appendChild(hero)
 
+  // ── Kasat (T448/V332, §C) ──
+  // Kortti on olemassa VAIN purkuvaiheessa: kasapinta elää globaalin vaiheen mukana, ⊥
+  // katseluvaiheen (V321-jako) — kasat ovat tapahtuman tosiasia ⊥ järjestäjän näkymävalinta.
+  // Muissa vaiheissa kortti ⊥ ole olemassa (⊥ disabloituna: kuollut pinta lupaa jotain, V250).
+  // Tämä on autoporukan ainoa aloituspiste ∴ se on hubissa ENNEN pätkälistaa: hän ⊥ avaa
+  // pätkänäkymää lainkaan & pätkälistan alta löytyvä linkki olisi sama umpisolmu uudessa asussa.
+  if (activePhase === 'purku') {
+    const card = document.createElement('a')
+    card.className = 'patkat-kasat-card'
+    card.href = '/kasat'
+    const cardTitle = document.createElement('span')
+    cardTitle.className = 'patkat-kasat-title'
+    cardTitle.textContent = '📦 Kasat — autoporukalle'
+    const cardLead = document.createElement('span')
+    cardLead.className = 'patkat-kasat-lead'
+    cardLead.textContent = 'Maastoon jätetyt merkkikasat kartalla, lähin ensin.'
+    card.append(cardTitle, cardLead)
+    container.appendChild(card)
+  }
+
   // ── FAQ (sanitoitu) ──
   if (faqMarkdown.trim()) {
     const faq = document.createElement('section')

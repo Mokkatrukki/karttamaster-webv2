@@ -11,6 +11,7 @@ import { getViewPhase } from '../logic/phase-view'
 import { createAndPushSegment } from '../logic/segment-create'
 import { addMarkersToSegment } from '../logic/segment-actions'
 import { unclaimedCollected, pileTemplate, PILE_TEMPLATE_ID } from '../logic/pile'
+import { showPilePlaceHint, removePilePlaceHint, openPileConfirm } from '../ui/pile-drop'
 import { showToast } from '../ui/toast'
 import { existingSegmentOwners } from '../logic/segment-membership'
 import { getSegmentsForPhase } from '../logic/segments'
@@ -504,7 +505,9 @@ function wireMarkersInner(
             )
             if (candidates.length === 0) return
             const ids = candidates.map(m => m.id)
-            const drop = (lat: number, lon: number): void => {
+            const hintHost = document.getElementById('segment-view-container') ?? document.body
+
+            const create = (lat: number, lon: number): void => {
               const tpl = pileTemplate()
               markerManager.add(
                 lat, lon, PILE_TEMPLATE_ID, tpl.color, tpl.label, tpl.iconId,
@@ -513,15 +516,34 @@ function wireMarkersInner(
               )
               showToast(`📦 Kasa jätetty — ${ids.length} merkkiä`)
             }
-            // T430/V320: kasa syntyy AINA. GPS-fix on nopein tie (nolla napautusta); ilman sitä
-            // talkoolainen napauttaa kohdan kartalta — hän tietää missä on vaikka satelliitti ⊥
-            // tiedä. Kirjaamaton kasa on lopullinen vahinko, epätarkka ⊥ ole (kasa on merkki:
-            // raahattavissa & poistettavissa).
+
+            // T450b: sijainti valittu → vahvistus. Kasa on lupaus toiselle porukalle ("tule
+            // tänne, täällä on nämä") ∴ se ! olla tarkistettavissa ennen kuin se lähtee.
+            // Peruuta → merkit jäävät keräyslistalle & kasaa ⊥ synny; Siirrä → takaisin karttaan.
+            const confirmAt = (lat: number, lon: number): void => {
+              removePilePlaceHint(hintHost)
+              openPileConfirm(candidates, {
+                onConfirm: () => create(lat, lon),
+                onRelocate: () => armPlacement(),
+                onCancel: () => { /* merkit jäävät keräyslistalle — ⊥ tyhjää kasaa jäljelle */ },
+              })
+            }
+
+            // T450a: place-modessa iso ohjelaatikko, ⊥ pieni toast (hanskat, aurinko, kiire).
+            // "Peruuta" on SAMASSA paikassa koko tilan ajan ∴ peruutusta ⊥ tarvitse etsiä.
+            const armPlacement = (): void => {
+              if (!mapMode.canPlaceMarkers()) mapMode.set('muokkaus')
+              placeMode.armPlacer(confirmAt)
+              showPilePlaceHint(hintHost, () => placeMode.disarm())
+            }
+
+            // T430/V320: kasa syntyy AINA. GPS-fix on nopein tie (nolla karttanapautusta);
+            // ilman sitä talkoolainen napauttaa kohdan kartalta — hän tietää missä on vaikka
+            // satelliitti ⊥ tiedä. Kirjaamaton kasa on lopullinen vahinko, epätarkka ⊥ ole
+            // (kasa on merkki: raahattavissa & poistettavissa).
             const pos = gpsNavigator.getPosition()
-            if (pos) { drop(pos.lat, pos.lon); return }
-            if (!mapMode.canPlaceMarkers()) mapMode.set('muokkaus')
-            placeMode.armPlacer(drop)
-            showToast('📍 Napauta kartalta kohta johon jätit kasan')
+            if (pos) { confirmAt(pos.lat, pos.lon); return }
+            armPlacement()
           },
         },
       )

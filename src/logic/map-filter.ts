@@ -3,6 +3,7 @@ import type { Segment, SegmentLineState } from './segments'
 import { segmentLineState, getPhaseProgress } from './segments'
 import { segmentVisibleOnRoutes } from './segment-visibility'
 import { markersForSegment, resolveSegmentMarkers } from './segment-membership'
+import { countsAsSign } from './marker-kind'
 
 // T376/V271: kartan näkyvyys-/himmennyspäätös ratkeaa TASAN TÄSSÄ moduulissa. `src/map/`-kerros
 // SOVELTAA palautetun tilan, ⊥ päätä sitä — sääntö joka elää kahdessa paikassa on kaksi eri
@@ -159,7 +160,10 @@ export function orphanMarkerIds(segments: Segment[], markers: SignMarker[]): Set
   for (const list of resolveSegmentMarkers(segments, markers).values()) {
     for (const m of list) owned.add(m.id)
   }
-  return new Set(markers.filter(m => !owned.has(m.id)).map(m => m.id))
+  // T447/V331: orpous on JÄRJESTÄJÄN TYÖJONO ("tänne ⊥ ole vielä tehty pätkää") ∴ se koskee
+  // kylttejä. Kasa syntyy metsässä ilman pätkää & se on siellä TARKOITUKSELLA — työjonossa
+  // se olisi tekemätöntä työtä jota ⊥ ole olemassa.
+  return new Set(markers.filter(m => countsAsSign(m) && !owned.has(m.id)).map(m => m.id))
 }
 
 /** Isoloidun pätkän merkkijoukko — V259-jäsenyys, ⊥ omaa sääntöä. */
