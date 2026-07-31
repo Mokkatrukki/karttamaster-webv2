@@ -13,7 +13,21 @@
 // DOM ilman Leafletia (kartta tulee `onEnterKartta`-callbackina) → Vitest-jsdom.
 
 import { showPilePlaceHint, removePilePlaceHint } from '../ui/pile-drop'
+import { showToast } from '../ui/toast'
 import { getViewMode, setViewMode } from './talkoolainen-mode'
+
+/**
+ * T453/V337: käyttäjän laukaisema toiminto ! päättyä NÄKYVÄÄN lopputulokseen. Metsässä ⊥ ole
+ * konsolia ∴ käsittelijän sisällä kuollut poikkeus on nappi joka "⊥ tee mitään" — käyttäjä
+ * painaa uudelleen & soittaa lopulta järjestäjälle. Poikkeus kääntyy viestiksi, ⊥ hiljaisuudeksi.
+ */
+export function runPileAction(fn: () => void, toast: (msg: string) => void = showToast): void {
+  try {
+    fn()
+  } catch (err) {
+    toast(`⚠️ Kasan jättö ei käynnistynyt: ${err instanceof Error ? err.message : String(err)}`)
+  }
+}
 
 export interface PilePlacementDeps {
   /** Ohjerivin koti. V336: ! olla `pointer-events:auto`-kerroksessa (`#segment-view`). */

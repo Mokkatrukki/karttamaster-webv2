@@ -44,7 +44,7 @@ import { createGpsControl } from '../ui/gps-control'
 import { createMarkerClaimSheet } from '../ui/marker-claim-sheet'
 import { gpsControlState } from '../logic/gps-follow'
 // T452/V335: sijoitustila ! tuoda kartta näkyviin itse — moodi on tilan EHTO ⊥ ympäristö.
-import { startPilePlacement } from './pile-placement'
+import { startPilePlacement, runPileAction } from './pile-placement'
 
 // T307/V218: `document.body.dataset.mapMode` asetetaan TÄSTÄ yhdestä paikasta (CSS-korostus
 // T308 + E2E-assertit lukevat sen). UI-toggle EI kirjoita attribuuttia itse — se kutsuu
@@ -503,67 +503,77 @@ function wireMarkersInner(
           // napauttaa kohdan itse. Kasa on pantava johonkin — muuten merkit jäävät kirjaamatta
           // & tieto katoaa kokonaan. Kasa on merkki (raahattavissa & poistettavissa) ∴ epätarkka
           // kasa ⊥ ole lopullinen vahinko, kirjaamatta jäänyt on.
-          onLeavePile: () => {
-            const candidates = unclaimedCollected(
-              getMarkersForSegment(seg, markerManager.getAll(), segmentPeers(segmentStore, seg)),
-              markerManager.getAll(),
-            )
-            if (candidates.length === 0) return
-            const ids = candidates.map(m => m.id)
-            // T452/V336 (B183): ohjerivi PANELIIN (`#segment-view`), ⊥ konttiin — kontti on
-            // karttamoodissa `pointer-events:none` ∴ "Peruuta" olisi näkyvä & kuollut.
-            const hintHost = document.getElementById('segment-view')
-              ?? document.getElementById('segment-view-container') ?? document.body
-
-            const create = (lat: number, lon: number): void => {
-              const tpl = pileTemplate()
-              markerManager.add(
-                lat, lon, PILE_TEMPLATE_ID, tpl.color, tpl.label, tpl.iconId,
-                undefined, undefined, PILE_TEMPLATE_ID,
-                { pileMarkerIds: ids },
-              )
-              showToast(`📦 Kasa jätetty — ${ids.length} merkkiä`)
-            }
-
-            // T450b: sijainti valittu → vahvistus. Kasa on lupaus toiselle porukalle ("tule
-            // tänne, täällä on nämä") ∴ se ! olla tarkistettavissa ennen kuin se lähtee.
-            // Peruuta → merkit jäävät keräyslistalle & kasaa ⊥ synny; Siirrä → takaisin karttaan.
-            const confirmAt = (lat: number, lon: number): void => {
-              removePilePlaceHint(hintHost)
-              openPileConfirm(candidates, {
-                onConfirm: () => create(lat, lon),
-                onRelocate: () => armPlacement(),
-                onCancel: () => { /* merkit jäävät keräyslistalle — ⊥ tyhjää kasaa jäljelle */ },
-              })
-            }
-
-            // T450a: place-modessa pysyvä ohjerivi, ⊥ pieni toast (hanskat, aurinko, kiire).
-            // "Peruuta" on SAMASSA paikassa koko tilan ajan ∴ peruutusta ⊥ tarvitse etsiä.
-            //
-            // T452/V335 (B182): siirtyminen on ATOMINEN — näkymämoodi kartaksi, ohjerivi heroon
-            // & viritys päälle samassa teossa (`startPilePlacement`). Kotimoodissa `#map` on
-            // `display:none` ∴ ilman moodinvaihtoa sovellus pyysi napauttamaan pintaa jota ⊥ ole.
-            const armPlacement = (): void => {
-              if (!mapMode.canPlaceMarkers()) mapMode.set('muokkaus')
-              startPilePlacement({
-                host: hintHost,
-                armPlacer: (fn, onDisarm) => placeMode.armPlacer(fn, onDisarm),
-                disarm: () => placeMode.disarm(),
-                onPlace: confirmAt,
-                onEnterKartta: () => map.invalidateSize(),
-              })
-            }
-
-            // T430/V320: kasa syntyy AINA. GPS-fix on nopein tie (nolla karttanapautusta);
-            // ilman sitä talkoolainen napauttaa kohdan kartalta — hän tietää missä on vaikka
-            // satelliitti ⊥ tiedä. Kirjaamaton kasa on lopullinen vahinko, epätarkka ⊥ ole
-            // (kasa on merkki: raahattavissa & poistettavissa).
-            const pos = gpsNavigator.getPosition()
-            if (pos) { confirmAt(pos.lat, pos.lon); return }
-            armPlacement()
-          },
+          // T453/V337: napin painallus joka ⊥ tee mitään on pahin mahdollinen lopputulos —
+          // käyttäjä ⊥ tiedä painoiko hän ohi, onko sovellus jumissa vai puuttuuko oikeus.
+          onLeavePile: () => runPileAction(leavePile),
         },
       )
+
+      const leavePile = (): void => {
+        const candidates = unclaimedCollected(
+          getMarkersForSegment(seg, markerManager.getAll(), segmentPeers(segmentStore, seg)),
+          markerManager.getAll(),
+        )
+        // ⊥ hiljaista returnia: nappi kantaa määrän ∴ jos se on 0 tässä, nappi on vanhentunut
+        // (lista päivittyi napin alta) & käyttäjä ansaitsee tietää sen ⊥ arvata.
+        if (candidates.length === 0) {
+          showToast('Kasaan ei ole mitään pantavaa — kuittaa ensin merkkejä kerätyiksi')
+          return
+        }
+        const ids = candidates.map(m => m.id)
+        // T452/V336 (B183): ohjerivi PANELIIN (`#segment-view`), ⊥ konttiin — kontti on
+        // karttamoodissa `pointer-events:none` ∴ "Peruuta" olisi näkyvä & kuollut.
+        const hintHost = document.getElementById('segment-view')
+          ?? document.getElementById('segment-view-container') ?? document.body
+
+        const create = (lat: number, lon: number): void => {
+          const tpl = pileTemplate()
+          markerManager.add(
+            lat, lon, PILE_TEMPLATE_ID, tpl.color, tpl.label, tpl.iconId,
+            undefined, undefined, PILE_TEMPLATE_ID,
+            { pileMarkerIds: ids },
+          )
+          showToast(`📦 Kasa jätetty — ${ids.length} merkkiä`)
+        }
+
+        // T450b: sijainti valittu → vahvistus. Kasa on lupaus toiselle porukalle ("tule
+        // tänne, täällä on nämä") ∴ se ! olla tarkistettavissa ennen kuin se lähtee.
+        // Peruuta → merkit jäävät keräyslistalle & kasaa ⊥ synny; Siirrä → takaisin karttaan.
+        const confirmAt = (lat: number, lon: number): void => {
+          removePilePlaceHint(hintHost)
+          openPileConfirm(candidates, {
+            onConfirm: () => create(lat, lon),
+            onRelocate: () => armPlacement(),
+            onCancel: () => { /* merkit jäävät keräyslistalle — ⊥ tyhjää kasaa jäljelle */ },
+          })
+        }
+
+        // T450a: place-modessa pysyvä ohjerivi, ⊥ pieni toast (hanskat, aurinko, kiire).
+        // "Peruuta" on SAMASSA paikassa koko tilan ajan ∴ peruutusta ⊥ tarvitse etsiä.
+        //
+        // T452/V335 (B182): siirtyminen on ATOMINEN — näkymämoodi kartaksi, ohjerivi heroon
+        // & viritys päälle samassa teossa (`startPilePlacement`). Kotimoodissa `#map` on
+        // `display:none` ∴ ilman moodinvaihtoa sovellus pyysi napauttamaan pintaa jota ⊥ ole.
+        const armPlacement = (): void => {
+          if (!mapMode.canPlaceMarkers()) mapMode.set('muokkaus')
+          startPilePlacement({
+            host: hintHost,
+            armPlacer: (fn, onDisarm) => placeMode.armPlacer(fn, onDisarm),
+            disarm: () => placeMode.disarm(),
+            onPlace: confirmAt,
+            onEnterKartta: () => map.invalidateSize(),
+          })
+        }
+
+        // T430/V320: kasa syntyy AINA. GPS-fix on nopein tie (nolla karttanapautusta);
+        // ilman sitä talkoolainen napauttaa kohdan kartalta — hän tietää missä on vaikka
+        // satelliitti ⊥ tiedä. Kirjaamaton kasa on lopullinen vahinko, epätarkka ⊥ ole
+        // (kasa on merkki: raahattavissa & poistettavissa).
+        const pos = gpsNavigator.getPosition()
+        if (pos) { confirmAt(pos.lat, pos.lon); return }
+        armPlacement()
+      }
+
       const segMarkers0 = getMarkersForSegment(seg, markerManager.getAll(), segmentPeers(segmentStore, seg))
       segmentView.update(segMarkers0)
       // T224 (D): "tässä on sun pätkä" — zoomaa pätkään heti latauksessa.

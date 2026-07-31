@@ -8,7 +8,7 @@
 // ohjerivi menee PANELIIN (`#segment-view` = ainoa `pointer-events:auto` -kerros), ⊥ konttiin.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { startPilePlacement } from '../src/app/pile-placement'
+import { startPilePlacement, runPileAction } from '../src/app/pile-placement'
 import { showPilePlaceHint, removePilePlaceHint } from '../src/ui/pile-drop'
 import { setViewMode, getViewMode } from '../src/app/talkoolainen-mode'
 
@@ -101,6 +101,29 @@ describe('T452/V336 — ohje asuu syötekerroksessa (B183)', () => {
     const hint = document.querySelector('.pile-place-hint')!
     expect(hint.parentElement!.id).toBe('segment-view')
     expect(document.getElementById('segment-view-container')!.children.length).toBe(1)
+  })
+})
+
+describe('T453/V337 — kasan jättö ⊥ epäonnistu hiljaa', () => {
+  it('poikkeus kääntyy viestiksi — metsässä ⊥ ole konsolia', () => {
+    const toast = vi.fn()
+    expect(() => runPileAction(() => { throw new Error('ei oikeutta') }, toast)).not.toThrow()
+    expect(toast).toHaveBeenCalledOnce()
+    expect(toast.mock.calls[0][0]).toContain('ei oikeutta')
+  })
+
+  it('⊥ virhettä → ⊥ viestiä (toiminto puhuu vain kun on asiaa)', () => {
+    const toast = vi.fn()
+    const fn = vi.fn()
+    runPileAction(fn, toast)
+    expect(fn).toHaveBeenCalledOnce()
+    expect(toast).not.toHaveBeenCalled()
+  })
+
+  it('ei-Error-heitto kelpaa myös (⊥ toista poikkeusta käsittelijässä)', () => {
+    const toast = vi.fn()
+    expect(() => runPileAction(() => { throw 'raaka' }, toast)).not.toThrow()
+    expect(toast.mock.calls[0][0]).toContain('raaka')
   })
 })
 
