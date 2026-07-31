@@ -11,6 +11,7 @@ import { SignTemplateModal } from './sign-template-modal'
 import { fetchInventoryLinkRows, linkInventoryItemToTemplate } from '../logic/inventory-sync'
 import { showToast } from './toast'
 import { createSectionHeader } from './section-header'
+import type { DecorationPhase } from '../logic/sign-visual'
 
 // T200: SignTemplate ei kanna 'type'-kenttää jota buildMarkerVisual käyttää top-level-kuva-avaimena
 // (signImageSrc(marker.type)) — SignTemplaten kuva-avainkonventio on t.imageId ?? t.id, ei type-pohjainen.
@@ -40,6 +41,16 @@ export function createSignLibrary(): SignLibrary {
 export class SignLibraryPanel {
   private collapsed = false
   private query = '' // hakusuodatin (yksi lista, scrollattava)
+  // T444/V250: vaiheen mukaan kutistuva paneeli. Purussa ⊥ aseteta merkkejä ∴ kirjasto vie
+  // pystytilaa toiminnolta jota ⊥ käytetä (sama kuvio kuin T428, varustelista pois purusta).
+  //
+  // COLLAPSE ⊥ TÄYSPIILOTUS: järjestäjä voi tarvita kirjastoa korjaukseen kesken purun, &
+  // piilotettu paneeli olisi KADONNUT toiminto — V250-linja on että rivi näkyy kun se voi tehdä
+  // jotain, & kirjasto VOI yhä.
+  private phase: DecorationPhase | null = null
+  // Käyttäjän oma avaus/sulku voittaa vaiheen oletuksen istunnon ajan. Ilman tätä paneeli
+  // kutistuisi uudelleen jokaisella vaihe-synkalla & avaus tuntuisi rikkinäiseltä napilta.
+  private userToggled = false
   // T235: template-detalji/edit-modaali eriytetty omaan moduuliin (SignTemplateModal). Paneeli
   // omistaa listan/gridin; modaali omistaa oman backdrop/Esc-tilansa. onChanged → re-render + onChange.
   private readonly modal: SignTemplateModal
@@ -81,6 +92,26 @@ export class SignLibraryPanel {
     this.render()
   }
 
+  /**
+   * T444: kerro paneelille mikä vaihe on käynnissä. Oletus seuraa vaihetta VAIN kun vaihe
+   * oikeasti muuttuu & käyttäjä ⊥ ole itse koskenut chevroniin — toistuva kutsu samalla
+   * vaiheella on no-op ∴ avaus säilyy istunnon ajan.
+   */
+  setPhase(phase: DecorationPhase): void {
+    if (this.phase === phase) return
+    this.phase = phase
+    if (this.userToggled) return
+    const next = phase === 'purku'
+    if (next === this.collapsed) return
+    this.collapsed = next
+    this.render()
+  }
+
+  /** Testien & wiringin luettavaksi — kutistustila ⊥ ole pääteltävissä DOM:ista yksikäsitteisesti. */
+  isCollapsed(): boolean {
+    return this.collapsed
+  }
+
   private render(): void {
     const all = listTemplates(this.library)
     // T194/V126: Suosikit ensin omana väliotsikkonaan, sitten "Muut" label-aakkosjärjestyksessä.
@@ -95,6 +126,7 @@ export class SignLibraryPanel {
       collapsed: this.collapsed,
       onToggle: () => {
         this.collapsed = !this.collapsed
+        this.userToggled = true
         this.render()
       },
     })

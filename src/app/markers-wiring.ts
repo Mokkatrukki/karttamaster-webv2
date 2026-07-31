@@ -654,6 +654,9 @@ function wireMarkersInner(
       },
       (id: string) => { void deleteTemplateRemote(id) },
     )
+    // T444/V250: purussa merkkejä ⊥ aseteta ∴ kirjasto kutistuu — mutta ⊥ katoa (järjestäjä voi
+    // tarvita sitä korjaukseen kesken purun). Lähde on KATSELUvaihe: paneeli on järjestäjän pinta.
+    signLibraryPanel.setPhase(getViewPhase())
   }
 
   // T193/V123: backend on kirjaston totuus. Lataa mallit initissä ja korvaa cache-/seed-sisältö
