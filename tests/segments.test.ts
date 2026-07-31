@@ -25,6 +25,8 @@ import {
   type PhaseProgress,
 } from '../src/logic/segments'
 import type { SignMarker } from '../src/logic/types'
+// T439/V324: klooni-testi lukee merkkijoukon kanonisen lähteen tyypistä, ⊥ omasta listastaan.
+import type { TaskMarkerSource } from '../src/logic/task-markers'
 
 const baseSegment: Omit<Segment, 'id'> = {
   routeIds: ['smtb-30'],
@@ -459,6 +461,63 @@ describe('segments', () => {
       expect(cloned!.startDist).toBeUndefined()
       expect(cloned!.endDist).toBeUndefined()
       expect(cloned!.displayName).toBe('Maalialue')
+    })
+
+    // T439/V324: kopioitavien kenttien lista ON `TaskMarkerSource`. Tämä testi sitoo listan:
+    // jos `resolveTaskMarkers` alkaa lukea uutta kenttää, sen ! ilmestyä myös tänne.
+    it('V324: klooni kopioi ∀ merkkijoukon määrittävän kentän (TaskMarkerSource)', () => {
+      const original = createSegment(store, {
+        ...baseSegment,
+        primaryRouteId: 'smtb-30',
+        linkedMarkerIds: ['m1', 'm2'],
+        markerTypeFilter: 'tpl-maali',
+      })
+      const cloned = cloneSegmentToNextPhase(store, original)!
+      const source: (keyof TaskMarkerSource)[] = [
+        'routeIds', 'primaryRouteId', 'startDist', 'endDist', 'linkedMarkerIds', 'markerTypeFilter',
+      ]
+      for (const key of source) {
+        expect(cloned[key], `klooni menetti kentän ${key}`).toEqual(original[key])
+      }
+    })
+
+    // B178: reitittömän tehtävän klooni oli TYHJÄ pätkä — näkyi listalla, aukesi, ⊥ merkkejä.
+    it('B178: reitittömän tehtävän klooni kantaa merkkijoukon', () => {
+      const original = createSegment(store, {
+        equipment: [],
+        phase: 'asettaminen',
+        displayName: 'Maalialue',
+        linkedMarkerIds: ['m1', 'm2'],
+        markerTypeFilter: 'tpl-maali',
+      })
+      const cloned = cloneSegmentToNextPhase(store, original)!
+      expect(cloned.linkedMarkerIds).toEqual(['m1', 'm2'])
+      expect(cloned.markerTypeFilter).toBe('tpl-maali')
+    })
+
+    it('V324: kloonin merkkilista on uusi taulukko — muokkaus ⊥ mutatoi alkuperäistä', () => {
+      const original = createSegment(store, {
+        equipment: [], phase: 'asettaminen', linkedMarkerIds: ['m1'],
+      })
+      const cloned = cloneSegmentToNextPhase(store, original)!
+      cloned.linkedMarkerIds!.push('m2')
+      expect(original.linkedMarkerIds).toEqual(['m1'])
+    })
+
+    // T439: kohdevaihe on valinta — asetuspätkästä purkupätkä ilman tarkastuksen välivaihetta.
+    it('T439: annettu vaihe voittaa NEXT_PHASEn', () => {
+      const original = createSegment(store, { ...baseSegment })
+      const cloned = cloneSegmentToNextPhase(store, original, 'purku')!
+      expect(cloned.phase).toBe('purku')
+      expect(getSegmentsForPhase(store, 'tarkastus')).toHaveLength(0)
+    })
+
+    it('T439: overlap-validointi ajetaan VALITULLE vaiheelle', () => {
+      const original = createSegment(store, { ...baseSegment })
+      expect(cloneSegmentToNextPhase(store, original, 'purku')).not.toBeNull()
+      // sama vaihe uudelleen → overlap → null; eri vaihe yhä vapaa
+      expect(cloneSegmentToNextPhase(store, original, 'purku')).toBeNull()
+      expect(cloneSegmentToNextPhase(store, original, 'tarkastus')).not.toBeNull()
     })
   })
 

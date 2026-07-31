@@ -57,4 +57,39 @@ describe('T148 — SegmentPanel phase-suodin', () => {
     const empty = container.querySelector('.segment-empty')
     expect(empty?.textContent).toBe('Ei pätkiä purku-vaiheessa')
   })
+
+  // T440/V325/B179: otsikkoluku johdetaan SAMASTA suodatetusta joukosta kuin lista.
+  describe('T440 — "Reittipätkät (N)" laskee näkyvät pätkät', () => {
+    const headerName = () =>
+      container.querySelector('.segment-panel-header .section-header-name')?.textContent
+
+    it('katseluvaihe purku (1 pätkä 12:sta) → otsikko "(1)", ⊥ "(12)"', () => {
+      // beforeEach loi jo 2 pätkää (asetus+tarkastus) → 9 täytettä + purku = 12
+      for (let i = 0; i < 9; i++) {
+        createSegment(store, {
+          routeIds: ['35km'], startDist: 20000 + i * 1000, endDist: 20500 + i * 1000,
+          equipment: [], phase: 'asettaminen', displayName: `Täyte ${i}`,
+        })
+      }
+      createSegment(store, {
+        routeIds: ['35km'], startDist: 0, endDist: 5000,
+        equipment: [], phase: 'purku', displayName: 'Purkupätkä',
+      })
+      expect(store.size).toBe(12)
+      new SegmentPanel(container, [], store, vi.fn(), { getActivePhase: () => 'purku' })
+      expect(container.querySelectorAll('.segment-item').length).toBe(1)
+      expect(headerName()).toBe('Reittipätkät (1)')
+    })
+
+    it('ilman katseluvaihetta ("kaikki vaiheet") otsikko laskee koko storen', () => {
+      new SegmentPanel(container, [], store, vi.fn(), {})
+      expect(headerName()).toBe('Reittipätkät (2)')
+    })
+
+    it('luku ja lista ovat aina sama joukko — tyhjä vaihe → "(0)"', () => {
+      new SegmentPanel(container, [], store, vi.fn(), { getActivePhase: () => 'purku' })
+      expect(container.querySelectorAll('.segment-item').length).toBe(0)
+      expect(headerName()).toBe('Reittipätkät (0)')
+    })
+  })
 })

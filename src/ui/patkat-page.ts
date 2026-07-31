@@ -1,5 +1,7 @@
 import { marked } from 'marked'
 import { getSegmentStatusCounts, formatStatusCounts, segmentPath } from '../logic/segments'
+// T445: pätkän näyttönimi yhdestä paikasta — vaihe-etuliite ⊥ saa jäädä puolelle listasta.
+import { segmentDisplayName } from '../logic/segment-name'
 import type { Segment } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
 
@@ -122,7 +124,7 @@ function buildSegmentRow(seg: Segment, markers: SignMarker[], role: string, allS
 
   const name = document.createElement('span')
   name.className = 'patkat-row-name'
-  name.textContent = seg.displayName?.trim() || 'Nimetön pätkä'
+  name.textContent = segmentDisplayName(seg)
 
   const meta = document.createElement('span')
   meta.className = 'patkat-row-meta'

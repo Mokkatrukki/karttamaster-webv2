@@ -16,6 +16,8 @@ import {
   segmentPath,
 } from '../logic/segments'
 import type { SegmentStore, Segment } from '../logic/segments'
+// T445: näyttönimi (vaihe-etuliite nimettömälle) yhdestä apurista.
+import { segmentDisplayName } from '../logic/segment-name'
 import { SHARED_THRESHOLD_M, type RouteConfig } from '../logic/multi-route'
 import type { SignMarker } from '../logic/types'
 import {
@@ -354,8 +356,21 @@ export class SegmentPanel {
     return best
   }
 
+  /**
+   * T440/V325: NÄKYVÄ pätkäjoukko — yksi selektori josta sekä lista että otsikkoluku johdetaan.
+   * Ennen tätä otsikko luki `store.size`ä (kaikki pätkät ∀ vaiheessa) samalla kun lista suodattui
+   * katseluvaiheella (T434/V321) ∴ suljettu paneeli lupasi "(12)" kun purussa oli yksi — & juuri
+   * suljettuna luku on ainoa tieto joka näkyy. Kaksi lähdettä ajautuu erilleen aina.
+   */
+  private visibleSegments(): Segment[] {
+    const activePhase = this.callbacks.getActivePhase?.()
+    return activePhase
+      ? getSegmentsForPhase(this.store, activePhase)
+      : Array.from(this.store.values())
+  }
+
   private applyCollapsed(): void {
-    const count = this.store.size
+    const count = this.visibleSegments().length
     this.header.setName(`Reittipätkät (${count})`)
     this.header.setCollapsed(this.collapsed)
     this.listEl.hidden = this.collapsed
@@ -427,7 +442,8 @@ export class SegmentPanel {
     panel?.querySelectorAll('.btn-segment-footer').forEach(el => el.remove())
 
     const activePhase = this.callbacks.getActivePhase?.()
-    const segments = activePhase ? getSegmentsForPhase(this.store, activePhase) : Array.from(this.store.values())
+    // T440/V325: SAMA selektori kuin otsikkoluvulla — lista & luku ⊥ voi eriytyä.
+    const segments = this.visibleSegments()
     if (segments.length === 0) {
       const empty = document.createElement('li')
       empty.className = 'segment-empty'
@@ -474,7 +490,8 @@ export class SegmentPanel {
     const info = document.createElement('button')
     info.type = 'button'
     info.className = 'segment-info'
-    const name = seg.displayName ?? `(#${seg.id.slice(0, 6)})`
+    // T445: yksi näyttönimen lähde ∀ paikassa; nimetön pätkä saa vaihe-etuliitteen id-katkelman eteen.
+    const name = segmentDisplayName(seg, `(#${seg.id.slice(0, 6)})`)
     info.textContent = name
     info.setAttribute('aria-label', `Avaa ${name} lisätiedot`)
     info.addEventListener('click', () => this.detailsModal.open(seg))

@@ -1,5 +1,6 @@
 import type { MarkerStatus, SignMarker } from './types'
 import type { Segment } from './segments'
+import { segmentDisplayName } from './segment-name'
 import { resolveSegmentMarkers } from './segment-membership'
 import { orderMarkersInSegment } from './segment-order'
 import { markerVisibility } from './map-filter'
@@ -121,5 +122,6 @@ export function groupMarkersForOverview(input: OverviewInput): OverviewGroup[] {
 
 /** Alaryhmän otsikko. Omistajaton = eksplisiittinen teksti ⊥ tyhjä rivi (V290). */
 export function subgroupTitle(sub: OverviewSubgroup): string {
-  return sub.segment?.displayName?.trim() || (sub.segment === null ? 'Ei pätkää' : 'Nimetön pätkä')
+  if (sub.segment === null) return 'Ei pätkää'
+  return sub.segment ? segmentDisplayName(sub.segment) : 'Nimetön pätkä'
 }
