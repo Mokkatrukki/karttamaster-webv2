@@ -56,6 +56,26 @@ myös `STATUS_RING`-taulussa synkassa vaalean teeman kanssa. Taustaväri: `color
 | status-keratty     | `#8A5CD1`        | `#A277E0` | Kerätty (violetti)|
 | status-ei-tarpeen  | `#C9922E`        | `#DBA83F` | Ei tarpeen (kulta)|
 
+### Vaihe-aksentti (`--phase-accent` + `--phase-accent-contrast`) — T443/V329
+
+Tapahtuman vaihe on järjestelmän tila (V317) mutta oli näkymätön: sama sovellus, samat pätkät, samat merkit ∴ purun alkamisen saattoi luulla joksikin muuksi. Aksentti värjää **yläpalkin** (`#toolbar` tausta) ja **heron** (`#segment-view` yläreunan 4px nauha); rinnalla kulkee aina **nimi** (`.phase-name`, "Purkumaster") — väri ei ole koskaan ainoa kantaja (V329, sama sääntö kuin V328).
+
+Asetetaan `<body data-phase="…">`-attribuutille (`src/ui/phase-indicator.ts`) ∴ token valuu CSS:n kautta jokaiseen pintaan. Ei inline-tyyliä: kaksi väripaikkaa ajautuu erilleen.
+
+| data-phase | `--phase-accent` | `--phase-accent-contrast` | vs valkoinen | Nimi |
+|---|---|---|---|---|
+| `asettaminen` | `#0F6FA8` sininen | `#ffffff` | 5.44 | Asetusmaster |
+| `tarkastus` | `#B26100` amber | `#ffffff` | 4.60 | Tarkastusmaster |
+| `purku` | `#9B4C8C` magenta | `#ffffff` | 5.52 | Purkumaster |
+
+Sininen / amber / magenta on CVD-turvakolmikko (Okabe-Ito-suku): **ei punainen↔vihreä -paria**, ja sävyjen lisäksi kylläisyys- ja vaaleusero pitävät ne erillään kirkkaassa auringossa halvalla puhelimella. Vihreä on varattu status-kanavalle (`--segment-done`, `--status-asetettu`) ∴ se ei saa esiintyä vaihekanavassa — kaksi merkitystä samalle sävylle on kaksi asiaa opeteltavaksi.
+
+**Teemariippumaton tarkoituksella.** Vaihe on TUNNUS, ja tunnus joka vaihtuu teeman mukana ei ole tunnus. `[data-theme="dark"]` ei ylikirjoita näitä (sama sääntö kuin karttapinta-tokeneilla, V253 — eri syystä).
+
+**Lähde on rooli-kohtainen (V318/V321), kaksi eikä kolme:** talkoolainen näkee `getActivePhase()` (globaali — hänellä ei ole katselusuodinta), järjestäjä `getViewPhase()` (katselu). T434:n "katselet muuta kuin globaalia" -pilleri säilyy ja on edelleen ainoa paikka joka kertoo eron.
+
+Ilman `data-phase`-attribuuttia (auth-ruutu, `/patkat`) tokenit putoavat neutraaliin chromeen (`--surface-app` / `--text-body`) ∴ mikään ei väläytä väärää vaihetta.
+
 ### Merkki-tyyppivärit (SIGN_TYPES `src/logic/sign-picker.ts` + icons.ts, luettavia valkoisella kortilla)
 
 | Tyyppi        | Hex       | Merkki                      |
@@ -720,6 +740,8 @@ Kartta avautuu **katselutilassa** joka latauksella; kaikki kartan MUTATOIVAT ele
   - Peruuta-nappi: `field-tint` tausta, `border-default`, `min-height:44px`
   - ~~**Keppi-checkbox / kiinnitystapa (T249/V168 → V181)**~~ **POISTETTU KOKONAAN T266/V186** — kiinnitystapa (keppi/irto) EI ole strukturoitu kenttä missään (ei mallissa, ei inventaariorivillä). Oletus = aina keppi; poikkeus "sido puuhun" ilmaistaan merkin kommentissa/paikkaohjeessa kartalla (`marker-detail-modal` note, placeholder "kiinnitä puuhun"). Malli = pelkkä kylttipinta (yksi tunnus). `signDisplayLabel(tpl.label)` = pelkkä label KAIKKIALLA (kirjasto/picker/kartta/inventaario). Ei `.inv-field-keppi`/`.inv-d-keppi`/`.sign-lib-keppi-checkbox`-elementtejä. HUOM: kartan compactLabel johdetaan raakalabelista.
 
+- **Vaiheen mukainen kutistus (T444/V250, `setPhase(phase)`):** purkuvaiheessa paneeli renderöityy **kutistettuna** — purussa merkkejä ei aseteta ∴ kirjasto vie pystytilaa toiminnolta jota ei käytetä (sama kuvio kuin T428, varustelista pois purusta). **Collapse, EI täyspiilotus:** järjestäjä voi tarvita kirjastoa korjaukseen kesken purun, ja piilotettu paneeli olisi kadonnut toiminto — V250-linja on että rivi näkyy kun se voi tehdä jotain, ja kirjasto voi yhä. Section-header + chevron pysyvät aina DOM:issa. Käyttäjän oma avaus/sulku (`userToggled`) voittaa vaiheen oletuksen istunnon ajan, ja `setPhase` samalla vaiheella on no-op ∴ paneeli ei kutistu uudelleen jokaisella renderillä tai synkalla. Lähde: `getViewPhase()` (paneeli on järjestäjän pinta, V321).
+
 ### ImageGalleryPicker (`.sign-image-gallery`, edit-modaalin sisällä T93-ikoni-gridin vieressä)
 - **Sijainti:** SignLibraryPanel edit-modaalin visual-valinnassa kaksi tabia: `[Ikoni] [Kuva]` (`.sign-visual-tab`, `min-height:44px`, aktiivi = `accent`-alaviiva, ei-aktiivi = `text-muted`). Kuva-tabi näyttää `ImageGalleryPicker`-gridin, Ikoni-tabi nykyisen T93-ikoni-gridin. Precedence (V99) ei riipu tabista — kumpi tahansa asetettu viimeksi voittaa tallennuksessa, toinen kenttä nollataan (kuva ja ikoni eivät ole molemmat samaan aikaan aktiivisia samalle templatelle).
 - **Grid:** `display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px`, kontaineri `max-height:min(50vh,420px);overflow-y:auto;flex-shrink:0` (sama scroll-periaate kuin sign-lib-lista rivi 444). **`flex-shrink:0` pakollinen (B91/T201/V130):** galleria on modaalin (flex-column, overflow-y:auto) lapsi jolla oma `overflow-y:auto` → CSS antaa flex-itemille `min-height:auto=0` → matalalla mobiiliviewportilla flexbox kutistaisi gallerian 0-korkeuteen (thumbnailit katoaisivat). `flex-shrink:0` pitää korkeuden, modaalin oma scroll hoitaa ylipursun.
@@ -741,6 +763,17 @@ Kartta avautuu **katselutilassa** joka latauksella; kaikki kartan MUTATOIVAT ele
 - **Tuplamerkki (`.marker-visual-row-combo`, `parts.length>1`, V107):** pystypino, max 4 lohkoa (`.marker-visual-row-combo-slot`), `1px`-jakoviiva lohkojen välissä, `border-radius:8px` koko pinolle, sama resolvoitu väri kaikissa ikoni/label-lohkoissa. **Ei kulmabadgea** (esim. "2") — käyttäjäpäätös: kaksi näkyvää lohkoa jo kertoo tuplauksen, badge koettiin turhaksi.
 - **Zoom (`opts.zoomable=true`, `.marker-visual-row-zoom`):** `44×44px` klikattava hit-area (V129/B89 — alkuperäinen 20px-toteutus rikkoi §A:n, korjattu ennen ✓-merkintää) oikeassa alakulmassa, sisällä `18×18px` näkyvä pyöreä tumma badge valkoisella suurennuslasi-SVG:llä, `aria-label="Suurenna <label>"`. Klikkaus `stopPropagation` + avaa lightboxin — ei valitse mitään, pelkkä esikatselu (ero ImageGalleryPickeriin: siellä zoom voi myös valita).
 - **Lightbox (`.marker-visual-lightbox`, `.marker-visual-lightbox-backdrop`):** sama pattern kuin ImageGalleryPickerin lightbox (rivit 468-471) — `overlay`-token backdrop, `z-index:5000`, keskitetty `max-width:min(90vw,420px)`, `surface-card` tausta (ei valkoinen — tämä ei ole vain kuva-esikatselu vaan koko merkkivisuaali omalla taustallaan), sisällä `buildMarkerVisual(marker, {size:160, zoomable:false})` + caption (label tai compactLabel). Sulkeutuu: Esc, backdrop-klikkaus, `✕`-nappi (`.marker-visual-lightbox-close`, `34×34px`, `aria-label="Sulje"`).
+- **Päätetilan koriste (T442/V328, `data-decoration`):** merkin PÄÄTETILA luetaan muodosta, ei himmennyksestä. `markerDecoration(status, phase)` (`src/logic/sign-visual.ts`, puhdas) → `collected` | `missing` | `skipped` | `none`; `buildMarkerVisual` kirjoittaa sen `data-decoration`-attribuutille ja `.marker-visual-row-sv--<arvo>`-luokaksi. `status`/`phase` ovat **vapaaehtoisia** — merkkikirjasto ja esikatselut piirtävät tyyppejä joilla ei ole elinkaarta, ja ilman niitä koriste on `none`.
+
+| Arvo | Milloin | Ilme |
+|---|---|---|
+| `collected` | `status = kerätty` | **Vinoviiva** ikonin yli (`::after`, `3px`, −45°) |
+| `missing` | `status = ei_tarpeen` **ja** `phase = purku` ("ei löytynyt", V319) | **Katkoviiva** + `?`-merkki oikeassa yläkulmassa |
+| `skipped` | `status = ei_tarpeen` muussa vaiheessa | Himmennys `opacity:.5`, ei viivaa |
+
+  Viiva **ei peitä ikonin ydintä**: talkoolainen tarvitsee kasaa kootessaan yhä tiedon MIKÄ merkki tämä oli — peittävä rasti hävittäisi juuri sen. Kolme päätetilaa näyttivät ennen samalta himmeältä ∴ sama merkki kerättiin kahdesti tai keräämätön ohitettiin.
+  **Kontrastitokenit (`:root`, teemariippumattomat kuten karttapinta-tokenit V253):** `--mark-slash: #10161A` (viiva) + `--mark-slash-halo: rgba(255,255,255,0.95)` (halo, kaksi `drop-shadow`ia). Halo tarvitaan koska merkin oma väri ei ole tiedossa piirtohetkellä: sama viiva osuu sekä vaalealle kuvakyltille että tummalle tyyppivärille. Ei inline-hexiä — kirkkaan auringon kalibrointi eläisi kahdessa paikassa.
+  **Sama kieli kartalla:** `MarkerManager.reapplyElementState` asettaa `.marker-collected` Leaflet-merkin elementille → identtinen `::after`-vinoviiva. Kaksi kieltä samalle tilalle olisi kaksi asiaa opeteltavaksi.
 - **Käyttäjä:** molemmat (järjestäjä nyt SegmentDetailsModalissa, talkoolainen tuleva SegmentView).
 
 ### AdminPage (`admin.html` + `src/admin.ts` + `src/ui/admin-page.ts`, T122)

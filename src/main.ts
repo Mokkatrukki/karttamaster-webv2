@@ -20,6 +20,7 @@ import { wireAuth } from './app/role-view'
 import { initTalkoolainenMode } from './app/talkoolainen-mode'
 import { initTheme } from './logic/theme'
 import { loadActivePhase } from './logic/phase-view'
+import { PhaseIndicator, phaseSourceFor, registerPhaseIndicator } from './ui/phase-indicator'
 
 // V132/T202: palauta käyttäjän valitsema teema ennen renderiä (estää välkkeen).
 initTheme()
@@ -62,6 +63,15 @@ async function init(talkoolainenCode?: string) {
   // renderiä — muuten kartta piirtäisi hetken väärän vaiheen pätkät. Epäonnistuminen putoaa
   // välimuistiin (offline), ⊥ kaada käynnistystä.
   await loadActivePhase()
+
+  // T443/V329: vaihe näkyviin heti kun se on tiedossa — ennen ensimmäistä pätkärenderiä.
+  // Talkoolainen näkee GLOBAALIN vaiheen (V318), järjestäjä KATSELUvaiheen (V321).
+  const phaseNameEl = document.getElementById('phase-name')
+  if (phaseNameEl) {
+    registerPhaseIndicator(
+      new PhaseIndicator(phaseNameEl, phaseSourceFor(talkoolainenCode ? 'talkoolainen' : 'järjestäjä')),
+    )
+  }
 
   // T184/V118: erottele lataus-epäonnistuminen tyhjästä tuloksesta. Epäonnistuessa
   // näytä persistentti virhe eikä hiljaa tyhjää karttaa (→ estää duplikaatit).

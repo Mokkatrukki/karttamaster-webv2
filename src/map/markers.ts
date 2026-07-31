@@ -22,6 +22,7 @@ import { markerScaleForZoom } from '../logic/marker-scale'
 import { outbox } from '../logic/outbox-instance'
 import { setOutboxSaveErrorHandler } from '../logic/outbox-instance'
 import { focusState } from '../logic/marker-focus'
+import { centerOn, zoomForShow } from './viewport'
 import type { MapFilter, MarkerFilterContext } from '../logic/map-filter'
 import { defaultMapFilter, markerVisibility } from '../logic/map-filter'
 import type { MembershipSegment } from '../logic/segment-membership'
@@ -249,6 +250,10 @@ export class MarkerManager {
       el.style.cursor = 'pointer'
       el.classList.toggle('leaflet-marker-pending', this.pendingIds.has(id))
       el.classList.toggle('marker-next-highlight', this.highlightNextId === id)
+      // T442/V328: kerätty merkki saa vinoviivan MYÖS kartalla — sama kieli molemmilla
+      // pinnoilla. Ikoni jää luettavaksi ∴ talkoolainen näkee yhä MIKÄ merkki se oli.
+      const m = this.markers.find((x) => x.id === id)
+      el.classList.toggle('marker-collected', m?.status === 'kerätty')
     }
     this.applyFocusClass(lm, id)
     this.applyZoomScale(lm)
@@ -521,17 +526,15 @@ export class MarkerManager {
     this.panPaddingRight = fn
   }
 
+  // T441/V327: keskitys menee JAETUN näkyvä-ikkuna-apurin läpi (`viewport.ts`) — telakan
+  // leveys oli vain toinen puoli samaa vikaa (mobiilissa hero peittää alalaidan).
+  // `zoomForShow`: kohdistus LÄHENTÄÄ z18:aan mutta ⊥ koskaan loitonna käyttäjän alta.
   panTo(id: string): void {
     const m = this.markers.find((x) => x.id === id)
     if (!m) return
-    const pad = this.panPaddingRight()
-    if (pad <= 0) {
-      this.map.setView([m.lat, m.lon], this.map.getZoom())
-      return
-    }
-    this.map.fitBounds([[m.lat, m.lon], [m.lat, m.lon]], {
-      paddingBottomRight: [pad, 0],
-      maxZoom: this.map.getZoom(),
+    centerOn(this.map, [m.lat, m.lon], {
+      zoom: zoomForShow(this.map.getZoom()),
+      extraRight: this.panPaddingRight(),
     })
   }
 

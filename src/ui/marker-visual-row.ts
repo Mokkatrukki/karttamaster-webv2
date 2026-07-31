@@ -1,4 +1,5 @@
-import { signVisual, signVisualParts, compactLabel } from '../logic/sign-visual'
+import { signVisual, signVisualParts, compactLabel, markerDecoration } from '../logic/sign-visual'
+import type { DecorationPhase } from '../logic/sign-visual'
 import { signImageSrc } from '../logic/sign-images'
 import { getIconById } from '../logic/icon-set'
 import { SIGN_TYPES } from '../logic/sign-picker'
@@ -8,7 +9,10 @@ import { openLightbox } from './image-lightbox'
 // T198: jaettu render-helper merkin visuaalille — kuva>ikoni>label-precedence (V99),
 // yhdistelmämerkki pystypino max 4 osaa (V107). Erillinen segment-details-modal.ts:stä
 // (jo ⚠️ pilkko COMPONENTS.md:ssä) ja uudelleenkäytettävä myöhemmin talkoolaisen SegmentView:ssä.
-export type MarkerVisualInput = Pick<SignMarkerLike, 'type' | 'iconId' | 'label' | 'parts' | 'color'>
+// T442/V328: `status` + `phase` ovat VAPAAEHTOISIA — merkkikirjasto & esikatselut piirtävät
+// tyyppejä joilla ⊥ ole elinkaarta. Ilman niitä koriste on 'none' ∴ vanhat kutsujat ovat ennallaan.
+export type MarkerVisualInput =
+  Pick<SignMarkerLike, 'type' | 'iconId' | 'label' | 'parts' | 'color' | 'status' | 'phase'>
 
 interface SignMarkerLike {
   type: string
@@ -16,6 +20,8 @@ interface SignMarkerLike {
   label?: string
   parts?: SignPart[]
   color?: string
+  status?: string
+  phase?: DecorationPhase
 }
 
 // Sama väri-precedence kuin src/map/icons.ts circleSvg/comboMarkerSvg: custom template-väri
@@ -63,6 +69,15 @@ export function buildMarkerVisual(marker: MarkerVisualInput, opts: MarkerVisualO
   const wrap = document.createElement('span')
   wrap.className = 'marker-visual-row-sv'
   wrap.style.cssText = `position:relative;display:inline-flex;flex-shrink:0;width:${opts.size}px;height:${opts.size}px`
+
+  // T442/V328: päätetila luetaan MUODOSTA. Koriste on `data-decoration`-attribuutti ⊥ inline-
+  // tyyli: viivan väri & paksuus ovat DESIGN.md-tokeneja joiden kontrasti on kalibroitu
+  // kirkasta aurinkoa vasten — inline-hex ajautuisi niistä erilleen ensimmäisellä säädöllä.
+  const decoration = marker.status ? markerDecoration(marker.status, marker.phase) : 'none'
+  if (decoration !== 'none') {
+    wrap.dataset.decoration = decoration
+    wrap.classList.add(`marker-visual-row-sv--${decoration}`)
+  }
 
   const resolved = marker.parts && marker.parts.length > 0
     ? signVisualParts({ iconId: marker.iconId, label: marker.label ?? '', parts: marker.parts }, signImageSrc)

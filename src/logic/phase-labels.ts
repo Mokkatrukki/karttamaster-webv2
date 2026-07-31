@@ -25,6 +25,19 @@ export const PHASE_LONG_LABELS: Record<Segment['phase'], string> = {
 }
 
 /**
+ * T443/V329: VAIHEEN NIMI JOKA SANOO MITÄ OLLAAN TEKEMÄSSÄ, ⊥ mikä tila on päällä.
+ *
+ * "Purku" on tilan nimi; "Purkumaster" on rooli jossa käyttäjä on juuri nyt. Tila jota ⊥ näe
+ * on tila jonka voi luulla joksikin muuksi (V321:n synty). Nimi kulkee aina aksenttivärin
+ * rinnalla — väri ⊥ ole ainoa kantaja (V329).
+ */
+export const PHASE_MASTER_NAMES: Record<Segment['phase'], string> = {
+  asettaminen: 'Asetusmaster',
+  tarkastus: 'Tarkastusmaster',
+  purku: 'Purkumaster',
+}
+
+/**
  * T435/V322: epäonnistunut vaiheenvaihto → TOIMENPIDE, ⊥ toteamus.
  *
  * Yksi geneerinen "vaihe ei tallentunut" teki 403:sta, 404:stä, 5xx:stä & verkkokatkosta

@@ -14,6 +14,11 @@
 :root {
   color-scheme: light;
 
+  /* T441/V327: laitteen alareunan turva-alue LUETTAVANA arvona. `src/map/viewport.ts` lukee
+     tämän `getComputedStyle`illa — `env()` ei ole JS:stä saatavilla muuten, ja kovakoodattu
+     arvo olisi väärä jokaisella toisella laitteella. */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
   /* Surfaces — birkkupaperi */
   --surface-app:    #EDF1EC;
   --surface-card:   #F6F9F5;
@@ -200,6 +205,107 @@ html:has(#app), body:has(#app) {
   -webkit-overflow-scrolling: touch;
 }
 
+/* ── T442/V328: päätetilan koriste — muoto, ei himmennys ────────────────────────────
+   Kolme loppua (kerätty / ei löytynyt / ohitettu) näyttivät samalta himmeältä ∴ talkoolainen
+   ei nähnyt mitä oli jo tehnyt. Kirkkaassa auringossa halvalla puhelimella kylläisyys katoaa
+   ensin & himmennys sulaa taustaan ⇒ ero on MUODOSSA.
+
+   Viiva EI peitä ikonin ydintä: talkoolainen tarvitsee kasaa kootessaan yhä tiedon MIKÄ
+   merkki tämä oli. Vaalea reunus (halo) tumman viivan ympärillä ∴ viiva erottuu sekä vaaleaa
+   että tummaa kylttiä vasten — merkin oma väri ei ole tiedossa piirtohetkellä.
+
+   Karttapinta-luokka (V253-suku): sama viiva piirtyy pohjakartan päälle Leaflet-merkissä ∴
+   arvot elävät VAIN `:root`issa, eivät seuraa teemaa. */
+:root {
+  --mark-slash:      #10161A;
+  --mark-slash-halo: rgba(255, 255, 255, 0.95);
+}
+
+.marker-visual-row-sv[data-decoration]::after,
+.leaflet-marker-icon.marker-collected::after {
+  content: '';
+  position: absolute;
+  left: -8%;
+  top: 50%;
+  width: 116%;
+  border-top: 3px solid var(--mark-slash);
+  transform: rotate(-45deg);
+  transform-origin: center;
+  pointer-events: none;
+  /* Kaksi drop-shadowia = halo joka seuraa myös katkoviivan pätkiä (border-outline ei seuraisi). */
+  filter: drop-shadow(0 0 1.5px var(--mark-slash-halo)) drop-shadow(0 0 1.5px var(--mark-slash-halo));
+}
+
+/* "Ei löytynyt" (purun `ei_tarpeen`, V319) — KATKOviiva + `?`. Eri tapahtuma kuin kerätty
+   ∴ eri muoto: katkos lukee "keskeneräinen" myös vilkaisulla. */
+.marker-visual-row-sv[data-decoration="missing"]::after {
+  border-top-style: dashed;
+}
+
+.marker-visual-row-sv[data-decoration="missing"]::before {
+  content: '?';
+  position: absolute;
+  right: -5px;
+  top: -6px;
+  z-index: 1;
+  min-width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  background: var(--mark-slash);
+  color: var(--mark-slash-halo);
+  border: 1px solid var(--mark-slash-halo);
+  font: 800 10px/13px sans-serif;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Asetusvaiheen "ei tarpeen" — merkkiä ei koskaan viety maastoon ∴ EI viivaa (ei mitään
+   yliviivattavaa). Nykyinen himmennys säilyy, mutta se on nyt vain YKSI kolmesta ilmeestä. */
+.marker-visual-row-sv[data-decoration="skipped"]::after { display: none; }
+.marker-visual-row-sv[data-decoration="skipped"] { opacity: 0.5; }
+
+/* Kartta: sama kieli kuin listalla. `.leaflet-marker-icon` on jo `position:relative`
+   (Leaflet asemoi sen absoluuttisesti) ∴ pseudo osuu merkin päälle. */
+.leaflet-marker-icon.marker-collected::after {
+  z-index: 2;
+}
+
+/* ── T443/V329: vaihe-aksentti ──────────────────────────────────────────────────────
+   Vaihe on järjestelmän tila (V317) mutta oli näkymätön ∴ sen saattoi luulla joksikin
+   muuksi. Aksentti värjää yläpalkin & heron; nimi ("Purkumaster") kulkee aina mukana —
+   väri ⊥ ole ainoa kantaja (V329).
+
+   Arvot: DESIGN.md §C "Vaihe-aksentti". Sävyt sininen / amber / magenta ovat CVD-turva
+   -kolmikko (⊥ punainen↔vihreä -paria) & kaikilla ≥4.5:1 valkoisella tekstillä.
+   TEEMARIIPPUMATON tarkoituksella: vaihe on TUNNUS, & tunnus joka vaihtuu teeman mukana
+   ⊥ ole tunnus. */
+body[data-phase="asettaminen"] { --phase-accent: #0F6FA8; --phase-accent-contrast: #ffffff; }
+body[data-phase="tarkastus"]   { --phase-accent: #B26100; --phase-accent-contrast: #ffffff; }
+body[data-phase="purku"]       { --phase-accent: #9B4C8C; --phase-accent-contrast: #ffffff; }
+
+/* Ennen ensimmäistä `sync()`ia (ja `/patkat`-sivuilla joilla indikaattoria ei ole) aksentti
+   putoaa neutraaliin chromeen ∴ mikään ei väläytä väärää vaihetta. */
+:root {
+  --phase-accent: var(--surface-app);
+  --phase-accent-contrast: var(--text-body);
+}
+
+/* Vaiheen nimi yläpalkissa. Oma pinta aksentin päällä ⊥ pelkkä teksti: hanskakäyttäjä
+   silmäilee muodon ennen kirjaimia. */
+.phase-name {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: var(--phase-accent-contrast);
+}
+
+.phase-name:empty { display: none; }
+
 /* ── Toolbar ── */
 
 #toolbar {
@@ -207,8 +313,8 @@ html:has(#app), body:has(#app) {
   align-items: center;
   gap: 6px;
   padding: 6px 8px;
-  background: var(--surface-app);
-  color: var(--text-body);
+  background: var(--phase-accent);
+  color: var(--phase-accent-contrast);
   flex-shrink: 0;
   position: relative;
   z-index: 200;
@@ -230,6 +336,24 @@ html:has(#app), body:has(#app) {
   align-items: center;
   gap: 6px;
   margin-left: auto;
+}
+
+/* T443/V329: yläpalkin kontrollit lukevat aksentin päältä. Yksi lohko ∴ uusi yläpalkin
+   nappi perii luettavuuden ilman että kukaan muistaa sitä. Kontrasti tulee TEKSTIVÄRISTÄ,
+   ⊥ läpinäkyvästä täytöstä: kirkkaassa auringossa täyttö on ensimmäinen mikä sulaa pois. */
+body[data-phase] #toolbar #app-brand,
+body[data-phase] #toolbar #toolbar-actions button {
+  color: var(--phase-accent-contrast);
+}
+
+body[data-phase] #toolbar #toolbar-actions button {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+body[data-phase] #toolbar #toolbar-actions button:hover {
+  background: rgba(255, 255, 255, 0.26);
+  color: var(--phase-accent-contrast);
 }
 
 #toolbar-menu {
@@ -1491,6 +1615,10 @@ button {
 #segment-view {
   display: none;
   background: var(--surface-app);
+  /* T443/V329: hero kantaa saman aksentin kuin yläpalkki — talkoolaisen karttamoodissa
+     hero kelluu alalaidassa & yläpalkki voi jäädä silmän ulkopuolelle. Nauha ⊥ täyttö:
+     heron sisältö on tekstiä jonka kontrasti on jo kalibroitu surface-appia vasten. */
+  border-top: 4px solid var(--phase-accent);
   border-bottom: 1px solid var(--border-subtle);
   padding: 10px 12px;
   /* T228: 48vh→38vh — inline-lista poistettu ∴ paneeli kompakti yläkortti,

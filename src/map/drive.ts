@@ -1,5 +1,6 @@
 import L from 'leaflet'
 import type { RoutePoint } from '../logic/types'
+import { centerOn } from './viewport'
 
 const STEP_METERS = 50
 const ZOOM_DRIVE = 17
@@ -89,7 +90,8 @@ export class DriveMode {
 
   private panToCurrent(): void {
     const pt = this.routePoints[this.currentIndex]
-    this.map.setView([pt.lat, pt.lon], ZOOM_DRIVE, { animate: true })
+    // T441/V327: ajossa piste ! näkyä NÄKYVÄSSÄ ikkunassa — hero peittää alalaidan.
+    centerOn(this.map, [pt.lat, pt.lon], { zoom: ZOOM_DRIVE, animate: true })
     this.onProgress(this.currentKm())
   }
 }
