@@ -1,9 +1,11 @@
 import type { MarkerManager } from '../map/markers'
 import type { SignLibrary } from '../logic/sign-library'
 import type { SignMarker, MarkerStatus } from '../logic/types'
+import type { Segment } from '../logic/segments'
 import { SIGN_TYPES } from '../logic/sign-picker'
 import { listTemplates } from '../logic/sign-library'
 import { validActions, canTransition } from '../logic/marker-status'
+import { revertTarget, revertLabel } from '../logic/phase-target'
 import { navUrl, navTarget } from '../logic/nav-link'
 import { registerEscClose, signPreviewHtml } from './modal-helpers'
 import { openImageLightbox } from './image-lightbox'
@@ -38,6 +40,12 @@ export class MarkerDetailModal {
     // T225/V151: talkoolaisen oma pätkäkoodi — kova-poisto sallitaan VAIN oman itse-luoman merkin
     // (createdBy === koodi) kohdalla. undefined järjestäjälle (ei koodia) → talkoolais-poistopolku ei aktivoidu.
     private getTalkoolainenCode: () => string | undefined = () => undefined,
+    // T437/V323: talkoolaisen OMA tehtävä — peruutus on VAIHEEN funktio (purku `kerätty`→
+    // `asetettu`, asetus `asetettu`→`suunniteltu`) ∴ modaali ⊥ voi päätellä paluuta pelkästä
+    // statuksesta. undefined/null (järjestäjä, tehtävätön konteksti) → asettaminen-oletus,
+    // sama kuin muualla lookupissa.
+    private getTask: () => { phase?: Segment['phase']; markerTypeFilter?: string } | null | undefined
+      = () => null,
   ) {}
 
   open(markerId: string): void {
@@ -402,8 +410,33 @@ export class MarkerDetailModal {
     const actions = document.createElement('div')
     actions.className = 'modal-footer-actions'
 
+    // T437/V323: PERUUTUS. Päätetila syntyy YHDESTÄ napautuksesta hanska kädessä ∴ väärä
+    // napautus on odotettava tapahtuma, ei poikkeus. Paluu tulee vaiheen lookupista
+    // (`revertTarget`) ⊥ `marker-status`-siirtymistä: `kerätty` on siellä umpikuja, ja purussa
+    // paluu on `asetettu` (⊥ `suunniteltu`) — siirtymätaulu ⊥ tunne vaihetta.
+    const task = this.getTask()
+    const revertTo = revertTarget(marker.status, task)
+    if (revertTo) {
+      const revertBtn = document.createElement('button')
+      revertBtn.className = 'modal-btn-secondary marker-detail-revert'
+      revertBtn.textContent = revertLabel(task)
+      revertBtn.addEventListener('click', () => {
+        // Sama mutaatiopolku kuin kuittauksella (`bulkSetStatus` → PUT /api/markers/:id) ∴
+        // palautus menee audit-lokiin `status`-rivinä kuten kuittauskin (V227/V231): "kuka perui"
+        // on yhtä tärkeä kuin "kuka kuittasi". ⊥ uutta koneistoa (T437(d)).
+        this.manager.bulkSetStatus([marker.id], revertTo)
+        this.onUpdate()
+        this.close()
+      })
+      actions.appendChild(revertBtn)
+    }
+
     validActions(marker.status).forEach(action => {
       if (!canTransition(marker.status, action)) return
+      // T437/V323: geneerinen "Peru" väistää vaihekohtaisen peruutuksen — kaksi nappia joilla on
+      // ERI kohde ("Peru"→suunniteltu, "↩ Palauta keräämättömäksi"→asetettu) on kaksi tapaa
+      // painaa väärää.
+      if (action === 'peru' && revertTo) return
       const btn = document.createElement('button')
       btn.className = action === 'peru' ? 'modal-btn-secondary' : 'modal-btn-primary'
       btn.textContent = ACTION_LABELS[action] ?? action

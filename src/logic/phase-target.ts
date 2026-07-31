@@ -38,6 +38,13 @@ export interface PhaseTarget {
   terminalStatuses: MarkerStatus[]
   /** T436/V326: välitilarivin varoitus — miksi merkki ⊥ ole avoin muttei tehty. */
   pendingLabel: string
+  /**
+   * T437/V323: MIHIN päätetila puretaan. Paluu on vaiheen funktio kuten kuittauskin ∴ sama
+   * lookup toisin päin — ⊥ UI:n if-lause, ⊥ per-vaihe-erikoistapaus (V313-suku).
+   */
+  revertStatus: MarkerStatus
+  /** T437/V323: peruutusnapin sana. */
+  revertLabel: string
   /** Mihin statukseen kuittaus vie. */
   targetStatus: MarkerStatus
   /** Laskurin sana: "N/M asetettu" | "N/M kerätty". */
@@ -63,6 +70,8 @@ const TARGETS: Record<'asettaminen' | 'purku', PhaseTarget> = {
     doneStatuses: ['asetettu', 'tarkistettu', 'kerätty'],
     terminalStatuses: ['asetettu', 'tarkistettu', 'kerätty', 'ei_tarpeen'],
     pendingLabel: '⚠ Odottaa kuittausta',
+    revertStatus: 'suunniteltu',
+    revertLabel: '↩ Palauta asettamattomaksi',
     targetStatus: 'asetettu',
     label: 'asetettu',
     nextLabel: 'Seuraava merkki',
@@ -76,6 +85,8 @@ const TARGETS: Record<'asettaminen' | 'purku', PhaseTarget> = {
     doneStatuses: ['kerätty'],
     terminalStatuses: ['kerätty', 'ei_tarpeen'],
     pendingLabel: '⚠ Ei kuitattu asetetuksi — maastossa?',
+    revertStatus: 'asetettu',
+    revertLabel: '↩ Palauta keräämättömäksi',
     targetStatus: 'kerätty',
     label: 'kerätty',
     nextLabel: 'Seuraava purettava',
@@ -95,6 +106,8 @@ const COLLECTION: PhaseTarget = {
   doneStatuses: ['kerätty'],
   terminalStatuses: ['kerätty', 'ei_tarpeen'],
   pendingLabel: '⚠ Odottaa hakua',
+  revertStatus: 'suunniteltu',
+  revertLabel: '↩ Palauta hakemattomaksi',
   targetStatus: 'kerätty',
   label: 'haettu',
   nextLabel: 'Lähin kasa',
@@ -157,4 +170,29 @@ export function isTaskComplete(
   segment: { phase?: Segment['phase']; markerTypeFilter?: string } | null | undefined,
 ): boolean {
   return markers.every((m) => isTerminalInSegment(m.status, segment))
+}
+
+/**
+ * T437/V323: MIHIN tämä päätetila palautuu tässä tehtävässä? `null` = ⊥ ole mitä perua
+ * (merkki ⊥ ole päätetilassa) ∴ kutsuja ⊥ tarvitse omaa if-lausetta statuksista.
+ *
+ * `ei_tarpeen` palautuu vaiheen AVOIMEEN statukseen, ⊥ `revertStatus`iin: sillä on KAKSI
+ * lähdettä (suunniteltu→"ei tarpeen", asetettu→"ei löytynyt") ∴ alkuperää ⊥ voi arvata. Yksi
+ * paluu joka jättää merkin tehtävän listalle on ainoa vastaus jota ⊥ tarvitse arvata.
+ */
+export function revertTarget(
+  status: MarkerStatus,
+  segment: { phase?: Segment['phase']; markerTypeFilter?: string } | null | undefined,
+): MarkerStatus | null {
+  if (!isTerminalInSegment(status, segment)) return null
+  const t = segmentTarget(segment)
+  const next = status === 'ei_tarpeen' ? t.openStatuses[0] : t.revertStatus
+  return next === status ? null : next
+}
+
+/** T437/V323: peruutusnapin sana tässä tehtävässä. Pari `revertTarget`ille. */
+export function revertLabel(
+  segment: { phase?: Segment['phase']; markerTypeFilter?: string } | null | undefined,
+): string {
+  return segmentTarget(segment).revertLabel
 }
