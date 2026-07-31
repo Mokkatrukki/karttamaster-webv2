@@ -2,6 +2,7 @@ import type { SignMarker, MarkerStatus } from './types'
 import type { SegmentTrack } from './segment-track'
 import { markersForSegment } from './segment-membership'
 import { phaseTarget } from './phase-target'
+import { countsAsSign } from './marker-kind'
 import { genId } from './uid'
 
 export interface EquipmentItem {
@@ -232,7 +233,10 @@ export function getSegmentStatusCounts(
     kerätty: 0,
     ei_tarpeen: 0,
   }
+  // T447/V331: kasa ⊥ ole kyltti ∴ se ⊥ kasvata pätkän merkkimäärää. Ennen tätä järjestäjä
+  // luki hubissa "13 merkkiä" kun kylttejä oli 12 & yksi oli purkajan jättämä kasa.
   for (const m of getMarkersForSegment(segment, markers, peers)) {
+    if (!countsAsSign(m)) continue
     counts[m.status]++
   }
   return counts
@@ -266,7 +270,10 @@ export function getPhaseProgress(segment: Segment, markers: SignMarker[], peers:
   if (segment.phase === 'tarkastus') {
     return { kind: 'boolean', done: segment.inspected ?? false, label: 'tarkastettu' }
   }
-  const segMarkers = getMarkersForSegment(segment, markers, peers)
+  // T447/V331: sama rajaus kuin `getSegmentStatusCounts`illa — edistymä mittaa kylttityötä.
+  // Kasa on työn TULOS ⊥ sen kohde: jos se laskettaisiin nimittäjään, purku ei koskaan
+  // näyttäisi valmiilta (jokainen jätetty kasa lisäisi tekemätöntä).
+  const segMarkers = getMarkersForSegment(segment, markers, peers).filter(countsAsSign)
   const target = phaseTarget(segment.phase)
   const done = segMarkers.filter(m => target.doneStatuses.includes(m.status)).length
   return { kind: 'count', done, total: segMarkers.length, label: target.label }

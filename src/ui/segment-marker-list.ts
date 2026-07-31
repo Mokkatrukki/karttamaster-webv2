@@ -1,6 +1,7 @@
 import { buildMarkerVisual } from './marker-visual-row'
 import { markerLabel } from './segment-hero'
 import { isTerminal, type MarkerStatus } from '../logic/marker-status'
+import { countsAsSign } from '../logic/marker-kind'
 import { displayKm, orderMarkersInSegment } from '../logic/segment-order'
 import type { Segment } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
@@ -46,7 +47,10 @@ export class SegmentMarkerList {
     // skalaarista joka voi olla mitattu toiselta reitiltä (B129). "Ei reitillä" -merkit
     // (segmentKm null) omaan ryhmäänsä listan alkuun — ne eivät katoa eivätkä sekoita järjestystä.
     const segment = this.ctx.getSegment()
-    const { onRoute, offRoute } = orderMarkersInSegment(this.ctx.getMarkers(), segment)
+    // T447/V331: "Kaikki merkit (N)" tarkoittaa kylttejä. Kasa on autoporukan kohde & sillä on
+    // oma näkymänsä (`/kasat`, T448) ∴ täällä se olisi rivi jolle talkoolaisella ⊥ ole tekemistä
+    // — & se kasvatti otsikon lukua eri tahtiin kuin hero (kaksi lukua, joista toinen valehtelee).
+    const { onRoute, offRoute } = orderMarkersInSegment(this.ctx.getMarkers().filter(countsAsSign), segment)
     const markers = [...onRoute, ...offRoute]
     this.el.innerHTML = ''
 

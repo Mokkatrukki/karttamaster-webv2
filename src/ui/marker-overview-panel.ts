@@ -6,6 +6,7 @@ import { groupMarkersForOverview, subgroupTitle } from '../logic/marker-overview
 import type { OverviewGroup, OverviewGroupKey } from '../logic/marker-overview'
 import { buildMarkerFilterContext } from '../logic/map-filter'
 import type { MapFilter } from '../logic/map-filter'
+import { countsAsSign } from '../logic/marker-kind'
 import { displayKm } from '../logic/segment-order'
 import type { Segment } from '../logic/segments'
 import type { MarkerStatus } from '../logic/marker-status'
@@ -142,7 +143,9 @@ export class MarkerOverviewPanel {
   render(): void {
     if (!this.open) return
     this.pending = this.ctx.getPendingIds?.() ?? new Set()
-    const markers = this.ctx.getMarkers()
+    // T447/V331: merkkijono on järjestäjän KYLTTItyöjono ("mitkä jäivät asettamatta") ∴ kasa
+    // ⊥ kuulu siihen: sitä ⊥ aseta kukaan & sen hakee autoporukka omalta näkymältään (T448).
+    const markers = this.ctx.getMarkers().filter(countsAsSign)
     const segments = this.ctx.getSegments()
     const filter = this.ctx.getFilter()
     // V297: ctx SAMASTA rakentajasta kuin kartalla ∴ lista & kartta ⊥ voi olla eri mieltä.
