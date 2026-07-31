@@ -494,10 +494,13 @@ function wireMarkersInner(
             getMarkersForSegment(seg, markerManager.getAll(), segmentPeers(segmentStore, seg)),
             markerManager.getAll(),
           ),
-          // T424/V314: "📦 Jätä kasa tähän" — kasa syntyy GPS-fixiin olemassa olevalla
-          // luontipolulla (POST omalle pätkälle V149 → audit-rivi V227 tulee ilmaiseksi).
-          // Ilman fixiä EI kasaa: väärässä paikassa oleva kasa on pahempi kuin ei kasaa,
-          // koska hakija ajaa turhaan.
+          // T424/V314: "📦 Jätä kasa tähän" — kasa syntyy olemassa olevalla luontipolulla
+          // (POST omalle pätkälle V149 → audit-rivi V227 tulee ilmaiseksi).
+          // T430/V320 KUMOSI T424:n eston: kasa syntyy AINA. Fix käytettävissä → kasa siihen
+          // (nolla napautusta); ilman fixiä nappi siirtää kartan sijoitustilaan & talkoolainen
+          // napauttaa kohdan itse. Kasa on pantava johonkin — muuten merkit jäävät kirjaamatta
+          // & tieto katoaa kokonaan. Kasa on merkki (raahattavissa & poistettavissa) ∴ epätarkka
+          // kasa ⊥ ole lopullinen vahinko, kirjaamatta jäänyt on.
           onLeavePile: () => {
             const candidates = unclaimedCollected(
               getMarkersForSegment(seg, markerManager.getAll(), segmentPeers(segmentStore, seg)),
