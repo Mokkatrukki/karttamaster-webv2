@@ -16,6 +16,8 @@ import {
   segmentPath,
 } from '../logic/segments'
 import type { SegmentStore, Segment } from '../logic/segments'
+// T445: näyttönimi (vaihe-etuliite nimettömälle) yhdestä apurista.
+import { segmentDisplayName } from '../logic/segment-name'
 import { SHARED_THRESHOLD_M, type RouteConfig } from '../logic/multi-route'
 import type { SignMarker } from '../logic/types'
 import {
@@ -474,7 +476,8 @@ export class SegmentPanel {
     const info = document.createElement('button')
     info.type = 'button'
     info.className = 'segment-info'
-    const name = seg.displayName ?? `(#${seg.id.slice(0, 6)})`
+    // T445: yksi näyttönimen lähde ∀ paikassa; nimetön pätkä saa vaihe-etuliitteen id-katkelman eteen.
+    const name = segmentDisplayName(seg, `(#${seg.id.slice(0, 6)})`)
     info.textContent = name
     info.setAttribute('aria-label', `Avaa ${name} lisätiedot`)
     info.addEventListener('click', () => this.detailsModal.open(seg))

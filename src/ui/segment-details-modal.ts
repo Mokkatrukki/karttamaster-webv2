@@ -14,6 +14,8 @@ import { fetchSegmentAudit, undoSegmentActions, type AuditEntry } from '../logic
 import { ACTION_VERB } from '../logic/audit-log'
 // T439: vaihejärjestys yhdestä lähteestä — kohdevaihevalitsin ⊥ oma kolmen alkion listansa.
 import { PHASE_ORDER } from '../logic/phase-labels'
+// T445: näyttönimi yhdestä apurista (otsikko + poistovahvistus).
+import { segmentDisplayName } from '../logic/segment-name'
 
 const STATUS_LABELS: Record<string, string> = {
   suunniteltu: 'Suunniteltu',
@@ -84,7 +86,7 @@ export class SegmentDetailsModal {
     // Title element — updated in-place by name save
     const titleEl = document.createElement('span')
     titleEl.className = 'segment-details-modal-title'
-    titleEl.textContent = seg.displayName ?? 'Pätkän lisätiedot'
+    titleEl.textContent = segmentDisplayName(seg, 'Pätkän lisätiedot')
 
     modal.appendChild(this.buildHeader(titleEl, seg, () => this.close()))
 
@@ -866,7 +868,7 @@ export class SegmentDetailsModal {
     deleteBtn.type = 'button'
     deleteBtn.textContent = 'Poista pätkä'
     deleteBtn.addEventListener('click', () => {
-      const name = seg.displayName ?? seg.id.slice(0, 6)
+      const name = segmentDisplayName(seg, seg.id.slice(0, 6))
       if (!confirm(`Poistetaanko pätkä "${name}"? Toimintoa ei voi peruuttaa.`)) return
       this.close()
       this.callbacks.onExitEditMode?.()

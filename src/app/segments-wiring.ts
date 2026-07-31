@@ -4,6 +4,7 @@ import { SegmentOverlay } from '../map/segment-overlay'
 import { SegmentPanel } from '../ui/segment-panel'
 import { PhaseSwitcher } from '../ui/phase-switcher'
 import { getSegmentsForPhase, getSegmentForCode, getMarkersForSegment, segmentPeers } from '../logic/segments'
+import { segmentDisplayName } from '../logic/segment-name'
 import { fitMapToSegment } from '../map/segment-fit'
 import type { Segment } from '../logic/segments'
 import { fetchSegmentByCode, fetchAllSegments, pushSegmentTrack } from '../logic/segment-sync'
@@ -126,7 +127,7 @@ export async function wireSegments(
       segmentOverlay.setContextOwn(seg?.id, false)
       renderSegmentOverlay()
     }
-    if (seg) focusPill.show(seg.displayName ?? 'pätkä')
+    if (seg) focusPill.show(segmentDisplayName(seg, 'pätkä'))
     else focusPill.hide()
     onFocusChange(seg?.id)
   }

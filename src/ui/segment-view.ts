@@ -6,6 +6,7 @@ import { defaultUnsetSelection } from '../logic/navigation'
 import { pileCount } from '../logic/pile'
 import { navUrl, navTarget } from '../logic/nav-link'
 import type { Segment, EquipmentItem } from '../logic/segments'
+import { segmentDisplayName } from '../logic/segment-name'
 import { buildMarkerVisual } from './marker-visual-row'
 import { EquipmentModal } from './equipment-modal'
 import { SegmentHero, markerLabel } from './segment-hero'
@@ -459,7 +460,7 @@ export class SegmentView {
 
     const name = document.createElement('span')
     name.className = 'segment-view-name'
-    name.textContent = this.segment.displayName ?? 'Pätkäsi'
+    name.textContent = segmentDisplayName(this.segment, 'Pätkäsi')
     header.appendChild(name)
 
     // T232 (D): pätkän pituus päänäyttönä ("· 1.0 km"), km-väli pienempänä metatietona.
