@@ -84,6 +84,123 @@ export async function fetchMarkers(): Promise<MarkersResult> {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// T446/V330: SSE-heräte pollauksen RINNALLE.
+//
+// Reaaliaika on KIIHDYTIN ⊥ kuljetusväline. Heräte `{type,id,rev}` ⊥ sisällä dataa vaan
+// kehottaa hakemaan olemassa olevalla polulla (`fetchMarkers` yms.) — kaksi kanavaa samasta
+// rivistä tuottaisi osittaisen totuuden jonka ikäjärjestystä ⊥ voi ratkaista.
+//
+// Kolme sääntöä joita ⊥ saa rikkoa:
+//  1. Pollaus/olemassa oleva hakupolku EI poistu. Katkennut stream ⊥ pysäytä mitään —
+//     metsässä yhteys katkeaa jatkuvasti & sovellus joka odottaa auennutta streamia ⊥ toimi
+//     juuri siellä missä sitä käytetään.
+//  2. Reconnect on SELAIMEN (`EventSource`). Täällä ⊥ ole backoffia eikä uudelleenyhteyttä —
+//     oma koneisto olisi toinen, huonompi kopio siitä mitä selain tekee jo.
+//  3. Heräte ilman verkkoa (tai ilman `EventSource`-tukea) ⊥ kaada — `start` palauttaa
+//     no-op-sulkijan ja soittaja jatkaa kuin streamia ei olisi.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type ChangeType = 'marker' | 'segment' | 'pile'
+
+export interface ChangeEvent {
+  type: ChangeType
+  id: string
+  rev: number
+}
+
+/** `EventSource`in se osa jota tämä moduuli käyttää — testattavuus ilman selainta. */
+export interface EventSourceLike {
+  addEventListener(type: string, listener: (e: { data?: string }) => void): void
+  close(): void
+}
+
+export interface ChangeStreamOptions {
+  /** Heräte: "hae nyt". Saa nipun tapahtumia — purskeesta tulee YKSI haku, ei N. */
+  onWake: (events: ChangeEvent[]) => void
+  url?: string
+  /** Purskeiden niputus. Kasan varaus koskee useaa merkkiä ∴ ⊥ haeta jokaisesta erikseen. */
+  coalesceMs?: number
+  /** Injektio testeille; oletus = selaimen `EventSource`. */
+  create?: (url: string) => EventSourceLike
+}
+
+function defaultCreate(url: string): EventSourceLike | null {
+  const ES = (globalThis as { EventSource?: new (u: string) => EventSourceLike }).EventSource
+  if (!ES) return null
+  return new ES(url)
+}
+
+/**
+ * Avaa SSE-heräteväylän. Palauttaa sulkijan (idempotentti).
+ *
+ * Streamin avaus tai jäsentäminen ei koskaan heitä soittajalle: ilman `EventSource`-tukea
+ * (vanha selain, jsdom, SSR) palautuu no-op eikä mikään muu polku muutu.
+ */
+export function startChangeStream(options: ChangeStreamOptions): () => void {
+  const { onWake, url = '/api/stream', coalesceMs = 300 } = options
+  const create = options.create ?? defaultCreate
+
+  let source: EventSourceLike | null = null
+  try {
+    source = create(url)
+  } catch {
+    source = null
+  }
+  if (!source) return () => {}
+
+  const es = source
+  let stopped = false
+  let lastRev = 0
+  let timer: ReturnType<typeof setTimeout> | null = null
+  let buffer: ChangeEvent[] = []
+
+  const flush = (): void => {
+    timer = null
+    if (stopped || buffer.length === 0) return
+    const batch = buffer
+    buffer = []
+    try {
+      onWake(batch)
+    } catch {
+      // Hakupolun virhe on hakupolun asia — heräte ⊥ saa kaataa streamia.
+    }
+  }
+
+  es.addEventListener('change', (e) => {
+    if (stopped) return
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(String(e.data ?? ''))
+    } catch {
+      return // Vioittunut payload: pollaus tuo saman muutoksen joka tapauksessa.
+    }
+    const ev = parsed as Partial<ChangeEvent>
+    if (typeof ev?.rev !== 'number' || typeof ev.id !== 'string' || typeof ev.type !== 'string') return
+    // Duplikaatti/vanhentunut (reconnect toistaa Last-Event-ID:n jälkeisiä) → ohitetaan.
+    if (ev.rev <= lastRev) return
+    lastRev = ev.rev
+    buffer.push({ type: ev.type as ChangeType, id: ev.id, rev: ev.rev })
+    if (timer === null) timer = setTimeout(flush, coalesceMs)
+  })
+
+  // `error` = yhteys poikki. EI mitään tehtävää: selain yrittää itse uudelleen ja pollaus
+  // kantaa sillä välin (V330). Kuuntelija on olemassa vain jottei tapahtuma jää käsittelemättä.
+  es.addEventListener('error', () => {})
+
+  return () => {
+    if (stopped) return
+    stopped = true
+    if (timer !== null) { clearTimeout(timer); timer = null }
+    buffer = []
+    try {
+      es.close()
+    } catch {
+      // Jo suljettu.
+    }
+  }
+}
+
 /**
  * T392/V284: lähimmän reitin backfill-push — tarkoituksella outboxin OHI (B145-kuvio, sama
  * peruste kuin `pushSegmentTrack`). Arvo on JOHDETTU (lat/lon + GPX) ∴ epäonnistunut push

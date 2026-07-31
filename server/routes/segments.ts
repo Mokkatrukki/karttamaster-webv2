@@ -4,6 +4,7 @@ import type { Database } from 'bun:sqlite'
 import type { AuthEnv } from '../middleware/auth'
 import { requireAuth, requireRole } from '../middleware/auth'
 import { logMarkerAudit } from '../marker-audit'
+import { publishChange } from '../events'
 
 interface SegmentRow {
   id: string
@@ -146,6 +147,8 @@ segmentRoutes.post('/', requireAuth(), requireRole('admin', 'järjestäjä'), as
   )
 
   const row = db.query<SegmentRow, [string]>('SELECT * FROM segments WHERE id = ?').get(id)!
+  // T446/V330: heräte vasta kirjoituksen jälkeen — client hakee herätteestä, ⊥ saa lukea vanhaa.
+  publishChange('segment', id)
   return c.json(rowToSegment(row), 201)
 })
 
@@ -302,6 +305,7 @@ segmentRoutes.put('/:id', requireAuth(), async (c) => {
   db.transaction(applyUpdate)()
 
   const row = db.query<SegmentRow, [string]>('SELECT * FROM segments WHERE id = ?').get(id)!
+  publishChange('segment', id)
   return c.json(rowToSegment(row))
 })
 
@@ -310,6 +314,7 @@ segmentRoutes.delete('/:id', requireAuth(), requireRole('admin', 'järjestäjä'
   const db: Database = c.get('db')
   const id = c.req.param('id')
   db.run('DELETE FROM segments WHERE id = ?', [id])
+  publishChange('segment', id)
   return c.json({ ok: true })
 })
 
