@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
+// T454: vahvistus siirtyi modaalista palkkiin (`openPileConfirmBar`) ∴ sen testit elävät
+// `t454-pile-place-flow.test.ts`:ssä — kaksi kotia samalle pinnalle olisi kaksi totuutta.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { groupPileContents, resolvePileContents } from '../src/logic/pile-list'
 import { buildPileContentsList } from '../src/ui/pile-contents'
-import { showPilePlaceHint, removePilePlaceHint, openPileConfirm } from '../src/ui/pile-drop'
+import { showPilePlaceHint, removePilePlaceHint } from '../src/ui/pile-drop'
 import type { SignMarker } from '../src/logic/types'
 
 function marker(id: string, over: Partial<SignMarker> = {}): SignMarker {
@@ -92,63 +94,5 @@ describe('T450a — ohjelaatikko place-modessa', () => {
     expect(host.querySelectorAll('.pile-place-hint').length).toBe(1)
     removePilePlaceHint(host)
     expect(host.querySelector('.pile-place-hint')).toBeNull()
-  })
-})
-
-describe('T450b — vahvistus ennen kasan syntymistä', () => {
-  const contents = [marker('a'), marker('b')]
-
-  function open() {
-    const onConfirm = vi.fn()
-    const onRelocate = vi.fn()
-    const onCancel = vi.fn()
-    openPileConfirm(contents, { onConfirm, onRelocate, onCancel })
-    return { onConfirm, onRelocate, onCancel }
-  }
-
-  it('modaali kysyy & näyttää mitä ollaan jättämässä', () => {
-    open()
-    expect(document.querySelector('.pile-confirm-title')!.textContent).toBe('Jätetäänkö kasa tähän?')
-    expect(document.querySelector('.pile-confirm .pile-contents-total')!.textContent).toContain('2 merkkiä')
-  })
-
-  it('Vahvista luo kasan', () => {
-    const { onConfirm, onCancel } = open()
-    ;(document.querySelector('.pile-confirm-ok') as HTMLButtonElement).click()
-    expect(onConfirm).toHaveBeenCalledOnce()
-    expect(onCancel).not.toHaveBeenCalled()
-    expect(document.querySelector('.pile-confirm')).toBeNull()
-  })
-
-  it('Peruuta ⊥ luo kasaa — merkit jäävät keräyslistalle', () => {
-    const { onConfirm, onCancel } = open()
-    ;(document.querySelector('.pile-confirm-cancel') as HTMLButtonElement).click()
-    expect(onConfirm).not.toHaveBeenCalled()
-    expect(onCancel).toHaveBeenCalledOnce()
-  })
-
-  it('Siirrä sijaintia palaa place-modeen eikä luo kasaa', () => {
-    const { onConfirm, onRelocate } = open()
-    ;(document.querySelector('.pile-confirm-relocate') as HTMLButtonElement).click()
-    expect(onRelocate).toHaveBeenCalledOnce()
-    expect(onConfirm).not.toHaveBeenCalled()
-    expect(document.querySelector('.pile-confirm')).toBeNull()
-  })
-
-  it('Esc = peruutus (puoliksi tehty kasa olisi tila jota kukaan ⊥ ole valinnut)', () => {
-    const { onCancel, onConfirm } = open()
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
-    expect(onCancel).toHaveBeenCalledOnce()
-    expect(onConfirm).not.toHaveBeenCalled()
-  })
-
-  it('sulkeutunut modaali ⊥ laukaise toista callbackia (⊥ tuplakasaa)', () => {
-    const { onConfirm, onCancel } = open()
-    const ok = document.querySelector('.pile-confirm-ok') as HTMLButtonElement
-    ok.click()
-    ok.click()
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
-    expect(onConfirm).toHaveBeenCalledOnce()
-    expect(onCancel).not.toHaveBeenCalled()
   })
 })

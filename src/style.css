@@ -6629,12 +6629,42 @@ body[data-role="talkoolainen"] .marker-overview { display: none; }
    uusi kasa. Tilaa vapautuu kartalle juuri silloin kun karttaa napautetaan. */
 #segment-view.is-placing-pile .segment-view-pile-btn { display: none; }
 
-/* (b) Vahvistus. Kolme ulospääsyä ∴ ne saavat kaikki 44px eivätkä puristu samalle riville
-   kapealla näytöllä (B108-oppi: flex-wrap ⊥ leikkaa nappeja). */
-.pile-confirm { max-width: 420px; width: calc(100vw - 32px); padding: 16px; }
-.pile-confirm-title { margin: 0 0 10px; font-size: 1.15rem; }
-.pile-confirm-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-.pile-confirm-actions .btn { min-height: 44px; flex: 1 1 auto; }
+/* T454/V338 (B187): vahvistus on PALKKI heron ylälaidassa ⊥ modaali kartan päällä — sijainti
+   on ainoa asia jota vahvistus tarkistaa ∴ kartta ! jäädä näkyviin. Sisältölista on <details>:n
+   takana: se on tarkistettavissa muttei työnnä karttaa ruudulta (B184-oppi). */
+.pile-confirm-bar {
+  position: sticky;
+  top: 0;
+  background: var(--surface-card);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  margin: 0 0 8px;
+  z-index: 6;
+}
+.pile-confirm-bar-lead { margin: 0; font-weight: 600; line-height: 1.25; color: var(--text-body); }
+.pile-confirm-bar-meta { margin: 4px 0 0; color: var(--text-muted); font-size: 0.9rem; }
+.pile-confirm-bar-contents { margin-top: 6px; }
+.pile-confirm-bar-contents > summary { min-height: 32px; cursor: pointer; color: var(--accent); font-weight: 600; }
+/* Lista skrollaa ITSE ∴ 20 merkin kasa ⊥ kasvata palkkia kartan yli. */
+.pile-confirm-bar-contents .pile-contents { max-height: 22vh; overflow-y: auto; }
+.pile-confirm-bar-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.pile-confirm-bar-actions .btn { min-height: 44px; flex: 1 1 auto; }
+
+/* Esikatselupiste: aikomus ⊥ kasa ∴ katkoviiva & pulssi erottavat sen valmiista merkeistä. */
+.pile-preview-pin {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  border-radius: 50%;
+  background: var(--surface-card);
+  border: 3px dashed var(--accent);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 35%);
+  cursor: grab;
+}
 
 /* T449/V333 — varaus on VALINNAINEN toinen vaihde. Oletusnäkymässä näistä näkyy VAIN
    .kasat-select-toggle; ruudut ja "Otan valitut" ilmestyvät vasta pyydettäessä. */

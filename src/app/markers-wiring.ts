@@ -11,7 +11,6 @@ import { getViewPhase } from '../logic/phase-view'
 import { createAndPushSegment } from '../logic/segment-create'
 import { addMarkersToSegment } from '../logic/segment-actions'
 import { unclaimedCollected, pileTemplate, PILE_TEMPLATE_ID } from '../logic/pile'
-import { removePilePlaceHint, openPileConfirm } from '../ui/pile-drop'
 import { showToast } from '../ui/toast'
 import { existingSegmentOwners } from '../logic/segment-membership'
 import { getSegmentsForPhase } from '../logic/segments'
@@ -45,6 +44,9 @@ import { createMarkerClaimSheet } from '../ui/marker-claim-sheet'
 import { gpsControlState } from '../logic/gps-follow'
 // T452/V335: sijoitustila ! tuoda kartta näkyviin itse — moodi on tilan EHTO ⊥ ympäristö.
 import { startPilePlacement, runPileAction } from './pile-placement'
+// T454/V338: esikatselupiste on Leaflet-glue ∴ se tulee `src/map/`istä injektiona.
+import { showPilePreview } from '../map/pile-preview'
+import { haversineDistance } from '../logic/bearing'
 
 // T307/V218: `document.body.dataset.mapMode` asetetaan TÄSTÄ yhdestä paikasta (CSS-korostus
 // T308 + E2E-assertit lukevat sen). UI-toggle EI kirjoita attribuuttia itse — se kutsuu
@@ -536,42 +538,37 @@ function wireMarkersInner(
           showToast(`📦 Kasa jätetty — ${ids.length} merkkiä`)
         }
 
-        // T450b: sijainti valittu → vahvistus. Kasa on lupaus toiselle porukalle ("tule
-        // tänne, täällä on nämä") ∴ se ! olla tarkistettavissa ennen kuin se lähtee.
-        // Peruuta → merkit jäävät keräyslistalle & kasaa ⊥ synny; Siirrä → takaisin karttaan.
-        const confirmAt = (lat: number, lon: number): void => {
-          removePilePlaceHint(hintHost)
-          openPileConfirm(candidates, {
-            onConfirm: () => create(lat, lon),
-            onRelocate: () => armPlacement(),
-            onCancel: () => { /* merkit jäävät keräyslistalle — ⊥ tyhjää kasaa jäljelle */ },
-          })
-        }
-
         // T450a: place-modessa pysyvä ohjerivi, ⊥ pieni toast (hanskat, aurinko, kiire).
         // "Peruuta" on SAMASSA paikassa koko tilan ajan ∴ peruutusta ⊥ tarvitse etsiä.
         //
         // T452/V335 (B182): siirtyminen on ATOMINEN — näkymämoodi kartaksi, ohjerivi heroon
         // & viritys päälle samassa teossa (`startPilePlacement`). Kotimoodissa `#map` on
         // `display:none` ∴ ilman moodinvaihtoa sovellus pyysi napauttamaan pintaa jota ⊥ ole.
-        const armPlacement = (): void => {
-          if (!mapMode.canPlaceMarkers()) mapMode.set('muokkaus')
-          startPilePlacement({
-            host: hintHost,
-            armPlacer: (fn, onDisarm) => placeMode.armPlacer(fn, onDisarm),
-            disarm: () => placeMode.disarm(),
-            onPlace: confirmAt,
-            onEnterKartta: () => map.invalidateSize(),
-          })
-        }
-
-        // T430/V320: kasa syntyy AINA. GPS-fix on nopein tie (nolla karttanapautusta);
-        // ilman sitä talkoolainen napauttaa kohdan kartalta — hän tietää missä on vaikka
-        // satelliitti ⊥ tiedä. Kirjaamaton kasa on lopullinen vahinko, epätarkka ⊥ ole
-        // (kasa on merkki: raahattavissa & poistettavissa).
-        const pos = gpsNavigator.getPosition()
-        if (pos) { confirmAt(pos.lat, pos.lon); return }
-        armPlacement()
+        //
+        // T454/V338 (B185): GPS-oikopolku POISTUI — `getPosition()` palauttaa fixin ilman ikä-
+        // tai tarkkuusrajaa ∴ vanha/epätarkka piste loi kasan sinne minne käyttäjä ⊥ sitä
+        // laittanut ("kasa ei tule mihin laitan"). GPS keskittää kartan & antaa etäisyyslukeman;
+        // SIJAINNIN valitsee ihminen, joka tietää missä on vaikka satelliitti ⊥ tiedä.
+        if (!mapMode.canPlaceMarkers()) mapMode.set('muokkaus')
+        const fix = gpsNavigator.getPosition()
+        startPilePlacement({
+          host: hintHost,
+          contents: candidates,
+          armPlacer: (fn, onDisarm) => placeMode.armPlacer(fn, onDisarm),
+          disarm: () => placeMode.disarm(),
+          showPreview: (lat, lon, onMove) => showPilePreview(map, lat, lon, onMove),
+          distanceFrom: (lat, lon) => {
+            const at = gpsNavigator.getPosition()
+            return at ? haversineDistance(at, { lat, lon }) : null
+          },
+          onConfirm: create,
+          onEnterKartta: () => map.invalidateSize(),
+        })
+        // Fix on ALOITUSNÄKYMÄ ⊥ sijainti: kartta aukeaa siihen mistä käyttäjä katsoo, jotta
+        // napautettava kohta on ruudulla ilman selailua. Ajetaan `startPilePlacement`in JÄLKEEN
+        // — sitä ennen `#map` voi olla vielä `display:none` & Leaflet laskisi keskityksen
+        // nollakokoiselle kontille (V176-suku).
+        if (fix) map.setView([fix.lat, fix.lon], Math.max(map.getZoom(), 15))
       }
 
       const segMarkers0 = getMarkersForSegment(seg, markerManager.getAll(), segmentPeers(segmentStore, seg))

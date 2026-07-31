@@ -30,9 +30,11 @@ function layout(viewMode: string | null): { host: HTMLElement; app: HTMLElement 
 function deps(host: HTMLElement, over: Partial<Parameters<typeof startPilePlacement>[0]> = {}) {
   return {
     host,
+    contents: [],
     armPlacer: vi.fn(),
     disarm: vi.fn(),
-    onPlace: vi.fn(),
+    showPreview: vi.fn(() => ({ move: vi.fn(), position: () => ({ lat: 0, lon: 0 }), remove: vi.fn() })),
+    onConfirm: vi.fn(),
     ...over,
   }
 }

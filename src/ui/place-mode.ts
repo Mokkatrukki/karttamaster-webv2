@@ -51,6 +51,9 @@ export class PlaceMode {
   armFromSidebar(template: SignTemplate): void {
     // V218: katselutilassa no-op — sivupalkin mallin klikkaus ei viritä karttaa sijoitusvalmiiksi.
     if (!this.mapMode.canPlaceMarkers()) return
+    // T454/V339: toinen sijoitus purkaa edellisen TILAN (esim. kesken jäänyt kasan sijoitus)
+    // ∴ ohjerivi & esikatselupiste ⊥ jää roikkumaan merkin sijoituksen päälle.
+    this.disarm()
     this.closePicker()
     this.armedTemplate = template
     document.getElementById('map')?.classList.add('place-mode')
@@ -70,14 +73,25 @@ export class PlaceMode {
   }
 
   disarm(): void {
-    this.armedTemplate = null
-    this.armedPlacer = null
+    this.clearArmed()
     // Nollataan ENNEN kutsua: siivous joka itse kutsuisi `disarm()`in (esim. moodinvaihto)
     // ⊥ saa laukaista itseään uudelleen.
     const cleanup = this.armedDisarm
     this.armedDisarm = null
-    document.getElementById('map')?.classList.remove('place-mode')
     cleanup?.()
+  }
+
+  /**
+   * T454/V339: VIRITYKSEN purku ilman TILAN purkua. Napautus ! kuluttaa virityksen heti
+   * (⊥ kahta sijoitusta yhdestä eleestä & heittävä `fn` ⊥ jätä karttaa viritetyksi), mutta
+   * `armedDisarm` on sen TILAN siivous jonka tulosta ollaan juuri käyttämässä — sen ajaminen
+   * tässä vei kartan pois näkyvistä samalla napautuksella joka antoi koordinaatin (B186).
+   * Kutsuja purkaa tilan `disarm()`illa kun tulos on käytetty tai teko peruttu.
+   */
+  private clearArmed(): void {
+    this.armedTemplate = null
+    this.armedPlacer = null
+    document.getElementById('map')?.classList.remove('place-mode')
   }
 
   // Kutsutaan kartan single-clickistä main.ts:ssä kun isArmed(). Palauttaa true jos sijoitti.
@@ -86,8 +100,9 @@ export class PlaceMode {
     if (this.armedPlacer) {
       const fn = this.armedPlacer
       // Viritys puretaan ENNEN kutsua: jos `fn` heittää, kartta ⊥ jää sijoitustilaan jossa
-      // jokainen seuraava klikki yrittäisi samaa uudelleen.
-      this.disarm()
+      // jokainen seuraava klikki yrittäisi samaa uudelleen. TILAN siivous (`armedDisarm`)
+      // jää odottamaan — V339: se purkaisi juuri sen ympäristön jota `fn` tarvitsee.
+      this.clearArmed()
       fn(lat, lon)
       return true
     }

@@ -140,12 +140,21 @@ test('T424 — kerää merkkejä → "Jätä kasa tähän" ilmestyy määrän ka
   await pile.click()
   await page.waitForTimeout(600)
 
-  // T450b: nappi EI enää luo kasaa suoraan — kasa on lupaus toiselle porukalle ("tule tänne,
-  // täällä on nämä") ∴ se tarkistetaan ennen kuin se lähtee. GPS-fix ohittaa vain sijainnin
-  // valinnan (nolla karttanapautusta), ei vahvistusta.
-  const confirm = page.locator('.pile-confirm')
+  // T454/V338 (B185): GPS EI enää luo kasaa — se keskittää kartan & antaa etäisyyslukeman.
+  // Sijainnin valitsee ihminen napauttamalla, myös fixin kanssa: yksi virta ∀ tapauksessa.
+  await expect(page.locator('.pile-place-hint')).toBeVisible()
+  const mapBox0 = (await page.locator('#map').boundingBox())!
+  await page.mouse.click(mapBox0.x + mapBox0.width / 2, mapBox0.y + mapBox0.height / 3)
+  await page.waitForTimeout(600)
+
+  // T450b: kasa on lupaus toiselle porukalle ("tule tänne, täällä on nämä") ∴ se tarkistetaan
+  // ennen kuin se lähtee. T454: vahvistus on PALKKI & kartta jää näkyviin sen alle (B187).
+  const confirm = page.locator('.pile-confirm-bar')
   await expect(confirm).toBeVisible()
-  await expect(confirm.locator('.pile-confirm-title')).toHaveText('Jätetäänkö kasa tähän?')
+  await expect(confirm.locator('.pile-confirm-bar-lead')).toContainText('Jätetäänkö kasa tähän?')
+  await expect(page.locator('.pile-preview-pin')).toBeVisible()
+  await expect(page.locator('#map')).toBeVisible()
+  await confirm.locator('.pile-confirm-bar-contents > summary').click()
   expect(posted.filter(b => (b as { template_id?: string }).template_id === 'kerayskasa')).toHaveLength(0)
 
   // Sisältö on RYHMITELTY: kaksi samanlaista merkkiä on YKSI rivi "×2", ei kahta identtistä
@@ -185,7 +194,11 @@ test('T450 — vahvistuksen "Peruuta": ei kasaa & merkit jäävät keräyslistal
   await pile.click()
   await page.waitForTimeout(600)
 
-  const confirm = page.locator('.pile-confirm')
+  const mapBox1 = (await page.locator('#map').boundingBox())!
+  await page.mouse.click(mapBox1.x + mapBox1.width / 2, mapBox1.y + mapBox1.height / 3)
+  await page.waitForTimeout(600)
+
+  const confirm = page.locator('.pile-confirm-bar')
   await expect(confirm).toBeVisible()
   await confirm.locator('.pile-confirm-cancel').click()
   await page.waitForTimeout(600)
@@ -299,8 +312,8 @@ test('T430 — ilman GPS-fixiä kasa syntyy kartan napautuksesta (V320)', async 
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
   await page.waitForTimeout(600)
 
-  // T450b: napautus valitsee sijainnin, vahvistus luo kasan. Ohjelaatikko väistyy modaalin tieltä.
-  const confirm = page.locator('.pile-confirm')
+  // T450b: napautus valitsee sijainnin, vahvistus luo kasan. Ohjerivi väistyy palkin tieltä.
+  const confirm = page.locator('.pile-confirm-bar')
   await expect(confirm).toBeVisible()
   await expect(page.locator('.pile-place-hint')).toBeHidden()
   expect(posted.filter(b => (b as { template_id?: string }).template_id === 'kerayskasa')).toHaveLength(0)

@@ -106,12 +106,13 @@ server/       ← Hono + Bun + SQLite
 | MarkerClaimSheet | `src/ui/marker-claim-sheet.ts` | ✓ T416/V306 (himmennetyn merkin AINOA toiminto talkoolaiselle: "Lisää tehtävääni"; bottom sheet, TASAN 2 nappia & ⊥ muokkauskenttiä — ⊥ ole karsittu MarkerDetailModal, DESIGN §K) | tests/t416-claim-sheet.test.ts; e2e/t416-claim-marker.spec.ts | [ui.md](docs/components/ui.md) |
 | MarkerFocusPill | `src/ui/marker-focus-pill.ts` | ✓ T335 (korostustilan poistumis-affordanssi kartalla, V243/V219-kuvio) | tests/t335-focus-toggle-pill.test.ts; critical-paths: "merkkien korostus" | [ui.md](docs/components/ui.md) |
 | ProgressBar | `src/ui/progress-bar.ts` | ✓ | critical-paths: "Drive mode" | [ui.md](docs/components/ui.md) |
-| PlaceMode | `src/ui/place-mode.ts` | ✓ T172 | critical-paths: "Merkki kartalle", "dblclick", "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
+| PlaceMode | `src/ui/place-mode.ts` | ✓ T172, T454 (V339: viritys purkautuu napautuksessa, TILAN siivous vasta kun tulos on käytetty) | critical-paths: "Merkki kartalle", "dblclick", "sivupalkin merkkikirjastosta" | [ui.md](docs/components/ui.md) |
 | AppController | `src/main.ts` | ✓ T155 | critical-paths: kaikki | [ui.md](docs/components/ui.md) |
 | MapInit | `src/app/map-init.ts` | ✓ T179 | critical-paths: kaikki (kartan pohja); e2e/t179-map-invalidate-size.spec.ts | [ui.md](docs/components/ui.md) |
 | RoleView | `src/app/role-view.ts` | ✓ T155, T274 (AccountMenu saa role → crossover-linkki) | critical-paths: "Auth screen", "Rooli backendistä" | [ui.md](docs/components/ui.md) |
 | TalkoolainenMode | `src/app/talkoolainen-mode.ts` | ✓ T254 (R1 keystone: koti↔kartta -moodikehys, #app[data-view-mode]) | tests/t254-talkoolainen-mode.test.ts; e2e/segments.spec.ts "T254" | [ui.md](docs/components/ui.md) |
-| PilePlacement | `src/app/pile-placement.ts` | ✓ T452 (V335: kasan sijoitustila tuo kartan näkyviin & palauttaa moodin; ohje `#segment-view`iin V336) | tests/t452-pile-place.test.ts; e2e/t452-pile-place.spec.ts | [ui.md](docs/components/ui.md) |
+| PilePlacement | `src/app/pile-placement.ts` | ✓ T452 (V335: kasan sijoitustila tuo kartan näkyviin & palauttaa moodin; ohje `#segment-view`iin V336), T454 (V338/V339: yksi virta — napautus→esikatselupiste→vahvistuspalkki, GPS ⊥ luo kasaa, näkymä ⊥ katoa kesken teon) | tests/t452-pile-place.test.ts; tests/t454-pile-place-flow.test.ts; e2e/t452-pile-place.spec.ts | [ui.md](docs/components/ui.md) |
+| PilePreview | `src/map/pile-preview.ts` | ✓ T454 (V338: kasan esikatselupiste kartalla — raahattava aikomus ⊥ vielä merkki, ⊥ POSTia ennen vahvistusta) | e2e/t452-pile-place.spec.ts (T454-testit) | [ui.md](docs/components/ui.md) |
 | AreasWiring | `src/app/areas-wiring.ts` | ✓ T155 | area-interaction | [ui.md](docs/components/ui.md) |
 | SegmentsWiring | `src/app/segments-wiring.ts` | ✓ T155 | e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
 | MarkersWiring | `src/app/markers-wiring.ts` | ✓ T182,T224 (zoom-to-segment, alapalkki piilotettu, next-highlight, gps-drive-panel poistettu) | critical-paths: "Merkki kartalle", "Drive mode", "tallennus epäonnistuu" | [ui.md](docs/components/ui.md) |

@@ -166,8 +166,9 @@ test('T452 — karttanapautus → vahvistus → kasa syntyy (V320 ilman GPS-fixi
   await page.mouse.click(mapBox.x + mapBox.width / 2, mapBox.y + mapBox.height / 3)
   await page.waitForTimeout(700)
 
-  const confirm = page.locator('.pile-confirm')
+  const confirm = page.locator('.pile-confirm-bar')
   await expect(confirm).toBeVisible()
+  await confirm.locator('.pile-confirm-bar-contents > summary').click()
   await expect(confirm.locator('.pile-contents-total')).toContainText('2 merkkiä')
   await confirm.locator('.pile-confirm-ok').click()
   await page.waitForTimeout(700)
@@ -175,4 +176,75 @@ test('T452 — karttanapautus → vahvistus → kasa syntyy (V320 ilman GPS-fixi
   const kasat = posted.filter(b => (b as { template_id?: string }).template_id === 'kerayskasa')
   expect(kasat.length).toBe(1)
   expect((kasat[0] as { pile_marker_ids: string[] }).pile_marker_ids).toHaveLength(2)
+})
+
+/**
+ * T454/V338 (B185,B186,B187) — napautus tuo pisteen SIIHEN mihin napautettiin, kartta jää
+ * näkyviin & toinen napautus siirtää saman pisteen. Käyttäjä 2026-07-31: "klikkaat näytölle
+ * ja se tulee siihen, sit voit siirtää sitä, aina niin että on näytöllä."
+ */
+test('T454 — piste tulee napautuskohtaan, siirtyy & kartta pysyy näkyvissä', async ({ page }) => {
+  const { posted } = await mockPurkuSegment(page)
+  await collectThenGoHome(page)
+
+  await page.locator('.segment-view-pile-btn').click()
+  await page.waitForTimeout(500)
+
+  const mapBox = (await page.locator('#map').boundingBox())!
+  const first = { x: mapBox.x + mapBox.width / 2, y: mapBox.y + mapBox.height / 3 }
+  await page.mouse.click(first.x, first.y)
+  await page.waitForTimeout(600)
+
+  // Piste on siinä mihin napautettiin (ikonin keskipiste ±20 px).
+  const pin = page.locator('.pile-preview-pin')
+  await expect(pin).toBeVisible()
+  const pinBox = (await pin.boundingBox())!
+  expect(Math.abs(pinBox.x + pinBox.width / 2 - first.x)).toBeLessThan(20)
+  expect(Math.abs(pinBox.y + pinBox.height / 2 - first.y)).toBeLessThan(20)
+
+  // B186: kartta EI katoa napautuksesta — vahvistus tapahtuu sen kanssa, ⊥ sen sijasta.
+  await expect(page.locator('#app')).toHaveAttribute('data-view-mode', 'kartta')
+  const afterTap = (await page.locator('#map').boundingBox())!
+  expect(afterTap.height).toBeGreaterThan(844 * 0.3)
+  await expect(page.locator('.pile-confirm-bar')).toBeVisible()
+
+  // Toinen napautus SIIRTÄÄ saman pisteen — ⊥ toista pistettä, ⊥ toista palkkia.
+  const second = { x: mapBox.x + mapBox.width / 2 + 60, y: mapBox.y + mapBox.height / 3 + 40 }
+  await page.mouse.click(second.x, second.y)
+  await page.waitForTimeout(500)
+  await expect(page.locator('.pile-preview-pin')).toHaveCount(1)
+  await expect(page.locator('.pile-confirm-bar')).toHaveCount(1)
+  const movedBox = (await page.locator('.pile-preview-pin').boundingBox())!
+  expect(Math.abs(movedBox.x + movedBox.width / 2 - second.x)).toBeLessThan(20)
+
+  // Kasaa ⊥ ole vielä olemassa: piste on AIKOMUS ∴ mikään ⊥ ole lähtenyt serverille.
+  expect(posted.filter(b => (b as { template_id?: string }).template_id === 'kerayskasa')).toHaveLength(0)
+
+  await page.locator('.pile-confirm-ok').click()
+  await page.waitForTimeout(700)
+  const kasat = posted.filter(b => (b as { template_id?: string }).template_id === 'kerayskasa')
+  expect(kasat).toHaveLength(1)
+  // Esikatselupiste katoaa kun kasa syntyy — kaksi pistettä samassa kohdassa olisi valhe.
+  await expect(page.locator('.pile-preview-pin')).toHaveCount(0)
+  await expect(page.locator('.pile-confirm-bar')).toHaveCount(0)
+})
+
+test('T454 — Peruuta poistaa pisteen & palauttaa kotinäkymän (aikomus ⊥ jätä jälkeä)', async ({ page }) => {
+  const { posted } = await mockPurkuSegment(page)
+  await collectThenGoHome(page)
+
+  await page.locator('.segment-view-pile-btn').click()
+  await page.waitForTimeout(500)
+  const mapBox = (await page.locator('#map').boundingBox())!
+  await page.mouse.click(mapBox.x + mapBox.width / 2, mapBox.y + mapBox.height / 3)
+  await page.waitForTimeout(600)
+
+  await page.locator('.pile-confirm-cancel').click()
+  await page.waitForTimeout(500)
+
+  await expect(page.locator('.pile-preview-pin')).toHaveCount(0)
+  await expect(page.locator('.pile-confirm-bar')).toHaveCount(0)
+  await expect(page.locator('#app')).toHaveAttribute('data-view-mode', 'koti')
+  expect(posted.filter(b => (b as { template_id?: string }).template_id === 'kerayskasa')).toHaveLength(0)
+  await expect(page.locator('.segment-view-pile-btn')).toBeVisible()
 })
