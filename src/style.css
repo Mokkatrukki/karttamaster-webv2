@@ -6412,3 +6412,44 @@ body[data-role="talkoolainen"] .marker-overview { display: none; }
 }
 .patkat-kasat-title { font-weight: 700; }
 .patkat-kasat-lead { font-size: 0.9rem; color: var(--text-muted); }
+
+/* ═══ T450 — kasan jättö: ohjelaatikko, vahvistus, sisältölista ═══════════════════════════════
+   Sisältölista on YKSI komponentti kolmella pinnalla (vahvistus, kasan modaali, tulevat
+   pinnat) ∴ myös sen tyylit ovat yhdessä paikassa. */
+.pile-contents-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.pile-contents-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  min-height: 36px;
+}
+.pile-contents-label { flex: 1 1 auto; min-width: 0; }
+.pile-contents-count { font-weight: 700; font-variant-numeric: tabular-nums; }
+.pile-contents-total, .pile-contents-empty { margin: 8px 0 0; color: var(--text-muted); font-size: 0.9rem; }
+.marker-detail-pile { margin-top: 12px; }
+.marker-detail-pile-title { margin: 0 0 4px; font-weight: 700; }
+
+/* (a) Ohjelaatikko: ISO laatikko ⊥ toast — hanskat, aurinko, kiire. Peruuta on samassa
+   paikassa koko tilan ajan ∴ sitä ⊥ tarvitse etsiä. */
+.pile-place-hint {
+  background: var(--surface-card);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 6;
+}
+.pile-place-hint-title { margin: 0; font-size: 1.05rem; font-weight: 700; }
+.pile-place-hint-text { margin: 0; color: var(--text-body); line-height: 1.4; }
+.pile-place-hint-cancel { min-height: 44px; align-self: flex-start; }
+
+/* (b) Vahvistus. Kolme ulospääsyä ∴ ne saavat kaikki 44px eivätkä puristu samalle riville
+   kapealla näytöllä (B108-oppi: flex-wrap ⊥ leikkaa nappeja). */
+.pile-confirm { max-width: 420px; width: calc(100vw - 32px); padding: 16px; }
+.pile-confirm-title { margin: 0 0 10px; font-size: 1.15rem; }
+.pile-confirm-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.pile-confirm-actions .btn { min-height: 44px; flex: 1 1 auto; }

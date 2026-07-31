@@ -79,8 +79,51 @@ export function formatPileDistance(distanceM: number | null): string {
   return `${(distanceM / 1000).toFixed(1).replace('.', ',')} km`
 }
 
-/** Sisältöyhteenveto riville. Ryhmitellyn listan tuo T450 — tämä on rivin yhden rivin luku. */
+/** Sisältöyhteenveto riville — yhden rivin luku. Ryhmitelty lista: `groupPileContents`. */
 export function formatPileSummary(count: number): string {
   if (count === 0) return 'Tyhjä kasa'
   return `${count} merkkiä`
+}
+
+// ── T450: KASAN SISÄLTÖ RYHMITELTYNÄ ────────────────────────────────────────────────────────
+//
+// Kasassa on tyypillisesti tusina merkkiä joista puolet on samaa nuolta ∴ raaka lista olisi
+// 12 identtistä riviä joista ihminen laskee itse kuinka monta kutakin on. Ryhmittely on se
+// työ jonka kone tekee paremmin — & se on SAMA sekä vahvistuksessa ("mitä olen jättämässä")
+// että katselussa ("mitä olen hakemassa"): yksi ryhmittely ∴ kaksi pintaa ⊥ ole eri mieltä.
+
+export interface PileContentGroup {
+  /** Ryhmittelyavain — templateId jos on, muuten tyyppi. */
+  key: string
+  /** Näyttönimi ("Nuoli vasen"). */
+  label: string
+  count: number
+  /** Edustaja merkkivisuaalille — UI ⊥ toista ryhmittelyä. */
+  sample: SignMarker
+}
+
+/**
+ * Kasan sisältö tyypeittäin. Järjestys = ensiesiintymä syötteessä (deterministinen; sama
+ * kuvio kuin `equipment-counts.ts`) — lajittelu määrän mukaan vaihtaisi rivien paikkaa aina
+ * kun yksi merkki lisätään, & liikkuva lista on lukukelvoton hanskoilla.
+ */
+export function groupPileContents(contents: SignMarker[]): PileContentGroup[] {
+  const groups = new Map<string, PileContentGroup>()
+  for (const m of contents) {
+    const key = m.templateId ?? m.type
+    const existing = groups.get(key)
+    if (existing) existing.count++
+    else groups.set(key, { key, label: m.label?.trim() || m.type, count: 1, sample: m })
+  }
+  return [...groups.values()]
+}
+
+/** Kasan sisältö id-listasta. Puuttuva merkki (poistettu) putoaa hiljaa pois, ⊥ kaada. */
+export function resolvePileContents(
+  pileMarkerIds: string[] | undefined,
+  allMarkers: SignMarker[],
+): SignMarker[] {
+  if (!pileMarkerIds || pileMarkerIds.length === 0) return []
+  const byId = new Map(allMarkers.map(m => [m.id, m]))
+  return pileMarkerIds.map(id => byId.get(id)).filter((m): m is SignMarker => m !== undefined)
 }
