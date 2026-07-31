@@ -30,10 +30,16 @@ export async function pushPileStatus(id: string, status: MarkerStatus): Promise<
 // nämä" varaa kasan porukalle joka ⊥ enää ole matkalla — & se on juuri se näkymätön väärä
 // tieto jonka V333 kieltää. Epäonnistunut varaus ! epäonnistua NÄKYVÄSTI & heti.
 
+// Epäonnistumisen SYY kulkee UI:hin asti: `status` on HTTP-koodi & `null` = `fetch` heitti
+// (verkko poikki, ⊥ vastausta lainkaan). Yksi geneerinen "ei mennyt läpi" olisi neljä eri
+// toimenpidettä samassa lauseessa (V322) ∴ tulkinta tehdään `pile-claim.ts`:n viestifunktiossa,
+// ⊥ tässä: tämä moduuli kuljettaa faktan, ⊥ sanamuotoa.
 export type ClaimResult =
   | { ok: true }
   | { ok: false; reason: 'taken'; by?: string }
-  | { ok: false; reason: 'network' }
+  | { ok: false; reason: 'error'; status: number | null }
+
+export type ReleaseResult = { ok: true } | { ok: false; status: number | null }
 
 export async function claimPile(id: string): Promise<ClaimResult> {
   try {
@@ -43,17 +49,18 @@ export async function claimPile(id: string): Promise<ClaimResult> {
       const body = (await res.json().catch(() => ({}))) as { claimed_by?: string }
       return { ok: false, reason: 'taken', ...(body.claimed_by ? { by: body.claimed_by } : {}) }
     }
-    return { ok: false, reason: 'network' }
+    return { ok: false, reason: 'error', status: res.status }
   } catch {
-    return { ok: false, reason: 'network' }
+    return { ok: false, reason: 'error', status: null }
   }
 }
 
 /** Vapautus on KENEN TAHANSA käytettävissä (V333) — portti on serverillä, ⊥ tässä. */
-export async function releasePile(id: string): Promise<boolean> {
+export async function releasePile(id: string): Promise<ReleaseResult> {
   try {
-    return (await fetch(`/api/markers/${id}/claim`, { method: 'DELETE' })).ok
+    const res = await fetch(`/api/markers/${id}/claim`, { method: 'DELETE' })
+    return res.ok ? { ok: true } : { ok: false, status: res.status }
   } catch {
-    return false
+    return { ok: false, status: null }
   }
 }

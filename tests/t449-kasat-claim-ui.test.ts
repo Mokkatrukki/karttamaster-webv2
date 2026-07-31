@@ -101,3 +101,32 @@ describe('T449c/V333 — varattu kasa näkyy KAIKILLE nimellä & iällä', () =>
     expect(el.querySelector('.kasat-row-release')).toBeNull()
   })
 })
+
+describe('V333 — epäonnistunut varaus on BANNERI ⊥ hiljaisuus', () => {
+  it('virheviesti renderöityy listan ensimmäisenä elementtinä & on role=alert', () => {
+    const el = render([pile('a')], { onCollected: () => {}, error: 'Varaus ei mennyt läpi — ei yhteyttä.' })
+    const banner = el.querySelector('.kasat-error')!
+    expect(banner).not.toBeNull()
+    expect(el.firstElementChild).toBe(banner)
+    expect(banner.getAttribute('role')).toBe('alert')
+    expect(banner.textContent).toContain('ei yhteyttä')
+  })
+
+  it('ilman virhettä banneria ⊥ ole', () => {
+    const el = render([pile('a')], { onCollected: () => {} })
+    expect(el.querySelector('.kasat-error')).toBeNull()
+  })
+
+  it('epäonnistuneen varauksen jälkeen rivi ⊥ näytä varattua (⊥ optimistista valhetta)', () => {
+    const el = render([pile('a')], { onCollected: () => {}, error: 'Varaus ei mennyt läpi.' })
+    expect(el.querySelector('.kasat-row-claim')).toBeNull()
+    expect(el.querySelector('.kasat-row--claimed')).toBeNull()
+  })
+
+  it('kuittaus on käyttäjän ⊥ ajastimen — ✕ kutsuu onDismissError', () => {
+    const onDismissError = vi.fn()
+    const el = render([pile('a')], { onCollected: () => {}, error: 'Varaus ei mennyt läpi.', onDismissError })
+    ;(el.querySelector('.kasat-error-close') as HTMLButtonElement).click()
+    expect(onDismissError).toHaveBeenCalled()
+  })
+})

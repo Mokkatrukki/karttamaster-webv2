@@ -6629,3 +6629,30 @@ body[data-role="talkoolainen"] .marker-overview { display: none; }
   background: var(--surface-app);
 }
 .kasat-claim-btn { width: 100%; min-height: 48px; }
+
+/* V333/V322 — epäonnistunut varaus/vapautus. Banneri ⊥ toast: viesti jää ruudulle kunnes se
+   kuitataan (hanskat, aurinko, katse tiessä) & se on listan ENSIMMÄINEN elementti. Olemassa
+   olevat danger-tokenit, ⊥ uutta väriä. */
+.kasat-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 12px;
+  border-left: 4px solid var(--danger);
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--danger-text);
+}
+.kasat-error-text { margin: 0; flex: 1; font-size: 1.05rem; font-weight: 600; line-height: 1.35; }
+.kasat-error-close {
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--danger-text);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.kasat-error-close:hover { background: var(--danger-soft-hover); }

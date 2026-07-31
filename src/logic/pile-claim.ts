@@ -59,3 +59,32 @@ export function formatClaimLabel(claim: PileClaim, now: number = Date.now()): st
   const age = formatClaimAge(claim.at, now)
   return age ? `${claim.by}, ${age}` : claim.by
 }
+
+// ── V333/V322: EPÄONNISTUNUT VARAUS SANOTAAN ÄÄNEEN & TOIMENPITEENÄ ──────────────────────────
+//
+// Varaus on talkoolaisen AINOA toiminto joka vaatii verkon: se ⊥ kulje outboxin läpi (myöhässä
+// toimitettu "otan nämä" varaisi kasan porukalle joka ⊥ enää ole matkalla, `pile-sync.ts`).
+// Sama hinta on maksettava näkyvästi: varaus joka ⊥ mennyt läpi ⊥ SAA näyttää onnistuneelta.
+//
+// Yksi geneerinen lause neljälle syylle on nolla lausetta (V322, mitattu T435:ssä) ∴ statuskoodi
+// kääntyy TOIMENPITEEKSI. `status === null` = `fetch` heitti (verkko poikki, ⊥ vastausta).
+
+/** Montako kasaa jäi varaamatta — luku kuuluu viestiin, ⊥ jää käyttäjän laskettavaksi. */
+export function claimErrorMessage(status: number | null, count = 1): string {
+  const what = count > 1 ? `${count} varausta ei mennyt läpi` : 'Varaus ei mennyt läpi'
+  if (status === null) return `${what} — ei yhteyttä. Yritä uudelleen kun verkko palaa.`
+  if (status === 401) return `${what} — istunto vanhentunut. Kirjaudu uudelleen ja varaa uudestaan.`
+  if (status === 403) return `${what} — ei oikeutta varata. Kirjaudu sisään talkoolaisena.`
+  if (status === 404) return `${what} — serveri ei tunne pyyntöä. Onko backend ajan tasalla?`
+  if (status >= 500) return `${what} — serverivirhe. Yritä hetken päästä uudelleen.`
+  return `${what} (virhe ${status}). Yritä uudelleen.`
+}
+
+export function releaseErrorMessage(status: number | null): string {
+  if (status === null) return 'Vapautus ei mennyt läpi — ei yhteyttä. Yritä uudelleen kun verkko palaa.'
+  if (status === 401) return 'Vapautus ei mennyt läpi — istunto vanhentunut. Kirjaudu uudelleen.'
+  if (status === 403) return 'Vapautus ei mennyt läpi — ei oikeutta. Kirjaudu sisään talkoolaisena.'
+  if (status === 404) return 'Vapautus ei mennyt läpi — serveri ei tunne pyyntöä. Onko backend ajan tasalla?'
+  if (status >= 500) return 'Vapautus ei mennyt läpi — serverivirhe. Yritä hetken päästä uudelleen.'
+  return `Vapautus ei mennyt läpi (virhe ${status}). Yritä uudelleen.`
+}

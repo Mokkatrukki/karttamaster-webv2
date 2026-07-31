@@ -38,6 +38,15 @@ export interface KasatPageOpts {
   onClaimSelected?(ids: string[]): void
   /** "Vapauta" — kenen tahansa käytettävissä (V333). */
   onRelease?(id: string): void
+
+  /**
+   * V333/V322: epäonnistuneen varauksen/vapautuksen viesti. Banneri ⊥ toast: varaus on ainoa
+   * toiminto joka vaatii verkon & sen epäonnistuminen ! näkyä hanskat kädessä auringossa ∴
+   * viesti jää ruudulle kunnes se kuitataan, ⊥ katoa 3 sekunnissa selän takana.
+   */
+  error?: string | null
+  /** Bannerin ✕ — kuittaus on käyttäjän, ⊥ ajastimen. Puuttuu → banneri ilman sulkunappia. */
+  onDismissError?(): void
 }
 
 const PHASE_LABEL: Record<Segment['phase'], string> = {
@@ -51,9 +60,33 @@ export function renderKasatPage(container: HTMLElement, opts: KasatPageOpts): vo
     piles, phase, hasFix = false, onCollected, onSelect,
     selectMode = false, selected = new Set<string>(),
     onToggleSelectMode, onToggleSelect, onClaimSelected, onRelease,
+    error = null, onDismissError,
   } = opts
   container.innerHTML = ''
   container.classList.add('kasat-page')
+
+  // V333: epäonnistunut varaus ENSIMMÄISENÄ & isolla. Rivi on jo palautunut varaamattomaksi
+  // (kasat.ts hakee serverin tilan) ∴ banneri kertoo MIKSI mitään ei tapahtunut — ilman sitä
+  // näkymä väittäisi hiljaisuudella että nappia ⊥ painettu.
+  if (error) {
+    const banner = document.createElement('div')
+    banner.className = 'kasat-error'
+    banner.setAttribute('role', 'alert')
+    const text = document.createElement('p')
+    text.className = 'kasat-error-text'
+    text.textContent = error
+    banner.appendChild(text)
+    if (onDismissError) {
+      const close = document.createElement('button')
+      close.type = 'button'
+      close.className = 'kasat-error-close'
+      close.setAttribute('aria-label', 'Sulje virheilmoitus')
+      close.textContent = '✕'
+      close.addEventListener('click', () => onDismissError())
+      banner.appendChild(close)
+    }
+    container.appendChild(banner)
+  }
 
   // §C: koko kasapinta elää VAIN kun globaali vaihe on purku. Kasat ovat tapahtuman tosiasia,
   // ⊥ järjestäjän näkymävalinta (V321-jako) ∴ tässä ⊥ lueta katseluvaihetta.

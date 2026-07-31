@@ -15,6 +15,7 @@ import { loadActivePhase, getActivePhase } from './logic/phase-view'
 import { listPiles, type PileRow } from './logic/pile-list'
 import { PILE_TARGET } from './logic/pile-list'
 import { pushPileStatus, claimPile, releasePile } from './logic/pile-sync'
+import { claimErrorMessage, releaseErrorMessage } from './logic/pile-claim'
 import { renderKasatPage } from './ui/kasat-page'
 import { showToast } from './ui/toast'
 import { startOutboxRetry } from './logic/outbox-instance'
@@ -33,6 +34,10 @@ const pileLayers = new Map<string, L.CircleMarker>()
 // T449/V333: varaus on TOINEN VAIHDE ∴ tila alkaa pois päältä & purkautuu kun valinta on tehty.
 let selectMode = false
 const selected = new Set<string>()
+
+// V333: varaus on ainoa toiminto joka vaatii verkon ∴ sen epäonnistuminen jää RUUDULLE kunnes
+// se kuitataan. Toast katoaisi kolmessa sekunnissa & metsässä katse on tiessä ⊥ puhelimessa.
+let claimError: string | null = null
 
 async function boot(): Promise<void> {
   // Auth-gate: ilman sessiota → `/patkat`, jossa yleissalasana-login jo on. Toinen
@@ -94,6 +99,8 @@ function render(): void {
     },
     onClaimSelected: ids => void claimAll(ids),
     onRelease: id => void release(id),
+    error: claimError,
+    onDismissError: () => { claimError = null; render() },
   })
   syncPileLayers(rows)
 }
@@ -120,25 +127,41 @@ function markCollected(id: string): void {
 // T449/V333: varaus epäonnistuu NÄKYVÄSTI & heti (⊥ outboxin kautta) — 20 min myöhässä
 // toimitettu "otan nämä" varaa kasan porukalle joka ⊥ enää ole matkalla.
 async function claimAll(ids: string[]): Promise<void> {
+  claimError = null
   const results = await Promise.all(ids.map(id => claimPile(id)))
   const taken = results.filter(r => !r.ok && r.reason === 'taken')
-  const failed = results.filter(r => !r.ok && r.reason === 'network')
+  const failed = results.filter(r => !r.ok && r.reason === 'error')
   // Valintatila purkautuu kun valinta on tehty — se on väline, ⊥ näkymä johon jäädään.
   selectMode = false
   selected.clear()
+  // V333: mikään EI ole optimistista — rivin varaustila tulee serveriltä ∴ läpi menemätön
+  // varaus ⊥ voi jäädä ruudulle valheena. Haku ennen banneria: sama render näyttää molemmat.
+  if (failed.length > 0) {
+    const first = failed[0]
+    const status = !first.ok && first.reason === 'error' ? first.status : null
+    claimError = claimErrorMessage(status, failed.length)
+  }
   await refreshMarkers()
+  render()
   if (taken.length > 0) {
     const by = taken.find(r => !r.ok && r.reason === 'taken' && r.by)
     const who = by && !by.ok && by.reason === 'taken' ? by.by : undefined
+    // "Joku ehti ensin" ⊥ ole virhe vaan tulos: serveri kertoi totuuden & lista näyttää sen ∴
+    // toast riittää. Banneri on varattu sille mikä JÄI TEKEMÄTTÄ.
     showToast(who ? `${who} ehti ensin — ${taken.length} kasaa oli jo varattu.` : `${taken.length} kasaa oli jo varattu.`)
   }
-  if (failed.length > 0) showToast(`${failed.length} varausta ei mennyt läpi — yritä uudelleen.`)
 }
 
 async function release(id: string): Promise<void> {
-  const ok = await releasePile(id)
-  if (!ok) { showToast('Vapautus ei mennyt läpi.'); return }
+  claimError = null
+  const res = await releasePile(id)
+  if (!res.ok) {
+    claimError = releaseErrorMessage(res.status)
+    render()
+    return
+  }
   await refreshMarkers()
+  render()
 }
 
 function initMap(): void {
