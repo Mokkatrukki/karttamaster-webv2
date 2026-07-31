@@ -670,7 +670,14 @@ export class MarkerManager {
     const icon = createSignIcon(m.type, m.status, m.color, compactOf(m), m.iconId, signImageSrc(m.imageId ?? m.type), visualPartsOf(m))
     // V197/aria-command-name: Leaflet-merkin role=button tarvitsee saavutettavan nimen (title+alt)
     const accName = m.label ?? m.type
-    const lm = L.marker([m.lat, m.lon], { icon, draggable: this.draggableFn(m), title: accName, alt: accName }).addTo(this.map)
+    // T457/V342: `draggable: true` AINA & tila asetetaan heti perään. Leaflet luo `Marker.Drag`
+    // -handlerin VAIN jos merkki syntyy raahattavana ∴ `draggable: this.draggableFn(m)` teki
+    // predikaatista yksisuuntaisen: `dragging?.enable()` oli hiljainen no-op merkille joka
+    // syntyi ei-raahattavana (`dragging` on `undefined`) & raahattavuuden saattoi VAIN ottaa
+    // pois, ⊥ antaa takaisin. Se rikkoi korjausikkunan (kasa syntyy pätkän ulkopuolelle ∴
+    // ei-raahattavana) & olisi rikkonut minkä tahansa myöhemmän "salli nyt" -säännön.
+    const lm = L.marker([m.lat, m.lon], { icon, draggable: true, title: accName, alt: accName }).addTo(this.map)
+    if (!this.draggableFn(m)) lm.dragging?.disable()
     this.leafletMarkers.set(m.id, lm)
 
     lm.on('dragend', () => { void this.handleDragEnd(m, lm) })

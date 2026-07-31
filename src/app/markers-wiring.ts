@@ -48,6 +48,8 @@ import { startPilePlacement, runPileAction } from './pile-placement'
 import { showPilePreview } from '../map/pile-preview'
 // T455/V340: luonnin tulos jää ruudulle — rivi ⊥ katoava toast.
 import { showPileDoneRow, removePileDoneRow } from '../ui/pile-drop'
+// T457/V342: juuri jätetty kasa on vielä kesken — korjausikkuna omana kokonaisuutenaan.
+import { openPileEditWindow, type PileEditWindow } from './pile-edit-window'
 import { haversineDistance } from '../logic/bearing'
 
 // T307/V218: `document.body.dataset.mapMode` asetetaan TÄSTÄ yhdestä paikasta (CSS-korostus
@@ -342,9 +344,26 @@ function wireMarkersInner(
   // muuttuvat (oma merkki-setti muuttuu), (c) kun moodi vaihtuu → merkit päivittyvät ILMAN
   // reloadia (setDraggablePredicate sovittaa jo piirretyt Leaflet-markerit heti).
   let baseDraggable: (m: SignMarker) => boolean = () => true
+  // T457/V342: juuri jätetty kasa on raahattava vaikka se ⊥ kuuluisi käyttäjän pätkään —
+  // POIKKEUS on YKSI id kerrallaan & se elää vain korjausikkunan ajan (`pile-edit-window.ts`).
+  // Serverin V150-portti on ennallaan: liian kauas raahattu palautuu & sanoo sen (V227-polku).
+  let editablePileId: string | null = null
+  let pileEdit: PileEditWindow | null = null
   const applyDraggable = (): void => {
-    markerManager.setDraggablePredicate(m => mapMode.canDragMarkers() && baseDraggable(m))
+    markerManager.setDraggablePredicate(m =>
+      mapMode.canDragMarkers() && (baseDraggable(m) || m.id === editablePileId))
   }
+  const setEditablePile = (id: string | null): void => {
+    editablePileId = id
+    applyDraggable()
+  }
+  const closePileEdit = (): void => {
+    pileEdit?.close()
+    pileEdit = null
+  }
+  // Moodinvaihto on teko siinä missä nappikin: katselutilassa raahattava kasa olisi lupaus
+  // jota moodi ⊥ pidä.
+  mapMode.onChange(() => closePileEdit())
   mapMode.onChange(() => applyDraggable())
   applyDraggable()
   // Yksi paikka joka heijastaa moodin DOM:iin (CSS-korostus T308 lukee body[data-map-mode]).
@@ -541,7 +560,14 @@ function wireMarkersInner(
             { pileMarkerIds: ids },
           )
           markerManager.panTo(pile.id)
-          showPileDoneRow(hintHost, ids.length)
+          showPileDoneRow(hintHost, ids.length, '/kasat', 'Voit vielä siirtää kasaa raahaamalla.')
+          // T457/V342: korjausikkuna auki — sulkeutuu seuraavasta napista, ⊥ ajastimesta.
+          closePileEdit()
+          pileEdit = openPileEditWindow({
+            markerId: pile.id,
+            host: hintHost,
+            setEditable: setEditablePile,
+          })
         }
 
         // T450a: place-modessa pysyvä ohjerivi, ⊥ pieni toast (hanskat, aurinko, kiire).
@@ -555,8 +581,10 @@ function wireMarkersInner(
         // tai tarkkuusrajaa ∴ vanha/epätarkka piste loi kasan sinne minne käyttäjä ⊥ sitä
         // laittanut ("kasa ei tule mihin laitan"). GPS keskittää kartan & antaa etäisyyslukeman;
         // SIJAINNIN valitsee ihminen, joka tietää missä on vaikka satelliitti ⊥ tiedä.
-        // Edellisen kasan kuittausrivi väistyy heti kun uusi sijoitus alkaa — vanha tulos
-        // uuden teon päällä olisi kaksi totuutta siitä mitä juuri tapahtui.
+        // Edellisen kasan kuittausrivi & korjausikkuna väistyvät heti kun uusi sijoitus alkaa —
+        // vanha tulos uuden teon päällä olisi kaksi totuutta siitä mitä juuri tapahtui, & kaksi
+        // auki olevaa ikkunaa olisi kaksi raahattavaa kasaa.
+        closePileEdit()
         removePileDoneRow(hintHost)
         if (!mapMode.canPlaceMarkers()) mapMode.set('muokkaus')
         const fix = gpsNavigator.getPosition()

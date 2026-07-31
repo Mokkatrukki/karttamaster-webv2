@@ -260,3 +260,36 @@ test('T454 — Peruuta poistaa pisteen & palauttaa kotinäkymän (aikomus ⊥ j�
   expect(posted.filter(b => (b as { template_id?: string }).template_id === 'kerayskasa')).toHaveLength(0)
   await expect(page.locator('.segment-view-pile-btn')).toBeVisible()
 })
+
+/**
+ * T457/V342 — juuri jätetty kasa on vielä kesken: sitä voi siirtää kunnes käyttäjä tekee
+ * seuraavan teon. Käyttäjä 2026-07-31: "voin muokata ja siirtää sitä siihen asti kun painan
+ * seuraavaa merkkiä, tai kun painan jotain muuta nappia."
+ */
+test('T457 — kasa jää raahattavaksi luonnin jälkeen & seuraava nappi sulkee ikkunan', async ({ page }) => {
+  await mockPurkuSegment(page)
+  await collectThenGoHome(page)
+
+  await page.locator('.segment-view-pile-btn').click()
+  await page.waitForTimeout(500)
+  const mapBox = (await page.locator('#map').boundingBox())!
+  await page.mouse.click(mapBox.x + mapBox.width / 2, mapBox.y + mapBox.height / 3)
+  await page.waitForTimeout(600)
+  await page.locator('.pile-confirm-ok').click()
+  await page.waitForTimeout(800)
+
+  // Korjausikkuna auki: kasa on raahattava & rivi kertoo siitä (tila jota ⊥ näy ⊥ ole).
+  await expect(page.locator('.pile-done-row-hint')).toContainText('siirtää')
+  // Kasa on raahattava vaikka se ⊥ kuulu pätkään — poikkeus on YKSI id. (Merkin `title` =
+  // label, V197: `#8A5CD1` ⊥ kelpaa tunnisteeksi, se on myös `kerätty`-statuksen renkaan väri.)
+  const pile = page.locator('.leaflet-marker-icon[title="Keräyskasa"]')
+  await expect(pile).toHaveClass(/leaflet-marker-draggable/)
+
+  // Seuraava teko sulkee: rivi katoaa & raahattavuus palaa normaaliksi (⊥ vieraita merkkejä).
+  await page.locator('#btn-home-view').click()
+  await page.waitForTimeout(500)
+  // Rivi katoaa = ikkuna kiinni. (Raahattavuuden PALAUTUMINEN normaaliksi todistetaan
+  // jsdomissa `t457-pile-edit-window.test.ts`:ssä: tässä kasa osuu käyttäjän OMAAN pätkään
+  // ∴ se olisi V150:n nojalla raahattava ilman ikkunaakin & assertio ⊥ erottaisi näitä.)
+  await expect(page.locator('.pile-done-row')).toHaveCount(0)
+})

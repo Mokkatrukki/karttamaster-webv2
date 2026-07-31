@@ -185,7 +185,13 @@ export function removePileConfirmBar(host: HTMLElement): void {
  * Linkki on `<a href>` ⊥ nappi + `location.assign`: se on oikea navigaatio ∴ pitkä painallus,
  * uusi välilehti & selaimen paluu toimivat ilman että kukaan kirjoittaa niitä.
  */
-export function showPileDoneRow(host: HTMLElement, count: number, listHref = '/kasat'): () => void {
+export function showPileDoneRow(
+  host: HTMLElement,
+  count: number,
+  listHref = '/kasat',
+  /** T457/V342: korjausikkuna ! näkyä — tila jota ⊥ näy on tila jota ⊥ ole (V250). */
+  hint?: string,
+): () => void {
   removePileDoneRow(host)
 
   const row = document.createElement('div')
@@ -195,6 +201,12 @@ export function showPileDoneRow(host: HTMLElement, count: number, listHref = '/k
   const text = document.createElement('p')
   text.className = 'pile-done-row-text'
   text.textContent = `📦 Kasa jätetty — ${formatPileSummary(count)}`
+  if (hint) {
+    const hintEl = document.createElement('span')
+    hintEl.className = 'pile-done-row-hint'
+    hintEl.textContent = hint
+    text.appendChild(hintEl)
+  }
 
   const link = document.createElement('a')
   link.className = 'pile-done-row-link'

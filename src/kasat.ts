@@ -1,15 +1,18 @@
 // T448/V332: `/kasat` — autoporukan entrypoint. Sama kuvio kuin `patkat.ts`/`inventory.ts`:
 // auth-gate → data → render. Init + wiring, ei logiikkaa (V-arkkitehtuuriraja).
 //
-// Kartta on tässä TAHALLAAN riisuttu: kasat + oma sijainti, EI reittejä eikä pätkiä.
-// Autoporukka ajaa teitä ⊥ polkuja ∴ MTB-urat kartalla olisivat kohinaa jonka seasta pitäisi
-// etsiä ne neljä pistettä joihin ollaan menossa.
+// Kartta: kasat + oma sijainti + reittijäljet TAUSTALLA (T458/V343), EI pätkiä.
+// T448 jätti reitit pois ("autoporukka ajaa teitä ⊥ polkuja") — käyttäjä 2026-07-31 kumosi sen:
+// kasa on reitin varrella & jälki on ainoa asia joka kertoo miten sinne pääsee & kumpi puoli
+// järveä on oikea. Jälki on ohut & himmennetty ∴ se ⊥ kilpaile kasapisteiden kanssa.
 
 import 'leaflet/dist/leaflet.css'
 import './style.css'
 import L from 'leaflet'
 import { TILE_LAYERS } from './logic/tile-layers'
 import { GpsNavigator } from './map/gps-navigator'
+// T458/V343: reittijäljet taustaksi — apu ⊥ ehto (lataus ⊥ blokkaa listaa).
+import { addRouteTraces } from './map/route-trace'
 import { fetchMarkers, startChangeStream } from './logic/sync'
 import { loadActivePhase, getActivePhase } from './logic/phase-view'
 import { listPiles, allPileRows, type PileGroups, type PileRow } from './logic/pile-list'
@@ -189,6 +192,16 @@ function initMap(): void {
   const rows = allPileRows(currentRows())
   syncPileLayers(rows)
   fitToPiles(rows)
+
+  // T458/V343: reittijäljet TAUSTAKSI — kasa on reitin varrella & jälki kertoo miten sinne
+  // pääsee. Lataus ⊥ blokkaa mitään (`void`): lista & pisteet ovat jo ruudulla, jäljet
+  // täydentyvät kun GPX:t saapuvat. Ilman kasoja rajaus reitteihin — tyhjä keskitys olisi
+  // kartta josta ⊥ näe mitään.
+  void addRouteTraces(map).then(traces => {
+    if (rows.length > 0 || !map) return
+    const b = traces.bounds()
+    if (b) map.fitBounds(b, { padding: [20, 20] })
+  })
 
   gps = new GpsNavigator(map)
   gps.start()

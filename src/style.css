@@ -6749,3 +6749,6 @@ body[data-role="talkoolainen"] .marker-overview { display: none; }
 
 /* T456/V341: statusrivin tilalla syy & osoite — kuollut nappirivi olisi pahempi kuin puuttuva. */
 .marker-detail-status-note { margin: 4px 0 8px; color: var(--text-muted); font-size: 0.9rem; }
+
+/* T457/V342: korjausikkunan vihje omalla rivillään — se on tilan ainoa näkyvä merkki. */
+.pile-done-row-hint { display: block; font-weight: 400; font-size: 0.85rem; color: var(--text-muted); }
