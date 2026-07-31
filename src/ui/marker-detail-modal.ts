@@ -6,6 +6,7 @@ import { SIGN_TYPES } from '../logic/sign-picker'
 import { listTemplates } from '../logic/sign-library'
 import { validActions, canTransition } from '../logic/marker-status'
 import { revertTarget, revertLabel } from '../logic/phase-target'
+import { isPile, pileRemoval, pileRemovalConfirm } from '../logic/pile'
 import { navUrl, navTarget } from '../logic/nav-link'
 import { registerEscClose, signPreviewHtml } from './modal-helpers'
 import { openImageLightbox } from './image-lightbox'
@@ -389,18 +390,35 @@ export class MarkerDetailModal {
 
     const deleteBtn = document.createElement('button')
     deleteBtn.className = 'modal-btn-destructive'
-    deleteBtn.textContent = 'Poista merkki'
-    deleteBtn.addEventListener('click', () => {
-      if (window.confirm('Poistetaanko merkki?')) {
-        this.close()
-        this.manager.remove(marker.id)
-        this.onUpdate()
-      }
-    })
+    deleteBtn.textContent = isPile(marker) ? 'Poista kasa' : 'Poista merkki'
+    deleteBtn.addEventListener('click', () => this.confirmDelete(marker))
     destructiveRow.appendChild(deleteBtn)
     footer.appendChild(destructiveRow)
 
     return footer
+  }
+
+  /**
+   * T438/V323: POISTO. Kasalla poisto on KAKSI tekoa: kasamerkki pois JA sen merkit takaisin
+   * avoimiksi. Pelkkä kasan piilotus jättäisi merkit `kerätty`-tilaan jota mikään lista ⊥ näytä
+   * (V323-korollaari) ∴ palautus tapahtuu ENNEN poistoa — jos poisto epäonnistuu, merkit ovat
+   * silti listalla eikä mikään ole kadonnut. Vahvistus kertoo mitä palautuu ennen kuin mitään
+   * tapahtuu. Molemmat mutaatiot kulkevat olemassa olevaa reittiä ∴ loki saa rivit ilmaiseksi
+   * (`status` per merkki + `remove` jonka payload kantaa `pile_marker_ids`in, V231).
+   */
+  private confirmDelete(marker: SignMarker, plainQuestion = 'Poistetaanko merkki?'): void {
+    const removal = isPile(marker) ? pileRemoval(marker, this.manager.getAll()) : null
+    const question = removal ? pileRemovalConfirm(removal) : plainQuestion
+    if (!window.confirm(question)) return
+    if (removal) {
+      // Ryhmittely statuksittain: `bulkSetStatus` ottaa yhden statuksen kerrallaan.
+      const byStatus = new Map<MarkerStatus, string[]>()
+      for (const r of removal.restored) byStatus.set(r.status, [...(byStatus.get(r.status) ?? []), r.id])
+      for (const [status, ids] of byStatus) this.manager.bulkSetStatus(ids, status)
+    }
+    this.close()
+    this.manager.remove(marker.id)
+    this.onUpdate()
   }
 
   private buildTalkoolainenFooter(marker: SignMarker): HTMLElement {
@@ -458,14 +476,8 @@ export class MarkerDetailModal {
       destructiveRow.className = 'modal-footer-destructive'
       const delBtn = document.createElement('button')
       delBtn.className = 'modal-btn-destructive'
-      delBtn.textContent = 'Poista oma merkki'
-      delBtn.addEventListener('click', () => {
-        if (window.confirm('Poistetaanko oma merkki?')) {
-          this.close()
-          this.manager.remove(marker.id)
-          this.onUpdate()
-        }
-      })
+      delBtn.textContent = isPile(marker) ? 'Poista kasa' : 'Poista oma merkki'
+      delBtn.addEventListener('click', () => this.confirmDelete(marker, 'Poistetaanko oma merkki?'))
       destructiveRow.appendChild(delBtn)
       footer.appendChild(destructiveRow)
     }
