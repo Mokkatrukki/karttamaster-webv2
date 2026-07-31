@@ -22,6 +22,7 @@ import { markerScaleForZoom } from '../logic/marker-scale'
 import { outbox } from '../logic/outbox-instance'
 import { setOutboxSaveErrorHandler } from '../logic/outbox-instance'
 import { focusState } from '../logic/marker-focus'
+import { centerOn, zoomForShow } from './viewport'
 import type { MapFilter, MarkerFilterContext } from '../logic/map-filter'
 import { defaultMapFilter, markerVisibility } from '../logic/map-filter'
 import type { MembershipSegment } from '../logic/segment-membership'
@@ -521,17 +522,15 @@ export class MarkerManager {
     this.panPaddingRight = fn
   }
 
+  // T441/V327: keskitys menee JAETUN näkyvä-ikkuna-apurin läpi (`viewport.ts`) — telakan
+  // leveys oli vain toinen puoli samaa vikaa (mobiilissa hero peittää alalaidan).
+  // `zoomForShow`: kohdistus LÄHENTÄÄ z18:aan mutta ⊥ koskaan loitonna käyttäjän alta.
   panTo(id: string): void {
     const m = this.markers.find((x) => x.id === id)
     if (!m) return
-    const pad = this.panPaddingRight()
-    if (pad <= 0) {
-      this.map.setView([m.lat, m.lon], this.map.getZoom())
-      return
-    }
-    this.map.fitBounds([[m.lat, m.lon], [m.lat, m.lon]], {
-      paddingBottomRight: [pad, 0],
-      maxZoom: this.map.getZoom(),
+    centerOn(this.map, [m.lat, m.lon], {
+      zoom: zoomForShow(this.map.getZoom()),
+      extraRight: this.panPaddingRight(),
     })
   }
 

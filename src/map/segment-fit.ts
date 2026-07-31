@@ -3,6 +3,7 @@ import { planSegmentZoom } from '../logic/segment-zoom'
 import type { Segment } from '../logic/segments'
 import type { RouteConfig } from '../logic/multi-route'
 import type { SignMarker } from '../logic/types'
+import { centerOn, fitVisible } from './viewport'
 
 // T224 (D)/T345: kartan rajaus YHTEEN pätkään. Zoom-sääntö (mitä väliä fitataan) asuu
 // `src/logic/segment-zoom.ts`:ssä (V185, Leaflet-vapaa); tämä on sen map-glue.
@@ -35,6 +36,8 @@ export function fitMapToSegment(
   if (latlngs.length === 0) {
     for (const m of segMarkers) latlngs.push([m.lat, m.lon])
   }
-  if (latlngs.length === 1) map.setView(latlngs[0], 15)
-  else if (latlngs.length > 1) map.fitBounds(latlngs, { padding: [40, 40], maxZoom: 16 })
+  // T441/V327: rajaus NÄKYVÄÄN ikkunaan — kartta on täysleveä paneelien alla ∴ raaka
+  // `fitBounds` mahduttaisi pätkän osin heron & sivupaneelin taakse.
+  if (latlngs.length === 1) centerOn(map, latlngs[0], { zoom: 15 })
+  else if (latlngs.length > 1) fitVisible(map, latlngs, { inset: 40, maxZoom: 16 })
 }

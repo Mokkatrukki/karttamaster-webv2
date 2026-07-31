@@ -14,6 +14,11 @@
 :root {
   color-scheme: light;
 
+  /* T441/V327: laitteen alareunan turva-alue LUETTAVANA arvona. `src/map/viewport.ts` lukee
+     tämän `getComputedStyle`illa — `env()` ei ole JS:stä saatavilla muuten, ja kovakoodattu
+     arvo olisi väärä jokaisella toisella laitteella. */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
   /* Surfaces — birkkupaperi */
   --surface-app:    #EDF1EC;
   --surface-card:   #F6F9F5;
