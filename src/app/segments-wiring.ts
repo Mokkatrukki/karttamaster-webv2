@@ -22,6 +22,10 @@ export interface SegmentsWiring {
   segmentPanel: SegmentPanel
   renderSegmentOverlay: () => void
   phaseFilteredStore: () => Map<string, Segment>
+  // T446(b)/V330: SSE-heräte kehottaa hakemaan — data tulee SAMASTA polusta kuin alkulataus.
+  // Reload asuu täällä koska lataushaara (koodi vs. kaikki) & store ovat täällä; kutsuja
+  // (`live-sync.ts`) ⊥ tarvitse tietää kumpi haara on voimassa.
+  reloadSegments: () => Promise<void>
   // T377/V272: korostus = suodatinbarin "vain tämä pätkä" -tila ∴ bar ! kuulla muutokset
   // (& tarjota ✕). Kaksi paikkaa jotka ovat eri mieltä tilasta on B131-luokan umpikuja.
   setOnFocusChange: (cb: (segmentId: string | undefined) => void) => void
@@ -229,8 +233,32 @@ export async function wireSegments(
   // piirretty pätkä & sen nimilappu reagoivat ilman uudelleenrenderiä.
   renderSegmentOverlay()
 
+  // T446(b)/V330: pätkädatan uudelleenlataus herätteestä. Sama haara kuin alkulatauksessa
+  // (talkoolainen: oma koodi; järjestäjä: kaikki) ∴ ⊥ toista latauslogiikkaa.
+  async function reloadSegments(): Promise<void> {
+    // Kesken oleva luonti/rajamuokkaus omistaa kartan: uudelleenrender veisi kahvat alta &
+    // rakenteilla oleva pätkä ⊥ ole vielä storessa. Heräte odottaa — se on kiihdytin ⊥ pakko.
+    if (segmentPanel.isCreationMode() || segmentOverlay.isEditMode()) return
+    if (talkoolainenCode) {
+      const remote = await fetchSegmentByCode(talkoolainenCode)
+      if (!remote) return
+      segmentStore.set(remote.id, remote)
+    } else {
+      const result = await fetchAllSegments()
+      // T184/V118: latausvirhe ≠ "0 pätkää" — pidä nykyinen store, ⊥ tyhjennä karttaa.
+      if (!result.ok) return
+      segmentStore.clear()
+      for (const seg of result.segments) segmentStore.set(seg.id, seg)
+    }
+    // V260: jälki johdetaan muistiin kuten alkulatauksessa. Push jätetään pois TARKOITUKSELLA
+    // (B145): taustakirjoitus jota käyttäjä ⊥ pyytänyt voi 401:llä lukita näkymän.
+    backfillSegmentTracks(segmentStore, routes)
+    renderSegmentOverlay()
+    segmentPanel.refreshCounts()
+  }
+
   return {
-    segmentStore, segmentOverlay, segmentPanel, renderSegmentOverlay, phaseFilteredStore,
+    segmentStore, segmentOverlay, segmentPanel, renderSegmentOverlay, phaseFilteredStore, reloadSegments,
     setOnFocusChange: cb => { onFocusChange = cb },
     clearFocusSegment: () => setFocusSegment(null),
   }

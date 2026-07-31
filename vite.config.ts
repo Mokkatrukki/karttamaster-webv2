@@ -20,6 +20,7 @@ const ISOLATED = [
   'tests/t416-claimable-marker.test.ts',
   'tests/t237-comment-focus-dim.test.ts',
   'tests/t397-gps-pane.test.ts',
+  'tests/t445-map-label.test.ts',
   // (b) moduulitason tila / history / sessionStorage
   'tests/t51-auth-screen.test.ts',
   'tests/t254-talkoolainen-mode.test.ts',

@@ -17,6 +17,7 @@ import { wireAreas } from './app/areas-wiring'
 import { wireSegments } from './app/segments-wiring'
 import { wireMarkers } from './app/markers-wiring'
 import { wireAuth } from './app/role-view'
+import { wireLiveSync } from './app/live-sync'
 import { initTalkoolainenMode } from './app/talkoolainen-mode'
 import { initTheme } from './logic/theme'
 import { loadActivePhase } from './logic/phase-view'
@@ -132,7 +133,7 @@ async function init(talkoolainenCode?: string) {
     if (!talkoolainenCode) showWarning('⚠ Alueiden lataus epäonnistui — päivitä sivu', 0)
   })
 
-  const { segmentStore, segmentOverlay, renderSegmentOverlay, segmentPanel, setOnFocusChange, clearFocusSegment } = await wireSegments(
+  const { segmentStore, segmentOverlay, renderSegmentOverlay, segmentPanel, setOnFocusChange, clearFocusSegment, reloadSegments } = await wireSegments(
     map, routes, talkoolainenCode, initialMarkers, markerManagerRef,
     () => showWarning('⚠ Pätkän tallennus epäonnistui (muisti täynnä?)', 5000),
     () => showWarning('⚠ Pätkien lataus epäonnistui — päivitä sivu', 0),
@@ -160,6 +161,11 @@ async function init(talkoolainenCode?: string) {
   // tarjoaa ✕:n, laukaisin pysyy kartalla/modaalissa (⊥ kahta laukaisinta samalle asialle).
   setOnFocusChange(segmentId => mapFilterBar?.setIsolatedSegment(segmentId))
   activeMarkerManager = markerManager
+
+  // T446(b)/V330: SSE-heräte pääsovellukselle — sama kuvio kuin `kasat.ts`:ssä. Ilman tätä
+  // kartta & pätkänäkymä näkivät toisen porukan muutokset vasta sivun latauksesta.
+  // Heräte AIKAISTAA haun; katkennut stream ⊥ pysäytä mitään & reconnect on selaimen.
+  wireLiveSync({ getMarkerManager: () => markerManagerRef.current, reloadSegments })
 
   // Map events
   map.doubleClickZoom.disable()

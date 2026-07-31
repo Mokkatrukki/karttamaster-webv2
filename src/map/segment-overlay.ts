@@ -4,6 +4,7 @@ import type { RoutePoint, SignMarker } from '../logic/types'
 import type { Segment, SegmentStore, SegmentLineState } from '../logic/segments'
 import { segmentLineColor, segmentLineState, getPhaseProgress, segmentPrimaryRouteId } from '../logic/segments'
 import { segmentLayerStyles } from '../logic/segment-style'
+import { segmentDisplayName } from '../logic/segment-name'
 import { segmentVisibleOnRoutes } from '../logic/segment-visibility'
 import { segmentLabelScaleForZoom } from '../logic/marker-scale'
 import type { MapFilter } from '../logic/map-filter'
@@ -243,8 +244,17 @@ export class SegmentOverlay {
           this.layers.push(pl)
           if (ls.interactive) line = pl
         }
-        if (line && seg.displayName) {
-          line.bindTooltip(labelPrefix + seg.displayName, segmentLabelOptions(style.interactive, done, style.dimmed))
+        // T445/V324: nimi kulkee `segmentDisplayName`in läpi kuten ∀ muu näyttöpaikka (hub,
+        // sivupaneeli, hero, modaalit). Tämä oli AINOA suora `seg.displayName`-luku ∴ kartalla
+        // luki "Pätkä 3" ja sivupaneelissa "Purku Pätkä 3" SAMASTA pätkästä — kaksi nimeä
+        // yhdelle asialle on juuri se mitä yksi-kutsu-sääntö estää.
+        // `labelPrefix` on ERI etuliite (✓ = valmis, T348/V252) ⊥ vaihe-etuliite: se kertoo
+        // tilan, apuri kertoo tehtävän ∴ molemmat, tässä järjestyksessä ("✓ Purku Pätkä 3").
+        // Ehto pysyy nimessä: apuri ⊥ palauta koskaan tyhjää, mutta sen fallback ("Nimetön
+        // pätkä") ⊥ ole tietoa ∴ nimeämätön pätkä ⊥ ansaitse pysyvää lappua kartalle.
+        // Tyhjyystarkistus trimmiin — " " ⊥ ole nimi sen paremmin kuin "".
+        if (line && seg.displayName?.trim()) {
+          line.bindTooltip(labelPrefix + segmentDisplayName(seg), segmentLabelOptions(style.interactive, done, style.dimmed))
           // T418/V309: `contextOwnId === undefined` = järjestäjä ∴ isOwn false & portti pätee —
           // hän nimenomaan haluaa puhtaan yleiskuvan. Talkoolaisen OMA pätkä ohittaa zoomin.
           this.labelLines.push({ line, isOwn: this.contextOwnId !== undefined && seg.id === this.contextOwnId })
