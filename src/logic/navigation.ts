@@ -2,7 +2,7 @@ import type { SignMarker } from './types'
 import { distancesForRoute } from './marker-distance'
 import { orderMarkersInSegment, type SegmentOrder } from './segment-order'
 import { haversineDistance } from './bearing'
-import { isOpenInSegment } from './phase-target'
+import { isOpenInSegment, isPendingInSegment } from './phase-target'
 import type { Segment } from './segments'
 
 // T328/V237: pätkäkontekstin akseli EI enää kulje `routeId`-parametrina vaan tulee pätkästä.
@@ -33,6 +33,19 @@ export function unsetMarkersOrdered(
   // unohtaa (V237-oppi). `null`-pätkä (orpojen lista) → asettaminen-oletus, entinen käytös.
   const unset = markers.filter((m) => isOpenInSegment(m.status, segment))
   const { onRoute, offRoute }: SegmentOrder = orderMarkersInSegment(unset, segment)
+  return [...onRoute, ...offRoute]
+}
+
+// T436/V326: VÄLITILAN merkit kulkusuunnassa — OMA selektorinsa, `unsetMarkersOrdered` ⊥ muutu
+// (navigaation avoin joukko on eri kysymys kuin valmius, T436(c)). Purussa nämä ovat merkit
+// joita ⊥ koskaan kuitattu asetetuksi: hero näyttää ne vasta kun avoimia ⊥ enää ole, jottei
+// kuittaamaton merkki syrjäytä oikeaa purkujärjestystä.
+export function pendingMarkersOrdered(
+  markers: SignMarker[],
+  segment: OrderingSegment,
+): SignMarker[] {
+  const pending = markers.filter((m) => isPendingInSegment(m.status, segment))
+  const { onRoute, offRoute }: SegmentOrder = orderMarkersInSegment(pending, segment)
   return [...onRoute, ...offRoute]
 }
 

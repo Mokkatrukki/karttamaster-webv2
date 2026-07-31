@@ -23,6 +23,21 @@ export interface PhaseTarget {
   openStatuses: MarkerStatus[]
   /** "Tehty" laskureille (V90/V285). */
   doneStatuses: MarkerStatus[]
+  /**
+   * T436/V326: PÄÄTETILAT — statukset joissa merkki ⊥ enää odota tässä tehtävässä mitään.
+   * Valmius lasketaan TÄSTÄ, ⊥ "avoimia ⊥ ole": purussa avoin joukko on `asetettu|tarkistettu`
+   * ∴ kuittaamatta jäänyt `suunniteltu`-merkki ⊥ ole avoin muttei myöskään tehty — se putosi
+   * "kaikki kerätty 🎉":n läpi näkymättömiin (B175). Merkki joka ⊥ ole avoin eikä päätetilassa
+   * on VÄLITILASSA: hero näyttää sen omana rivinään.
+   *
+   * HUOM (poikkeama T436(a):n kirjaimesta): asetusvaiheen päätetilat ovat `doneStatuses` +
+   * `ei_tarpeen`, ⊥ `['kerätty','ei_tarpeen']`. Kirjaimellinen lista tekisi asetusvaiheessa
+   * jokaisesta `asetettu`-merkistä välitilaisen ∴ "✓ Kaikki asetettu 🎉" ⊥ tulisi koskaan.
+   * Purun & keräyksen arvot ovat speciä bitti bitiltä.
+   */
+  terminalStatuses: MarkerStatus[]
+  /** T436/V326: välitilarivin varoitus — miksi merkki ⊥ ole avoin muttei tehty. */
+  pendingLabel: string
   /** Mihin statukseen kuittaus vie. */
   targetStatus: MarkerStatus
   /** Laskurin sana: "N/M asetettu" | "N/M kerätty". */
@@ -46,6 +61,8 @@ const TARGETS: Record<'asettaminen' | 'purku', PhaseTarget> = {
   asettaminen: {
     openStatuses: ['suunniteltu'],
     doneStatuses: ['asetettu', 'tarkistettu', 'kerätty'],
+    terminalStatuses: ['asetettu', 'tarkistettu', 'kerätty', 'ei_tarpeen'],
+    pendingLabel: '⚠ Odottaa kuittausta',
     targetStatus: 'asetettu',
     label: 'asetettu',
     nextLabel: 'Seuraava merkki',
@@ -57,6 +74,8 @@ const TARGETS: Record<'asettaminen' | 'purku', PhaseTarget> = {
   purku: {
     openStatuses: ['asetettu', 'tarkistettu'],
     doneStatuses: ['kerätty'],
+    terminalStatuses: ['kerätty', 'ei_tarpeen'],
+    pendingLabel: '⚠ Ei kuitattu asetetuksi — maastossa?',
     targetStatus: 'kerätty',
     label: 'kerätty',
     nextLabel: 'Seuraava purettava',
@@ -74,6 +93,8 @@ const TARGETS: Record<'asettaminen' | 'purku', PhaseTarget> = {
 const COLLECTION: PhaseTarget = {
   openStatuses: ['suunniteltu'],
   doneStatuses: ['kerätty'],
+  terminalStatuses: ['kerätty', 'ei_tarpeen'],
+  pendingLabel: '⚠ Odottaa hakua',
   targetStatus: 'kerätty',
   label: 'haettu',
   nextLabel: 'Lähin kasa',
@@ -105,4 +126,35 @@ export function isOpenInSegment(
   segment: { phase?: Segment['phase']; markerTypeFilter?: string } | null | undefined,
 ): boolean {
   return segmentTarget(segment).openStatuses.includes(status)
+}
+
+/** T436/V326: onko merkki päätetilassa tässä tehtävässä? Valmiuden ainoa predikaatti. */
+export function isTerminalInSegment(
+  status: MarkerStatus,
+  segment: { phase?: Segment['phase']; markerTypeFilter?: string } | null | undefined,
+): boolean {
+  return segmentTarget(segment).terminalStatuses.includes(status)
+}
+
+/**
+ * T436/V326: VÄLITILA — merkki joka ⊥ ole avoin eikä päätetilassa. Purussa tämä on merkki
+ * jota ⊥ koskaan kuitattu asetetuksi: se on fyysisesti maastossa mutta putoaisi sekä heron
+ * ohjauksesta (V313) että valmius-laskennasta ∴ hiljainen katoaminen (V21-suku).
+ */
+export function isPendingInSegment(
+  status: MarkerStatus,
+  segment: { phase?: Segment['phase']; markerTypeFilter?: string } | null | undefined,
+): boolean {
+  return !isOpenInSegment(status, segment) && !isTerminalInSegment(status, segment)
+}
+
+/**
+ * T436/V326: onko tehtävä valmis? ∀ merkki päätetilassa — ⊥ "avoimia ⊥ ole". Tyhjä joukko ⊥ ole
+ * valmis vaan tyhjä: kutsuja erottaa ne (hero näyttää "Ei merkkejä tällä pätkällä").
+ */
+export function isTaskComplete(
+  markers: { status: MarkerStatus }[],
+  segment: { phase?: Segment['phase']; markerTypeFilter?: string } | null | undefined,
+): boolean {
+  return markers.every((m) => isTerminalInSegment(m.status, segment))
 }
