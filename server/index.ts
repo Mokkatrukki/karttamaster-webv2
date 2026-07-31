@@ -15,6 +15,7 @@ import { auditRoutes } from './routes/audit'
 import { faqRoutes } from './routes/faq'
 import { phaseRoutes } from './routes/phase'
 import { inventoryRoutes } from './routes/inventory'
+import { streamRoutes } from './routes/stream'
 import { scheduleNightlySnapshot } from './snapshot-scheduler'
 
 const db = createDb(process.env.DB_PATH)
@@ -63,6 +64,8 @@ app.route('/api/audit', auditRoutes)
 app.route('/api/faq', faqRoutes)
 app.route('/api/phase', phaseRoutes)
 app.route('/api/inventory', inventoryRoutes)
+// T446/V330: SSE-heräteväylä. Kiihdytin pollauksen rinnalla — ⊥ kuljeta dataa.
+app.route('/api/stream', streamRoutes)
 
 export default {
   port: Number(process.env.PORT ?? 3001),

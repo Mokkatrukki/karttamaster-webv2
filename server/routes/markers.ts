@@ -5,8 +5,15 @@ import type { AuthEnv } from '../middleware/auth'
 import { requireAuth, requireRole } from '../middleware/auth'
 import type { SessionData } from '../types'
 import { ownSegments, allSegments, markerInOwnSegment, logMarkerAudit, type AuditAction } from '../marker-audit'
+import { publishChange } from '../events'
 
 export const markersRoutes = new Hono<AuthEnv>()
+
+// T446/V330: kasa on merkki (V314) mutta sen kiireellisyys on eri — varaus vanhenee sekunneissa
+// ∴ heräte kertoo kumpi muuttui, jotta client voi halutessaan hakea vain kasat.
+function changeTypeOf(type: string | null | undefined): 'marker' | 'pile' {
+  return type === 'kerayskasa' ? 'pile' : 'marker'
+}
 
 // T306/V217/B119: Model B -talkoo-sessio (yleissalasana V188) EI kanna pätkäkoodia ∴ sillä ei ole
 // "omaa pätkää" mihin verrata. Käyttäjäpäätös 2026-07-25: ei hierarkiaa — koodittomalla sessiolla
@@ -185,6 +192,9 @@ markersRoutes.post('/', requireAuth(), async (c) => {
   })()
 
   const row = db.query<MarkerRow, [string]>('SELECT * FROM markers WHERE id = ?').get(id)!
+  // T446/V330: heräte vasta kun kirjoitus on kannassa — client hakee herätteen jälkeen ∴
+  // liian aikainen heräte hakisi vanhan totuuden.
+  publishChange(changeTypeOf(row.type), id)
   return c.json(toJson(db, row), 201)
 })
 
@@ -340,6 +350,7 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
   })()
 
   const updated = db.query<MarkerRow, [string]>('SELECT * FROM markers WHERE id = ?').get(id)!
+  publishChange(changeTypeOf(updated.type), id)
   return c.json(toJson(db, updated))
 })
 
@@ -406,6 +417,7 @@ markersRoutes.delete('/:id', requireAuth(), (c) => {
     })
     db.run('DELETE FROM markers WHERE id = ?', [id])
   })()
+  publishChange(changeTypeOf(existing.type), id)
   return c.json({ ok: true })
 })
 
@@ -432,6 +444,7 @@ markersRoutes.post('/:id/images', requireAuth(), requireRole('admin', 'järjest�
     [imageId, id, file.type, data, new Date().toISOString()],
   )
 
+  publishChange('marker', id)
   return c.json({ url: `/api/markers/${id}/images/${imageId}` }, 201)
 })
 
