@@ -12,8 +12,9 @@
 //
 // Puhdas: ei DOM, ei Leaflet, ei fetch → Vitest-pure.
 
-import type { SignMarker } from './types'
+import type { MarkerStatus, SignMarker } from './types'
 import type { SignTemplate } from './sign-library'
+import { revertTarget } from './phase-target'
 
 /** V315: kasa-templaten id. Yksi paikka — `markerTypeFilter` osoittaa tähän. */
 export const PILE_TEMPLATE_ID = 'kerayskasa'
@@ -70,4 +71,48 @@ export function unclaimedCollected(
     for (const id of m.pileMarkerIds ?? []) claimed.add(id)
   }
   return segmentMarkers.filter((m) => m.status === 'kerätty' && !isPile(m) && !claimed.has(m.id))
+}
+
+/** T438/V323: mitä kasan poisto tekee. Yksi laskenta, jota UI & vahvistusteksti lukevat. */
+export interface PileRemoval {
+  pileId: string
+  /** Merkit jotka palaavat avoimiksi — täsmälleen TÄMÄN kasan sisältö. */
+  restored: { id: string; status: MarkerStatus }[]
+}
+
+/**
+ * T438/V323: kasan poisto ! palauttaa sen merkit — poisto ilman palautusta jättäisi merkit
+ * `kerätty`-tilaan jota mikään lista ⊥ näytä (V323-korollaari, V21-suku: hiljainen katoaminen).
+ *
+ * Paluustatus tulee PURUN lookupista (`revertTarget`, T437) ⊥ vakiona: kasan sisältö on
+ * määritelmällisesti purkutyötä (V314 — kasa on purkajan maastoon jättämä nippu) ∴ merkki palaa
+ * `asetetuksi` = purun avoimeen joukkoon, ⊥ `suunnitelluksi` josta purku ⊥ löydä sitä (V313).
+ * Kasa ITSE on keräystehtävän merkki — sen elinkaari on eri, eikä se koske sisältöä.
+ *
+ * `allMarkers` = koko joukko: kasa voi olla eri pätkällä kuin sen sisältö (V314).
+ */
+export function pileRemoval(
+  pile: Pick<SignMarker, 'id' | 'templateId' | 'pileMarkerIds'>,
+  allMarkers: SignMarker[],
+): PileRemoval {
+  // Jäsenyys tulee TÄMÄN kasan omasta listasta ∴ naapurikasan merkit eivät voi vuotaa mukaan.
+  const own = new Set(pile.pileMarkerIds ?? [])
+  const restored: { id: string; status: MarkerStatus }[] = []
+  for (const m of allMarkers) {
+    if (!own.has(m.id) || m.id === pile.id) continue
+    const back = revertTarget(m.status, { phase: 'purku' })
+    // ⊥ päätetilassa (esim. joku ehti jo palauttaa sen) → ⊥ mitä palauttaa; ⊥ ylikirjoiteta.
+    if (back) restored.push({ id: m.id, status: back })
+  }
+  return { pileId: pile.id, restored }
+}
+
+/**
+ * T438: vahvistus kertoo MITÄ palautuu ennen kuin mitään tapahtuu — poisto on peruuttamaton
+ * teko jonka seuraus (merkit takaisin listalle) ⊥ näy poistonapista.
+ */
+export function pileRemovalConfirm(removal: PileRemoval): string {
+  const n = removal.restored.length
+  if (n === 0) return 'Poistetaanko kasa? Kasassa ei ole merkkejä.'
+  return `Poistetaanko kasa? ${n} ${n === 1 ? 'merkki palaa' : 'merkkiä palaa'} keräyslistalle.`
 }

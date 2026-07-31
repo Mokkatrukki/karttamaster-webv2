@@ -1,9 +1,12 @@
 import type { MarkerManager } from '../map/markers'
 import type { SignLibrary } from '../logic/sign-library'
 import type { SignMarker, MarkerStatus } from '../logic/types'
+import type { Segment } from '../logic/segments'
 import { SIGN_TYPES } from '../logic/sign-picker'
 import { listTemplates } from '../logic/sign-library'
 import { validActions, canTransition } from '../logic/marker-status'
+import { revertTarget, revertLabel } from '../logic/phase-target'
+import { isPile, pileRemoval, pileRemovalConfirm } from '../logic/pile'
 import { navUrl, navTarget } from '../logic/nav-link'
 import { registerEscClose, signPreviewHtml } from './modal-helpers'
 import { openImageLightbox } from './image-lightbox'
@@ -38,6 +41,12 @@ export class MarkerDetailModal {
     // T225/V151: talkoolaisen oma pätkäkoodi — kova-poisto sallitaan VAIN oman itse-luoman merkin
     // (createdBy === koodi) kohdalla. undefined järjestäjälle (ei koodia) → talkoolais-poistopolku ei aktivoidu.
     private getTalkoolainenCode: () => string | undefined = () => undefined,
+    // T437/V323: talkoolaisen OMA tehtävä — peruutus on VAIHEEN funktio (purku `kerätty`→
+    // `asetettu`, asetus `asetettu`→`suunniteltu`) ∴ modaali ⊥ voi päätellä paluuta pelkästä
+    // statuksesta. undefined/null (järjestäjä, tehtävätön konteksti) → asettaminen-oletus,
+    // sama kuin muualla lookupissa.
+    private getTask: () => { phase?: Segment['phase']; markerTypeFilter?: string } | null | undefined
+      = () => null,
   ) {}
 
   open(markerId: string): void {
@@ -381,18 +390,35 @@ export class MarkerDetailModal {
 
     const deleteBtn = document.createElement('button')
     deleteBtn.className = 'modal-btn-destructive'
-    deleteBtn.textContent = 'Poista merkki'
-    deleteBtn.addEventListener('click', () => {
-      if (window.confirm('Poistetaanko merkki?')) {
-        this.close()
-        this.manager.remove(marker.id)
-        this.onUpdate()
-      }
-    })
+    deleteBtn.textContent = isPile(marker) ? 'Poista kasa' : 'Poista merkki'
+    deleteBtn.addEventListener('click', () => this.confirmDelete(marker))
     destructiveRow.appendChild(deleteBtn)
     footer.appendChild(destructiveRow)
 
     return footer
+  }
+
+  /**
+   * T438/V323: POISTO. Kasalla poisto on KAKSI tekoa: kasamerkki pois JA sen merkit takaisin
+   * avoimiksi. Pelkkä kasan piilotus jättäisi merkit `kerätty`-tilaan jota mikään lista ⊥ näytä
+   * (V323-korollaari) ∴ palautus tapahtuu ENNEN poistoa — jos poisto epäonnistuu, merkit ovat
+   * silti listalla eikä mikään ole kadonnut. Vahvistus kertoo mitä palautuu ennen kuin mitään
+   * tapahtuu. Molemmat mutaatiot kulkevat olemassa olevaa reittiä ∴ loki saa rivit ilmaiseksi
+   * (`status` per merkki + `remove` jonka payload kantaa `pile_marker_ids`in, V231).
+   */
+  private confirmDelete(marker: SignMarker, plainQuestion = 'Poistetaanko merkki?'): void {
+    const removal = isPile(marker) ? pileRemoval(marker, this.manager.getAll()) : null
+    const question = removal ? pileRemovalConfirm(removal) : plainQuestion
+    if (!window.confirm(question)) return
+    if (removal) {
+      // Ryhmittely statuksittain: `bulkSetStatus` ottaa yhden statuksen kerrallaan.
+      const byStatus = new Map<MarkerStatus, string[]>()
+      for (const r of removal.restored) byStatus.set(r.status, [...(byStatus.get(r.status) ?? []), r.id])
+      for (const [status, ids] of byStatus) this.manager.bulkSetStatus(ids, status)
+    }
+    this.close()
+    this.manager.remove(marker.id)
+    this.onUpdate()
   }
 
   private buildTalkoolainenFooter(marker: SignMarker): HTMLElement {
@@ -402,8 +428,33 @@ export class MarkerDetailModal {
     const actions = document.createElement('div')
     actions.className = 'modal-footer-actions'
 
+    // T437/V323: PERUUTUS. Päätetila syntyy YHDESTÄ napautuksesta hanska kädessä ∴ väärä
+    // napautus on odotettava tapahtuma, ei poikkeus. Paluu tulee vaiheen lookupista
+    // (`revertTarget`) ⊥ `marker-status`-siirtymistä: `kerätty` on siellä umpikuja, ja purussa
+    // paluu on `asetettu` (⊥ `suunniteltu`) — siirtymätaulu ⊥ tunne vaihetta.
+    const task = this.getTask()
+    const revertTo = revertTarget(marker.status, task)
+    if (revertTo) {
+      const revertBtn = document.createElement('button')
+      revertBtn.className = 'modal-btn-secondary marker-detail-revert'
+      revertBtn.textContent = revertLabel(task)
+      revertBtn.addEventListener('click', () => {
+        // Sama mutaatiopolku kuin kuittauksella (`bulkSetStatus` → PUT /api/markers/:id) ∴
+        // palautus menee audit-lokiin `status`-rivinä kuten kuittauskin (V227/V231): "kuka perui"
+        // on yhtä tärkeä kuin "kuka kuittasi". ⊥ uutta koneistoa (T437(d)).
+        this.manager.bulkSetStatus([marker.id], revertTo)
+        this.onUpdate()
+        this.close()
+      })
+      actions.appendChild(revertBtn)
+    }
+
     validActions(marker.status).forEach(action => {
       if (!canTransition(marker.status, action)) return
+      // T437/V323: geneerinen "Peru" väistää vaihekohtaisen peruutuksen — kaksi nappia joilla on
+      // ERI kohde ("Peru"→suunniteltu, "↩ Palauta keräämättömäksi"→asetettu) on kaksi tapaa
+      // painaa väärää.
+      if (action === 'peru' && revertTo) return
       const btn = document.createElement('button')
       btn.className = action === 'peru' ? 'modal-btn-secondary' : 'modal-btn-primary'
       btn.textContent = ACTION_LABELS[action] ?? action
@@ -425,14 +476,8 @@ export class MarkerDetailModal {
       destructiveRow.className = 'modal-footer-destructive'
       const delBtn = document.createElement('button')
       delBtn.className = 'modal-btn-destructive'
-      delBtn.textContent = 'Poista oma merkki'
-      delBtn.addEventListener('click', () => {
-        if (window.confirm('Poistetaanko oma merkki?')) {
-          this.close()
-          this.manager.remove(marker.id)
-          this.onUpdate()
-        }
-      })
+      delBtn.textContent = isPile(marker) ? 'Poista kasa' : 'Poista oma merkki'
+      delBtn.addEventListener('click', () => this.confirmDelete(marker, 'Poistetaanko oma merkki?'))
       destructiveRow.appendChild(delBtn)
       footer.appendChild(destructiveRow)
     }

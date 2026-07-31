@@ -266,6 +266,9 @@ function wireMarkersInner(
     },
     // T225/V151: talkoolaisen oma koodi → kova-poisto vain oman itse-luoman merkin kohdalla.
     () => talkoolainenCode,
+    // T437/V323: peruutuksen kohde on VAIHEEN funktio ∴ modaali tarvitsee talkoolaisen oman
+    // tehtävän. Sama lähde kuin heron & listan konteksti (getSegmentForCode) — ⊥ toista totuutta.
+    () => (talkoolainenCode ? getSegmentForCode(segmentStore, talkoolainenCode) ?? null : null),
   )
   markerManager.setOnMarkerClick((id) => onOpenMarkerDetail(id))
 

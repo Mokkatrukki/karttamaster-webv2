@@ -1,4 +1,4 @@
-import { defaultUnsetSelection, unsetMarkersOrdered, stepUnset } from '../logic/navigation'
+import { defaultUnsetSelection, unsetMarkersOrdered, pendingMarkersOrdered, stepUnset } from '../logic/navigation'
 import { segmentTarget } from '../logic/phase-target'
 import { displayKm } from '../logic/segment-order'
 import { type Segment } from '../logic/segments'
@@ -76,14 +76,21 @@ export class SegmentHero {
     // T328/V237: akseli tulee PÄTKÄSTÄ, ei erillisenä routeId-parametrina — järjestys JA
     // näytetty km samalta akselilta (B129: hero eteni oikein mutta näytti 0.0 km merkille
     // joka on 25.18 km kohdalla). T420/V312: järjestys on sama ∀ phasella.
-    const ordered = unsetMarkersOrdered(markers, segment)
-    // V159 reconcile: valittu id kadonnut asettamattomien joukosta (asetettu/poistettu) → nollaa.
+    const open = unsetMarkersOrdered(markers, segment)
+    // T436/V326: VÄLITILA — avoimia ⊥ ole mutta merkkejä on jäänyt päätetilan ulkopuolelle
+    // (purussa: ⊥ koskaan kuitattu asetetuksi). Hero ohjaa niihin SAMALLA pinnalla eikä julista
+    // valmista (B175: "✓ Kaikki kerätty 🎉" kun kerättyjä oli 1/12). Välitila on ohjauksessa
+    // AINA avoimien jälkeen ∴ oikea purkujärjestys säilyy.
+    const pendingOrdered = open.length === 0 ? pendingMarkersOrdered(markers, segment) : []
+    const pendingMode = open.length === 0 && pendingOrdered.length > 0
+    const ordered = pendingMode ? pendingOrdered : open
+    // V159 reconcile: valittu id kadonnut listalta (kuitattu/poistettu) → nollaa.
     if (this.selectedNavId && !ordered.some(m => m.id === this.selectedNavId)) this.selectedNavId = null
     // T413/V304: OLETUSVALINTA (⊥ uudelleenvalinta) — reitittömällä tehtävällä lähin GPS-fixiin,
     // muuten km-järjestyksen ensimmäinen. Hysteresis tulee yllä olevasta reconcilesta: valittu id
     // säilyy niin kauan kuin se on asettamattomien listalla ∴ uusi fix ⊥ vaihda merkkiä alta.
     const current = (this.selectedNavId ? ordered.find(m => m.id === this.selectedNavId) : null)
-      ?? defaultUnsetSelection(markers, segment, actions.gpsPosition?.() ?? null)
+      ?? (pendingMode ? ordered[0] ?? null : defaultUnsetSelection(markers, segment, actions.gpsPosition?.() ?? null))
     this.selectedNavId = current?.id ?? null
 
     if (!current) {
@@ -168,6 +175,14 @@ export class SegmentHero {
     metaEl.textContent = `${km} km`
     info.appendChild(nameEl)
     info.appendChild(metaEl)
+    // T436/V326: välitilan syy näkyy merkin rivillä — talkoolainen näkee kentällä onko merkki
+    // siellä & voi kerätä sen ilman että joku käy ensin merkitsemässä sen asetetuksi.
+    if (pendingMode) {
+      const warnEl = document.createElement('span')
+      warnEl.className = 'segment-view-next-note segment-view-next-pending'
+      warnEl.textContent = target.pendingLabel
+      info.appendChild(warnEl)
+    }
     if (current.locationNote) {
       const noteEl = document.createElement('span')
       noteEl.className = 'segment-view-next-note'
@@ -294,10 +309,21 @@ export class SegmentHero {
   // render() re-render synkkaa kartan korostuksen (onNavigate) uuteen valintaan.
   private navStep(dir: 1 | -1): void {
     if (!this.selectedNavId) return
+    const markers = this.ctx.getMarkers()
+    const segment = this.ctx.getSegment()
     // Sama akseli kuin render():ssä (V237) — muuten ◀▶ selaisi eri järjestystä kuin lista näyttää.
-    const target = stepUnset(
-      this.ctx.getMarkers(), this.selectedNavId, dir, this.ctx.getSegment(),
-    )
+    // T436/V326: sama VALINTA kuin render():ssä — välitilassa selataan välitilan merkkejä
+    // (samat clamp-säännöt kuin stepUnset: ei wrap-aroundia, tuntematon id → ensimmäinen).
+    const open = unsetMarkersOrdered(markers, segment)
+    let target: SignMarker | null
+    if (open.length > 0) {
+      target = stepUnset(markers, this.selectedNavId, dir, segment)
+    } else {
+      const pending = pendingMarkersOrdered(markers, segment)
+      if (pending.length === 0) return
+      const idx = pending.findIndex(m => m.id === this.selectedNavId)
+      target = idx === -1 ? pending[0] : pending[Math.min(pending.length - 1, Math.max(0, idx + dir))]
+    }
     if (target && target.id !== this.selectedNavId) {
       this.selectedNavId = target.id
       this.render()
