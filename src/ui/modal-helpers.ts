@@ -27,6 +27,11 @@ export function registerEscClose(onClose: () => void): () => void {
 /**
  * createBackdrop: luo modal-backdrop-elementin joka sulkee modaalin
  * klikattaessa taustan ulkopuolelta.
+ *
+ * T451/V334/B181: käytä VAIN modaaliin jonka sisältö on jo tallessa (näkymä/muokkaus kannassa
+ * olevaan olioon). Modaali joka kantaa vielä tallentamatonta työtä (luontilomake, monivaiheinen
+ * flow) ⊥ saa käyttää tätä: siellä ulkoklikki ⊥ sulje vaan HÄVITTÄÄ & ohilipsahdus maksaa koko
+ * työn. Ks. `segment-creation-modal.ts` — oma tausta ilman klikkikuuntelijaa.
  */
 export function createBackdrop(className: string, onClose: () => void): HTMLDivElement {
   const backdrop = document.createElement('div')

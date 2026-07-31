@@ -3,7 +3,7 @@ import { PILE_TEMPLATE_ID, pileTemplate } from '../logic/pile'
 import type { Segment, SegmentStore } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
 import type { SegmentTrack } from '../logic/segment-track'
-import { registerEscClose, createBackdrop } from './modal-helpers'
+import { registerEscClose } from './modal-helpers'
 
 // T362/B144: luonti kerää ANKKUREITA (reitin pisteindeksejä), ⊥ kahta km-lukua. Väliankkurit
 // ratkaisevat kierroksen: haku etenee aina edellisestä indeksistä ∴ edestakainen osuus ⊥ ole arvaus.
@@ -71,6 +71,9 @@ export class SegmentCreationModal {
     private readonly onPathDone: (() => void) | null = null,
     // T389/V281: reitin vaihto — paneeli omistaa ankkurit & re-resolvoinnin, modaali vain pyytää.
     private readonly onSwitchRoute: ((routeId: string) => void) | null = null,
+    // T451/V334: paluu tiedot-vaiheesta polkuun ANKKURIT TALLELLA. Paneeli omistaa ankkurit ∴
+    // paluu on pyyntö kuten muutkin. null → nappia ⊥ renderöidä (paluuta ⊥ luvata tyhjästi).
+    private readonly onBackToPath: (() => void) | null = null,
   ) {
     this.segmentCounter = store.size
   }
@@ -78,7 +81,12 @@ export class SegmentCreationModal {
   open(state: CreationState): void {
     this.close()
 
-    const backdrop = createBackdrop('segment-creation-modal-backdrop', () => this.onCancel())
+    // T451/V334/B181: taustaklikki EI peru luontia. Muissa modaaleissa (`createBackdrop`) ulkoklikki
+    // on halpa ulospääsy koska suljettava tila on jo tallessa; tässä se hävittäisi kaiken klikatun
+    // työn (ankkurit, nimi, kuvaus) yhdestä ohilipsahduksesta & ainoa tie takaisin olisi tehdä
+    // pätkä uudelleen. Peruutus on nimetty toiminto: ✕ headerissa & "Peruuta" footerissa.
+    const backdrop = document.createElement('div')
+    backdrop.className = 'segment-creation-modal-backdrop'
 
     const modal = document.createElement('div')
     modal.className = 'segment-creation-modal'
@@ -307,6 +315,17 @@ export class SegmentCreationModal {
       this.onSaved(seg)
     })
     footer.appendChild(saveBtn)
+
+    // T451/V334: paluu polkuvaiheeseen ankkurit tallella. Ilman tätä ainoa ulospääsy tiedot-
+    // vaiheesta oli "Peruuta" = kaikki klikattu työ pois ∴ väärä viimeinen ankkuri maksoi koko
+    // pätkän. "Takaisin" ⊥ ole peruutus vaan askel taaksepäin — kaksi eri asiaa, kaksi nappia.
+    if (this.onBackToPath) {
+      const backBtn = document.createElement('button')
+      backBtn.className = 'btn-segment-creation-back'
+      backBtn.textContent = '← Takaisin'
+      backBtn.addEventListener('click', () => this.onBackToPath?.())
+      footer.appendChild(backBtn)
+    }
 
     const cancelBtn = document.createElement('button')
     cancelBtn.className = 'btn-segment-creation-cancel'

@@ -3414,6 +3414,10 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   opacity: 0.9;
 }
 
+/* T451/V334: "← Takaisin" = askel taaksepäin, ⊥ peruutus ∴ sama neutraali paino kuin Peruuta
+   (kumpikaan ⊥ kilpaile Tallenna-napin kanssa) mutta oma nappi — yhdistetty "peru/takaisin"
+   olisi juuri se kaksoismerkitys josta B181 syntyi. */
+.btn-segment-creation-back,
 .btn-segment-creation-cancel {
   background: var(--field-tint, var(--surface-raised));
   border: 1px solid var(--border-default);
@@ -3425,6 +3429,7 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   cursor: pointer;
   font-family: var(--font-ui);
 }
+.btn-segment-creation-back:hover,
 .btn-segment-creation-cancel:hover {
   background: var(--hover);
 }

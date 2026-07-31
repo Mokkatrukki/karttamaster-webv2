@@ -65,6 +65,9 @@ export class SegmentPanel {
   private visibleRouteIds: string[] | undefined = undefined
   private readonly creationModal: SegmentCreationModal
   private readonly detailsModal: SegmentDetailsModal
+  // T451/V334: polkuvaiheen tila säilyy tiedot-vaiheen yli ∴ "← Takaisin" palauttaa ankkurit
+  // sellaisinaan. `finishPath` kirjoittaa, `backToPath` lukee, `cancelCreation` tyhjentää.
+  private pathSnapshot: Extract<CreationState, { mode: 'polku' }> | null = null
 
   constructor(
     container: HTMLElement,
@@ -84,6 +87,7 @@ export class SegmentPanel {
       () => this.cancelCreation(),
       (seg) => {
         this.state = { mode: 'idle' }
+        this.pathSnapshot = null
         this.callbacks.onExitCreationMode?.()
         this.render()
         this.onUpdate()
@@ -96,6 +100,7 @@ export class SegmentPanel {
       () => this.undoAnchor(),
       () => this.finishPath(),
       (routeId) => this.switchRoute(routeId),
+      () => this.backToPath(),
     )
 
     this.detailsModal = new SegmentDetailsModal(
@@ -180,6 +185,7 @@ export class SegmentPanel {
   cancelCreation(): void {
     if (this.state.mode === 'idle') return
     this.state = { mode: 'idle' }
+    this.pathSnapshot = null
     this.statusEl.hidden = true
     this.creationModal.close()
     this.callbacks.onAnchorsClear?.()
@@ -295,6 +301,8 @@ export class SegmentPanel {
       this.callbacks.onNotify?.('Huom: pätkä menee päällekkäin toisen kanssa samalla reitillä')
     }
 
+    // T451/V334: polkutila talteen ENNEN vaihdosta — paluu on silloin sama tila ⊥ rekonstruktio.
+    this.pathSnapshot = st
     this.state = {
       mode: 'tiedot',
       routeIds: this.sharedRouteIds(st.routeId, startDist, endDist),
@@ -305,6 +313,23 @@ export class SegmentPanel {
     }
     this.callbacks.onAnchorsClear?.()
     this.callbacks.onHideSnapMarkers?.()
+    this.creationModal.updatePhase(this.state)
+  }
+
+  /**
+   * T451/V334: "← Takaisin" tiedot-vaiheesta polkuun. Palauttaa TASAN sen tilan josta `finishPath`
+   * lähti — ankkurit, reitti & reittivalinnat — & herättää kartan takaisin luontitilaan (esikatselu
+   * + snap-markerit), jotka `finishPath` sammutti. Ilman herätystä paluu näyttäisi polkuvaiheelta
+   * mutta kartta olisi kuollut ∴ seuraava klikki ⊥ tuottaisi ankkuria.
+   */
+  private backToPath(): void {
+    if (this.state.mode !== 'tiedot' || !this.pathSnapshot) return
+    this.state = this.pathSnapshot
+    this.pathSnapshot = null
+    this.callbacks.onShowSnapMarkers?.((routeId, dist, lat, lon) =>
+      this.onSnapClick(routeId, dist, lat, lon),
+    )
+    this.emitAnchors()
     this.creationModal.updatePhase(this.state)
   }
 

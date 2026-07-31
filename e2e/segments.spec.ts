@@ -305,6 +305,43 @@ test.describe('T25 — SegmentPanel', () => {
     expect(await kmSpan.getAttribute('title')).toContain('km')
   })
 
+  // T451/V334/B181: käyttäjän raportoima — "jos pienessä klikkaa vähän ohi häviää koko pätkä".
+  // Tiedot-vaiheen backdrop on klikattava overlay (style.css:3125) ∴ tämä on ainoa taso joka
+  // näkee vian oikeana geometriana: klikki modaalin VIERESTÄ, ⊥ backdrop-elementin metodikutsu.
+  test('T451 — klikki tiedot-modaalin vierestä ei hävitä luontia (B181)', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+
+    await page.locator('.segment-panel-header').click()
+    await page.waitForTimeout(200)
+    await page.click('#btn-segment-create')
+    await page.waitForTimeout(200)
+
+    const [p1, p2] = await routePointPositions(page, [0.20, 0.60])
+    await page.click('#map', { position: p1 })
+    await page.waitForTimeout(300)
+    await page.click('#map', { position: p2 })
+    await page.waitForTimeout(300)
+    await page.click('.btn-segment-path-done')
+    await page.waitForTimeout(300)
+    await expect(page.locator('.btn-segment-creation-save')).toBeVisible()
+
+    // Klikki 40 px modaalin vasemmalta reunalta ulos — "vähän ohi".
+    const box = (await page.locator('.segment-creation-modal').boundingBox())!
+    await page.mouse.click(box.x - 40, box.y + box.height / 2)
+    await page.waitForTimeout(300)
+
+    await expect(page.locator('[data-testid="creation-modal"]')).toBeVisible()
+    await expect(page.locator('.btn-segment-creation-save')).toBeVisible()
+
+    // "← Takaisin" vie polkuvaiheeseen ankkurit tallella ∴ viimeisen klikin voi korjata.
+    await page.click('.btn-segment-creation-back')
+    await page.waitForTimeout(300)
+    await expect(page.locator('.segment-creation-anchor')).toHaveCount(2)
+  })
+
   test('T362 — klik-klik-pätkä välipisteillä: ankkurilista, peruutus, jälki tallentuu', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     const posted: Record<string, unknown>[] = []
