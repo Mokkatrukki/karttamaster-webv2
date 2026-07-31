@@ -6746,3 +6746,6 @@ body[data-role="talkoolainen"] .marker-overview { display: none; }
   text-decoration: none;
 }
 .pile-done-row-close { min-height: 44px; min-width: 44px; flex: 0 0 auto; }
+
+/* T456/V341: statusrivin tilalla syy & osoite — kuollut nappirivi olisi pahempi kuin puuttuva. */
+.marker-detail-status-note { margin: 4px 0 8px; color: var(--text-muted); font-size: 0.9rem; }

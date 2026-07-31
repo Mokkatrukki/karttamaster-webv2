@@ -52,12 +52,15 @@ describe('T447/V331 — MARKER_KINDS-taulu on ainoa luokittelun koti', () => {
       expect(typeof row.countsAsSign).toBe('boolean')
       expect(typeof row.collectable).toBe('boolean')
       expect(typeof row.hasStatus).toBe('boolean')
+      // T456/V341: pintarajaus on saman taulun sarake ∴ uusi luokka ⊥ pääse läpi ilman sitä.
+      expect(Array.isArray(row.statusSurfaces)).toBe(true)
     }
   })
 
   it('kyltti true/true/true, kasa false/true/true', () => {
-    expect(MARKER_KINDS.kyltti).toEqual({ countsAsSign: true, collectable: true, hasStatus: true })
-    expect(MARKER_KINDS.kasa).toEqual({ countsAsSign: false, collectable: true, hasStatus: true })
+    expect(MARKER_KINDS.kyltti).toEqual({ countsAsSign: true, collectable: true, hasStatus: true, statusSurfaces: ['patka'] })
+    // T456/V341: kasan status elää `/kasat`illa ⊥ pätkäpinnalla (B189).
+    expect(MARKER_KINDS.kasa).toEqual({ countsAsSign: false, collectable: true, hasStatus: true, statusSurfaces: ['kasat'] })
   })
 })
 

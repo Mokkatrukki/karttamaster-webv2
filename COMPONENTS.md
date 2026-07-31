@@ -112,6 +112,7 @@ server/       ← Hono + Bun + SQLite
 | RoleView | `src/app/role-view.ts` | ✓ T155, T274 (AccountMenu saa role → crossover-linkki) | critical-paths: "Auth screen", "Rooli backendistä" | [ui.md](docs/components/ui.md) |
 | TalkoolainenMode | `src/app/talkoolainen-mode.ts` | ✓ T254 (R1 keystone: koti↔kartta -moodikehys, #app[data-view-mode]) | tests/t254-talkoolainen-mode.test.ts; e2e/segments.spec.ts "T254" | [ui.md](docs/components/ui.md) |
 | PilePlacement | `src/app/pile-placement.ts` | ✓ T452 (V335: kasan sijoitustila tuo kartan näkyviin & palauttaa moodin; ohje `#segment-view`iin V336), T454 (V338/V339: yksi virta — napautus→esikatselupiste→vahvistuspalkki, GPS ⊥ luo kasaa, näkymä ⊥ katoa kesken teon) | tests/t452-pile-place.test.ts; tests/t454-pile-place-flow.test.ts; tests/t455-pile-done-row.test.ts; e2e/t452-pile-place.spec.ts | [ui.md](docs/components/ui.md) |
+| MarkerKind | `src/logic/marker-kind.ts` | ✓ T447/V331 (luokan käyttäytyminen YHDESTÄ taulusta: `countsAsSign`/`collectable`/`hasStatus`; `kind` johdetaan templatesta), T456/V341 (`statusSurfaces` — status vaihtuu vain sillä pinnalla jolla se työ tehdään, B189) | tests/t447-marker-kind.test.ts; tests/t456-pile-status-surface.test.ts; tests/t456-pile-status-modal.test.ts | [logic.md](docs/components/logic.md) |
 | PilePreview | `src/map/pile-preview.ts` | ✓ T454 (V338: kasan esikatselupiste kartalla — raahattava aikomus ⊥ vielä merkki, ⊥ POSTia ennen vahvistusta) | e2e/t452-pile-place.spec.ts (T454-testit) | [ui.md](docs/components/ui.md) |
 | AreasWiring | `src/app/areas-wiring.ts` | ✓ T155 | area-interaction | [ui.md](docs/components/ui.md) |
 | SegmentsWiring | `src/app/segments-wiring.ts` | ✓ T155 | e2e/segments.spec.ts | [ui.md](docs/components/ui.md) |
@@ -144,7 +145,7 @@ server/       ← Hono + Bun + SQLite
 | AreaPanel | `src/ui/area-panel.ts` | ✓ | area-interaction | [ui.md](docs/components/ui.md) |
 | AreaView | `src/ui/area-view.ts` | ✓ | — | [ui.md](docs/components/ui.md) |
 | GpkgControls | `src/ui/gpkg-controls.ts` | ✓ T127 | — | [ui.md](docs/components/ui.md) |
-| MarkerDetailModal | `src/ui/marker-detail-modal.ts` | ✓ T225 (talkoolaisen kova-poisto vain oma itse-luoma, V151), T396 (📍 Navigoi tähän -ankkuri bodyn alussa, href = `nav-link.ts`, V286) | screenshots: "marker-detail-modal"; tests/t396-nav-link-ui.test.ts | [ui.md](docs/components/ui.md) |
+| MarkerDetailModal | `src/ui/marker-detail-modal.ts` | ✓ T225 (talkoolaisen kova-poisto vain oma itse-luoma, V151), T396 (📍 Navigoi tähän -ankkuri bodyn alussa, href = `nav-link.ts`, V286), T456/V341 (kasalle ⊥ statusnappeja pätkäpinnalla, B189) | screenshots: "marker-detail-modal"; tests/t396-nav-link-ui.test.ts | [ui.md](docs/components/ui.md) |
 | FeedbackWidget | `src/devtools/feedback-widget.ts` | ✓ devtools | feedback-widget | — |
 | BackendServer | `server/index.ts` | ✓ T41 | — | [backend.md](docs/components/backend.md) |
 | DatabaseLayer | `server/db.ts` | ✓ | — | [backend.md](docs/components/backend.md) |

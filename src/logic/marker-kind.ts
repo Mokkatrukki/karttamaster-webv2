@@ -27,6 +27,13 @@ import { PILE_TEMPLATE_ID } from './pile'
 
 export type MarkerKind = 'kyltti' | 'kasa'
 
+/**
+ * T456/V341: PINTA jolla kohdetta käsitellään. `patka` = pätkänäkymä & kartta (talkoolaisen
+ * & järjestäjän merkkityö), `kasat` = `/kasat` (autoporukan haku). Sama kohde voi NÄKYÄ
+ * molemmilla — mutta statuksen saa vaihtaa vain siellä missä se työ tehdään.
+ */
+export type MarkerSurface = 'patka' | 'kasat'
+
 export interface MarkerKindBehavior {
   /** Lasketaanko tämä "merkiksi" kylttilaskureissa (pätkän merkkimäärä, varustelista, edistymä). */
   countsAsSign: boolean
@@ -34,6 +41,12 @@ export interface MarkerKindBehavior {
   collectable: boolean
   /** Onko kohteella merkkistatus (`suunniteltu…ei_tarpeen`). */
   hasStatus: boolean
+  /**
+   * V341: MISSÄ statuksen saa vaihtaa. Sarake ⊥ hajautettu `isPile`-haara kutsupaikoissa:
+   * kasan "haettu" on autoporukan tosiasia ∴ pätkäkartan merkkiklikki ⊥ saa kirjoittaa sitä
+   * (B189 — toinen porukka luki "haettu" kasasta jota kukaan ⊥ hakenut).
+   */
+  statusSurfaces: MarkerSurface[]
 }
 
 /**
@@ -41,11 +54,13 @@ export interface MarkerKindBehavior {
  * käännösaikana & testi ajoaikana (uusi kind ilman riviä ⊥ käänny).
  */
 export const MARKER_KINDS: Record<MarkerKind, MarkerKindBehavior> = {
-  kyltti: { countsAsSign: true, collectable: true, hasStatus: true },
+  kyltti: { countsAsSign: true, collectable: true, hasStatus: true, statusSurfaces: ['patka'] },
   // Kasa on kohde jonka autoporukka hakee — se ⊥ ole kyltti jonka joku asetti reitille ∴ se
   // ⊥ saa kasvattaa pätkän merkkimäärää. Kerättävä & statuksellinen se on: kasa kuitataan
-  // haetuksi samalla koneistolla kuin kyltti (V314: kasa on merkki).
-  kasa: { countsAsSign: false, collectable: true, hasStatus: true },
+  // haetuksi samalla koneistolla kuin kyltti (V314: kasa on merkki) — mutta VAIN kasapinnalla
+  // (V341/B189): pätkäkartalla sama nappi olisi vahinkoklikki jonka toinen porukka lukee
+  // tosiasiana. Siirto & poisto (T438) ovat ennallaan — ne ⊥ ole statusta.
+  kasa: { countsAsSign: false, collectable: true, hasStatus: true, statusSurfaces: ['kasat'] },
 }
 
 /**
@@ -92,6 +107,18 @@ export function isCollectable(m: Pick<SignMarker, 'templateId'> | string | null 
 
 export function hasStatus(m: Pick<SignMarker, 'templateId'> | string | null | undefined): boolean {
   return markerBehavior(m).hasStatus
+}
+
+/**
+ * V341: saako TÄLLÄ pinnalla vaihtaa kohteen statusta. Kutsupaikka kysyy pinnastaan
+ * (`canChangeStatusOn(m, 'patka')`) ⊥ vertaa templateId:tä kasaan.
+ */
+export function canChangeStatusOn(
+  m: Pick<SignMarker, 'templateId'> | string | null | undefined,
+  surface: MarkerSurface,
+): boolean {
+  const b = markerBehavior(m)
+  return b.hasStatus && b.statusSurfaces.includes(surface)
 }
 
 /** Suodatin joka kirjoittaa itsensä auki kutsupaikalla: `markers.filter(onlySigns)`. */

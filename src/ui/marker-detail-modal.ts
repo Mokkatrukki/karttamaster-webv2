@@ -5,6 +5,7 @@ import type { Segment } from '../logic/segments'
 import { SIGN_TYPES } from '../logic/sign-picker'
 import { listTemplates } from '../logic/sign-library'
 import { validActions, canTransition } from '../logic/marker-status'
+import { canChangeStatusOn } from '../logic/marker-kind'
 import { revertTarget, revertLabel } from '../logic/phase-target'
 import { isPile, pileRemoval, pileRemovalConfirm } from '../logic/pile'
 import { navUrl, navTarget } from '../logic/nav-link'
@@ -316,6 +317,11 @@ export class MarkerDetailModal {
     const footer = document.createElement('div')
     footer.className = 'modal-footer marker-detail-actions'
 
+    // T456/V341 (B189): statusrivi kuuluu sille pinnalle jolla se työ tehdään. Kasan "haettu"
+    // on autoporukan tosiasia (`/kasat`) ∴ pätkäpinnalla sitä ⊥ kirjoiteta — myöskään
+    // järjestäjän modaalista, joka on sama pinta toisella roolilla.
+    const statusOnThisSurface = canChangeStatusOn(marker, 'patka')
+
     // T137/V84: järjestäjä voi asettaa minkä tahansa statuksen suoraan, ei validActions()-rajausta
     const statusLabel = document.createElement('label')
     statusLabel.className = 'marker-detail-label'
@@ -344,8 +350,17 @@ export class MarkerDetailModal {
         statusRow.appendChild(btn)
       })
     }
-    renderStatusRow()
-    footer.appendChild(statusRow)
+    if (statusOnThisSurface) {
+      renderStatusRow()
+      footer.appendChild(statusRow)
+    } else {
+      // Kuollut pinta olisi pahempi kuin puuttuva (V250) ∴ rivin tilalla on syy & osoite.
+      statusLabel.textContent = 'Status'
+      const note = document.createElement('p')
+      note.className = 'marker-detail-status-note'
+      note.textContent = 'Kasan haku kuitataan kasalistalla (/kasat).'
+      footer.appendChild(note)
+    }
 
     // Type select above footer actions
     const typeLabel = document.createElement('label')
@@ -449,8 +464,11 @@ export class MarkerDetailModal {
     // napautus on odotettava tapahtuma, ei poikkeus. Paluu tulee vaiheen lookupista
     // (`revertTarget`) ⊥ `marker-status`-siirtymistä: `kerätty` on siellä umpikuja, ja purussa
     // paluu on `asetettu` (⊥ `suunniteltu`) — siirtymätaulu ⊥ tunne vaihetta.
+    // T456/V341: kasan status elää `/kasat`illa ∴ täällä ⊥ peruutusta eikä kuittausta —
+    // vahinkoklikki kirjaisi haun jota ⊥ ole tapahtunut (B189). Siirto & poisto jäävät.
+    const statusOnThisSurface = canChangeStatusOn(marker, 'patka')
     const task = this.getTask()
-    const revertTo = revertTarget(marker.status, task)
+    const revertTo = statusOnThisSurface ? revertTarget(marker.status, task) : null
     if (revertTo) {
       const revertBtn = document.createElement('button')
       revertBtn.className = 'modal-btn-secondary marker-detail-revert'
@@ -466,7 +484,8 @@ export class MarkerDetailModal {
       actions.appendChild(revertBtn)
     }
 
-    validActions(marker.status).forEach(action => {
+    const surfaceActions = statusOnThisSurface ? validActions(marker.status) : []
+    surfaceActions.forEach(action => {
       if (!canTransition(marker.status, action)) return
       // T437/V323: geneerinen "Peru" väistää vaihekohtaisen peruutuksen — kaksi nappia joilla on
       // ERI kohde ("Peru"→suunniteltu, "↩ Palauta keräämättömäksi"→asetettu) on kaksi tapaa
@@ -482,6 +501,13 @@ export class MarkerDetailModal {
       })
       actions.appendChild(btn)
     })
+
+    if (!statusOnThisSurface) {
+      const note = document.createElement('p')
+      note.className = 'marker-detail-status-note'
+      note.textContent = 'Kasan haku kuitataan kasalistalla (/kasat).'
+      footer.appendChild(note)
+    }
 
     footer.appendChild(actions)
 
