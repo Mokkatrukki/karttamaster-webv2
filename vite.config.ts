@@ -40,6 +40,7 @@ export default defineConfig({
       configureServer(server) {
         server.middlewares.use((req, _res, next) => {
           if (req.url === '/patkat' || req.url === '/patkat/') req.url = '/patkat.html'
+          if (req.url === '/kasat' || req.url === '/kasat/') req.url = '/kasat.html'
           next()
         })
       },
@@ -58,6 +59,7 @@ export default defineConfig({
         admin: resolve(__dirname, 'admin.html'),
         inventory: resolve(__dirname, 'inventory.html'),
         patkat: resolve(__dirname, 'patkat.html'),
+        kasat: resolve(__dirname, 'kasat.html'),
         loki: resolve(__dirname, 'loki.html'),
       },
     },

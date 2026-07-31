@@ -1,0 +1,86 @@
+// T448/V332: KASALISTA JOHDETAAN KASOISTA — työ jonka pitää ensin LUODA on työ jota ei tehdä.
+//
+// Kasojen haku vaati ennen tätä että joku perusti keräystehtävän (pätkän jolla
+// `markerTypeFilter`) ∴ autoporukan työ oli olemassa vasta kun järjestäjä muisti perustaa sen —
+// & B174 osoitti ettei sitä voinut perustaa ennen ensimmäistä kasaa (valikko johdettiin
+// olemassa olevista merkeistä). Umpisolmu, jonka käyttäjä kuvasi sanoilla "en tiedä mistä voin
+// tehdä kasan keräyspätkän".
+//
+// Nyt lista on `kind === 'kasa'` -suodatin koko merkkijoukosta: kasa syntyy metsässä & ilmestyy
+// listalle itsestään, ilman välikättä. Tehtäväolio olisi kantanut nimen, vastuuhenkilön &
+// talkoolaislinkin — mutta se on hinta jonka maksaa JOKA KERTA, & sen ainoa tehtävä oli
+// suodattaa tyypin mukaan (`markerKind` tekee sen nyt).
+//
+// OMA TIEDOSTO ⊥ `pile.ts`: `marker-kind.ts` lukee `PILE_TEMPLATE_ID`in `pile.ts`:stä ∴
+// listaus `pile.ts`:ssä olisi importtisykli jonka moduulitason vakiot laukaisisivat TDZ-
+// virheenä ajossa. Sykli ⊥ ole tyylikysymys vaan kaatuva sovellus.
+//
+// Puhdas: ei DOM, ei Leaflet, ei fetch → Vitest-pure.
+
+import type { SignMarker } from './types'
+import { markerKind } from './marker-kind'
+import { PILE_TEMPLATE_ID } from './pile'
+import { haversineDistance } from './bearing'
+import { segmentTarget } from './phase-target'
+
+export interface GeoFix {
+  lat: number
+  lon: number
+}
+
+export interface PileRow {
+  marker: SignMarker
+  /** Montako merkkiä kasassa on — rivin sisältöyhteenveto. */
+  count: number
+  /** Metrit GPS-fixistä. `null` = fixiä ⊥ ole ∴ UI ⊥ näytä etäisyyttä (⊥ arvaa nollaa). */
+  distanceM: number | null
+  /** Onko kasa jo haettu. */
+  done: boolean
+}
+
+// T421/V313: kasan elinkaari on KERÄYSTEHTÄVÄ ⊥ pätkän vaihe — kasa syntyy `suunniteltu`na
+// (= hakematta) & "Haettu" vie `kerätty`yn. Sana & statusjoukko tulevat lookupista, ⊥ tästä:
+// neljäs kopio olisi se joka jää päivittämättä.
+export const PILE_TARGET = segmentTarget({ markerTypeFilter: PILE_TEMPLATE_ID })
+
+/**
+ * V332: autoporukan lista. Järjestys = etäisyys fixistä (lähin ensin); ilman fixiä
+ * luontijärjestys (= syötteen järjestys) — arvattu etäisyys olisi väärä järjestys joka
+ * NÄYTTÄÄ oikealta.
+ *
+ * Haettu kasa EI katoa listalta (se on tapahtunut tosiasia jonka toinenkin porukka pitää voida
+ * nähdä — piilotettu tieto on tieto jota ⊥ voi kyseenalaistaa) mutta se putoaa hännille:
+ * haettu kasa ⊥ ole työtä, & lähin TEHTY asia ylimmäisenä olisi este seuraavan toiminnon edessä.
+ */
+export function listPiles(markers: SignMarker[], fix: GeoFix | null = null): PileRow[] {
+  const rows = markers
+    .filter(m => markerKind(m) === 'kasa')
+    .map((marker, index) => ({
+      index,
+      marker,
+      count: marker.pileMarkerIds?.length ?? 0,
+      distanceM: fix ? haversineDistance(fix, { lat: marker.lat, lon: marker.lon }) : null,
+      done: !PILE_TARGET.openStatuses.includes(marker.status),
+    }))
+
+  rows.sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1
+    if (a.distanceM !== null && b.distanceM !== null) return a.distanceM - b.distanceM
+    return a.index - b.index
+  })
+
+  return rows.map(({ marker, count, distanceM, done }) => ({ marker, count, distanceM, done }))
+}
+
+/** "1,2 km" | "340 m" | "" (⊥ fixiä). Yksi muotoilu ∴ kaksi pintaa ⊥ ole eri mieltä. */
+export function formatPileDistance(distanceM: number | null): string {
+  if (distanceM === null || !Number.isFinite(distanceM)) return ''
+  if (distanceM < 1000) return `${Math.round(distanceM)} m`
+  return `${(distanceM / 1000).toFixed(1).replace('.', ',')} km`
+}
+
+/** Sisältöyhteenveto riville. Ryhmitellyn listan tuo T450 — tämä on rivin yhden rivin luku. */
+export function formatPileSummary(count: number): string {
+  if (count === 0) return 'Tyhjä kasa'
+  return `${count} merkkiä`
+}
