@@ -1,6 +1,7 @@
 import { getActivePhase, getViewPhase, setViewPhase, isViewingOtherPhase } from '../logic/phase-view'
 import { PHASE_ORDER, PHASE_LABELS } from '../logic/phase-labels'
 import type { Segment } from '../logic/segments'
+import { syncPhaseIndicator } from './phase-indicator'
 
 // T148 → T434/V321: tämä on KATSELUSUODIN, ⊥ komento.
 //
@@ -44,6 +45,8 @@ export class PhaseSwitcher {
     select.value = getViewPhase()
     select.addEventListener('change', () => {
       setViewPhase(select.value as Segment['phase'])
+      // T443/V329: katseluvaihe on järjestäjän vaihelähde ∴ aksentti & nimi seuraavat sitä.
+      syncPhaseIndicator()
       this.syncPill()
       this.onChange(getViewPhase())
     })
@@ -58,6 +61,7 @@ export class PhaseSwitcher {
       e.stopPropagation()
       setViewPhase(getActivePhase())
       select.value = getViewPhase()
+      syncPhaseIndicator()
       this.syncPill()
       this.onChange(getViewPhase())
     })

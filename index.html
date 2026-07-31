@@ -10,6 +10,9 @@
     <div id="app">
       <div id="toolbar">
         <span id="app-brand">Karttamaster</span>
+        <!-- T443/V329: vaihe on näkyvissä AINA — nimi tekstinä aksenttivärin rinnalla
+             (väri ⊥ ole ainoa kantaja). Sisällön kirjoittaa src/ui/phase-indicator.ts. -->
+        <span id="phase-name" class="phase-name" role="status"></span>
         <div id="toolbar-actions">
           <button id="btn-home-view" aria-label="Takaisin pätkänäkymään">🏠</button>
           <!-- T308/V219: kartan muokkaustilan toggle. Järjestäjä = karttatyökalurivi (tässä);

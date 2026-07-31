@@ -56,6 +56,26 @@ myös `STATUS_RING`-taulussa synkassa vaalean teeman kanssa. Taustaväri: `color
 | status-keratty     | `#8A5CD1`        | `#A277E0` | Kerätty (violetti)|
 | status-ei-tarpeen  | `#C9922E`        | `#DBA83F` | Ei tarpeen (kulta)|
 
+### Vaihe-aksentti (`--phase-accent` + `--phase-accent-contrast`) — T443/V329
+
+Tapahtuman vaihe on järjestelmän tila (V317) mutta oli näkymätön: sama sovellus, samat pätkät, samat merkit ∴ purun alkamisen saattoi luulla joksikin muuksi. Aksentti värjää **yläpalkin** (`#toolbar` tausta) ja **heron** (`#segment-view` yläreunan 4px nauha); rinnalla kulkee aina **nimi** (`.phase-name`, "Purkumaster") — väri ei ole koskaan ainoa kantaja (V329, sama sääntö kuin V328).
+
+Asetetaan `<body data-phase="…">`-attribuutille (`src/ui/phase-indicator.ts`) ∴ token valuu CSS:n kautta jokaiseen pintaan. Ei inline-tyyliä: kaksi väripaikkaa ajautuu erilleen.
+
+| data-phase | `--phase-accent` | `--phase-accent-contrast` | vs valkoinen | Nimi |
+|---|---|---|---|---|
+| `asettaminen` | `#0F6FA8` sininen | `#ffffff` | 5.44 | Asetusmaster |
+| `tarkastus` | `#B26100` amber | `#ffffff` | 4.60 | Tarkastusmaster |
+| `purku` | `#9B4C8C` magenta | `#ffffff` | 5.52 | Purkumaster |
+
+Sininen / amber / magenta on CVD-turvakolmikko (Okabe-Ito-suku): **ei punainen↔vihreä -paria**, ja sävyjen lisäksi kylläisyys- ja vaaleusero pitävät ne erillään kirkkaassa auringossa halvalla puhelimella. Vihreä on varattu status-kanavalle (`--segment-done`, `--status-asetettu`) ∴ se ei saa esiintyä vaihekanavassa — kaksi merkitystä samalle sävylle on kaksi asiaa opeteltavaksi.
+
+**Teemariippumaton tarkoituksella.** Vaihe on TUNNUS, ja tunnus joka vaihtuu teeman mukana ei ole tunnus. `[data-theme="dark"]` ei ylikirjoita näitä (sama sääntö kuin karttapinta-tokeneilla, V253 — eri syystä).
+
+**Lähde on rooli-kohtainen (V318/V321), kaksi eikä kolme:** talkoolainen näkee `getActivePhase()` (globaali — hänellä ei ole katselusuodinta), järjestäjä `getViewPhase()` (katselu). T434:n "katselet muuta kuin globaalia" -pilleri säilyy ja on edelleen ainoa paikka joka kertoo eron.
+
+Ilman `data-phase`-attribuuttia (auth-ruutu, `/patkat`) tokenit putoavat neutraaliin chromeen (`--surface-app` / `--text-body`) ∴ mikään ei väläytä väärää vaihetta.
+
 ### Merkki-tyyppivärit (SIGN_TYPES `src/logic/sign-picker.ts` + icons.ts, luettavia valkoisella kortilla)
 
 | Tyyppi        | Hex       | Merkki                      |
