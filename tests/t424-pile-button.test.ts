@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest'
 import { SegmentView, type SegmentViewActions } from '../src/ui/segment-view'
 import { PILE_TEMPLATE_ID } from '../src/logic/pile'
+import { loadActivePhase } from '../src/logic/phase-view'
 import type { Segment } from '../src/logic/segments'
 import type { MarkerStatus, SignMarker } from '../src/logic/types'
 
@@ -28,7 +29,18 @@ function mount(actions: SegmentViewActions, seg = makeSeg(), markers = [marker('
   return { container, view, btn: container.querySelector('.segment-view-pile-btn') as HTMLButtonElement }
 }
 
+// §C: kasapinta elää GLOBAALISTA vaiheesta ∴ testin ! asettaa se, ⊥ luottaa oletukseen.
+// Serveriltä luettu arvo elää `phase-view`n moduulitason muuttujassa (T426/V317) & tämä
+// tiedosto ajaa jaetussa rekisterissä ∴ `afterAll` palauttaa sen — muuten oletusvaihetta
+// tarkistavat tiedostot (phase-switcher, phase-view) näkisivät tämän tiedoston jäljen.
+async function setGlobalPhase(phase: string): Promise<void> {
+  vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ phase }) })))
+  await loadActivePhase()
+}
+
 describe('T424/V314 — "Jätä kasa tähän"', () => {
+  beforeAll(async () => { await setGlobalPhase('purku') })
+  afterAll(async () => { await setGlobalPhase('asettaminen') })
   beforeEach(() => { document.body.innerHTML = '' })
 
   it('(i) nappi näkyy purussa kun ehdokkaita on', () => {
@@ -96,5 +108,30 @@ describe('T424/V314 — "Jätä kasa tähän"', () => {
 
   it('kasa-merkki ei ole nappi vaan merkki — templateId on vakio', () => {
     expect(PILE_TEMPLATE_ID).toBe('kerayskasa')
+  })
+})
+
+// §C/V321: kasapinta elää VAIN kun tapahtuman GLOBAALI vaihe on purku. Järjestäjä saa katsoa
+// purkupätkiä asetusvaiheen aikana (T434) — mutta katselu ⊥ ole komento ∴ kasaa ⊥ synny.
+describe('§C — kasanappi vaatii globaalin purkuvaiheen, ⊥ pelkkää pätkän vaihetta', () => {
+  beforeEach(() => { document.body.innerHTML = '' })
+  afterAll(async () => { await setGlobalPhase('asettaminen') })
+
+  it('purkupätkä + globaali asettaminen → nappia ⊥ ole (esikatselu ⊥ avaa kirjoituspintaa)', async () => {
+    await setGlobalPhase('asettaminen')
+    const { btn } = mount({ pileCandidates: () => [marker('a')], onLeavePile: () => {} })
+    expect(btn.hidden).toBe(true)
+  })
+
+  it('purkupätkä + globaali tarkastus → nappia ⊥ ole', async () => {
+    await setGlobalPhase('tarkastus')
+    const { btn } = mount({ pileCandidates: () => [marker('a')], onLeavePile: () => {} })
+    expect(btn.hidden).toBe(true)
+  })
+
+  it('purkupätkä + globaali purku → nappi näkyy', async () => {
+    await setGlobalPhase('purku')
+    const { btn } = mount({ pileCandidates: () => [marker('a')], onLeavePile: () => {} })
+    expect(btn.hidden).toBe(false)
   })
 })

@@ -5,6 +5,7 @@ import { orderMarkersInSegment } from '../logic/segment-order'
 import { defaultUnsetSelection } from '../logic/navigation'
 import { pileCount } from '../logic/pile'
 import { navUrl, navTarget } from '../logic/nav-link'
+import { getActivePhase } from '../logic/phase-view'
 import type { Segment, EquipmentItem } from '../logic/segments'
 import { segmentDisplayName } from '../logic/segment-name'
 import { buildMarkerVisual } from './marker-visual-row'
@@ -277,10 +278,17 @@ export class SegmentView {
     this.kotiTabs.setTabHidden('varuste', hide)
   }
 
-  // T424/V314: nappi näkyy VAIN purussa & vain kun kasaan on jotain pantavaa. 0 ehdokasta →
+  // T424/V314 + §C: nappi näkyy VAIN purussa & vain kun kasaan on jotain pantavaa. 0 ehdokasta →
   // ei renderöidä lainkaan; disabloitu nappi olisi kuollut pinta (V250).
+  //
+  // KAKSI vaihe-ehtoa, ⊥ yksi: pätkän oma vaihe kertoo että tämä on purkupätkä, GLOBAALI vaihe
+  // kertoo että purku on käynnissä. Pelkkä `segment.phase` vuoti vaiherajan yli: järjestäjä joka
+  // esikatselee purkupätkiä asetusvaiheen aikana (T434:n katselusuodin) sai kasanapin & saattoi
+  // luoda kasan ennen purun alkua — juuri se sekaannus jonka V321-jako & §C estävät. Kasapinta
+  // elää AINA globaalista vaiheesta: `getActivePhase` (serverin tila), ⊥ `getViewPhase`
+  // (järjestäjän silmä) — katselu ⊥ saa avata kirjoituspintaa.
   private renderPileBtn(): void {
-    const candidates = this.segment.phase === 'purku'
+    const candidates = this.segment.phase === 'purku' && getActivePhase() === 'purku'
       ? (this.actions.pileCandidates?.() ?? [])
       : []
     if (!this.actions.onLeavePile || candidates.length === 0) {

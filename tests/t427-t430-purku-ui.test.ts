@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest'
 import { renderPatkatPage } from '../src/ui/patkat-page'
+import { loadActivePhase } from '../src/logic/phase-view'
 import { SegmentView, type SegmentViewActions } from '../src/ui/segment-view'
 import { phaseTarget, segmentTarget } from '../src/logic/phase-target'
 import type { Segment } from '../src/logic/segments'
@@ -26,6 +27,11 @@ function mountView(segment: Segment, markers: SignMarker[], actions: SegmentView
   const view = new SegmentView(container, segment, undefined, undefined, actions)
   view.update(markers)
   return { container, view }
+}
+
+async function setGlobalPhase(phase: string): Promise<void> {
+  vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ phase }) })))
+  await loadActivePhase()
 }
 
 beforeEach(() => { document.body.innerHTML = '' })
@@ -128,6 +134,11 @@ describe('T429/V319 — purussa tasan kaksi merkkitoimintoa', () => {
 })
 
 describe('T430/V320 — kasa syntyy myös ilman GPS:ää', () => {
+  // §C: kasanappi vaatii MYÖS globaalin purkuvaiheen ∴ testi asettaa sen & palauttaa lopuksi
+  // (moduulitason tila jaetussa rekisterissä, T426/V317).
+  beforeAll(async () => { await setGlobalPhase('purku') })
+  afterAll(async () => { await setGlobalPhase('asettaminen') })
+
   it('kasanappi kutsuu onLeavePileä vaikka gpsPositionia ei ole annettu', () => {
     let calls = 0
     const { container } = mountView(seg('p', 'purku'), [marker('m', 'kerätty')], {
