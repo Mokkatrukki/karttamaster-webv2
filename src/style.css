@@ -3533,8 +3533,24 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
 .segment-view-markers-item + .segment-view-markers-item { border-top: 1px solid var(--border-default); }
 /* T409: rivi = [checkbox?][rivipainike]. Checkbox on `<li>`:n lapsi ⊥ painikkeen sisällä
    (sisäkkäinen kontrolli painikkeessa ⊥ ole validia HTML:ää) ∴ `<li>` on flex-rivi. */
-.segment-view-markers-item { display: flex; align-items: center; }
+.segment-view-markers-item { display: flex; align-items: center; flex-wrap: wrap; }
 .segment-view-markers-item--nocheck { padding-left: 44px; }
+/* T437/V323: peruutus omalle riville (`flex-basis:100%`) — koko `revertLabel` mahtuu näkyviin
+   340px-leveydellä leikkautumatta (B108-oppi) & kohde on ≥44px hanska kädessä. */
+.segment-view-markers-revert {
+  flex: 0 0 100%;
+  min-height: 44px;
+  padding: 4px 8px;
+  margin: 0 0 4px 44px;
+  background: none;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text-body);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.segment-view-markers-revert:hover { background: var(--field-tint); }
 /* T412: ruudun kaava on jaettu (`.marker-item-checkbox`, V303) — se asuu merkkilistan
    jaetussa lohkossa, ⊥ täällä. Tähän jää vain se mikä on pätkälistan omaa. */
 /* Koko "Valitse kaikki" -label on kosketuskohde, ⊥ vain 22px ruutu. */

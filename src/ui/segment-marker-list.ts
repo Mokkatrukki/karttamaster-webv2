@@ -2,6 +2,7 @@ import { buildMarkerVisual } from './marker-visual-row'
 import { markerLabel } from './segment-hero'
 import { isTerminal, type MarkerStatus } from '../logic/marker-status'
 import { countsAsSign } from '../logic/marker-kind'
+import { revertTarget, revertLabel } from '../logic/phase-target'
 import { displayKm, orderMarkersInSegment } from '../logic/segment-order'
 import type { Segment } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
@@ -203,6 +204,27 @@ export class SegmentMarkerList {
       row.appendChild(info)
 
       li.appendChild(row)
+
+      // T437/V323(b): peruutus näkyy siellä missä merkki on JO päätetilassa — modaali EI ole ainoa
+      // sellainen paikka, lista on. Ilman tätä talkoolaisen piti avata modaali korjatakseen
+      // napautuksen jonka hän teki listasta ∴ paluu oli kaksi askelta pidempi kuin virhe.
+      // Sama lookup (`revertTarget`) & sama mutaatiopolku (`bulkSetStatus`) kuin modaalilla —
+      // ⊥ toista koneistoa (T437(d)). Kytkemättä (`onBulkStatus` puuttuu) lista on yhä lukulista.
+      const revertTo = this.ctx.onBulkStatus ? revertTarget(m.status, segment) : null
+      if (revertTo) {
+        const label = revertLabel(segment)
+        const revertBtn = document.createElement('button')
+        revertBtn.type = 'button'
+        revertBtn.className = 'segment-view-markers-revert'
+        revertBtn.textContent = label
+        revertBtn.setAttribute('aria-label', `${label}: ${markerLabel(m)}`)
+        revertBtn.addEventListener('click', () => {
+          this.ctx.onBulkStatus?.([m.id], revertTo)
+          this.render()
+        })
+        li.appendChild(revertBtn)
+      }
+
       list.appendChild(li)
     }
     this.el.appendChild(list)
