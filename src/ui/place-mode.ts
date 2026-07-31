@@ -20,6 +20,11 @@ export class PlaceMode {
   // GPS-fixiä käyttää samaa kertaklikkaus-kuviota kuin sivupalkin mallilla sijoitus ∴ kartalla
   // on yhä YKSI klikkikäsittelijä — kaksi kuuntelijaa samasta klikistä olisi B-luokan sekaannus.
   private armedPlacer: ((lat: number, lon: number) => void) | null = null
+  // T452/V335: virityksen PURKU on yksi suppilo (Esc, Peruuta, sijoitus, moodinvaihto kulkevat
+  // kaikki `disarm()`in läpi) ∴ sijoitustilan siivous (ohjerivi pois, näkymämoodi takaisin)
+  // ripustetaan tähän — ei jokaiseen poistumistiehen erikseen, koska juuri se tie joka jää
+  // kytkemättä on se jolla käyttäjä jää tilaan josta ⊥ pääse ulos.
+  private armedDisarm: (() => void) | null = null
 
   constructor(
     private readonly markerManager: MarkerManager,
@@ -55,18 +60,24 @@ export class PlaceMode {
    * T430/V320: viritä kartta yhtä sijoitusta varten. `fn` saa klikin koordinaatit ja päättää
    * itse mitä syntyy — PlaceMode ⊥ tunne kasaa eikä sen sisältöä (kerrosraja).
    */
-  armPlacer(fn: (lat: number, lon: number) => void): void {
+  armPlacer(fn: (lat: number, lon: number) => void, onDisarm?: () => void): void {
     if (!this.mapMode.canPlaceMarkers()) return
     this.closePicker()
     this.armedTemplate = null
     this.armedPlacer = fn
+    this.armedDisarm = onDisarm ?? null
     document.getElementById('map')?.classList.add('place-mode')
   }
 
   disarm(): void {
     this.armedTemplate = null
     this.armedPlacer = null
+    // Nollataan ENNEN kutsua: siivous joka itse kutsuisi `disarm()`in (esim. moodinvaihto)
+    // ⊥ saa laukaista itseään uudelleen.
+    const cleanup = this.armedDisarm
+    this.armedDisarm = null
     document.getElementById('map')?.classList.remove('place-mode')
+    cleanup?.()
   }
 
   // Kutsutaan kartan single-clickistä main.ts:ssä kun isArmed(). Palauttaa true jos sijoitti.

@@ -11,7 +11,7 @@ import { getViewPhase } from '../logic/phase-view'
 import { createAndPushSegment } from '../logic/segment-create'
 import { addMarkersToSegment } from '../logic/segment-actions'
 import { unclaimedCollected, pileTemplate, PILE_TEMPLATE_ID } from '../logic/pile'
-import { showPilePlaceHint, removePilePlaceHint, openPileConfirm } from '../ui/pile-drop'
+import { removePilePlaceHint, openPileConfirm } from '../ui/pile-drop'
 import { showToast } from '../ui/toast'
 import { existingSegmentOwners } from '../logic/segment-membership'
 import { getSegmentsForPhase } from '../logic/segments'
@@ -43,6 +43,8 @@ import { initMapModeToggle } from '../ui/map-mode-toggle'
 import { createGpsControl } from '../ui/gps-control'
 import { createMarkerClaimSheet } from '../ui/marker-claim-sheet'
 import { gpsControlState } from '../logic/gps-follow'
+// T452/V335: sijoitustila ! tuoda kartta näkyviin itse — moodi on tilan EHTO ⊥ ympäristö.
+import { startPilePlacement } from './pile-placement'
 
 // T307/V218: `document.body.dataset.mapMode` asetetaan TÄSTÄ yhdestä paikasta (CSS-korostus
 // T308 + E2E-assertit lukevat sen). UI-toggle EI kirjoita attribuuttia itse — se kutsuu
@@ -508,7 +510,10 @@ function wireMarkersInner(
             )
             if (candidates.length === 0) return
             const ids = candidates.map(m => m.id)
-            const hintHost = document.getElementById('segment-view-container') ?? document.body
+            // T452/V336 (B183): ohjerivi PANELIIN (`#segment-view`), ⊥ konttiin — kontti on
+            // karttamoodissa `pointer-events:none` ∴ "Peruuta" olisi näkyvä & kuollut.
+            const hintHost = document.getElementById('segment-view')
+              ?? document.getElementById('segment-view-container') ?? document.body
 
             const create = (lat: number, lon: number): void => {
               const tpl = pileTemplate()
@@ -532,12 +537,21 @@ function wireMarkersInner(
               })
             }
 
-            // T450a: place-modessa iso ohjelaatikko, ⊥ pieni toast (hanskat, aurinko, kiire).
+            // T450a: place-modessa pysyvä ohjerivi, ⊥ pieni toast (hanskat, aurinko, kiire).
             // "Peruuta" on SAMASSA paikassa koko tilan ajan ∴ peruutusta ⊥ tarvitse etsiä.
+            //
+            // T452/V335 (B182): siirtyminen on ATOMINEN — näkymämoodi kartaksi, ohjerivi heroon
+            // & viritys päälle samassa teossa (`startPilePlacement`). Kotimoodissa `#map` on
+            // `display:none` ∴ ilman moodinvaihtoa sovellus pyysi napauttamaan pintaa jota ⊥ ole.
             const armPlacement = (): void => {
               if (!mapMode.canPlaceMarkers()) mapMode.set('muokkaus')
-              placeMode.armPlacer(confirmAt)
-              showPilePlaceHint(hintHost, () => placeMode.disarm())
+              startPilePlacement({
+                host: hintHost,
+                armPlacer: (fn, onDisarm) => placeMode.armPlacer(fn, onDisarm),
+                disarm: () => placeMode.disarm(),
+                onPlace: confirmAt,
+                onEnterKartta: () => map.invalidateSize(),
+              })
             }
 
             // T430/V320: kasa syntyy AINA. GPS-fix on nopein tie (nolla karttanapautusta);

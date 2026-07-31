@@ -1,6 +1,6 @@
-// T450/V320: KASAN JÄTTÖ — ohjelaatikko + vahvistus.
+// T450/V320 + T452/V335,V336: KASAN JÄTTÖ — ohjerivi + vahvistus.
 //
-// (a) OHJELAATIKKO place-modessa. Iso laatikko, ⊥ pieni toast: talkoolaisella on hanskat,
+// (a) OHJERIVI place-modessa, heron sisällä. Pysyvä rivi ⊥ toast: talkoolaisella on hanskat,
 //     aurinko ruudulla & kiire ∴ kolmen sekunnin toast on ohje jota ⊥ ehdi lukea. "Peruuta" on
 //     SAMASSA paikassa koko tilan ajan — peruutusta ⊥ pidä etsiä kun kartalla on jo väärä tila.
 //     Autolla-saavutettavuus on OHJAUS ⊥ portti (§C): GPX-reitit ovat MTB-uria & ajokelpoisuudesta
@@ -17,21 +17,34 @@ import { buildPileContentsList } from './pile-contents'
 import { createBackdrop, registerEscClose } from './modal-helpers'
 import type { SignMarker } from '../logic/types'
 
-const HINT_TEXT = 'Valitse paikka josta kasan voi hakea autolla — tienvarsi, risteys tai muu ajettava kohta.'
+// T452/B184: YKSI rivi ⊥ kolmirivinen laatikko. T450 mitoitti ohjeen LUKEMISEN ehdoilla; mitta
+// ! tulla siitä mitä ohje ohjeistaa — kartta on se pinta jota napautetaan ∴ ohje joka työntää
+// kartan ruudun ulkopuolelle kumoaa itsensä (390×844: hero 46vh + laatikko = kartta pois).
+const HINT_TEXT = '📦 Napauta kohta josta kasan voi hakea autolla'
+
+// Sijoitustilan ajan kasanappi piiloon (T452c): tila on jo päällä ∴ toinen painallus olisi
+// uusi kasa. Luokka elää heron kortilla, ⊥ napissa — napin oma `hidden` kuuluu renderPileBtn:lle
+// & kaksi kirjoittajaa samaan lippuun on se kohta jossa nappi jää piiloon tilan jälkeen.
+const PLACING_CLASS = 'is-placing-pile'
+
+function panelEl(): HTMLElement | null {
+  return document.getElementById('segment-view')
+}
 
 /**
- * Ohjelaatikko place-modeen. Palauttaa poistofunktion — kutsuja purkaa sen kun tila päättyy
- * (⊥ oma document-kuuntelija: laatikon elinkaari on sijoitustilan elinkaari, ⊥ oma).
+ * Ohjerivi place-modeen. Palauttaa poistofunktion — kutsuja purkaa sen kun tila päättyy
+ * (⊥ oma document-kuuntelija: rivin elinkaari on sijoitustilan elinkaari, ⊥ oma).
+ *
+ * V336: `host` ! olla `pointer-events:auto`-kerroksessa. Karttamoodissa `#segment-view-container`
+ * on `pointer-events:none` & vain `#segment-view` palauttaa syötteen ∴ kutsuja antaa panelin
+ * (B183: nappi näkyi & oli kuollut — pahempi kuin puuttuva nappi, koska se ohjaa yrittämään
+ * uudelleen). Rivi asettuu heron NAVIGAATIO-osan yläreunaan, ⊥ kartan päälle.
  */
 export function showPilePlaceHint(host: HTMLElement, onCancel: () => void): () => void {
   removePilePlaceHint(host)
 
   const box = document.createElement('div')
   box.className = 'pile-place-hint'
-
-  const title = document.createElement('p')
-  title.className = 'pile-place-hint-title'
-  title.textContent = '📦 Mihin kasa jää?'
 
   const text = document.createElement('p')
   text.className = 'pile-place-hint-text'
@@ -46,15 +59,20 @@ export function showPilePlaceHint(host: HTMLElement, onCancel: () => void): () =
     onCancel()
   })
 
-  box.append(title, text, cancel)
+  box.append(text, cancel)
   host.prepend(box)
+  panelEl()?.classList.add(PLACING_CLASS)
 
-  const remove = (): void => box.remove()
+  const remove = (): void => {
+    box.remove()
+    panelEl()?.classList.remove(PLACING_CLASS)
+  }
   return remove
 }
 
 export function removePilePlaceHint(host: HTMLElement): void {
   host.querySelector('.pile-place-hint')?.remove()
+  panelEl()?.classList.remove(PLACING_CLASS)
 }
 
 export interface PileConfirmActions {

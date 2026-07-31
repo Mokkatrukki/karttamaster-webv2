@@ -6596,22 +6596,38 @@ body[data-role="talkoolainen"] .marker-overview { display: none; }
 .marker-detail-pile { margin-top: 12px; }
 .marker-detail-pile-title { margin: 0 0 4px; font-weight: 700; }
 
-/* (a) Ohjelaatikko: ISO laatikko ⊥ toast — hanskat, aurinko, kiire. Peruuta on samassa
-   paikassa koko tilan ajan ∴ sitä ⊥ tarvitse etsiä. */
+/* (a) Ohjerivi: YKSI rivi heron sisällä ⊥ laatikko sen päällä (T452/B184). Ohje joka työntää
+   kartan ruudun ulkopuolelle kumoaa itsensä — kartta on se pinta jota napautetaan. Sticky ∴
+   heron oma scrolleri ⊥ vie ohjetta & Peruutaa näkyvistä (V336: peruutus ! olla tavoitettavissa
+   koko tilan ajan, ⊥ vain scrollin yläreunassa). */
 .pile-place-hint {
+  position: sticky;
+  top: 0;
   background: var(--surface-card);
   border: 2px solid var(--accent);
   border-radius: var(--radius-md);
-  padding: 14px 16px;
-  margin: 8px;
+  padding: 6px 8px 6px 10px;
+  margin: 0 0 8px;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   z-index: 6;
 }
-.pile-place-hint-title { margin: 0; font-size: 1.05rem; font-weight: 700; }
-.pile-place-hint-text { margin: 0; color: var(--text-body); line-height: 1.4; }
-.pile-place-hint-cancel { min-height: 44px; align-self: flex-start; }
+.pile-place-hint-text {
+  margin: 0;
+  flex: 1 1 12ch;
+  min-width: 0;
+  color: var(--text-body);
+  font-weight: 600;
+  line-height: 1.25;
+}
+/* B108-oppi: kapealla näytöllä nappi kietoutuu omalle rivilleen ⊥ purista tekstiä pois. */
+.pile-place-hint-cancel { min-height: 44px; flex: 0 0 auto; }
+
+/* T452c: sijoitustilassa kasanappi piiloon — tila on jo päällä ∴ toinen painallus olisi
+   uusi kasa. Tilaa vapautuu kartalle juuri silloin kun karttaa napautetaan. */
+#segment-view.is-placing-pile .segment-view-pile-btn { display: none; }
 
 /* (b) Vahvistus. Kolme ulospääsyä ∴ ne saavat kaikki 44px eivätkä puristu samalle riville
    kapealla näytöllä (B108-oppi: flex-wrap ⊥ leikkaa nappeja). */
