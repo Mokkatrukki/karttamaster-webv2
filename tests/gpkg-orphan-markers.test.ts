@@ -73,18 +73,23 @@ describe('MarkerManager.fixOrphanRouteIds — B1/V21-tyylinen ghost-marker-korja
     expect(mgr.getAll().find((m) => m.id === 'has-route')?.routeIds).toEqual(['r1'])
   })
 
-  it('orpo-merkki tulee näkyväksi kartalla (getAll palauttaa sen) korjauksen jälkeen', () => {
+  // B173 (2026-07-30): orpo on nyt näkyvä JO ennen korjausta — reitittömällä merkillä ei ole
+  // ankkuria jonka mukana kadota (V316). fixOrphanRouteIds antaa sille silti reitin, jotta
+  // km-akseli & pätkäjäsenyys toimivat; se on korjauksen varsinainen tehtävä.
+  it('orpo-merkki näkyy heti (B173) ja saa reitin korjauksessa', () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({}) })))
     const map = makeMap()
     const orphan = makeMarker({ id: 'ghost', routeIds: [] })
     const mgr = new MarkerManager(map, routes, () => {}, [orphan])
 
-    // Ennen korjausta: routeIds tyhjä -> ei täsmää mihinkään visibleRouteIds -> ei näkyvissä
-    expect(mgr.getAll()).toHaveLength(0)
+    // B173: reitittömänäkin näkyvissä — ennen tätä merkki katosi hiljaa (V21-luokka).
+    expect(mgr.getAll()).toHaveLength(1)
+    expect(mgr.getAll()[0].routeIds).toEqual([])
 
     mgr.fixOrphanRouteIds()
 
     expect(mgr.getAll()).toHaveLength(1)
     expect(mgr.getAll()[0].id).toBe('ghost')
+    expect(mgr.getAll()[0].routeIds).toEqual(['r1'])
   })
 })

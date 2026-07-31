@@ -97,9 +97,9 @@ describe('T312 — hero ◀▶ reunoihin (V224)', () => {
   it('aria-labelit säilyvät molemmissa nuolissa', () => {
     new SegmentView(container, makeSeg()).update(threeUnset())
     expect(container.querySelector('.segment-view-next-prev')?.getAttribute('aria-label'))
-      .toBe('Edellinen asettamaton merkki')
+      .toBe('Edellinen merkki')
     expect(container.querySelector('.segment-view-next-fwd')?.getAttribute('aria-label'))
-      .toBe('Seuraava asettamaton merkki')
+      .toBe('Seuraava merkki')
   })
 
   it('yksi asettamaton merkki → ei nuolia, keskiosa silti oma laatikko', () => {

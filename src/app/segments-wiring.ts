@@ -8,7 +8,7 @@ import { fitMapToSegment } from '../map/segment-fit'
 import type { Segment } from '../logic/segments'
 import { fetchSegmentByCode, fetchAllSegments, pushSegmentTrack } from '../logic/segment-sync'
 import { backfillSegmentTracks } from '../logic/segment-backfill'
-import { getActivePhase } from '../logic/phase-view'
+import { getViewPhase } from '../logic/phase-view'
 import { getRole } from '../logic/role'
 import type { RouteConfig } from '../logic/multi-route'
 import type { SignMarker } from '../logic/types'
@@ -76,7 +76,7 @@ export async function wireSegments(
 
   // T148: järjestäjä näkee kartalla vain aktiivisen phasen pätkät — talkoolainen aina omansa
   const visibleSegments = (): Segment[] =>
-    talkoolainenCode ? Array.from(segmentStore.values()) : getSegmentsForPhase(segmentStore, getActivePhase())
+    talkoolainenCode ? Array.from(segmentStore.values()) : getSegmentsForPhase(segmentStore, getViewPhase())
 
   const phaseFilteredStore = (): Map<string, Segment> => {
     const filtered = new Map<string, Segment>()
@@ -150,7 +150,7 @@ export async function wireSegments(
     segmentStore,
     () => renderSegmentOverlay(),
     {
-      getActivePhase: talkoolainenCode ? undefined : getActivePhase,
+      getActivePhase: talkoolainenCode ? undefined : getViewPhase,
       onAnchorsChanged: (anchors, preview) => {
         clearCreationFeedback()
         // Jälki ENSIN ∴ kiekot jäävät viivan päälle (viiva ⊥ peitä sitä mihin klikattiin).
@@ -215,6 +215,8 @@ export async function wireSegments(
     segmentOverlay.setOnSegmentClick(seg => segmentPanel.openDetailsModal(seg))
     const phaseSwitcherContainer = document.getElementById('phase-switcher-container')
     if (phaseSwitcherContainer) {
+      // T434/V321: katselusuodin — paikallinen, ⊥ serverikutsua ∴ ⊥ virhepolkua (`onNotify`
+      // putosi pois). Vaiheen vaihto kaikille asuu admin-paneelissa (T433).
       new PhaseSwitcher(phaseSwitcherContainer, () => {
         renderSegmentOverlay()
         segmentPanel.refreshCounts()

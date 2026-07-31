@@ -22,6 +22,8 @@ interface ServerMarker {
   image_id: string | null
   template_id: string | null
   parts_json: string | null
+  // T423/V314: kasan sisältö. NULL = ei kasa (tai vioittunut JSON, serveri normalisoi).
+  pile_marker_ids?: string[] | null
   description: string | null
   images: string[]
   created_by: string | null
@@ -57,6 +59,7 @@ function fromServer(row: ServerMarker): SignMarker {
     ...(row.image_id != null ? { imageId: row.image_id } : {}),
     ...(row.template_id != null ? { templateId: row.template_id } : {}),
     ...(parsePartsJson(row.parts_json) ? { parts: parsePartsJson(row.parts_json) } : {}),
+    ...(row.pile_marker_ids != null ? { pileMarkerIds: row.pile_marker_ids } : {}),
     ...(row.description != null ? { description: row.description } : {}),
     ...(row.images && row.images.length > 0 ? { images: row.images } : {}),
     ...(row.created_by != null ? { createdBy: row.created_by } : {}),

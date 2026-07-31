@@ -1,4 +1,5 @@
 import { createAndPushSegment } from '../logic/segment-create'
+import { PILE_TEMPLATE_ID, pileTemplate } from '../logic/pile'
 import type { Segment, SegmentStore } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
 import type { SegmentTrack } from '../logic/segment-track'
@@ -39,9 +40,14 @@ export type CreationState =
 // templateId:t (ei erillistä template-kirjastoa tarvita). Label = merkin label tai templateId.
 function distinctTemplateOptions(markers: SignMarker[]): { templateId: string; label: string }[] {
   const seen = new Map<string, string>()
+  // T425/V315: kasa on AINA valittavissa, vaikka yhtään kasaa ei olisi vielä jätetty. Ilman
+  // tätä ketju on umpisolmussa: autoporukan keräystehtävää ei voi luoda ennen ensimmäistä
+  // kasaa, mutta kasan jättäminen on hyödytöntä ennen kuin joku hakee sen. Kasa-template on
+  // sisäänrakennettu (V315) ∴ se on olemassa riippumatta datasta.
+  seen.set(PILE_TEMPLATE_ID, pileTemplate().label)
   for (const m of markers) {
     if (m.templateId && !seen.has(m.templateId)) {
-      seen.set(m.templateId, m.label ?? m.type ?? m.templateId)
+      if (m.templateId !== PILE_TEMPLATE_ID) seen.set(m.templateId, m.label ?? m.type ?? m.templateId)
     }
   }
   return Array.from(seen, ([templateId, label]) => ({ templateId, label }))

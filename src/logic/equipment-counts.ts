@@ -13,8 +13,9 @@
 // resolveTaskMarkers). Kaikki kolme kutsupaikkaa tekevät rajauksen ennen kutsua; tämä
 // moduuli ei tunne pätkäjäsenyyttä (V259/V283) eikä sen kuulukaan.
 
-import type { MarkerStatus, SignMarker } from './types'
+import type { SignMarker } from './types'
 import type { Segment } from './segments'
+import { phaseTarget } from './phase-target'
 
 export interface EquipmentCount {
   type: string
@@ -38,18 +39,10 @@ export interface EquipmentSummary {
   label: string
 }
 
-// Sama lookup-kuvio kuin `segments.ts` COUNT_PHASE_TARGET (T143/V90) — uusi phase on yhden
-// rivin lisäys, ei if-ketjun haara. `tarkastus` puuttuu tarkoituksella: per-merkki-tason
-// "tarkastettu"-statusta ei ole (V91, segmentin oma inspected-boolean sen sijaan) → se
-// putoaa `asettaminen`-oletukseen alla.
-const PHASE_TARGET: Record<'asettaminen' | 'purku', { label: string; doneStatuses: MarkerStatus[] }> = {
-  asettaminen: { label: 'asetettu', doneStatuses: ['asetettu', 'tarkistettu', 'kerätty'] },
-  purku: { label: 'kerätty', doneStatuses: ['kerätty'] },
-}
-
-function targetFor(phase: Segment['phase']): { label: string; doneStatuses: MarkerStatus[] } {
-  return PHASE_TARGET[phase === 'purku' ? 'purku' : 'asettaminen']
-}
+// T421/V313: taulu asui ennen tässä JA `segments.ts`:ssä identtisenä — nyt `phase-target.ts`.
+// `tarkastus` putoaa yhä `asettaminen`-oletukseen (V91: per-merkki-tason "tarkastettu"-statusta
+// ei ole, segmentin oma inspected-boolean sen sijaan).
+const targetFor = phaseTarget
 
 // `ei_tarpeen` ei ole "tehty" vaan "ei koskaan" (V285) ∴ se poistuu myös nimittäjästä.
 // Muuten total kasvaisi merkeistä joita kukaan ei koskaan aseta eikä laskuri täyttyisi.

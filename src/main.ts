@@ -19,6 +19,7 @@ import { wireMarkers } from './app/markers-wiring'
 import { wireAuth } from './app/role-view'
 import { initTalkoolainenMode } from './app/talkoolainen-mode'
 import { initTheme } from './logic/theme'
+import { loadActivePhase } from './logic/phase-view'
 
 // V132/T202: palauta käyttäjän valitsema teema ennen renderiä (estää välkkeen).
 initTheme()
@@ -56,6 +57,11 @@ async function init(talkoolainenCode?: string) {
   // T183/V116: käynnistä durable-outboxin retry — toimittaa edellisen session
   // vahvistamattomat kirjoitukset (startup + 'online' + periodinen backoff).
   startOutboxRetry()
+
+  // T426/V317: aktiivinen vaihe on järjestelmän tila ∴ se ! olla tiedossa ENNEN ensimmäistä
+  // renderiä — muuten kartta piirtäisi hetken väärän vaiheen pätkät. Epäonnistuminen putoaa
+  // välimuistiin (offline), ⊥ kaada käynnistystä.
+  await loadActivePhase()
 
   // T184/V118: erottele lataus-epäonnistuminen tyhjästä tuloksesta. Epäonnistuessa
   // näytä persistentti virhe eikä hiljaa tyhjää karttaa (→ estää duplikaatit).

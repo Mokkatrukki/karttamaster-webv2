@@ -13,6 +13,7 @@ import { gpkgRoutes } from './routes/gpkg'
 import { cronRoutes } from './routes/cron'
 import { auditRoutes } from './routes/audit'
 import { faqRoutes } from './routes/faq'
+import { phaseRoutes } from './routes/phase'
 import { inventoryRoutes } from './routes/inventory'
 import { scheduleNightlySnapshot } from './snapshot-scheduler'
 
@@ -60,6 +61,7 @@ app.route('/api/gpkg', gpkgRoutes)
 app.route('/api/cron', cronRoutes)
 app.route('/api/audit', auditRoutes)
 app.route('/api/faq', faqRoutes)
+app.route('/api/phase', phaseRoutes)
 app.route('/api/inventory', inventoryRoutes)
 
 export default {

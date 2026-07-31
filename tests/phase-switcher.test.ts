@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { PhaseSwitcher } from '../src/ui/phase-switcher'
-import { getActivePhase } from '../src/logic/phase-view'
+import { getActivePhase, getViewPhase, isViewingOtherPhase, resetViewPhase } from '../src/logic/phase-view'
 
 function makeLocalStorageMock() {
   let store: Record<string, string> = {}
@@ -18,6 +18,9 @@ describe('PhaseSwitcher (T148)', () => {
 
   beforeEach(() => {
     vi.stubGlobal('localStorage', makeLocalStorageMock())
+    // T434: katseluvaihe on moduulitason tila jaetussa rekisterissä ∴ edellisen testin
+    // valinta vuotaisi seuraavaan. Nollaus tässä, ei jokaisen testin lopussa.
+    resetViewPhase()
     document.body.innerHTML = ''
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -36,14 +39,19 @@ describe('PhaseSwitcher (T148)', () => {
     expect(select.value).toBe('asettaminen')
   })
 
-  it('valinnan vaihto kutsuu onChange ja persistoi localStorageen', () => {
+  // T434/V321: tämä testi KÄÄNTYI — se väitti valinnan siirtävän KÄYNNISSÄ olevaa vaihetta.
+  // Se oli koko vian ydin: järjestäjän katselu siirsi koko talkooporukan toiseen vaiheeseen.
+  // Nyt valinta muuttaa katselua & käynnissä oleva vaihe pysyy adminin komennossa (T432/T433).
+  it('valinnan vaihto kutsuu onChange & muuttaa KATSELUA — käynnissä oleva vaihe ei liiku', () => {
     let received: string | null = null
     new PhaseSwitcher(container, (phase) => { received = phase })
     const select = container.querySelector('select') as HTMLSelectElement
     select.value = 'tarkastus'
     select.dispatchEvent(new Event('change'))
     expect(received).toBe('tarkastus')
-    expect(getActivePhase()).toBe('tarkastus')
+    expect(getViewPhase()).toBe('tarkastus')
+    expect(getActivePhase()).toBe('asettaminen')
+    expect(isViewingOtherPhase()).toBe(true)
   })
 
   it('vapaa siirtymä mihin arvoon tahansa — purku suoraan ilman ketjua', () => {

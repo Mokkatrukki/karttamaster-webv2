@@ -16,6 +16,10 @@ export class PlaceMode {
   private readonly floatingPicker: HTMLElement
   // T136/V83: sidebar-valittu malli — seuraava kartan klikki sijoittaa sen, ei suosikkivaatimusta
   private armedTemplate: SignTemplate | null = null
+  // T430/V320: yleinen "seuraava karttaklikki tekee TÄMÄN" -viritys. Kasan sijoitus ilman
+  // GPS-fixiä käyttää samaa kertaklikkaus-kuviota kuin sivupalkin mallilla sijoitus ∴ kartalla
+  // on yhä YKSI klikkikäsittelijä — kaksi kuuntelijaa samasta klikistä olisi B-luokan sekaannus.
+  private armedPlacer: ((lat: number, lon: number) => void) | null = null
 
   constructor(
     private readonly markerManager: MarkerManager,
@@ -37,7 +41,7 @@ export class PlaceMode {
 
   isPickerOpen(): boolean { return this.floatingPicker.classList.contains('open') }
 
-  isArmed(): boolean { return this.armedTemplate !== null }
+  isArmed(): boolean { return this.armedTemplate !== null || this.armedPlacer !== null }
 
   armFromSidebar(template: SignTemplate): void {
     // V218: katselutilassa no-op — sivupalkin mallin klikkaus ei viritä karttaa sijoitusvalmiiksi.
@@ -47,14 +51,35 @@ export class PlaceMode {
     document.getElementById('map')?.classList.add('place-mode')
   }
 
+  /**
+   * T430/V320: viritä kartta yhtä sijoitusta varten. `fn` saa klikin koordinaatit ja päättää
+   * itse mitä syntyy — PlaceMode ⊥ tunne kasaa eikä sen sisältöä (kerrosraja).
+   */
+  armPlacer(fn: (lat: number, lon: number) => void): void {
+    if (!this.mapMode.canPlaceMarkers()) return
+    this.closePicker()
+    this.armedTemplate = null
+    this.armedPlacer = fn
+    document.getElementById('map')?.classList.add('place-mode')
+  }
+
   disarm(): void {
     this.armedTemplate = null
+    this.armedPlacer = null
     document.getElementById('map')?.classList.remove('place-mode')
   }
 
   // Kutsutaan kartan single-clickistä main.ts:ssä kun isArmed(). Palauttaa true jos sijoitti.
   placeArmedAt(lat: number, lon: number): boolean {
     if (!this.mapMode.canPlaceMarkers()) return false
+    if (this.armedPlacer) {
+      const fn = this.armedPlacer
+      // Viritys puretaan ENNEN kutsua: jos `fn` heittää, kartta ⊥ jää sijoitustilaan jossa
+      // jokainen seuraava klikki yrittäisi samaa uudelleen.
+      this.disarm()
+      fn(lat, lon)
+      return true
+    }
     if (!this.armedTemplate) return false
     const t = this.armedTemplate
     this.markerManager.add(lat, lon, t.id as MarkerType, t.color, t.label, t.iconId, t.parts, t.imageId, t.id)

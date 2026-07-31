@@ -32,9 +32,11 @@ function bodyQuery<T extends Element>(selector: string): T | null {
 
 describe('T22 SignLibraryPanel — V10', () => {
   describe('T195/V125: tyhjä seed', () => {
-    it('createSignLibrary palauttaa tyhjän kirjaston (ei oletusmalleja)', () => {
+    // T423/V315: kasa-template on AINOA sisäänrakennettu poikkeus tyhjään seediin — se on
+    // sovelluksen oma käsite (ei kylttikuva) ja koko kasa-ketju riippuu sen olemassaolosta.
+    it('createSignLibrary palauttaa vain kasa-templaten (ei oletusnuolia/kuvamalleja)', () => {
       const lib = createSignLibrary()
-      expect(listTemplates(lib)).toHaveLength(0)
+      expect(listTemplates(lib).map(t => t.id)).toEqual(['kerayskasa'])
     })
   })
 

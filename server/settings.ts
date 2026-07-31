@@ -8,6 +8,8 @@ import type { Database } from 'bun:sqlite'
 
 export const SETTING_TALKOO_PASSWORD = 'talkoo_password'
 export const SETTING_FAQ_MARKDOWN = 'faq_markdown'
+// T426/V317: tapahtuman aktiivinen vaihe — järjestelmän tila, ⊥ katsojan näkymäsuodin.
+export const SETTING_ACTIVE_PHASE = 'active_phase'
 
 export function getSetting(db: Database, key: string): string | null {
   const row = db.query<{ value: string }, [string]>('SELECT value FROM settings WHERE key = ?').get(key)

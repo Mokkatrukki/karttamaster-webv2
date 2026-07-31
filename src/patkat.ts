@@ -4,6 +4,7 @@ import { isValidTalkooName, readRememberedName, rememberName, NAME_MAX } from '.
 import { renderPatkatPage } from './ui/patkat-page'
 import { buildNamePrompt } from './ui/name-prompt'
 import { fetchAllSegments } from './logic/segment-sync'
+import { loadActivePhase, getActivePhase } from './logic/phase-view'
 import { fetchMarkers } from './logic/sync'
 import type { Segment } from './logic/segments'
 import type { SignMarker } from './logic/types'
@@ -19,7 +20,9 @@ async function boot(): Promise<void> {
   }
   const { role, display_name: displayName } = (await me.json()) as { role: string; display_name?: string }
 
-  const [faqRes, segRes, markerRes] = await Promise.all([
+  const [, faqRes, segRes, markerRes] = await Promise.all([
+    // T426/V317: vaihe serveriltä samassa rinnakkaisessa erässä — hub suodattaa sillä (V318).
+    loadActivePhase(),
     fetch('/api/faq').then(r => (r.ok ? r.json() : { markdown: '' })).catch(() => ({ markdown: '' })),
     fetchAllSegments(),
     fetchMarkers(),
@@ -29,7 +32,15 @@ async function boot(): Promise<void> {
   const segments: Segment[] = segRes.ok ? segRes.segments : []
   const markers: SignMarker[] = markerRes.ok ? markerRes.markers : []
 
-  renderPatkatPage(content, { faqMarkdown, segments, markers, role })
+  // T427/V318: talkoolainen näkee VAIN aktiivisen vaiheen tehtävät. Muut vaiheet ⊥ ole
+  // piilotettuja vaan EIVÄT OLE MENOSSA — sama fyysinen osuus elää kolmena pätkänä (V26/V91)
+  // ∴ suodattamaton lista näyttäisi saman maaston kolmesti ja talkoolainen valitsisi väärän.
+  // Järjestäjä näkee kaikki: hän vaihtaa vaihetta & tarvitsee kokonaiskuvan.
+  const activePhase = getActivePhase()
+  const visibleSegments = role === 'talkoolainen'
+    ? segments.filter(s => s.phase === activePhase)
+    : segments
+  renderPatkatPage(content, { faqMarkdown, segments: visibleSegments, markers, role, activePhase })
 
   // T322/V228: ennen T317:ää kirjautuneet sessiot ovat nimettömiä 7 vrk ajan — kysytään nimi
   // hubissa, ei pakoteta uudelleenkirjautumista kesken kenttätyön. Ohitettavissa.

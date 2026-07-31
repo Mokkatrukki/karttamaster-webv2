@@ -22,6 +22,38 @@ test.describe('PhaseSwitcher overflow-menussa', () => {
     await expect(page.locator('.phase-switcher-select')).toHaveValue('tarkastus')
   })
 
+  // T434/V321: valitsin on KATSELUSUODIN. Jos se joskus taas kirjoittaa serverille,
+  // järjestäjän vilkaisu siirtää koko talkooporukan toiseen vaiheeseen — tämä on se vahti.
+  test('valinta ei kirjoita serverille & pilleri kertoo eron', async ({ page }) => {
+    await mockAuthAsJarjestaja(page)
+    await page.setViewportSize({ width: 1280, height: 720 })
+
+    const phaseWrites: string[] = []
+    page.on('request', req => {
+      if (req.url().includes('/api/phase') && req.method() !== 'GET') phaseWrites.push(req.method())
+    })
+
+    await page.goto('/')
+    await page.waitForTimeout(1000)
+
+    await page.click('#btn-menu')
+    await expect(page.locator('.phase-switcher-pill')).toBeHidden()
+
+    await page.locator('.phase-switcher-select').selectOption('purku')
+    await page.waitForTimeout(300)
+
+    expect(phaseWrites).toEqual([])
+    const pill = page.locator('.phase-switcher-pill')
+    await expect(pill).toBeVisible()
+    await expect(pill).toContainText('Katselet: Purku')
+    await expect(pill).toContainText('käynnissä: Asetus')
+
+    await pill.click()
+    await expect(pill).toBeHidden()
+    await expect(page.locator('.phase-switcher-select')).toHaveValue('asettaminen')
+    expect(phaseWrites).toEqual([])
+  })
+
   test('regressio: muu overflow-item (Lista) sulkee menun kuten ennen', async ({ page }) => {
     await mockAuthAsJarjestaja(page)
     await page.setViewportSize({ width: 1280, height: 720 })

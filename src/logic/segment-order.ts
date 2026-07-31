@@ -25,13 +25,11 @@ export interface SegmentOrder {
   offRoute: SignMarker[]
 }
 
-// V238: suunta on phasen funktio, ei vakio. Purku ajetaan reittiä VASTAAN ∴ lopusta alkuun.
-// Lookup-taulu (ei if-ketju, V91-kuvio) jotta uusi phase on helppo lisätä.
-const PHASE_DIRECTION: Record<Segment['phase'], 1 | -1> = {
-  asettaminen: 1,
-  tarkastus: 1,
-  purku: -1,
-}
+// T420/V312: JÄRJESTYS ON YKSISUUNTAINEN — nouseva `segmentKm` ∀ phasella. Aiempi
+// `PHASE_DIRECTION`-lookup (purku = -1) nojasi väärinpuheeseen jonka V238 kirjasi
+// käyttäjäpäätökseksi; purku ajetaan SAMAAN suuntaan kuin asettaminen (B172). Suunta ei ole
+// enää vapausaste: kaksi suuntaa tarkoittaisi että talkoolainen pitää muistaa kumpi vaihe on
+// menossa ennen kuin tietää kummasta päästä aloittaa.
 
 /**
  * V237: merkin km PÄTKÄN akselilla — se ehdokas joka osuu `[startDist−ε, endDist+ε]`:iin.
@@ -76,8 +74,8 @@ export function segmentKm(
 }
 
 /**
- * V237/V238: pätkän merkit kulkusuunnassa. `onRoute` = km-akselille osuvat, järjestettynä
- * phasen suunnan mukaan (asettaminen/tarkastus alusta loppuun, purku lopusta alkuun).
+ * V237/V238/V312: pätkän merkit kulkusuunnassa. `onRoute` = km-akselille osuvat, järjestettynä
+ * pätkän alusta loppuun — SAMOIN ∀ phasella (T420: purku ei ole poikkeus).
  * `offRoute` = loput OMALLA skalaarillaan järjestettynä — ne eivät katoa eivätkä sekoitu
  * akselijärjestykseen (V238: kutsuja renderöi ne omana "ei reitillä" -ryhmänä listan alkuun).
  * Skalaari on niille ainoa km joka on olemassa; se on myös reitittömän tehtävän (V139
@@ -85,12 +83,11 @@ export function segmentKm(
  */
 export function orderMarkersInSegment(
   markers: SignMarker[],
-  segment: Pick<Segment, 'primaryRouteId' | 'routeIds' | 'startDist' | 'endDist' | 'phase' | 'track'> | null,
+  segment: Pick<Segment, 'primaryRouteId' | 'routeIds' | 'startDist' | 'endDist' | 'phase' | 'track' | 'markerTypeFilter'> | null,
 ): SegmentOrder {
   const byScalar = (a: SignMarker, b: SignMarker): number => a.distanceFromStart - b.distanceFromStart
   if (segment === null) return { onRoute: [], offRoute: [...markers].sort(byScalar) }
 
-  const dir = PHASE_DIRECTION[segment.phase] ?? 1
   const onRoute: Array<{ m: SignMarker; km: number }> = []
   const offRoute: SignMarker[] = []
 
@@ -100,7 +97,7 @@ export function orderMarkersInSegment(
     else onRoute.push({ m, km })
   }
 
-  onRoute.sort((a, b) => (a.km - b.km) * dir)
+  onRoute.sort((a, b) => a.km - b.km)
   offRoute.sort(byScalar)
   return { onRoute: onRoute.map(x => x.m), offRoute }
 }

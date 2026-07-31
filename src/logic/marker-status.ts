@@ -13,10 +13,16 @@ const TRANSITIONS: Record<MarkerStatus, Partial<Record<StatusAction, MarkerStatu
     kerää: 'kerätty',
     tarkista: 'tarkistettu',
     peru: 'suunniteltu',
+    // T429/V319: purun "Ei löytynyt" — merkki oli maastossa mutta on kadonnut. Ilman tätä
+    // siirtymää purun sekundääritoiminto heittäisi ("Virheellinen siirtymä: asetettu + ohita")
+    // ∴ talkoolainen ⊥ voisi kirjata kadonnutta merkkiä lainkaan & järjestäjä ⊥ näkisi mitä
+    // jäi hakematta. Sama status kuin asetusvaiheen "ei tarpeen"; vaihe erottaa merkinnät.
+    ohita: 'ei_tarpeen',
   },
   tarkistettu: {
     kerää: 'kerätty',
     peru: 'asetettu',
+    ohita: 'ei_tarpeen',
   },
   kerätty: {},
   ei_tarpeen: {

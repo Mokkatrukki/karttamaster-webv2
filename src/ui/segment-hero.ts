@@ -1,4 +1,5 @@
 import { defaultUnsetSelection, unsetMarkersOrdered, stepUnset } from '../logic/navigation'
+import { segmentTarget } from '../logic/phase-target'
 import { displayKm } from '../logic/segment-order'
 import { type Segment } from '../logic/segments'
 import { buildMarkerVisual } from './marker-visual-row'
@@ -30,8 +31,9 @@ export interface SegmentHeroContext {
   actions: SegmentViewActions
 }
 
-// "Seuraava merkki" -ohjaus (asettaminen-heron renderöinti). Eristetty SegmentView:stä (T234) —
-// puhdas rakenteellinen pilkkominen, käyttäytyminen identtinen.
+// "Seuraava merkki" -ohjaus (heron renderöinti). Eristetty SegmentView:stä (T234) — puhdas
+// rakenteellinen pilkkominen. T422/V313: sama hero palvelee asettamista JA purkua; vaiheen
+// sanat & kohdestatus tulevat `phaseTarget`-lookupista.
 export class SegmentHero {
   // T232 (C)/V159: hero näyttää yhtä "valittua" asettamatonta merkkiä; ◀▶ selaa. null = oletus
   // (firstUnsetMarker). Aseta/Näytä/overflow/highlight kohdistuvat tähän. render() reconciloi:
@@ -43,8 +45,8 @@ export class SegmentHero {
     private readonly ctx: SegmentHeroContext,
   ) {}
 
-  // "Seuraava merkki" -ohjaus (hero). Vain asettaminen-phasessa. Ohjaa pätkän asettamattomiin
-  // merkkeihin; oletus = ensimmäinen (firstUnsetMarker, pienin distanceFromStart), ◀▶ selaa
+  // "Seuraava merkki" -ohjaus (hero). Asettaminen & purku (T422). Ohjaa pätkän AVOIMIIN
+  // merkkeihin (V313); oletus = ensimmäinen (firstUnsetMarker, pienin segmentKm), ◀▶ selaa
   // (stepUnset T231). Aseta/Näytä/overflow/highlight kohdistuvat valittuun merkkiin (V159).
   render(): void {
     const segment = this.ctx.getSegment()
@@ -58,17 +60,22 @@ export class SegmentHero {
       actions.onNavigate?.(null)
       return
     }
-    if (segment.phase !== 'asettaminen') {
+    // T422/V313: hero näkyy MYÖS purussa — purku käy samalla tavalla kuin merkkaaminen
+    // (käyttäjäpäätös 2026-07-30). Otsikko, kuittausnappi & valmis-teksti tulevat
+    // `phaseTarget`-lookupista, ei if-lauseista: `tarkastus` käyttää segmentin omaa
+    // inspected-osiota (V91) eikä merkkiheroa.
+    if (segment.phase === 'tarkastus') {
       this.el.hidden = true
       actions.onNavigate?.(null)
       return
     }
+    const target = segmentTarget(segment)
     this.el.hidden = false
     this.el.innerHTML = ''
 
     // T328/V237: akseli tulee PÄTKÄSTÄ, ei erillisenä routeId-parametrina — järjestys JA
     // näytetty km samalta akselilta (B129: hero eteni oikein mutta näytti 0.0 km merkille
-    // joka on 25.18 km kohdalla). V238: purku-phasessa järjestys on käänteinen.
+    // joka on 25.18 km kohdalla). T420/V312: järjestys on sama ∀ phasella.
     const ordered = unsetMarkersOrdered(markers, segment)
     // V159 reconcile: valittu id kadonnut asettamattomien joukosta (asetettu/poistettu) → nollaa.
     if (this.selectedNavId && !ordered.some(m => m.id === this.selectedNavId)) this.selectedNavId = null
@@ -87,7 +94,7 @@ export class SegmentHero {
       const total = markers.length
       done.innerHTML = total === 0
         ? '<span class="segment-view-next-done-title">Ei merkkejä tällä pätkällä</span>'
-        : '<span class="segment-view-next-done-title">✓ Kaikki asetettu 🎉</span>'
+        : `<span class="segment-view-next-done-title">${target.doneLabel}</span>`
       this.el.appendChild(done)
       // T351/V254 (B140): valmiussignaali & sen kuittaus SAMASSA näkymässä. Ennen tätä nappi oli
       // vain "Kaikki merkit" -tabin pohjalla + yläpalkin ⋯:ssä ∴ talkoolaisen VIIMEINEN askel
@@ -118,8 +125,8 @@ export class SegmentHero {
     const label = document.createElement('div')
     label.className = 'segment-view-next-label'
     label.textContent = ordered.length > 1
-      ? `Seuraava merkki · ${idx + 1}/${ordered.length}`
-      : 'Seuraava merkki'
+      ? `${target.nextLabel} · ${idx + 1}/${ordered.length}`
+      : target.nextLabel
     this.el.appendChild(label)
 
     // T232 (C): ◀ merkki ▶ -selailurivi. Nuolet vain jos >1 asettamaton; clamp päihin (disabled).
@@ -130,7 +137,7 @@ export class SegmentHero {
       const prevBtn = document.createElement('button')
       prevBtn.type = 'button'
       prevBtn.className = 'btn btn--ghost segment-view-next-nav segment-view-next-prev'
-      prevBtn.setAttribute('aria-label', 'Edellinen asettamaton merkki')
+      prevBtn.setAttribute('aria-label', 'Edellinen merkki')
       prevBtn.textContent = '◀'
       prevBtn.disabled = idx <= 0
       prevBtn.addEventListener('click', () => this.navStep(-1))
@@ -174,7 +181,7 @@ export class SegmentHero {
       const nextBtn = document.createElement('button')
       nextBtn.type = 'button'
       nextBtn.className = 'btn btn--ghost segment-view-next-nav segment-view-next-fwd'
-      nextBtn.setAttribute('aria-label', 'Seuraava asettamaton merkki')
+      nextBtn.setAttribute('aria-label', 'Seuraava merkki')
       nextBtn.textContent = '▶'
       nextBtn.disabled = idx >= ordered.length - 1
       nextBtn.addEventListener('click', () => this.navStep(1))
@@ -188,8 +195,13 @@ export class SegmentHero {
 
     const setBtn = document.createElement('button')
     setBtn.className = 'btn btn--confirm segment-view-next-set'
-    setBtn.textContent = '✓ Aseta'
-    setBtn.addEventListener('click', () => actions.onSetMarker?.(current.id))
+    setBtn.textContent = target.actionLabel
+    // T422/V313: kuittaus vie vaiheen kohdestatukseen. Kutsupolut ovat olemassa molemmille
+    // (`onSetMarker` T220, `onCollectMarker` T218/V143) ∴ ei uutta mutaatiotietä — vain valinta.
+    setBtn.addEventListener('click', () => {
+      if (target.targetStatus === 'kerätty') actions.onCollectMarker?.(current.id, true)
+      else actions.onSetMarker?.(current.id)
+    })
     actionsRow.appendChild(setBtn)
 
     const showBtn = document.createElement('button')
@@ -212,61 +224,67 @@ export class SegmentHero {
 
     this.el.appendChild(actionsRow)
 
-    // Overflow-valikko: Ei tarpeen · Siirretty · Laita kommentti · + Merkki · Ota kuva (tulossa)
+    // T429/V319: OVERFLOW ON VAIHEEN FUNKTIO. Purussa merkillä on tasan kaksi toimintoa
+    // ("Kerätty" + "Ei löytynyt"): Siirretty/Lisää ohje/+ Merkki/Ota kuva ovat SUUNNITTELUN
+    // työkaluja & purussa merkki on jo maastossa. Kolmas nappi metsässä on kolmas tapa painaa
+    // väärää. Poistetaan ⊥ disabloida — disabloitu rivi on kuollut pinta (V250).
+    const purku = segment.phase === 'purku'
     const menu = document.createElement('div')
     menu.className = 'segment-view-next-menu'
     menu.hidden = true
 
+    // Sekundääri on ainoa toiminto joka säilyy kaikissa vaiheissa; sen SANA tulee lookupista.
     const skipItem = document.createElement('button')
     skipItem.className = 'btn btn--ghost segment-view-next-menu-item segment-view-next-skip'
-    skipItem.textContent = 'Ei tarpeen'
+    skipItem.textContent = target.secondaryLabel
     skipItem.addEventListener('click', () => { menu.hidden = true; actions.onSkipMarker?.(current.id) })
     menu.appendChild(skipItem)
 
-    const moveItem = document.createElement('button')
-    moveItem.className = 'btn btn--ghost segment-view-next-menu-item segment-view-next-move'
-    moveItem.textContent = 'Siirretty'
-    if (actions.onMoveMarker) {
-      moveItem.addEventListener('click', () => { menu.hidden = true; actions.onMoveMarker?.(current.id) })
-    } else {
-      moveItem.disabled = true
-      moveItem.title = 'Tulossa'
-    }
-    menu.appendChild(moveItem)
+    if (!purku) {
+      const moveItem = document.createElement('button')
+      moveItem.className = 'btn btn--ghost segment-view-next-menu-item segment-view-next-move'
+      moveItem.textContent = 'Siirretty'
+      if (actions.onMoveMarker) {
+        moveItem.addEventListener('click', () => { menu.hidden = true; actions.onMoveMarker?.(current.id) })
+      } else {
+        moveItem.disabled = true
+        moveItem.title = 'Tulossa'
+      }
+      menu.appendChild(moveItem)
 
-    // T228/T380/V275: "Lisää ohje" → avaa detail-modaalin ohjekentän (locationNote). Merkin
-    // lisätieto on yksisuuntainen ohje ⊥ keskustelu — vanha nimi lupasi lankaa jota ⊥ ollut.
-    const commentItem = document.createElement('button')
-    commentItem.className = 'btn btn--ghost segment-view-next-menu-item segment-view-next-comment'
-    commentItem.textContent = 'Lisää ohje'
-    if (actions.onComment) {
-      commentItem.addEventListener('click', () => { menu.hidden = true; actions.onComment?.(current.id) })
-    } else {
-      commentItem.disabled = true
-      commentItem.title = 'Tulossa'
-    }
-    menu.appendChild(commentItem)
+      // T228/T380/V275: "Lisää ohje" → avaa detail-modaalin ohjekentän (locationNote). Merkin
+      // lisätieto on yksisuuntainen ohje ⊥ keskustelu — vanha nimi lupasi lankaa jota ⊥ ollut.
+      const commentItem = document.createElement('button')
+      commentItem.className = 'btn btn--ghost segment-view-next-menu-item segment-view-next-comment'
+      commentItem.textContent = 'Lisää ohje'
+      if (actions.onComment) {
+        commentItem.addEventListener('click', () => { menu.hidden = true; actions.onComment?.(current.id) })
+      } else {
+        commentItem.disabled = true
+        commentItem.title = 'Tulossa'
+      }
+      menu.appendChild(commentItem)
 
-    // T232 (E)/T229: "+ Merkki" — talkoolainen lisää suunnittelematon merkki omalle pätkälle.
-    // Siirretty yläpalkista hero-overflowiin (löydettävä, ei kilpaile primary-napeista).
-    const addItem = document.createElement('button')
-    addItem.className = 'btn btn--ghost segment-view-next-menu-item segment-view-next-add'
-    addItem.textContent = '+ Merkki'
-    if (actions.onAddMarker) {
-      addItem.addEventListener('click', () => { menu.hidden = true; actions.onAddMarker?.() })
-    } else {
-      addItem.disabled = true
-      addItem.title = 'Tulossa'
-    }
-    menu.appendChild(addItem)
+      // T232 (E)/T229: "+ Merkki" — talkoolainen lisää suunnittelematon merkki omalle pätkälle.
+      const addItem = document.createElement('button')
+      addItem.className = 'btn btn--ghost segment-view-next-menu-item segment-view-next-add'
+      addItem.textContent = '+ Merkki'
+      if (actions.onAddMarker) {
+        addItem.addEventListener('click', () => { menu.hidden = true; actions.onAddMarker?.() })
+      } else {
+        addItem.disabled = true
+        addItem.title = 'Tulossa'
+      }
+      menu.appendChild(addItem)
 
-    // "Ota kuva" — talkoolaisen kuvankaappaus tulossa (T221/T103-alue).
-    const photoItem = document.createElement('button')
-    photoItem.className = 'btn btn--ghost segment-view-next-menu-item segment-view-next-photo'
-    photoItem.textContent = 'Ota kuva'
-    photoItem.disabled = true
-    photoItem.title = 'Tulossa'
-    menu.appendChild(photoItem)
+      // "Ota kuva" — talkoolaisen kuvankaappaus tulossa (T221/T103-alue).
+      const photoItem = document.createElement('button')
+      photoItem.className = 'btn btn--ghost segment-view-next-menu-item segment-view-next-photo'
+      photoItem.textContent = 'Ota kuva'
+      photoItem.disabled = true
+      photoItem.title = 'Tulossa'
+      menu.appendChild(photoItem)
+    }
 
     moreBtn.addEventListener('click', () => { menu.hidden = !menu.hidden })
     this.el.appendChild(menu)

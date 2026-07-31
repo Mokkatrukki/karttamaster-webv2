@@ -100,6 +100,6 @@ test('T312/V159 — disabled-clamp päihin säilyy selailussa', async ({ page })
   await expect(fwd).toBeDisabled()
   await expect(prev).toBeEnabled()
   // aria-labelit säilyvät
-  await expect(prev).toHaveAttribute('aria-label', 'Edellinen asettamaton merkki')
-  await expect(fwd).toHaveAttribute('aria-label', 'Seuraava asettamaton merkki')
+  await expect(prev).toHaveAttribute('aria-label', 'Edellinen merkki')
+  await expect(fwd).toHaveAttribute('aria-label', 'Seuraava merkki')
 })

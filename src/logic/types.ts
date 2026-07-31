@@ -39,6 +39,7 @@ export interface SignMarker {
   parts?: SignPart[]      // V107: denormalisoitu template.parts — yhdistelmämerkin pystypino
   description?: string    // T103: lisäkuvaus, järjestäjä muokkaa
   images?: string[]       // T103: kuva-URL:t (server/routes/markers.ts POST :id/images)
+  pileMarkerIds?: string[] // T423/V314: VAIN kasa-merkillä (templateId==='kerayskasa') — mitkä merkit tähän kasaan kerättiin. Omistussuhde ⊥ aikaikkuna: merkki ei voi kuulua kahteen kasaan
   createdBy?: string      // T226/V151: luojan tunniste (talkoolainen_code TAI display_name). Talkoolainen
                           //  kovapoistaa VAIN oman itse-luomansa (createdBy === oma koodi); muu = suunniteltu → soft ei_tarpeen
 }

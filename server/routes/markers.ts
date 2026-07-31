@@ -34,6 +34,7 @@ interface MarkerRow {
   image_id: string | null
   template_id: string | null
   parts_json: string | null
+  pile_marker_ids: string | null
   description: string | null
   updated_at: string
   updated_by: string | null
@@ -53,6 +54,8 @@ function toJson(db: Database, row: MarkerRow) {
     route_ids: JSON.parse(row.route_ids) as string[],
     // T300/V212: NULL = legacy → client fallbackaa distance_from_startiin (distanceForRoute).
     distance_by_route: parseDistByRoute(row.distance_by_route),
+    // T423/V314: rikkinäinen JSON ⊥ kaada listaa (V14-linja) → null, kuten distance_by_route.
+    pile_marker_ids: parsePileIds(row.pile_marker_ids),
     images: imageUrls(db, row.id),
   }
 }
@@ -61,6 +64,16 @@ function toJson(db: Database, row: MarkerRow) {
 function parseDistByRoute(raw: string | null): Record<string, number[]> | null {
   if (!raw) return null
   try { return JSON.parse(raw) as Record<string, number[]> } catch { return null }
+}
+
+// T423/V314: kasan sisältö. Sama V14-linja kuin yllä — rikkinäinen JSON → null, ei kaatumista.
+// Array-tarkistus koska tyhjä kasa (`[]`) ja "ei kasa" (`null`) ovat eri asiat kutsujalle.
+function parsePileIds(raw: string | null): string[] | null {
+  if (!raw) return null
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    return Array.isArray(parsed) ? (parsed as string[]) : null
+  } catch { return null }
 }
 
 // GET /api/markers — kaikki autentikoidut käyttäjät näkevät merkit
@@ -92,6 +105,7 @@ markersRoutes.post('/', requireAuth(), async (c) => {
     image_id?: string | null
     template_id?: string | null
     parts_json?: string | null
+    pile_marker_ids?: string[] | null
     description?: string | null
   }>()
 
@@ -129,7 +143,7 @@ markersRoutes.post('/', requireAuth(), async (c) => {
   const createdBy = session.talkoolainen_code ?? session.display_name
   db.transaction(() => {
     db.run(
-      'INSERT INTO markers (id, type, lat, lon, distance_from_start, distance_by_route, nearest_route_id, nearest_route_dist_m, route_ids, status, location_note, color, label, icon_id, image_id, template_id, parts_json, description, updated_at, updated_by, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO markers (id, type, lat, lon, distance_from_start, distance_by_route, nearest_route_id, nearest_route_dist_m, route_ids, status, location_note, color, label, icon_id, image_id, template_id, parts_json, pile_marker_ids, description, updated_at, updated_by, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         body.type,
@@ -148,6 +162,7 @@ markersRoutes.post('/', requireAuth(), async (c) => {
         body.image_id ?? null,
         body.template_id ?? null,
         body.parts_json ?? null,
+        body.pile_marker_ids != null ? JSON.stringify(body.pile_marker_ids) : null,
         body.description ?? null,
         now,
         session.display_name,
@@ -211,6 +226,7 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
     image_id?: string | null
     template_id?: string | null
     parts_json?: string | null
+    pile_marker_ids?: string[] | null
   }>()
 
   const isOrganizer = ['admin', 'järjestäjä'].includes(session.role)
@@ -271,6 +287,11 @@ markersRoutes.put('/:id', requireAuth(), async (c) => {
   if (body.image_id !== undefined) { fields.push('image_id = ?'); values.push(body.image_id) }
   if (body.template_id !== undefined) { fields.push('template_id = ?'); values.push(body.template_id) }
   if (body.parts_json !== undefined) { fields.push('parts_json = ?'); values.push(body.parts_json) }
+  // T423/V314: kasan sisältö — hakija voi korjata listaa; ⊥ identiteettikenttä (V150).
+  if (body.pile_marker_ids !== undefined) {
+    fields.push('pile_marker_ids = ?')
+    values.push(body.pile_marker_ids != null ? JSON.stringify(body.pile_marker_ids) : null)
+  }
   if (body.description !== undefined) { fields.push('description = ?'); values.push(body.description) }
 
   if (fields.length === 0) return c.json({ error: 'no_fields' }, 400)

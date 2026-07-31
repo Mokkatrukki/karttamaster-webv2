@@ -24,6 +24,12 @@ const ISOLATED = [
   'tests/t51-auth-screen.test.ts',
   'tests/t254-talkoolainen-mode.test.ts',
   'tests/t296-talkoo-landing.test.ts',
+  // T426/V317: `phase-view.ts` pitää aktiivista vaihetta MODUULITASON muuttujassa (serverin
+  // tila välimuistitettuna) ∴ tämä tiedosto mutatoi jaettua rekisteriä `vi.resetModules`illa —
+  // ilman eristystä se vuotaisi `phase-switcher.test.ts`:n alkuarvoon.
+  'tests/t426-phase-state.test.ts',
+  // T434/V321: sama syy — katseluvaihe on toinen moduulitason muuttuja samassa tiedostossa.
+  'tests/t434-view-phase.test.ts',
 ]
 
 export default defineConfig({

@@ -84,6 +84,23 @@ export class SegmentKotiTabs {
     return this.active
   }
 
+  /**
+   * T428: piilota/näytä yksi välilehti ajossa (esim. varustelista purkuvaiheessa — purussa ei
+   * pakata mitään). Piilotettu = nappi JA paneeli pois; jos aktiivinen tabi piilotetaan,
+   * aktiivisuus siirtyy ensimmäiseen näkyvään ∴ näkymä ⊥ jää tyhjäksi ilman valittua tabia.
+   */
+  setTabHidden(id: string, hidden: boolean): void {
+    const btn = this.buttons.get(id)
+    const panel = this.panels.get(id)
+    if (!btn || !panel) return
+    btn.hidden = hidden
+    if (hidden) panel.hidden = true
+    if (hidden && this.active === id) {
+      const next = [...this.buttons].find(([k, b]) => k !== id && !b.hidden)
+      if (next) this.setActive(next[0])
+    }
+  }
+
   /** Lähin scrollaava esivanhempi (koti-moodissa `#segment-view`). null ennen DOM-kiinnitystä. */
   private scroller(): HTMLElement | null {
     return this.root.closest<HTMLElement>(this.scrollerSelector)

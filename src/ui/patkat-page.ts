@@ -24,6 +24,9 @@ export interface PatkatPageOpts {
   segments: Segment[]
   markers: SignMarker[]
   role: string
+  // T427/V318: tapahtuman aktiivinen vaihe. Otsikko & tyhjä tila kertovat MIKÄ on menossa —
+  // ilman sitä talkoolainen näkee tyhjän listan eikä tiedä onko vika hänessä vai järjestelmässä.
+  activePhase?: Segment['phase']
   onKartalle?: () => void
 }
 
@@ -34,7 +37,7 @@ const PHASE_LABEL: Record<Segment['phase'], string> = {
 }
 
 export function renderPatkatPage(container: HTMLElement, opts: PatkatPageOpts): void {
-  const { faqMarkdown, segments, markers, role, onKartalle } = opts
+  const { faqMarkdown, segments, markers, role, activePhase, onKartalle } = opts
   container.innerHTML = ''
   container.classList.add('patkat-page')
 
@@ -66,13 +69,20 @@ export function renderPatkatPage(container: HTMLElement, opts: PatkatPageOpts): 
   const listSection = document.createElement('section')
   listSection.className = 'patkat-list-section'
   const listTitle = document.createElement('h2')
-  listTitle.textContent = 'Pätkät'
+  // T427/V318: vaihe otsikkoon talkoolaiselle — "Pätkät · Purku" kertoo yhdellä silmäyksellä
+  // mitä ollaan tekemässä (järjestäjällä on oma vaihevalitsin).
+  listTitle.textContent = activePhase && role === 'talkoolainen'
+    ? `Pätkät · ${PHASE_LABEL[activePhase]}`
+    : 'Pätkät'
   listSection.appendChild(listTitle)
 
   if (segments.length === 0) {
     const empty = document.createElement('p')
     empty.className = 'patkat-empty'
-    empty.textContent = 'Ei pätkiä vielä.'
+    // V21-linja: tyhjä ruutu luetaan rikkinäiseksi ∴ kerro MIKSI se on tyhjä.
+    empty.textContent = activePhase && role === 'talkoolainen'
+      ? `${PHASE_LABEL[activePhase]}-vaiheessa ei ole vielä pätkiä sinulle.`
+      : 'Ei pätkiä vielä.'
     listSection.appendChild(empty)
   } else {
     const list = document.createElement('ul')

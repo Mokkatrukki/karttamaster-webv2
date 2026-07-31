@@ -7,9 +7,11 @@ import { MapFilterBar } from '../ui/map-filter-bar'
 import type { MapFilter } from '../logic/map-filter'
 import { isolatedMarkerIds, orphanMarkerIds, loadMapFilter } from '../logic/map-filter'
 import { MarkerOverviewPanel } from '../ui/marker-overview-panel'
-import { getActivePhase } from '../logic/phase-view'
+import { getViewPhase } from '../logic/phase-view'
 import { createAndPushSegment } from '../logic/segment-create'
 import { addMarkersToSegment } from '../logic/segment-actions'
+import { unclaimedCollected, pileTemplate, PILE_TEMPLATE_ID } from '../logic/pile'
+import { showToast } from '../ui/toast'
 import { existingSegmentOwners } from '../logic/segment-membership'
 import { getSegmentsForPhase } from '../logic/segments'
 import { ProgressBar } from '../ui/progress-bar'
@@ -482,6 +484,42 @@ function wireMarkersInner(
           // paneelilla (rivi ~608) & purkuvaiheen bulkCollectilla ∴ ⊥ uutta mutaatiopolkua:
           // bulkSetStatus persistoi + laukaisee onUpdate → lista & kartta päivittyvät kerralla.
           onBulkStatus: (ids, status) => markerManager.bulkSetStatus(ids, status),
+          // T424/V314: kasan ehdokkaat — kerätyt joita ⊥ ole vielä missään kasassa. KOKO
+          // merkkijoukko toisena argumenttina: kasa voi olla eri pätkällä kuin sen sisältö.
+          pileCandidates: () => unclaimedCollected(
+            getMarkersForSegment(seg, markerManager.getAll(), segmentPeers(segmentStore, seg)),
+            markerManager.getAll(),
+          ),
+          // T424/V314: "📦 Jätä kasa tähän" — kasa syntyy GPS-fixiin olemassa olevalla
+          // luontipolulla (POST omalle pätkälle V149 → audit-rivi V227 tulee ilmaiseksi).
+          // Ilman fixiä EI kasaa: väärässä paikassa oleva kasa on pahempi kuin ei kasaa,
+          // koska hakija ajaa turhaan.
+          onLeavePile: () => {
+            const candidates = unclaimedCollected(
+              getMarkersForSegment(seg, markerManager.getAll(), segmentPeers(segmentStore, seg)),
+              markerManager.getAll(),
+            )
+            if (candidates.length === 0) return
+            const ids = candidates.map(m => m.id)
+            const drop = (lat: number, lon: number): void => {
+              const tpl = pileTemplate()
+              markerManager.add(
+                lat, lon, PILE_TEMPLATE_ID, tpl.color, tpl.label, tpl.iconId,
+                undefined, undefined, PILE_TEMPLATE_ID,
+                { pileMarkerIds: ids },
+              )
+              showToast(`📦 Kasa jätetty — ${ids.length} merkkiä`)
+            }
+            // T430/V320: kasa syntyy AINA. GPS-fix on nopein tie (nolla napautusta); ilman sitä
+            // talkoolainen napauttaa kohdan kartalta — hän tietää missä on vaikka satelliitti ⊥
+            // tiedä. Kirjaamaton kasa on lopullinen vahinko, epätarkka ⊥ ole (kasa on merkki:
+            // raahattavissa & poistettavissa).
+            const pos = gpsNavigator.getPosition()
+            if (pos) { drop(pos.lat, pos.lon); return }
+            if (!mapMode.canPlaceMarkers()) mapMode.set('muokkaus')
+            placeMode.armPlacer(drop)
+            showToast('📍 Napauta kartalta kohta johon jätit kasan')
+          },
         },
       )
       const segMarkers0 = getMarkersForSegment(seg, markerManager.getAll(), segmentPeers(segmentStore, seg))
@@ -642,7 +680,7 @@ function wireMarkersInner(
       getMarkers: () => markerManager.getAll(),
       // V290/V91: VAIN aktiivisen vaiheen pätkät — sama fyysinen merkki elää eri pätkäjaossa
       // eri vaiheessa ∴ vaiheiden yli koottu lista näyttäisi sen monta kertaa eri omistajilla.
-      getSegments: () => getSegmentsForPhase(segmentStore, getActivePhase()),
+      getSegments: () => getSegmentsForPhase(segmentStore, getViewPhase()),
       // V271: suodatin luetaan barista kun se on; muuten persistoidusta tilasta (sama lähde).
       getFilter: () => mapFilterBar?.getFilter() ?? loadMapFilter(),
       onPanTo: id => markerManager.panTo(id),
@@ -663,7 +701,7 @@ function wireMarkersInner(
         const seg = createAndPushSegment(segmentStore, {
           // V139: reititön tehtävä — EI route-kenttiä. createSegment ohittaa V11/V25 (T212).
           equipment: [],
-          phase: getActivePhase(),
+          phase: getViewPhase(),
           displayName: `Jälkihoito ${new Date().toLocaleDateString('fi-FI')}`,
           linkedMarkerIds: markerIds,
         })
@@ -709,7 +747,7 @@ function wireMarkersInner(
       // V291: mihin valitut kuuluvat JO — operaatio on additiivinen ∴ tämä on informaatio
       // ⊥ varoitus menetyksestä (mitattu: reititön tehtävä ⊥ vie merkkiä nykyiseltä pätkältä).
       getExistingOwners: ids =>
-        existingSegmentOwners(ids, getSegmentsForPhase(segmentStore, getActivePhase()), markerManager.getAll()),
+        existingSegmentOwners(ids, getSegmentsForPhase(segmentStore, getViewPhase()), markerManager.getAll()),
     })
     // T402: panorointi kompensoi telakan leveyden ∴ "näytä kartalla" ⊥ osoita paneelin alle.
     markerManager.setPanPaddingRight(() => markerOverview?.visibleWidth() ?? 0)

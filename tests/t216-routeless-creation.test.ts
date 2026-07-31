@@ -81,6 +81,16 @@ describe('T216 — reitittömän (alue)tehtävän luonti', () => {
     expect(values.filter(v => v === 'keräyskasa')).toHaveLength(1)
   })
 
+  // T425/V315: umpisolmu ilman tätä — keräystehtävää ei voisi luoda ennen ensimmäistä kasaa,
+  // mutta kasan jättäminen on hyödytöntä ennen kuin joku hakee sen.
+  it('sisäänrakennettu kasa-template on valittavissa vaikka yhtään kasaa ei ole', () => {
+    setup([makeMarker('m1', 'wc', 'WC')])
+    ;(document.querySelector('#btn-segment-create-routeless') as HTMLButtonElement).click()
+    const select = document.querySelector('.segment-creation-typefilter') as HTMLSelectElement
+    const values = Array.from(select.options).map(o => o.value)
+    expect(values).toContain('kerayskasa')
+  })
+
   it('tyyppisuodattimen valinta tallentuu markerTypeFilteriin', () => {
     const { store } = setup([makeMarker('m1', 'keräyskasa', 'Keräyskasa')])
     ;(document.querySelector('#btn-segment-create-routeless') as HTMLButtonElement).click()
@@ -109,10 +119,13 @@ describe('T216 — reitittömän (alue)tehtävän luonti', () => {
     expect(document.querySelector('.segment-creation-modal-title')!.textContent).toBe('Luo aluetehtävä')
   })
 
-  it('ei tyyppisuodatinta / checklistiä kun ei merkkejä', () => {
+  // T425/V315: tyhjässä tapahtumassa tyyppisuodatin sisältää TASAN kasa-templaten (se on
+  // sisäänrakennettu) — merkkien poimintalista on yhä tyhjä, koska merkkejä ei ole.
+  it('tyhjä data: vain kasa-template suodattimessa, ei checklistiä', () => {
     setup([])
     ;(document.querySelector('#btn-segment-create-routeless') as HTMLButtonElement).click()
-    expect(document.querySelector('.segment-creation-typefilter')).toBeNull()
+    const select = document.querySelector('.segment-creation-typefilter') as HTMLSelectElement
+    expect(Array.from(select.options).map(o => o.value).filter(Boolean)).toEqual(['kerayskasa'])
     expect(document.querySelector('.segment-creation-marker-checklist')).toBeNull()
   })
 })

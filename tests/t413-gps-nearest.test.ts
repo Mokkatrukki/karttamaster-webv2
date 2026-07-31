@@ -123,11 +123,20 @@ describe('T413/V304 — defaultUnsetSelection', () => {
     expect(valinta?.id).toBe('a')
   })
 
-  it('purkuvaiheen reitillinen pätkä säilyttää käänteisen suuntansa (V238)', () => {
+  // T420/V312: purku kulkee samaan suuntaan kuin asettaminen ∴ oletus on pätkän ALUSTA.
+  // T421/V313: purussa "avoin" = asetettu|tarkistettu — `suunniteltu` ei ole purettavissa.
+  it('purkuvaiheen reitillinen pätkä kulkee samaan suuntaan kuin asettaminen (V312)', () => {
     const purku = seg({ ...routed, phase: 'purku' })
-    const a = marker({ id: 'a', ...at(100, 0), distanceFromStart: 100 })
-    const b = marker({ id: 'b', ...at(4000, 0), distanceFromStart: 4000 })
-    expect(defaultUnsetSelection([a, b], purku, at(0, 0))?.id).toBe('b')
+    const a = marker({ id: 'a', ...at(100, 0), distanceFromStart: 100, status: 'asetettu' })
+    const b = marker({ id: 'b', ...at(4000, 0), distanceFromStart: 4000, status: 'asetettu' })
+    expect(defaultUnsetSelection([a, b], purku, at(0, 0))?.id).toBe('a')
+  })
+
+  it('purussa `suunniteltu` ei valikoidu, `asetettu` valikoituu (V313)', () => {
+    const purku = seg({ ...routed, phase: 'purku' })
+    const eiAsetettu = marker({ id: 'x', ...at(100, 0), distanceFromStart: 100 })
+    const asetettu = marker({ id: 'y', ...at(4000, 0), distanceFromStart: 4000, status: 'asetettu' })
+    expect(defaultUnsetSelection([eiAsetettu, asetettu], purku, at(0, 0))?.id).toBe('y')
   })
 
   it('tyhjä merkkijoukko → null kaikilla poluilla', () => {

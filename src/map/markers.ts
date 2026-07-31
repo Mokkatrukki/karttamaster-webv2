@@ -99,9 +99,7 @@ export class MarkerManager {
     if (onSaveError) setOutboxSaveErrorHandler(onSaveError)
     this.markers = initialMarkers
     initialMarkers.forEach((m) => {
-      if (m.routeIds.some((id) => this.visibleRouteIds.includes(id))) {
-        this.addLeafletMarker(m)
-      }
+      if (this.visibleUnderRoutes(m)) this.addLeafletMarker(m)
     })
     map.on('zoomend', () => this.applyZoomScaleToAll())
   }
@@ -286,6 +284,8 @@ export class MarkerManager {
         image_id: marker.imageId ?? null,
         template_id: marker.templateId ?? null,
         parts_json: marker.parts ? JSON.stringify(marker.parts) : null,
+        // T423/V314: kasan sisältö kulkee luontipayloadissa — kasa syntyy yhdellä POSTilla.
+        pile_marker_ids: marker.pileMarkerIds ?? null,
       }),
       onDelivered: (text) => this.reconcileFromServer(text),
     })
@@ -385,7 +385,9 @@ export class MarkerManager {
     }
   }
 
-  add(lat: number, lon: number, type: MarkerType, color?: string, label?: string, iconId?: string, parts?: SignPart[], imageId?: string, templateId?: string): SignMarker {
+  // T424/V314: `opts` on laajennuspiste positionaalisen listan sijaan — kasan sisältö on
+  // ensimmäinen kenttä jota vain yksi kutsupaikka tarvitsee.
+  add(lat: number, lon: number, type: MarkerType, color?: string, label?: string, iconId?: string, parts?: SignPart[], imageId?: string, templateId?: string, opts?: { pileMarkerIds?: string[] }): SignMarker {
     const { routeIds, distanceFromStart, distanceByRoute, nearestRouteId, nearestRouteDistM } =
       this.nearestRouteAssignment(lat, lon)
 
@@ -405,11 +407,13 @@ export class MarkerManager {
       // T215/V143: denormalisoi template-viite dynaamista markerTypeFilter-osumaa varten
       ...(templateId ? { templateId } : {}),
       ...(parts && parts.length > 0 ? { parts } : {}),
+      // T423/V314: kasan sisältö syntyy luonnissa — kasa on merkki jolla on lista.
+      ...(opts?.pileMarkerIds ? { pileMarkerIds: opts.pileMarkerIds } : {}),
     }
     this.markers.push(marker)
     this.apiPost(marker)
 
-    if (marker.routeIds.some((id) => this.visibleRouteIds.includes(id))) {
+    if (this.visibleUnderRoutes(marker)) {
       this.addLeafletMarker(marker)
     }
     this.recomputeFocus()
@@ -428,9 +432,7 @@ export class MarkerManager {
     backfillDistanceByRoute(markers, this.routes)
     this.markers = markers
     this.markers.forEach((m) => {
-      if (m.routeIds.some((id) => this.visibleRouteIds.includes(id))) {
-        this.addLeafletMarker(m)
-      }
+      if (this.visibleUnderRoutes(m)) this.addLeafletMarker(m)
     })
     this.recomputeFocus()
     this.onUpdate()
@@ -477,10 +479,20 @@ export class MarkerManager {
     this.onUpdate()
   }
 
+  // B173/V316 (T425-buildissa mitattu): merkki jolla EI OLE reittiä ⊥ voi kadota reitin mukana.
+  // `getAll()` suodatti `routeIds ∩ visibleRouteIds` ∴ reitittömän merkin (kasa maastossa,
+  // GPKG-tuonnin orpo) leikkaus oli AINA tyhjä → merkki katosi jokaiselta listalta, kartalta ja
+  // keräystehtävästä hiljaa (V21-luokka). Sama sääntö kuin V269 pätkätasolla: kerros joka ⊥ ole
+  // ankkuroitu reittiin ⊥ katoa reittivalitsimesta.
+  private visibleUnderRoutes(m: SignMarker): boolean {
+    if (m.routeIds.length === 0) return true
+    return m.routeIds.some((id) => this.visibleRouteIds.includes(id))
+  }
+
   /** Returns markers visible under current visibleRouteIds, sorted by distanceFromStart */
   getAll(): SignMarker[] {
     return this.markers
-      .filter((m) => m.routeIds.some((id) => this.visibleRouteIds.includes(id)))
+      .filter((m) => this.visibleUnderRoutes(m))
       .sort((a, b) => a.distanceFromStart - b.distanceFromStart)
   }
 

@@ -2,6 +2,9 @@ import { bulkCollect } from '../logic/segment-actions'
 import { isTerminal, type MarkerStatus } from '../logic/marker-status'
 import { getPhaseProgress, formatPhaseProgress } from '../logic/segments'
 import { orderMarkersInSegment } from '../logic/segment-order'
+import { defaultUnsetSelection } from '../logic/navigation'
+import { pileCount } from '../logic/pile'
+import { navUrl, navTarget } from '../logic/nav-link'
 import type { Segment, EquipmentItem } from '../logic/segments'
 import { buildMarkerVisual } from './marker-visual-row'
 import { EquipmentModal } from './equipment-modal'
@@ -52,6 +55,13 @@ export interface SegmentViewActions {
   // T218/V143 (skenaario 2): keräyslistan "haettu"-kuittaus. Kuka tahansa autentikoitu, EI
   // ownership-gatea. collected=true → kerätty, false → suunniteltu (peruutus).
   onCollectMarker?: (id: string, collected: boolean) => void
+  // T424/V314: kasan ehdokkaat — ne kerätyt merkit joita ⊥ ole vielä missään kasassa.
+  // Provider ⊥ merkkijoukko: `unclaimedCollected` tarvitsee KOKO merkkijoukon (kasa voi olla
+  // eri pätkällä kuin sisältönsä) & sen omistaa wiring, ei tämä näkymä.
+  pileCandidates?: () => SignMarker[]
+  // T424/V314: "Jätä kasa tähän" — luo kasa-merkin GPS-sijaintiin. Ei argumentteja: sisältö
+  // ja sijainti ratkeavat kutsupaikassa, jotta näkymä ei tunne luontipolkua.
+  onLeavePile?: () => void
   // T409/V292 (VISION §Kenttätyö): koti-tabin "Kaikki merkit" -listan valikoiva bulk-kuittaus.
   // Erillinen `onBulkCollect`ista (purkuvaiheen "merkitse KAIKKI kerätyksi") — eri kysymys:
   // kaikki ⊥ valitut. Kytkemättä lista renderöityy ilman checkboxeja (kyky on opt-in).
@@ -66,6 +76,8 @@ export class SegmentView {
   // T218/V143: keräyskasa-tehtävän (markerTypeFilter) elävä keräyslista — asettaminen-heron tilalla.
   private readonly collectionEl: HTMLElement
   private readonly bulkBtn: HTMLButtonElement
+  // T424/V314: "📦 Jätä kasa tähän" — pätkätason toiminto, oma rivi heron alla.
+  private readonly pileBtn: HTMLButtonElement
   private readonly inspectSection: HTMLElement
   private readonly inspectBtn: HTMLButtonElement
   private readonly inspectNoteInput: HTMLTextAreaElement
@@ -111,6 +123,7 @@ export class SegmentView {
     this.markerListEl = b.markerListEl
     this.collectionEl = b.collectionEl
     this.bulkBtn = b.bulkBtn
+    this.pileBtn = b.pileBtn
     this.inspectSection = b.inspectSection
     this.inspectBtn = b.inspectBtn
     this.inspectNoteInput = b.inspectNoteInput
@@ -161,6 +174,8 @@ export class SegmentView {
     this.equipment.render()
     this.markerList.render()
     this.renderCollectionList()
+    this.renderPileBtn()
+    this.renderEquipmentVisibility()
     this.renderBoundsSection()
     this.renderMoreSection()
   }
@@ -180,6 +195,8 @@ export class SegmentView {
     this.markerList.render()
     this.renderCollectionList()
     this.updateBulkBtn(markers)
+    this.renderPileBtn()
+    this.renderEquipmentVisibility()
     this.renderInspectSection()
     this.renderCompleteSection()
     this.renderBoundsSection()
@@ -250,6 +267,30 @@ export class SegmentView {
     if (btn) btn.setAttribute('aria-label', collapsed ? 'Laajenna pätkänäkymä' : 'Pienennä pätkänäkymä')
   }
 
+  // T428: purussa ⊥ pakata mitään ∴ varustelista & sen välilehti pois. Kyky säilyy koodissa
+  // (asetusvaiheen varustarkastus V180 ennallaan) — vain pinta katoaa siitä vaiheesta jossa
+  // se ⊥ vastaa mihinkään kysymykseen. Purun oma lista (jätesäkit) on T431, ⊥ rakennettu.
+  private renderEquipmentVisibility(): void {
+    const hide = this.segment.phase === 'purku'
+    this.equipmentEl.hidden = hide
+    this.kotiTabs.setTabHidden('varuste', hide)
+  }
+
+  // T424/V314: nappi näkyy VAIN purussa & vain kun kasaan on jotain pantavaa. 0 ehdokasta →
+  // ei renderöidä lainkaan; disabloitu nappi olisi kuollut pinta (V250).
+  private renderPileBtn(): void {
+    const candidates = this.segment.phase === 'purku'
+      ? (this.actions.pileCandidates?.() ?? [])
+      : []
+    if (!this.actions.onLeavePile || candidates.length === 0) {
+      this.pileBtn.hidden = true
+      return
+    }
+    this.pileBtn.hidden = false
+    // Määrä on napissa: talkoolainen näkee mitä on jättämässä ennen kuin painaa.
+    this.pileBtn.textContent = `📦 Jätä kasa tähän (${candidates.length} merkkiä)`
+  }
+
   private updateBulkBtn(markers: SignMarker[]): void {
     const hasNonTerminal = markers.some(m => !isTerminal(m.status))
     this.bulkBtn.hidden = this.segment.phase !== 'purku' || !hasNonTerminal
@@ -289,6 +330,26 @@ export class SegmentView {
       : `Keräyslista · ${collected}/${markers.length} haettu`
     this.collectionEl.appendChild(header)
 
+    // T425/V304: LÄHIN kasa omana rivinään listan yläpuolella. Lista itse EI järjesty GPS:n
+    // mukaan — joka fixillä liikkuva rivi on lukukelvoton hanskoilla (V304-raja). Sama
+    // `defaultUnsetSelection` kuin herolla ∴ ⊥ toista valintasääntöä.
+    const pos = this.actions.gpsPosition?.() ?? null
+    const nearest = pos ? defaultUnsetSelection(this.currentMarkers, this.segment, pos) : null
+    if (nearest) {
+      const near = document.createElement('button')
+      near.type = 'button'
+      near.className = 'segment-view-collect-nearest'
+      const count = pileCount(nearest)
+      near.textContent = count === null
+        ? `📍 Lähin: ${markerLabel(nearest)}`
+        : `📍 Lähin kasa: ${markerLabel(nearest)} · ${count} merkkiä`
+      near.addEventListener('click', () => {
+        if (this.actions.onShowOnMap) this.actions.onShowOnMap(nearest.id)
+        else this.actions.onFocusMarker?.(nearest.id)
+      })
+      this.collectionEl.appendChild(near)
+    }
+
     for (const m of markers) {
       const done = m.status === 'kerätty'
       const row = document.createElement('div')
@@ -307,6 +368,15 @@ export class SegmentView {
       nameEl.className = 'segment-view-collect-name'
       nameEl.textContent = markerLabel(m)
       info.appendChild(nameEl)
+      // T425/V314: montako merkkiä kasassa on — hakija tietää ENNEN ajoa mitä kasa vaatii.
+      // Ei-kasa-merkki ⊥ saa lukua (pileCount → null).
+      const count = pileCount(m)
+      if (count !== null) {
+        const countEl = document.createElement('span')
+        countEl.className = 'segment-view-collect-count'
+        countEl.textContent = `${count} merkkiä`
+        info.appendChild(countEl)
+      }
       if (m.locationNote) {
         const noteEl = document.createElement('span')
         noteEl.className = 'segment-view-collect-note'
@@ -320,6 +390,21 @@ export class SegmentView {
         else this.actions.onFocusMarker?.(m.id)
       })
       row.appendChild(info)
+
+      // T425/V286: ulkoinen navigointi autoporukalle. YKSI ankkuri (Google Maps universal URL),
+      // ⊥ appivalitsinta. Kelvottomat koordinaatit → `navUrl` null → linkkiä ⊥ renderöidä
+      // (rikkinäinen linkki olisi kuollut pinta, V250).
+      const href = navUrl(navTarget(m))
+      if (href) {
+        const nav = document.createElement('a')
+        nav.className = 'segment-view-collect-nav'
+        nav.href = href
+        nav.target = '_blank'
+        nav.rel = 'noopener noreferrer'
+        nav.textContent = '📍'
+        nav.setAttribute('aria-label', `Navigoi: ${markerLabel(m)}`)
+        row.appendChild(nav)
+      }
 
       const btn = document.createElement('button')
       btn.type = 'button'
@@ -353,6 +438,7 @@ export class SegmentView {
     nextEl: HTMLElement
     collectionEl: HTMLElement
     bulkBtn: HTMLButtonElement
+    pileBtn: HTMLButtonElement
     equipmentEl: HTMLElement
     markerListEl: HTMLElement
     inspectSection: HTMLElement
@@ -462,6 +548,16 @@ export class SegmentView {
     })
     panel.appendChild(bulkBtn)
 
+    // T424/V314: kasanappi heron ALLA — ei kolmas primary-nappi vaan pätkätason toiminto,
+    // samaa luokkaa kuin "Merkitse pätkä valmiiksi". VISION "max 2 nappia" koskee VALITTUUN
+    // merkkiin kohdistuvia toimintoja.
+    const pileBtn = document.createElement('button')
+    pileBtn.type = 'button'
+    pileBtn.className = 'btn btn--confirm segment-view-pile-btn'
+    pileBtn.hidden = true
+    pileBtn.addEventListener('click', () => this.actions.onLeavePile?.())
+    panel.appendChild(pileBtn)
+
     const inspectSection = document.createElement('div')
     inspectSection.className = 'segment-view-inspect'
     inspectSection.hidden = true
@@ -539,7 +635,7 @@ export class SegmentView {
     panel.appendChild(moreSection)
 
     return {
-      panel, progressEl, gpsBtn, nextEl, equipmentEl, markerListEl, collectionEl, bulkBtn,
+      panel, progressEl, gpsBtn, nextEl, equipmentEl, markerListEl, collectionEl, bulkBtn, pileBtn,
       inspectSection, inspectBtn, inspectNoteInput, inspectStatus,
       moreSection, boundsSection,
       completeSection, completeBtn, completeStatus,

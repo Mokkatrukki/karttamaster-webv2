@@ -2,16 +2,18 @@ import type { SignMarker } from './types'
 import { distancesForRoute } from './marker-distance'
 import { orderMarkersInSegment, type SegmentOrder } from './segment-order'
 import { haversineDistance } from './bearing'
+import { isOpenInSegment } from './phase-target'
+import type { Segment } from './segments'
 
 // T328/V237: pätkäkontekstin akseli EI enää kulje `routeId`-parametrina vaan tulee pätkästä.
 // Hero/lista tuntevat pätkän jo ∴ akselia ei voi unohtaa (B126/B129 syntyivät unohduksesta).
 export type OrderingSegment = Parameters<typeof orderMarkersInSegment>[1]
 
-// V3/V143 (B-lista2): pätkän ENSIMMÄINEN asettamaton merkki kulkusuunnassa. Tämä on "Aseta
+// V3/V143 (B-lista2): pätkän ENSIMMÄINEN avoin merkki kulkusuunnassa. Tämä on "Aseta
 // seuraava" -ohjauksen valinta talkoolaiselle: se etenee pätkän merkit järjestyksessä, EI
 // lähimpään kursorin/GPS-sijainnin merkkiin. Anna `markers` valmiiksi pätkälle rajattuna
-// (getMarkersForSegment). T328/V237: akseli tulee `segment`istä; V238: purku-phasessa
-// "ensimmäinen" on pätkän LOPUSTA, koska purku ajetaan vastasuuntaan.
+// (getMarkersForSegment). T328/V237: akseli tulee `segment`istä; T420/V312: suunta on sama
+// ∀ phasella; T421/V313: "avoin" on VAIHEEN funktio (purussa asetettu|tarkistettu).
 export function firstUnsetMarker(
   markers: SignMarker[],
   segment: OrderingSegment,
@@ -19,7 +21,7 @@ export function firstUnsetMarker(
   return unsetMarkersOrdered(markers, segment)[0] ?? null
 }
 
-// T231/V159: pätkän asettamattomat merkit kulkusuunnassa. Sama 'suunniteltu'-predikaatti kuin
+// T231/V159: pätkän avoimet merkit kulkusuunnassa. Sama vaihepredikaatti (V313) kuin
 // firstUnsetMarker. Hero-◀▶-selailun (stepUnset) lähde. T328/V238: "ei reitillä" -merkit
 // (segmentKm null) tulevat LOPPUUN — hero ei saa avata niitä ensimmäisenä, mutta ne eivät myöskään
 // katoa selailusta (lista renderöi ne omana ryhmänään).
@@ -27,7 +29,9 @@ export function unsetMarkersOrdered(
   markers: SignMarker[],
   segment: OrderingSegment,
 ): SignMarker[] {
-  const unset = markers.filter((m) => m.status === 'suunniteltu')
+  // T421/V313: predikaatti tulee pätkän vaiheesta — segment on jo parametrina ∴ vaihetta ei voi
+  // unohtaa (V237-oppi). `null`-pätkä (orpojen lista) → asettaminen-oletus, entinen käytös.
+  const unset = markers.filter((m) => isOpenInSegment(m.status, segment))
   const { onRoute, offRoute }: SegmentOrder = orderMarkersInSegment(unset, segment)
   return [...onRoute, ...offRoute]
 }
@@ -52,11 +56,14 @@ export function isRoutelessSegment(segment: OrderingSegment): boolean {
 export function nearestUnsetByGps(
   markers: SignMarker[],
   pos: { lat: number; lon: number },
+  segment?: { phase?: Segment['phase']; markerTypeFilter?: string } | null,
 ): SignMarker | null {
   let best: SignMarker | null = null
   let bestM = Infinity
   for (const m of markers) {
-    if (m.status !== 'suunniteltu') continue
+    // T421/V313: sama vaihepredikaatti kuin listajärjestyksellä — muuten GPS-oletus valitsisi
+    // purussa merkin jota lista ei näytä lainkaan.
+    if (!isOpenInSegment(m.status, segment)) continue
     const d = haversineDistance(pos, m)
     if (d < bestM || (d === bestM && best !== null && m.id < best.id)) { bestM = d; best = m }
   }
@@ -74,7 +81,7 @@ export function defaultUnsetSelection(
   segment: OrderingSegment,
   pos: { lat: number; lon: number } | null,
 ): SignMarker | null {
-  if (pos && isRoutelessSegment(segment)) return nearestUnsetByGps(markers, pos)
+  if (pos && isRoutelessSegment(segment)) return nearestUnsetByGps(markers, pos, segment)
   return firstUnsetMarker(markers, segment)
 }
 

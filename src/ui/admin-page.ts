@@ -1,3 +1,6 @@
+import { PHASE_ORDER, PHASE_LABELS, PHASE_LONG_LABELS, phaseChangeWarning } from '../logic/phase-labels'
+import type { Segment } from '../logic/segments'
+
 export interface AdminUser {
   id: string
   username: string
@@ -245,6 +248,131 @@ async function enhanceFaqWithCrepe(
   } catch {
     return null // WYSIWYG ei latautunut → textarea jää käyttöön
   }
+}
+
+// T433/V321: TAPAHTUMAN VAIHE — adminin komento, ⊥ katsojan näkymäsuodin.
+//
+// Vaiheen vaihto koskee JOKAISTA talkoolaista kentällä ∴ se ⊥ ole valikkovalinta vaan
+// päätös. Kaksi rakenteellista vaatimusta:
+//   (a) NYKYTILA NÄKYY ENSIN — admin ⊥ saa vaihtaa vaihetta tietämättä mistä lähtee.
+//   (b) VAHVISTUS SANOO SEURAUKSEN — teksti tulee `phaseChangeWarning`ista (lookup, V321)
+//       ⊥ geneerisenä "oletko varma?": kysymys jota ⊥ voi punnita ⊥ ole vahvistus vaan este.
+// Peruutus ⊥ kutsu serveriä lainkaan & palauttaa valitsimen nykytilaan.
+
+export interface AdminPhaseOpts {
+  phase: Segment['phase']
+  /** Palauttaa virheviestin jos vaihto ei mennyt läpi, `null` kun onnistui. */
+  onChangePhase: (phase: Segment['phase']) => Promise<string | null>
+}
+
+export function renderAdminPhase(container: HTMLElement, opts: AdminPhaseOpts): void {
+  container.innerHTML = ''
+
+  const section = document.createElement('section')
+  section.className = 'admin-settings-section admin-phase-section'
+
+  const title = document.createElement('h2')
+  title.className = 'admin-settings-title'
+  title.textContent = 'Tapahtuman vaihe'
+  section.appendChild(title)
+
+  const current = document.createElement('p')
+  current.className = 'admin-settings-status admin-phase-current'
+  current.textContent = `Käynnissä: ${PHASE_LONG_LABELS[opts.phase]}`
+  section.appendChild(current)
+
+  const hint = document.createElement('p')
+  hint.className = 'admin-settings-status admin-phase-hint'
+  hint.textContent = 'Vaihe koskee kaikkia — talkoolainen näkee vain käynnissä olevan vaiheen tehtävät.'
+  section.appendChild(hint)
+
+  const row = document.createElement('div')
+  row.className = 'admin-settings-row'
+
+  const select = document.createElement('select')
+  select.className = 'admin-phase-select'
+  select.setAttribute('aria-label', 'Vaihda tapahtuman vaihe')
+  for (const phase of PHASE_ORDER) {
+    const option = document.createElement('option')
+    option.value = phase
+    option.textContent = PHASE_LABELS[phase]
+    select.appendChild(option)
+  }
+  select.value = opts.phase
+  row.appendChild(select)
+  section.appendChild(row)
+
+  // Vahvistuslaatikko: piilossa kunnes admin valitsee muun kuin nykyisen vaiheen.
+  const confirm = document.createElement('div')
+  confirm.className = 'admin-phase-confirm'
+  confirm.hidden = true
+
+  const warning = document.createElement('p')
+  warning.className = 'admin-phase-warning'
+  confirm.appendChild(warning)
+
+  const confirmRow = document.createElement('div')
+  confirmRow.className = 'admin-settings-row'
+
+  const applyBtn = document.createElement('button')
+  applyBtn.type = 'button'
+  applyBtn.className = 'admin-phase-apply'
+
+  const cancelBtn = document.createElement('button')
+  cancelBtn.type = 'button'
+  cancelBtn.className = 'admin-phase-cancel'
+  cancelBtn.textContent = 'Peruuta'
+
+  confirmRow.append(applyBtn, cancelBtn)
+  confirm.appendChild(confirmRow)
+  section.appendChild(confirm)
+
+  const error = document.createElement('p')
+  error.className = 'admin-phase-error'
+  error.hidden = true
+  error.setAttribute('role', 'alert')
+  section.appendChild(error)
+
+  let activePhase = opts.phase
+
+  function closeConfirm(): void {
+    confirm.hidden = true
+    select.value = activePhase
+  }
+
+  select.addEventListener('change', () => {
+    const target = select.value as Segment['phase']
+    error.hidden = true
+    if (target === activePhase) {
+      confirm.hidden = true
+      return
+    }
+    warning.textContent = phaseChangeWarning(target)
+    applyBtn.textContent = `Käynnistä: ${PHASE_LABELS[target]}`
+    confirm.hidden = false
+  })
+
+  cancelBtn.addEventListener('click', () => closeConfirm())
+
+  applyBtn.addEventListener('click', () => {
+    const target = select.value as Segment['phase']
+    applyBtn.disabled = true
+    void opts.onChangePhase(target).then(errMsg => {
+      applyBtn.disabled = false
+      if (errMsg) {
+        error.textContent = errMsg
+        error.hidden = false
+        closeConfirm()
+        return
+      }
+      activePhase = target
+      current.textContent = `Käynnissä: ${PHASE_LONG_LABELS[target]}`
+      error.hidden = true
+      confirm.hidden = true
+    })
+  })
+
+  container.appendChild(section)
 }
 
 // T321: viesti parametrina — /loki sallii myös järjestäjän, joten admin-kohtainen teksti

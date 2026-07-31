@@ -317,6 +317,23 @@ html:has(#app), body:has(#app) {
   gap: 8px;
   padding: 8px 12px;
   min-height: 44px;
+  /* T434: pilleri putoaa omalle rivilleen kun katselu eroaa käynnissä olevasta vaiheesta. */
+  flex-wrap: wrap;
+}
+
+/* T434/V321: "katselet muuta kuin mikä on käynnissä" — säännön ainoa aisti. Ilman tätä
+   järjestäjä luulee vaihtaneensa vaiheen kaikille. Klikkaus palauttaa. */
+.phase-switcher-pill {
+  flex: 1 0 100%;
+  min-height: 44px;
+  padding: 0 10px;
+  background: var(--warn-highlight);
+  color: var(--text-body);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
 }
 
 .phase-switcher-label {
@@ -1965,6 +1982,45 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   line-height: 1.35;
 }
 
+/* T425/V314: kasan merkkimäärä rivillä — hakija tietää ennen ajoa mitä kasa vaatii. */
+.segment-view-collect-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* T425/V286: ulkoinen navigointi. 44px kosketuskohde (autoporukka ajaa, hanskat päällä). */
+.segment-view-collect-nav {
+  flex: 0 0 44px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+}
+
+/* T425/V304: lähin kasa omana rivinään — lista ITSE ei järjesty GPS:n mukaan. */
+.segment-view-collect-nearest {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-body);
+  background: var(--surface-field, transparent);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
 .segment-view-collect-btn {
   flex: 0 0 auto;
   min-height: 44px;
@@ -1974,6 +2030,18 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
 .btn-bulk-collect {
   width: 100%;
   margin: 8px 0;
+}
+
+/* T424/V314: "📦 Jätä kasa tähän" — pätkätason toiminto heron alla, ei kolmas primary-nappi.
+   Samat tokenit kuin bulk-napilla (leveys/marginaali); 44px kosketuskohde tulee .btn:stä. */
+.segment-view-pile-btn {
+  width: 100%;
+  margin: 8px 0;
+  min-height: 44px;
+}
+
+.segment-view--collapsed .segment-view-pile-btn {
+  display: none;
 }
 
 /* T78/V43: talkoolaisen pätkän rajojen muokkaus kentällä */
@@ -5228,6 +5296,19 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 .admin-settings-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .admin-talkoo-password-input { flex: 1 1 180px; min-height: 44px; padding: 0 12px; background: var(--surface-app); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: var(--text-body); }
 .admin-password-toggle, .admin-talkoo-password-save { min-height: 44px; padding: 0 16px; }
+
+/* T433/V321: tapahtuman vaihe. Ei uusia väritokeneja — nykytila accentilla (se on tämän
+   sivun tärkein yksittäinen tieto), vahvistus warn-highlightilla (peruuttamaton kaikille). */
+.admin-phase-current { color: var(--text-body); font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
+.admin-phase-current::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-right: 8px; vertical-align: middle; }
+.admin-phase-hint { margin-bottom: 10px; }
+.admin-phase-select { flex: 1 1 180px; min-height: 44px; padding: 0 12px; background: var(--surface-app); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: var(--text-body); }
+.admin-phase-confirm { margin-top: 12px; padding: 12px; background: var(--warn-highlight); border: 1px solid var(--accent); border-radius: var(--radius-sm); }
+.admin-phase-warning { margin: 0 0 10px; font-size: 0.95rem; color: var(--text-body); }
+.admin-phase-apply { min-height: 44px; padding: 0 16px; background: var(--accent); border: none; border-radius: var(--radius-sm); color: var(--accent-contrast, #fff); font-weight: 600; }
+.admin-phase-apply:disabled { opacity: 0.6; }
+.admin-phase-cancel { min-height: 44px; padding: 0 16px; }
+.admin-phase-error { margin: 10px 0 0; padding: 10px 12px; background: var(--danger-soft); border-radius: var(--radius-sm); color: var(--danger-text); font-size: 0.9rem; }
 .admin-faq-editor-mount { margin-top: 10px; }
 .admin-faq-save { min-height: 44px; padding: 0 16px; margin-top: 8px; }
 .admin-faq-textarea { width: 100%; min-height: 180px; padding: 10px 12px; background: var(--surface-app); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: var(--text-body); font-family: inherit; line-height: 1.5; resize: vertical; }

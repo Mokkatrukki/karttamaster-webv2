@@ -42,7 +42,7 @@ export class SegmentMarkerList {
   ) {}
 
   render(): void {
-    // T328/V237/V238: järjestys pätkän km-akselilta (purku-phasessa käänteinen), EI merkin
+    // T328/V237/V312: järjestys pätkän km-akselilta (sama suunta ∀ phasella, T420), EI merkin
     // skalaarista joka voi olla mitattu toiselta reitiltä (B129). "Ei reitillä" -merkit
     // (segmentKm null) omaan ryhmäänsä listan alkuun — ne eivät katoa eivätkä sekoita järjestystä.
     const segment = this.ctx.getSegment()

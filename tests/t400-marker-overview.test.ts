@@ -141,7 +141,7 @@ describe('groupMarkersForOverview (T400/V290)', () => {
     expect(groups.map(g => g.key)).toEqual(['asettamatta', 'ei_tarpeen'])
   })
 
-  it('järjestys tulee segment-orderista: purku kääntää suunnan (V238)', () => {
+  it('järjestys tulee segment-orderista: purku EI käännä suuntaa (V312)', () => {
     const s = seg('A', { phase: 'purku' })
     const markers = [
       marker('lahi', { lat: 65.01, distanceFromStart: 1000 }),
@@ -149,7 +149,7 @@ describe('groupMarkersForOverview (T400/V290)', () => {
     ]
     const groups = groupMarkersForOverview({ markers, segments: [s], filter: filter() })
     const order = groups[0].subgroups[0].markers.map(m => m.id)
-    expect(order).toEqual(['kauko', 'lahi'])
+    expect(order).toEqual(['lahi', 'kauko'])
   })
 })
 

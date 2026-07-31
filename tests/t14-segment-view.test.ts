@@ -138,10 +138,18 @@ describe('T14 — SegmentView', () => {
       expect((container.querySelector('.segment-view-next') as HTMLElement).classList.contains('segment-view-next--done')).toBe(true)
     })
 
-    it('hero piilotettu purku- ja tarkastus-phasessa', () => {
+    // T422/V313: purku SAI heron (purku käy samalla tavalla kuin merkkaaminen) — vain
+    // tarkastus jää ilman, koska se ei kuittaa merkkejä vaan segmentin (V91).
+    it('hero NÄKYY purussa (T422), piilotettu tarkastuksessa', () => {
       const purku = new SegmentView(container, makeSeg({ phase: 'purku' }))
       purku.update([makeMarker({ status: 'asetettu' })])
-      expect((container.querySelector('.segment-view-next') as HTMLElement).hidden).toBe(true)
+      expect((container.querySelector('.segment-view-next') as HTMLElement).hidden).toBe(false)
+
+      const container2 = document.createElement('div')
+      document.body.appendChild(container2)
+      const tarkastus = new SegmentView(container2, makeSeg({ phase: 'tarkastus' }))
+      tarkastus.update([makeMarker({ status: 'asetettu' })])
+      expect((container2.querySelector('.segment-view-next') as HTMLElement).hidden).toBe(true)
     })
 
     // T228: rivin-klikkaus-detalji siirtyi "Kaikki merkit" -modaaliin + kartan merkin tappiin

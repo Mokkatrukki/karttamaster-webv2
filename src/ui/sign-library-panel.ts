@@ -5,6 +5,7 @@ import {
   type SignLibrary,
   type SignTemplate,
 } from '../logic/sign-library'
+import { ensurePileTemplate } from '../logic/pile'
 import { buildMarkerVisual, type MarkerVisualInput } from './marker-visual-row'
 import { SignTemplateModal } from './sign-template-modal'
 import { fetchInventoryLinkRows, linkInventoryItemToTemplate } from '../logic/inventory-sync'
@@ -27,10 +28,13 @@ function escapeHtml(s: string): string {
 // jaetaan backendin kautta kaikille (V123). Vanhat oletusnuolet + webp-katalogi (signCatalog)
 // poistettu seedistä — monet vanhat kuvat rikki/tuplakuvia; uudet tehdään käsin (T196 tuo
 // kuvien latauksen backendiin). createSignLibrary palauttaa cachen tai tyhjän kirjaston.
+// T423/V315: kasa-template on SISÄÄNRAKENNETTU — se on ainoa poikkeus tyhjään seediin. Kirjasto
+// seedaa muuten tyhjänä (V125) ja templatet tulevat backendista, mutta kasa on sovelluksen oma
+// käsite (ei kylttikuva): jos se riippuisi siitä muistiko järjestäjä luoda oikean id:n, koko
+// ketju (kasan jättö → hakijan lista → navigointi) katoaisi hiljaa, ei virheenä.
 export function createSignLibrary(): SignLibrary {
   const loaded = loadLibrary()
-  if (loaded && loaded.size > 0) return loaded
-  return createLibrary()
+  return ensurePileTemplate(loaded && loaded.size > 0 ? loaded : createLibrary())
 }
 
 export class SignLibraryPanel {

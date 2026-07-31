@@ -44,7 +44,14 @@ describe('marker-status: transitionStatus', () => {
   it('throws on invalid transition', () => {
     expect(() => transitionStatus('suunniteltu', 'tarkista')).toThrow()
     expect(() => transitionStatus('kerätty', 'kerää')).toThrow()
-    expect(() => transitionStatus('asetettu', 'ohita')).toThrow()
+    // T429/V319: `asetettu + ohita` on nyt LAILLINEN — purun "Ei löytynyt" (merkki oli
+    // maastossa, on kadonnut). Terminaalista ohittaminen heittää yhä.
+    expect(() => transitionStatus('kerätty', 'ohita')).toThrow()
+  })
+
+  it('T429/V319: asetettu|tarkistettu + ohita → ei_tarpeen (purun "Ei löytynyt")', () => {
+    expect(transitionStatus('asetettu', 'ohita')).toBe('ei_tarpeen')
+    expect(transitionStatus('tarkistettu', 'ohita')).toBe('ei_tarpeen')
   })
 })
 
@@ -68,12 +75,13 @@ describe('marker-status: validActions', () => {
     expect(actions).toHaveLength(2)
   })
 
-  it('asetettu has kerää, tarkista and peru (T145/V92: tarkista valinnainen, ei pakko)', () => {
+  it('asetettu has kerää, tarkista, peru ja ohita (T145/V92 + T429/V319)', () => {
     const actions = validActions('asetettu')
     expect(actions).toContain('kerää')
     expect(actions).toContain('tarkista')
     expect(actions).toContain('peru')
-    expect(actions).toHaveLength(3)
+    expect(actions).toContain('ohita')
+    expect(actions).toHaveLength(4)
   })
 
   it('kerätty has no actions', () => {

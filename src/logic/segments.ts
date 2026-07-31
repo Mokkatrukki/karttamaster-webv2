@@ -1,6 +1,7 @@
 import type { SignMarker, MarkerStatus } from './types'
 import type { SegmentTrack } from './segment-track'
 import { markersForSegment } from './segment-membership'
+import { phaseTarget } from './phase-target'
 import { genId } from './uid'
 
 export interface EquipmentItem {
@@ -253,11 +254,7 @@ export function formatStatusCounts(counts: Record<MarkerStatus, number>): string
 }
 
 // T143/V90: yksi phase-tietoinen luku täyden breakdownin sijaan — mahtuu ahtaaseen sivupalkkiriviin.
-// Lookup-taulu (ei if-ketju) jotta uudet phaset on helppo lisätä.
-const COUNT_PHASE_TARGET: Record<'asettaminen' | 'purku', { label: string; doneStatuses: MarkerStatus[] }> = {
-  asettaminen: { label: 'asetettu', doneStatuses: ['asetettu', 'tarkistettu', 'kerätty'] },
-  purku: { label: 'kerätty', doneStatuses: ['kerätty'] },
-}
+// T421/V313: taulu asuu `phase-target.ts`:ssä — tämä oli yksi kolmesta kopiosta.
 
 // T144/V91: tarkastus-phase ei laske per-merkki-statusta (ei ole marker-tason "tarkastettu"-statusta,
 // ks. V92) — segmentin oma inspected-boolean sen sijaan. Discriminated union ettei count-muoto valehtele.
@@ -270,7 +267,7 @@ export function getPhaseProgress(segment: Segment, markers: SignMarker[], peers:
     return { kind: 'boolean', done: segment.inspected ?? false, label: 'tarkastettu' }
   }
   const segMarkers = getMarkersForSegment(segment, markers, peers)
-  const target = COUNT_PHASE_TARGET[segment.phase]
+  const target = phaseTarget(segment.phase)
   const done = segMarkers.filter(m => target.doneStatuses.includes(m.status)).length
   return { kind: 'count', done, total: segMarkers.length, label: target.label }
 }

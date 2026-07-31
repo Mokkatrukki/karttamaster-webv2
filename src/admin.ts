@@ -1,9 +1,12 @@
 import './style.css'
 import { AuthScreen } from './ui/auth-screen'
-import { renderAdminUsers, renderAdminSettings, renderAdminFaq, renderForbidden } from './ui/admin-page'
+import { renderAdminUsers, renderAdminSettings, renderAdminFaq, renderAdminPhase, renderForbidden } from './ui/admin-page'
 import type { AdminUser } from './ui/admin-page'
+import { phaseChangeErrorMessage } from './logic/phase-labels'
+import type { Segment } from './logic/segments'
 
 const content = document.getElementById('admin-content')!
+const phaseEl = document.getElementById('admin-phase')!
 const settingsEl = document.getElementById('admin-settings')!
 const faqEl = document.getElementById('admin-faq')!
 const banner = document.getElementById('admin-invite-banner')!
@@ -93,6 +96,33 @@ async function loadSettings(): Promise<void> {
   })
 }
 
+// T433/V321: vaiheenvaihto on adminin komento ∴ sen ainoa kirjoituspolku on tässä paneelissa.
+// Kartan sivupalkin valitsin on KATSELUSUODIN (T434) eikä koske serveriin lainkaan.
+async function loadPhase(): Promise<void> {
+  const res = await fetch('/api/phase')
+  const phase = res.ok
+    ? ((await res.json()) as { phase: Segment['phase'] }).phase
+    : ('asettaminen' as Segment['phase'])
+  renderAdminPhase(phaseEl, {
+    phase,
+    onChangePhase: async (next) => {
+      let status: number | null = null
+      try {
+        const r = await fetch('/api/phase', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phase: next }),
+        })
+        if (r.ok) return null
+        status = r.status
+      } catch {
+        status = null // fetch heitti → verkko poikki, ei vastausta lainkaan
+      }
+      return phaseChangeErrorMessage(status)
+    },
+  })
+}
+
 const auth = new AuthScreen((result) => {
   // AuthResult.role is typed as the client Role (järjestäjä|talkoolainen) but
   // /api/auth/me can also return 'admin' at runtime — widen for this check.
@@ -101,6 +131,7 @@ const auth = new AuthScreen((result) => {
     return
   }
   void loadUsers()
+  void loadPhase()
   void loadSettings()
   void loadFaq()
 })

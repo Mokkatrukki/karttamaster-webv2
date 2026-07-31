@@ -114,11 +114,23 @@ describe('orderMarkersInSegment (V238)', () => {
     expect(skalaari.slice(0, 4).map(m => m.id).sort()).toEqual(['j', 'k', 'n', 'o'])
   })
 
-  it('purku-phase → käänteinen järjestys (vastasuuntaan ajetaan)', () => {
+  // T420/V312 (B172): purku EI käännä suuntaa — "vastasuuntaan ajetaan" oli väärinpuhe jonka
+  // V238 kirjasi käyttäjäpäätökseksi. Kaikki pätkät tehdään samoin päin.
+  it('purku-phase → SAMA järjestys kuin asettaminen (V312)', () => {
     const purku: Segment = { ...PATKA4, phase: 'purku' }
     const { onRoute } = orderMarkersInSegment(prodMarkers, purku)
-    expect(segmentKm(onRoute[0], purku)).toBe(25690)
-    expect(segmentKm(onRoute[onRoute.length - 1], purku)).toBe(20690)
+    expect(segmentKm(onRoute[0], purku)).toBe(20690)
+    expect(segmentKm(onRoute[onRoute.length - 1], purku)).toBe(25690)
+  })
+
+  // V312: suunta ei ole vaiheen funktio — parametrisoitu vahti estää paluun erikoistapauksena.
+  it('kaikki phaset tuottavat IDENTTISEN järjestyksen samalla datalla (V312)', () => {
+    const phases: Segment['phase'][] = ['asettaminen', 'tarkastus', 'purku']
+    const orders = phases.map(phase =>
+      orderMarkersInSegment(prodMarkers, { ...PATKA4, phase }).onRoute.map(m => m.id),
+    )
+    expect(orders[1]).toEqual(orders[0])
+    expect(orders[2]).toEqual(orders[0])
   })
 
   it('tarkastus-phase järjestää kuten asettaminen (myötäsuuntaan)', () => {
