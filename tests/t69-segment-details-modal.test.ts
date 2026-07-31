@@ -238,4 +238,32 @@ describe('T69 — SegmentDetailsModal', () => {
     expect(stillOriginal?.phase).toBe('asettaminen')
     expect(stillOriginal?.displayName).toBe('Testipätkä')
   })
+
+  // T439/V324: kohdevaihe on valinta — oletus NEXT_PHASE, mutta purku suoraan asetuksesta
+  it('T439: kloonausosiossa on kohdevaihevalitsin, oletus seuraava vaihe', () => {
+    const { container } = setup()
+    ;(container.querySelector('.segment-info') as HTMLButtonElement).click()
+    const select = document.querySelector('.segment-clone-phase-select') as HTMLSelectElement
+    expect(select).not.toBeNull()
+    expect(select.value).toBe('tarkastus')
+    // oma vaihe ⊥ ole valittavissa (klooni itseensä = duplikaatti)
+    const values = Array.from(select.options).map(o => o.value)
+    expect(values).toEqual(['tarkastus', 'purku'])
+  })
+
+  it('T439: valittu vaihe voittaa NEXT_PHASEn — asetuspätkästä purkupätkä yhdellä klikillä', async () => {
+    const { container, store } = setup()
+    ;(container.querySelector('.segment-info') as HTMLButtonElement).click()
+    const original = Array.from(store.values())[0]
+    const select = document.querySelector('.segment-clone-phase-select') as HTMLSelectElement
+    select.value = 'purku'
+    select.dispatchEvent(new Event('change'))
+    const cloneBtn = document.querySelector('.btn-segment-clone-phase') as HTMLButtonElement
+    expect(cloneBtn.textContent).toBe('Kloonaa purku-vaiheeseen')
+    cloneBtn.click()
+    await flush()
+    expect(store.size).toBe(2)
+    const cloned = Array.from(store.values()).find(s => s.id !== original.id)!
+    expect(cloned.phase).toBe('purku')
+  })
 })

@@ -12,6 +12,8 @@ import { displayKm, orderMarkersInSegment } from '../logic/segment-order'
 import { fetchSegmentAudit, undoSegmentActions, type AuditEntry } from '../logic/audit-sync'
 // T320: verbitaulu asuu logiikkakerroksessa — sama totuus lokinäkymälle ja tälle modaalille.
 import { ACTION_VERB } from '../logic/audit-log'
+// T439: vaihejärjestys yhdestä lähteestä — kohdevaihevalitsin ⊥ oma kolmen alkion listansa.
+import { PHASE_ORDER } from '../logic/phase-labels'
 
 const STATUS_LABELS: Record<string, string> = {
   suunniteltu: 'Suunniteltu',
@@ -699,15 +701,43 @@ export class SegmentDetailsModal {
     const section = document.createElement('div')
     section.className = 'segment-details-modal-section'
 
-    const nextPhase = NEXT_PHASE[seg.phase]
+    // T439/V324: kohdevaihe on VALINTA. `NEXT_PHASE` on kiinteä kierros ∴ asetuspätkästä
+    // purkupätkän sai vain kloonaamalla kahdesti tarkastuksen kautta — & se tarkastuspätkä jäi
+    // elämään vaiheeseen jota kukaan ⊥ aja. Oletus = `NEXT_PHASE`, mutta valittavissa.
+    let targetPhase = NEXT_PHASE[seg.phase]
+
+    const select = document.createElement('select')
+    // `admin-phase-select` = olemassa oleva vaihevalitsimen tyyli (44px touch, DESIGN.md) —
+    // sama widget, sama ulkoasu ∴ ⊥ uutta CSS-sääntöä. Oma luokka on testien & wiringin kahva.
+    select.className = 'admin-phase-select segment-clone-phase-select'
+    select.setAttribute('aria-label', 'Kloonin kohdevaihe')
+    for (const phase of PHASE_ORDER) {
+      if (phase === seg.phase) continue // sama vaihe = duplikaatti, ⊥ klooni
+      const opt = document.createElement('option')
+      opt.value = phase
+      opt.textContent = PHASE_LABELS[phase]
+      if (phase === targetPhase) opt.selected = true
+      select.appendChild(opt)
+    }
+    section.appendChild(select)
+
     const btn = document.createElement('button')
     btn.className = 'btn-segment-clone-phase'
-    btn.textContent = `Kloonaa ${PHASE_LABELS[nextPhase]}-vaiheeseen`
+    const syncLabel = (): void => {
+      btn.textContent = `Kloonaa ${PHASE_LABELS[targetPhase]}-vaiheeseen`
+      btn.disabled = false
+    }
+    syncLabel()
+    select.addEventListener('change', () => {
+      targetPhase = select.value as Segment['phase']
+      syncLabel()
+    })
     btn.addEventListener('click', () => {
-      // T151/V95: overlap kohde-phasessa → null (esim. tuplaklikki) → älä luo, näytä virhe
-      const cloned = cloneSegmentToNextPhase(this.store, seg)
+      // T151/V95: overlap kohde-phasessa → null (esim. tuplaklikki) → älä luo, näytä virhe.
+      // T439: validointi ajetaan VALITULLE vaiheelle, ⊥ NEXT_PHASElle.
+      const cloned = cloneSegmentToNextPhase(this.store, seg, targetPhase)
       if (!cloned) {
-        btn.textContent = `${PHASE_LABELS[nextPhase]}-vaiheessa on jo tämä pätkä`
+        btn.textContent = `${PHASE_LABELS[targetPhase]}-vaiheessa on jo tämä pätkä`
         btn.disabled = true
         return
       }

@@ -172,8 +172,23 @@ export const NEXT_PHASE: Record<Segment['phase'], Segment['phase']> = {
 // (V26: eri talkoolainen eri vaiheessa, ei peri edellisen koodia). Vanha segmentti koskematon.
 // T151/V95: validoi kohde-phasen overlap ennen luontia — duplikaattiklooni (tuplaklikki) → null.
 // V139: undefined-safe — reititön tehtävä ei laske overlappia eikä kopioi olematonta reittiä.
-export function cloneSegmentToNextPhase(store: SegmentStore, segment: Segment): Segment | null {
-  const targetPhase = NEXT_PHASE[segment.phase]
+//
+// T439/V324: KLOONI KANTAA TEHTÄVÄN KOKO MERKKIJOUKON. Kopioitavien kenttien lista ON
+// `TaskMarkerSource` (`task-markers.ts`) — kaikki mitä `resolveTaskMarkers` lukee:
+//   routeIds, primaryRouteId, startDist, endDist, linkedMarkerIds, markerTypeFilter
+// Kenttä joka lisätään `TaskMarkerSource`en ! lisätä myös tähän, muuten reitittömän tehtävän
+// (V139/V140) klooni syntyy ilman merkkejä: näkyy listalla, aukeaa, on tyhjä (B178).
+// Testi `segments.test.ts` → "V324: klooni kopioi ∀ TaskMarkerSource-kentän" pitää listan yhtenä.
+//
+// T439: `targetPhase` on VALINTA ⊥ pakko. `NEXT_PHASE` on kiinteä kierros ∴ asetuspätkästä
+// purkupätkän sai vain kloonaamalla kahdesti tarkastuksen kautta — & välipätkä jäi elämään
+// vaiheeseen jota kukaan ⊥ aja. Oletus säilyy `NEXT_PHASE`ina.
+export function cloneSegmentToNextPhase(
+  store: SegmentStore,
+  segment: Segment,
+  phase?: Segment['phase'],
+): Segment | null {
+  const targetPhase = phase ?? NEXT_PHASE[segment.phase]
   const primary = segmentPrimaryRouteId(segment)
   // T299/V211: overlap ratkeaa primary-reitillä — km-välit ovat vertailukelpoisia vain saman
   // geometrian sisällä. Ennen tätä silmukka vertasi jokaista routeIdiä samaan km-väliin ∴
@@ -188,6 +203,10 @@ export function cloneSegmentToNextPhase(store: SegmentStore, segment: Segment): 
     primaryRouteId: segment.primaryRouteId,
     startDist: segment.startDist,
     endDist: segment.endDist,
+    // T439/V324: merkkijoukon kaksi ⊥-reitillistä lähdettä. Uusi taulukko ⊥ jaettu viittaus —
+    // kloonin merkkilistan muokkaus ⊥ saa mutatoida alkuperäisen tehtävän joukkoa.
+    linkedMarkerIds: segment.linkedMarkerIds ? [...segment.linkedMarkerIds] : undefined,
+    markerTypeFilter: segment.markerTypeFilter,
     // T361/V258 (ck:review H-7): klooni kattaa SAMAN maaston ∴ se perii jäljen. Ilman tätä
     // tarkastus-/purku-vaiheen pätkä jäisi ikuisesti jäljettömäksi (V260 sallii sen ∴ ⊥ rikki,
     // mutta se ⊥ koskaan saisi V259:n eksklusiivista jäsenyyttä). Kopio ⊥ jaettu viittaus:
