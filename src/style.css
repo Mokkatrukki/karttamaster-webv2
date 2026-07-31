@@ -6630,6 +6630,17 @@ body[data-role="talkoolainen"] .marker-overview { display: none; }
 }
 .kasat-claim-btn { width: 100%; min-height: 48px; }
 
+/* "Haetut (N)" — oma RYHMÄ, ⊥ listan hiljainen häntä. Otsikko on jaettu section-header
+   (T371/V267, min-height 44px jo siellä); erotin & sisennys tekevät ryhmästä näkyvän rajan. */
+.kasat-done-group {
+  margin-top: 6px;
+  border-top: 2px solid var(--border-default);
+  padding-top: 6px;
+}
+.kasat-done-header { font-size: 0.95rem; }
+.kasat-done-header .kasat-done-count { margin-left: 6px; color: var(--text-muted); font-weight: 600; }
+.kasat-list--done { margin-top: 8px; }
+
 /* V333/V322 — epäonnistunut varaus/vapautus. Banneri ⊥ toast: viesti jää ruudulle kunnes se
    kuitataan (hanskat, aurinko, katse tiessä) & se on listan ENSIMMÄINEN elementti. Olemassa
    olevat danger-tokenit, ⊥ uutta väriä. */

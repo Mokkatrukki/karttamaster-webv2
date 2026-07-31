@@ -9,14 +9,16 @@
 //
 // DOM ilman Leafletia → Vitest-jsdom. Kartta on `src/kasat.ts`:n asia.
 
-import type { PileRow } from '../logic/pile-list'
+import type { PileGroups, PileRow } from '../logic/pile-list'
 import { formatPileDistance, formatPileSummary, PILE_TARGET } from '../logic/pile-list'
 import { navTarget, navUrl } from '../logic/nav-link'
 import { pileClaim, formatClaimLabel } from '../logic/pile-claim'
+import { createSectionHeader } from './section-header'
 import type { Segment } from '../logic/segments'
 
 export interface KasatPageOpts {
-  piles: PileRow[]
+  /** Kaksi ryhmää `listPiles`istä — tämä moduuli ⊥ päättele rajaa uudelleen. */
+  piles: PileGroups
   /** Tapahtuman GLOBAALI vaihe (§C) — kasapinta elää vain purussa. */
   phase: Segment['phase']
   /** Onko GPS-fix saatu. Ilman sitä lista on luontijärjestyksessä & se sanotaan ääneen. */
@@ -47,6 +49,27 @@ export interface KasatPageOpts {
   error?: string | null
   /** Bannerin ✕ — kuittaus on käyttäjän, ⊥ ajastimen. Puuttuu → banneri ilman sulkunappia. */
   onDismissError?(): void
+
+  /**
+   * "Haetut (N)" -ryhmän kutistus. `undefined`/`null` = AUTOMAATTI (pitkä ryhmä kiinni,
+   * lyhyt auki); nimenomainen arvo on käyttäjän oma valinta joka voittaa automaatin.
+   */
+  doneCollapsed?: boolean | null
+  onToggleDone?(): void
+}
+
+/**
+ * Montako haettua mahtuu näkyviin ennen kuin ryhmä on oletuksena kiinni. Neljä riviä on jo
+ * ruudullinen puhelimessa & haettu kasa ⊥ ole työtä ∴ se ⊥ saa työntää avoimia pois näkyvistä.
+ */
+const DONE_AUTO_COLLAPSE_AT = 3
+
+/**
+ * Onko "Haetut"-ryhmä kiinni. Nimenomainen valinta voittaa automaatin; `null`/`undefined` =
+ * ⊥ vielä koskettu. Yksi funktio ∴ kutsuja (kasat.ts:n kytkin) ⊥ toista kynnysarvoa.
+ */
+export function doneGroupCollapsed(doneCount: number, override: boolean | null = null): boolean {
+  return override ?? doneCount > DONE_AUTO_COLLAPSE_AT
 }
 
 const PHASE_LABEL: Record<Segment['phase'], string> = {
@@ -61,7 +84,11 @@ export function renderKasatPage(container: HTMLElement, opts: KasatPageOpts): vo
     selectMode = false, selected = new Set<string>(),
     onToggleSelectMode, onToggleSelect, onClaimSelected, onRelease,
     error = null, onDismissError,
+    doneCollapsed = null, onToggleDone,
   } = opts
+  const openPiles = piles.open
+  const donePiles = piles.done
+  const total = openPiles.length + donePiles.length
   container.innerHTML = ''
   container.classList.add('kasat-page')
 
@@ -102,10 +129,10 @@ export function renderKasatPage(container: HTMLElement, opts: KasatPageOpts): vo
   const header = document.createElement('div')
   header.className = 'kasat-header'
   const title = document.createElement('h2')
-  const open = piles.filter(p => !p.done).length
+  const open = openPiles.length
   title.textContent = `Kasat (${open})`
   header.appendChild(title)
-  if (!hasFix && piles.length > 0) {
+  if (!hasFix && total > 0) {
     // Ilman fixiä järjestys ⊥ ole etäisyys ∴ sitä ⊥ saa esittää etäisyysjärjestyksenä.
     const note = document.createElement('p')
     note.className = 'kasat-fix-note'
@@ -114,7 +141,7 @@ export function renderKasatPage(container: HTMLElement, opts: KasatPageOpts): vo
   }
   container.appendChild(header)
 
-  if (piles.length === 0) {
+  if (total === 0) {
     const empty = document.createElement('p')
     empty.className = 'kasat-empty'
     empty.textContent = 'Ei kasoja vielä. Purkajat jättävät kasat maastoon — ne ilmestyvät tähän itsestään.'
@@ -142,17 +169,44 @@ export function renderKasatPage(container: HTMLElement, opts: KasatPageOpts): vo
     container.appendChild(toggle)
   }
 
-  const list = document.createElement('ul')
-  list.className = 'kasat-list'
-  for (const row of piles) {
-    list.appendChild(buildRow(row, {
-      onCollected, onSelect, onRelease,
-      selectMode: selectMode && onToggleSelect !== undefined,
-      checked: selected.has(row.marker.id),
-      onToggleSelect,
-    }))
+  const rowOpts = (row: PileRow): RowOpts => ({
+    onCollected, onSelect, onRelease,
+    selectMode: selectMode && onToggleSelect !== undefined,
+    checked: selected.has(row.marker.id),
+    onToggleSelect,
+  })
+
+  const buildList = (rows: PileRow[], cls: string): HTMLUListElement => {
+    const ul = document.createElement('ul')
+    ul.className = cls
+    for (const row of rows) ul.appendChild(buildRow(row, rowOpts(row)))
+    return ul
   }
-  container.appendChild(list)
+
+  // Avoimet ensin, omalla listallaan & muuttumattomassa järjestyksessä (lähin ensin).
+  if (openPiles.length > 0) container.appendChild(buildList(openPiles, 'kasat-list'))
+
+  // ── Haetut omana RYHMÄNÄÄN (käyttäjäpäätös 2026-07-31) ───────────────────────────────────
+  // Ennen tätä haetut vain putosivat saman listan hännille ∴ pitkällä listalla haettu kasa
+  // katosi käytännössä näkyvistä & "onko tämä haettu vai unohtunut" vaati selaamista. Otsikko
+  // kantaa MÄÄRÄN aina — myös kutistettuna: kutistus saa piilottaa rivit, ⊥ tietoa niiden
+  // olemassaolosta. 0 haettua → ryhmää ⊥ renderöidä lainkaan (V250: ⊥ kuollutta pintaa).
+  if (donePiles.length > 0) {
+    const collapsed = doneGroupCollapsed(donePiles.length, doneCollapsed)
+    const group = document.createElement('section')
+    group.className = 'kasat-done-group'
+    const head = createSectionHeader({
+      name: 'Haetut',
+      count: `(${donePiles.length})`,
+      collapsed,
+      countClass: 'kasat-done-count',
+      onToggle: () => onToggleDone?.(),
+    })
+    head.el.classList.add('kasat-done-header')
+    group.appendChild(head.el)
+    if (!collapsed) group.appendChild(buildList(donePiles, 'kasat-list kasat-list--done'))
+    container.appendChild(group)
+  }
 
   // "Otan valitut (N)" ilmestyy VAIN valintatilassa & vain kun valittuja on: nolla-valinnan
   // nappi olisi hiljainen no-op, joka hanskat kädessä lukeutuu rikkinäiseksi napiksi.

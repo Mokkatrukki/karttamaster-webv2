@@ -12,11 +12,11 @@ import { TILE_LAYERS } from './logic/tile-layers'
 import { GpsNavigator } from './map/gps-navigator'
 import { fetchMarkers, startChangeStream } from './logic/sync'
 import { loadActivePhase, getActivePhase } from './logic/phase-view'
-import { listPiles, type PileRow } from './logic/pile-list'
+import { listPiles, allPileRows, type PileGroups, type PileRow } from './logic/pile-list'
 import { PILE_TARGET } from './logic/pile-list'
 import { pushPileStatus, claimPile, releasePile } from './logic/pile-sync'
 import { claimErrorMessage, releaseErrorMessage } from './logic/pile-claim'
-import { renderKasatPage } from './ui/kasat-page'
+import { renderKasatPage, doneGroupCollapsed } from './ui/kasat-page'
 import { showToast } from './ui/toast'
 import { startOutboxRetry } from './logic/outbox-instance'
 import type { SignMarker } from './logic/types'
@@ -38,6 +38,9 @@ const selected = new Set<string>()
 // V333: varaus on ainoa toiminto joka vaatii verkon ∴ sen epäonnistuminen jää RUUDULLE kunnes
 // se kuitataan. Toast katoaisi kolmessa sekunnissa & metsässä katse on tiessä ⊥ puhelimessa.
 let claimError: string | null = null
+
+// "Haetut (N)" -ryhmän kutistus. `null` = ⊥ vielä koskettu ∴ kasat-page päättää automaatilla.
+let doneCollapsed: boolean | null = null
 
 async function boot(): Promise<void> {
   // Auth-gate: ilman sessiota → `/patkat`, jossa yleissalasana-login jo on. Toinen
@@ -70,7 +73,7 @@ async function boot(): Promise<void> {
   initMap()
 }
 
-function currentRows(): PileRow[] {
+function currentRows(): PileGroups {
   return listPiles(markers, gps?.getPosition() ?? null)
 }
 
@@ -101,8 +104,15 @@ function render(): void {
     onRelease: id => void release(id),
     error: claimError,
     onDismissError: () => { claimError = null; render() },
+    // `null` = automaatti (pitkä ryhmä kiinni). Napautus on käyttäjän oma valinta joka JÄÄ
+    // voimaan — 5 s välein tapahtuva uudelleenrender ⊥ saa sulkea ryhmää selän takana.
+    doneCollapsed,
+    onToggleDone: () => {
+      doneCollapsed = !doneGroupCollapsed(rows.done.length, doneCollapsed)
+      render()
+    },
   })
-  syncPileLayers(rows)
+  syncPileLayers(allPileRows(rows))
 }
 
 function markCollected(id: string): void {
@@ -176,7 +186,7 @@ function initMap(): void {
     maxNativeZoom: cfg.maxNativeZoom,
   }).addTo(map)
 
-  const rows = currentRows()
+  const rows = allPileRows(currentRows())
   syncPileLayers(rows)
   fitToPiles(rows)
 

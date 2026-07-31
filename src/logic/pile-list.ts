@@ -44,15 +44,33 @@ export interface PileRow {
 export const PILE_TARGET = segmentTarget({ markerTypeFilter: PILE_TEMPLATE_ID })
 
 /**
- * V332: autoporukan lista. Järjestys = etäisyys fixistä (lähin ensin); ilman fixiä
- * luontijärjestys (= syötteen järjestys) — arvattu etäisyys olisi väärä järjestys joka
+ * Kaksi RYHMÄÄ ⊥ yksi litteä lista (käyttäjäpäätös 2026-07-31). Hännille pudottaminen oli
+ * lajittelusääntö jonka VAIN koodi tiesi: pitkällä listalla haettu kasa katosi käytännössä
+ * näkyvistä & "onko tämä haettu vai unohtunut" oli kysymys jota ⊥ voinut ratkaista selaamatta.
+ * Ryhmä otsikon & määrän kanssa sanoo saman asian ääneen — & UI ⊥ joudu arvaamaan rajaa
+ * uudelleen (`done`-lipun etsiminen litteästä taulukosta olisi toinen totuus samasta jaosta).
+ */
+export interface PileGroups {
+  /** Hakematta olevat, lähin ensin. TYÖ. */
+  open: PileRow[]
+  /** Jo haetut, sama järjestys. TAPAHTUNUT TOSIASIA — ⊥ katoa, ⊥ ole työtä. */
+  done: PileRow[]
+}
+
+/** Molemmat ryhmät yhtenä listana — kartta piirtää kaikki kasat, ⊥ vain työt. */
+export function allPileRows(groups: PileGroups): PileRow[] {
+  return [...groups.open, ...groups.done]
+}
+
+/**
+ * V332: autoporukan lista. Järjestys ryhmän SISÄLLÄ = etäisyys fixistä (lähin ensin); ilman
+ * fixiä luontijärjestys (= syötteen järjestys) — arvattu etäisyys olisi väärä järjestys joka
  * NÄYTTÄÄ oikealta.
  *
- * Haettu kasa EI katoa listalta (se on tapahtunut tosiasia jonka toinenkin porukka pitää voida
- * nähdä — piilotettu tieto on tieto jota ⊥ voi kyseenalaistaa) mutta se putoaa hännille:
- * haettu kasa ⊥ ole työtä, & lähin TEHTY asia ylimmäisenä olisi este seuraavan toiminnon edessä.
+ * Haettu kasa EI katoa listalta: se on tapahtunut tosiasia jonka toinenkin porukka pitää voida
+ * nähdä — piilotettu tieto on tieto jota ⊥ voi kyseenalaistaa.
  */
-export function listPiles(markers: SignMarker[], fix: GeoFix | null = null): PileRow[] {
+export function listPiles(markers: SignMarker[], fix: GeoFix | null = null): PileGroups {
   const rows = markers
     .filter(m => markerKind(m) === 'kasa')
     .map((marker, index) => ({
@@ -64,12 +82,17 @@ export function listPiles(markers: SignMarker[], fix: GeoFix | null = null): Pil
     }))
 
   rows.sort((a, b) => {
-    if (a.done !== b.done) return a.done ? 1 : -1
     if (a.distanceM !== null && b.distanceM !== null) return a.distanceM - b.distanceM
     return a.index - b.index
   })
 
-  return rows.map(({ marker, count, distanceM, done }) => ({ marker, count, distanceM, done }))
+  const strip = ({ marker, count, distanceM, done }: typeof rows[number]): PileRow =>
+    ({ marker, count, distanceM, done })
+
+  return {
+    open: rows.filter(r => !r.done).map(strip),
+    done: rows.filter(r => r.done).map(strip),
+  }
 }
 
 /** "1,2 km" | "340 m" | "" (⊥ fixiä). Yksi muotoilu ∴ kaksi pintaa ⊥ ole eri mieltä. */
