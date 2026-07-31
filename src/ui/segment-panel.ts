@@ -356,8 +356,21 @@ export class SegmentPanel {
     return best
   }
 
+  /**
+   * T440/V325: NÄKYVÄ pätkäjoukko — yksi selektori josta sekä lista että otsikkoluku johdetaan.
+   * Ennen tätä otsikko luki `store.size`ä (kaikki pätkät ∀ vaiheessa) samalla kun lista suodattui
+   * katseluvaiheella (T434/V321) ∴ suljettu paneeli lupasi "(12)" kun purussa oli yksi — & juuri
+   * suljettuna luku on ainoa tieto joka näkyy. Kaksi lähdettä ajautuu erilleen aina.
+   */
+  private visibleSegments(): Segment[] {
+    const activePhase = this.callbacks.getActivePhase?.()
+    return activePhase
+      ? getSegmentsForPhase(this.store, activePhase)
+      : Array.from(this.store.values())
+  }
+
   private applyCollapsed(): void {
-    const count = this.store.size
+    const count = this.visibleSegments().length
     this.header.setName(`Reittipätkät (${count})`)
     this.header.setCollapsed(this.collapsed)
     this.listEl.hidden = this.collapsed
@@ -429,7 +442,8 @@ export class SegmentPanel {
     panel?.querySelectorAll('.btn-segment-footer').forEach(el => el.remove())
 
     const activePhase = this.callbacks.getActivePhase?.()
-    const segments = activePhase ? getSegmentsForPhase(this.store, activePhase) : Array.from(this.store.values())
+    // T440/V325: SAMA selektori kuin otsikkoluvulla — lista & luku ⊥ voi eriytyä.
+    const segments = this.visibleSegments()
     if (segments.length === 0) {
       const empty = document.createElement('li')
       empty.className = 'segment-empty'
