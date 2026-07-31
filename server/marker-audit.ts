@@ -9,7 +9,10 @@ import { distanceToTrackM, parseTrack } from './track-geo'
 // T417/V308: link/unlink = merkin JÄSENYYS tehtävässä muuttui (`linkedMarkerIds`/`excludedMarkerIds`,
 // T415/T416). EIVÄT ole peruutettavia tältä reitiltä — peruutus on pätkän patch, ⊥ merkin
 // restore ∴ undo-portti torjuu ne eksplisiittisesti (`audit.ts`), ⊥ hiljaisena no-oppina.
-export type AuditAction = 'add' | 'move' | 'remove' | 'status' | 'link' | 'unlink'
+// T449/V333/V231: claim/unclaim = kasan varaus & sen vapautus. EIVÄT ole peruttavia
+// (`audit.ts`-whitelist torjuu ne): vapautus on oma toimintonsa jonka kuka tahansa tekee
+// ∴ undo-reitti olisi toinen tapa tehdä sama asia, kahdella eri oikeussäännöllä.
+export type AuditAction = 'add' | 'move' | 'remove' | 'status' | 'link' | 'unlink' | 'claim' | 'unclaim'
 
 // V149: ε-toleranssi GPS-driftille — pätkän reunalle laillisesti sijoitettu merkki EI saa 403:a.
 export const RANGE_EPS_M = 50

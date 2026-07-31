@@ -6453,3 +6453,18 @@ body[data-role="talkoolainen"] .marker-overview { display: none; }
 .pile-confirm-title { margin: 0 0 10px; font-size: 1.15rem; }
 .pile-confirm-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .pile-confirm-actions .btn { min-height: 44px; flex: 1 1 auto; }
+
+/* T449/V333 — varaus on VALINNAINEN toinen vaihde. Oletusnäkymässä näistä näkyy VAIN
+   .kasat-select-toggle; ruudut ja "Otan valitut" ilmestyvät vasta pyydettäessä. */
+.kasat-select-toggle { min-height: 44px; align-self: flex-start; }
+.kasat-row-check { width: 24px; height: 24px; flex-shrink: 0; margin-right: 4px; }
+.kasat-row-claim { font-size: 0.85rem; color: var(--accent); font-weight: 600; }
+.kasat-row--claimed { border-left: 4px solid var(--accent); }
+.kasat-row-release { min-height: 44px; padding: 0 12px; }
+.kasat-claim-bar {
+  position: sticky;
+  bottom: 0;
+  padding: 10px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface-app);
+}
+.kasat-claim-btn { width: 100%; min-height: 48px; }

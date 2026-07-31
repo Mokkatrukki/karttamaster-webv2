@@ -282,6 +282,14 @@ function initSchema(db: Database): void {
   try { db.exec('ALTER TABLE markers ADD COLUMN template_id TEXT') } catch { /* already exists */ }
   // T423/V314: kasan sisältö (JSON string[]). VAIN kasa-merkillä; muilla NULL.
   try { db.exec('ALTER TABLE markers ADD COLUMN pile_marker_ids TEXT') } catch { /* already exists */ }
+  // T449/V333: kasan varaus — "otan nämä". `claimed_by` on `session.display_name` (olemassa
+  // oleva tunniste ∴ varaus ⊥ tuo uutta tunnistautumista); `claimed_at` on ISO-aika jota UI
+  // näyttää IKÄNÄ ("Mikko, 45 min sitten"). EI automaattivanhenemista: auto voi olla tunnin
+  // ajomatkan päässä & varauksen katoaminen kesken ajon tuottaa juuri sen päällekkäisajon
+  // jonka esto oli koko pointti. Vanha varaus on näkyvä ongelma, kadonnut on näkymätön.
+  // Vanhat rivit → NULL = vapaa (oikea oletus).
+  try { db.exec('ALTER TABLE markers ADD COLUMN claimed_by TEXT') } catch { /* already exists */ }
+  try { db.exec('ALTER TABLE markers ADD COLUMN claimed_at TEXT') } catch { /* already exists */ }
   // T249/V168: merkin kiinnitystapa — keppi=1 (oletus, yleisin), keppi=0 → label + ' - irto'.
   // Olemassa olevat merkit → keppi=1 (DEFAULT 1). keppi=0 vain inventaarion "Muuta merkiksi" -flow (T250).
   try { db.exec('ALTER TABLE templates ADD COLUMN keppi INTEGER NOT NULL DEFAULT 1') } catch { /* already exists */ }

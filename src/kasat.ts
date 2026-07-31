@@ -10,11 +10,11 @@ import './style.css'
 import L from 'leaflet'
 import { TILE_LAYERS } from './logic/tile-layers'
 import { GpsNavigator } from './map/gps-navigator'
-import { fetchMarkers } from './logic/sync'
+import { fetchMarkers, startChangeStream } from './logic/sync'
 import { loadActivePhase, getActivePhase } from './logic/phase-view'
 import { listPiles, type PileRow } from './logic/pile-list'
 import { PILE_TARGET } from './logic/pile-list'
-import { pushPileStatus } from './logic/pile-sync'
+import { pushPileStatus, claimPile, releasePile } from './logic/pile-sync'
 import { renderKasatPage } from './ui/kasat-page'
 import { showToast } from './ui/toast'
 import { startOutboxRetry } from './logic/outbox-instance'
@@ -29,6 +29,10 @@ let markers: SignMarker[] = []
 let map: L.Map | null = null
 let gps: GpsNavigator | null = null
 const pileLayers = new Map<string, L.CircleMarker>()
+
+// T449/V333: varaus on TOINEN VAIHDE ∴ tila alkaa pois päältä & purkautuu kun valinta on tehty.
+let selectMode = false
+const selected = new Set<string>()
 
 async function boot(): Promise<void> {
   // Auth-gate: ilman sessiota → `/patkat`, jossa yleissalasana-login jo on. Toinen
@@ -76,6 +80,20 @@ function render(): void {
       const m = markers.find(x => x.id === id)
       if (m && map) map.setView([m.lat, m.lon], Math.max(map.getZoom(), 15))
     },
+    selectMode,
+    selected,
+    onToggleSelectMode: () => {
+      selectMode = !selectMode
+      if (!selectMode) selected.clear()
+      render()
+    },
+    onToggleSelect: id => {
+      if (selected.has(id)) selected.delete(id)
+      else selected.add(id)
+      render()
+    },
+    onClaimSelected: ids => void claimAll(ids),
+    onRelease: id => void release(id),
   })
   syncPileLayers(rows)
 }
@@ -97,6 +115,30 @@ function markCollected(id: string): void {
     render()
     showToast('Kuittaus ei mennyt läpi.')
   })
+}
+
+// T449/V333: varaus epäonnistuu NÄKYVÄSTI & heti (⊥ outboxin kautta) — 20 min myöhässä
+// toimitettu "otan nämä" varaa kasan porukalle joka ⊥ enää ole matkalla.
+async function claimAll(ids: string[]): Promise<void> {
+  const results = await Promise.all(ids.map(id => claimPile(id)))
+  const taken = results.filter(r => !r.ok && r.reason === 'taken')
+  const failed = results.filter(r => !r.ok && r.reason === 'network')
+  // Valintatila purkautuu kun valinta on tehty — se on väline, ⊥ näkymä johon jäädään.
+  selectMode = false
+  selected.clear()
+  await refreshMarkers()
+  if (taken.length > 0) {
+    const by = taken.find(r => !r.ok && r.reason === 'taken' && r.by)
+    const who = by && !by.ok && by.reason === 'taken' ? by.by : undefined
+    showToast(who ? `${who} ehti ensin — ${taken.length} kasaa oli jo varattu.` : `${taken.length} kasaa oli jo varattu.`)
+  }
+  if (failed.length > 0) showToast(`${failed.length} varausta ei mennyt läpi — yritä uudelleen.`)
+}
+
+async function release(id: string): Promise<void> {
+  const ok = await releasePile(id)
+  if (!ok) { showToast('Vapautus ei mennyt läpi.'); return }
+  await refreshMarkers()
 }
 
 function initMap(): void {
@@ -124,6 +166,15 @@ function initMap(): void {
   // V332: kasa syntyy metsässä toisen ihmisen kädestä ∴ lista ! päivittyä ilman että
   // autoporukka lataa sivun uudelleen. Pollaus, ⊥ kertalataus.
   setInterval(() => void refreshMarkers(), 30_000)
+
+  // T446/V330: SSE-heräte pollauksen RINNALLE — toisen porukan varaus ! näkyä sekunneissa,
+  // ⊥ puolen minuutin päästä. Pollaus EI poistu: katkennut stream ⊥ saa pysäyttää mitään,
+  // & metsässä yhteys katkeaa jatkuvasti. Heräte vain aikaistaa seuraavan haun.
+  startChangeStream({
+    onWake: events => {
+      if (events.some(e => e.type === 'pile' || e.type === 'marker')) void refreshMarkers()
+    },
+  })
 }
 
 async function refreshMarkers(): Promise<void> {

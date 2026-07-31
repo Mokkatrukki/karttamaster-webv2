@@ -40,6 +40,10 @@ export interface SignMarker {
   description?: string    // T103: lisäkuvaus, järjestäjä muokkaa
   images?: string[]       // T103: kuva-URL:t (server/routes/markers.ts POST :id/images)
   pileMarkerIds?: string[] // T423/V314: VAIN kasa-merkillä (templateId==='kerayskasa') — mitkä merkit tähän kasaan kerättiin. Omistussuhde ⊥ aikaikkuna: merkki ei voi kuulua kahteen kasaan
+  // T449/V333: kasan varaus ("otan nämä"). `claimedBy` = varaajan display_name, `claimedAt` = ISO.
+  // VAIN kasa-merkillä käytössä; puuttuu = vapaa. ⊥ vanhene automaattisesti — UI näyttää IÄN.
+  claimedBy?: string
+  claimedAt?: string
   createdBy?: string      // T226/V151: luojan tunniste (talkoolainen_code TAI display_name). Talkoolainen
                           //  kovapoistaa VAIN oman itse-luomansa (createdBy === oma koodi); muu = suunniteltu → soft ei_tarpeen
 }
