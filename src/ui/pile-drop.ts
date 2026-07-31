@@ -175,3 +175,44 @@ export function openPileConfirmBar(
 export function removePileConfirmBar(host: HTMLElement): void {
   host.querySelector('.pile-confirm-bar')?.remove()
 }
+
+/**
+ * T455/V340 (B188): LUONTI PÄÄTTYY NÄKYVÄÄN TULOKSEEN. Kolmen sekunnin toast katosi ennen kuin
+ * talkoolainen ehti nostaa katseen kartalta ∴ ainoa todiste teosta oli sivun uudelleenlataus
+ * ("se on kerättävissä kun refreshaan sivun"). Rivi JÄÄ kunnes se kuitataan & kantaa tien
+ * eteenpäin: kasalista on se pinta jolla kasa on työtä (V332).
+ *
+ * Linkki on `<a href>` ⊥ nappi + `location.assign`: se on oikea navigaatio ∴ pitkä painallus,
+ * uusi välilehti & selaimen paluu toimivat ilman että kukaan kirjoittaa niitä.
+ */
+export function showPileDoneRow(host: HTMLElement, count: number, listHref = '/kasat'): () => void {
+  removePileDoneRow(host)
+
+  const row = document.createElement('div')
+  row.className = 'pile-done-row'
+  row.setAttribute('role', 'status')
+
+  const text = document.createElement('p')
+  text.className = 'pile-done-row-text'
+  text.textContent = `📦 Kasa jätetty — ${formatPileSummary(count)}`
+
+  const link = document.createElement('a')
+  link.className = 'pile-done-row-link'
+  link.href = listHref
+  link.textContent = 'Näytä kasalista →'
+
+  const close = document.createElement('button')
+  close.type = 'button'
+  close.className = 'btn btn--ghost pile-done-row-close'
+  close.setAttribute('aria-label', 'Sulje')
+  close.textContent = '✕'
+  close.addEventListener('click', () => row.remove())
+
+  row.append(text, link, close)
+  host.prepend(row)
+  return () => row.remove()
+}
+
+export function removePileDoneRow(host: HTMLElement): void {
+  host.querySelector('.pile-done-row')?.remove()
+}

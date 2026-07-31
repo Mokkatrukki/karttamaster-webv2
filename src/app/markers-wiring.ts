@@ -46,6 +46,8 @@ import { gpsControlState } from '../logic/gps-follow'
 import { startPilePlacement, runPileAction } from './pile-placement'
 // T454/V338: esikatselupiste on Leaflet-glue ∴ se tulee `src/map/`istä injektiona.
 import { showPilePreview } from '../map/pile-preview'
+// T455/V340: luonnin tulos jää ruudulle — rivi ⊥ katoava toast.
+import { showPileDoneRow, removePileDoneRow } from '../ui/pile-drop'
 import { haversineDistance } from '../logic/bearing'
 
 // T307/V218: `document.body.dataset.mapMode` asetetaan TÄSTÄ yhdestä paikasta (CSS-korostus
@@ -528,14 +530,18 @@ function wireMarkersInner(
         const hintHost = document.getElementById('segment-view')
           ?? document.getElementById('segment-view-container') ?? document.body
 
+        // T455/V340 (B188): teko ! päättyä NÄKYVÄÄN kasaan. Kartta jää auki (T454), piste
+        // tuodaan ruudulle & rivi kertoo tuloksen + tien kasalistaan — 3 s toast katosi ennen
+        // kuin katse ehti kartalta takaisin ∴ ainoa todiste oli uudelleenlataus.
         const create = (lat: number, lon: number): void => {
           const tpl = pileTemplate()
-          markerManager.add(
+          const pile = markerManager.add(
             lat, lon, PILE_TEMPLATE_ID, tpl.color, tpl.label, tpl.iconId,
             undefined, undefined, PILE_TEMPLATE_ID,
             { pileMarkerIds: ids },
           )
-          showToast(`📦 Kasa jätetty — ${ids.length} merkkiä`)
+          markerManager.panTo(pile.id)
+          showPileDoneRow(hintHost, ids.length)
         }
 
         // T450a: place-modessa pysyvä ohjerivi, ⊥ pieni toast (hanskat, aurinko, kiire).
@@ -549,6 +555,9 @@ function wireMarkersInner(
         // tai tarkkuusrajaa ∴ vanha/epätarkka piste loi kasan sinne minne käyttäjä ⊥ sitä
         // laittanut ("kasa ei tule mihin laitan"). GPS keskittää kartan & antaa etäisyyslukeman;
         // SIJAINNIN valitsee ihminen, joka tietää missä on vaikka satelliitti ⊥ tiedä.
+        // Edellisen kasan kuittausrivi väistyy heti kun uusi sijoitus alkaa — vanha tulos
+        // uuden teon päällä olisi kaksi totuutta siitä mitä juuri tapahtui.
+        removePileDoneRow(hintHost)
         if (!mapMode.canPlaceMarkers()) mapMode.set('muokkaus')
         const fix = gpsNavigator.getPosition()
         startPilePlacement({

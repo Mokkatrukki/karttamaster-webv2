@@ -220,6 +220,7 @@ test('T454 — piste tulee napautuskohtaan, siirtyy & kartta pysyy näkyvissä',
   // Kasaa ⊥ ole vielä olemassa: piste on AIKOMUS ∴ mikään ⊥ ole lähtenyt serverille.
   expect(posted.filter(b => (b as { template_id?: string }).template_id === 'kerayskasa')).toHaveLength(0)
 
+
   await page.locator('.pile-confirm-ok').click()
   await page.waitForTimeout(700)
   const kasat = posted.filter(b => (b as { template_id?: string }).template_id === 'kerayskasa')
@@ -227,6 +228,17 @@ test('T454 — piste tulee napautuskohtaan, siirtyy & kartta pysyy näkyvissä',
   // Esikatselupiste katoaa kun kasa syntyy — kaksi pistettä samassa kohdassa olisi valhe.
   await expect(page.locator('.pile-preview-pin')).toHaveCount(0)
   await expect(page.locator('.pile-confirm-bar')).toHaveCount(0)
+
+  // T455/V340 (B188): teko päättyy NÄKYVÄÄN tulokseen — kartta jää auki, kasa on siellä &
+  // rivi kantaa tien kasalistaan. Ennen tätä ainoa todiste oli sivun uudelleenlataus.
+  await expect(page.locator('#app')).toHaveAttribute('data-view-mode', 'kartta')
+  const done = page.locator('.pile-done-row')
+  await expect(done).toBeVisible()
+  await expect(done.locator('.pile-done-row-text')).toContainText('2 merkkiä')
+  await expect(done.locator('.pile-done-row-link')).toHaveAttribute('href', '/kasat')
+  // Kasa on kartalla ILMAN uudelleenlatausta — kasan väri (V315 `#8A5CD1`) erottaa sen
+  // pätkän merkeistä.
+  await expect(page.locator('.leaflet-marker-icon [style*="8A5CD1"]').first()).toBeVisible()
 })
 
 test('T454 — Peruuta poistaa pisteen & palauttaa kotinäkymän (aikomus ⊥ jätä jälkeä)', async ({ page }) => {

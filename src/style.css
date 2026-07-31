@@ -6718,3 +6718,31 @@ body[data-role="talkoolainen"] .marker-overview { display: none; }
   cursor: pointer;
 }
 .kasat-error-close:hover { background: var(--danger-soft-hover); }
+
+/* T455/V340 (B188): luonnin tulos JÄÄ ruudulle — 3 s toast katosi ennen kuin katse ehti
+   kartalta takaisin. Rivi kantaa tuloksen & tien kasalistaan, kuitataan ✕:llä. */
+.pile-done-row {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: var(--surface-card);
+  border: 2px solid var(--confirm);
+  border-radius: var(--radius-md);
+  padding: 6px 8px 6px 10px;
+  margin: 0 0 8px;
+  z-index: 6;
+}
+.pile-done-row-text { margin: 0; flex: 1 1 12ch; min-width: 0; font-weight: 600; color: var(--text-body); }
+.pile-done-row-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 8px;
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+.pile-done-row-close { min-height: 44px; min-width: 44px; flex: 0 0 auto; }
