@@ -140,12 +140,61 @@ test('T424 — kerää merkkejä → "Jätä kasa tähän" ilmestyy määrän ka
   await pile.click()
   await page.waitForTimeout(600)
 
+  // T450b: nappi EI enää luo kasaa suoraan — kasa on lupaus toiselle porukalle ("tule tänne,
+  // täällä on nämä") ∴ se tarkistetaan ennen kuin se lähtee. GPS-fix ohittaa vain sijainnin
+  // valinnan (nolla karttanapautusta), ei vahvistusta.
+  const confirm = page.locator('.pile-confirm')
+  await expect(confirm).toBeVisible()
+  await expect(confirm.locator('.pile-confirm-title')).toHaveText('Jätetäänkö kasa tähän?')
+  expect(posted.filter(b => (b as { template_id?: string }).template_id === 'kerayskasa')).toHaveLength(0)
+
+  // Sisältö on RYHMITELTY: kaksi samanlaista merkkiä on YKSI rivi "×2", ei kahta identtistä
+  // riviä joista ihminen laskee itse (T450 — kasassa on tusina merkkiä joista puolet samoja).
+  await expect(confirm.locator('.pile-contents-row')).toHaveCount(1)
+  await expect(confirm.locator('.pile-contents-count')).toHaveText('×2')
+  await expect(confirm.locator('.pile-contents-total')).toContainText('2 merkkiä')
+
+  await confirm.locator('.pile-confirm-ok').click()
+  await page.waitForTimeout(600)
+
   const kasat = posted.filter((b) => (b as { template_id?: string }).template_id === 'kerayskasa')
   expect(kasat.length).toBe(1)
   expect((kasat[0] as { pile_marker_ids: string[] }).pile_marker_ids).toHaveLength(2)
 
   // V314-idempotenssi: kasan jälkeen ehdokkaita ei ole ∴ nappi katoaa.
   await expect(pile).toBeHidden()
+})
+
+test('T450 — vahvistuksen "Peruuta": ei kasaa & merkit jäävät keräyslistalle', async ({ page }) => {
+  const { posted } = await mockPurkuSegment(page)
+  await openPurku(page)
+
+  await page.locator('.segment-view-next-set').click()
+  await page.waitForTimeout(300)
+  await page.locator('.segment-view-next-set').click()
+  await page.waitForTimeout(300)
+
+  const gps = page.locator('#gps-control')
+  if (await gps.isVisible()) {
+    await gps.click()
+    await page.waitForTimeout(1200)
+  }
+
+  const pile = page.locator('.segment-view-pile-btn')
+  await expect(pile).toContainText('2 merkkiä')
+  await pile.click()
+  await page.waitForTimeout(600)
+
+  const confirm = page.locator('.pile-confirm')
+  await expect(confirm).toBeVisible()
+  await confirm.locator('.pile-confirm-cancel').click()
+  await page.waitForTimeout(600)
+
+  // Kasaa ei synny — eikä puoliksi tehtyä jää: merkit ovat yhä kasaan pantavissa.
+  await expect(confirm).toBeHidden()
+  expect(posted.filter(b => (b as { template_id?: string }).template_id === 'kerayskasa')).toHaveLength(0)
+  await expect(pile).toBeVisible()
+  await expect(pile).toContainText('2 merkkiä')
 })
 
 test('T425 — autoporukan kasalista: määrä, navigointilinkki, lähin kasa', async ({ page }) => {
@@ -239,12 +288,24 @@ test('T430 — ilman GPS-fixiä kasa syntyy kartan napautuksesta (V320)', async 
   await pile.click()
   await page.waitForTimeout(300)
 
-  // Kasaa ei ole vielä — kartta odottaa napautusta.
+  // Kasaa ei ole vielä — kartta odottaa napautusta. T450a: ohje on ISO laatikko (⊥ toast joka
+  // ehtii kadota) & "Peruuta" on samassa paikassa koko tilan ajan.
   expect(posted.filter(b => (b as { template_id?: string }).template_id === 'kerayskasa')).toHaveLength(0)
+  await expect(page.locator('.pile-place-hint')).toBeVisible()
+  await expect(page.locator('.pile-place-hint-text')).toContainText('hakea autolla')
 
   const map = page.locator('#map')
   const box = (await map.boundingBox())!
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+  await page.waitForTimeout(600)
+
+  // T450b: napautus valitsee sijainnin, vahvistus luo kasan. Ohjelaatikko väistyy modaalin tieltä.
+  const confirm = page.locator('.pile-confirm')
+  await expect(confirm).toBeVisible()
+  await expect(page.locator('.pile-place-hint')).toBeHidden()
+  expect(posted.filter(b => (b as { template_id?: string }).template_id === 'kerayskasa')).toHaveLength(0)
+
+  await confirm.locator('.pile-confirm-ok').click()
   await page.waitForTimeout(600)
 
   const kasat = posted.filter(b => (b as { template_id?: string }).template_id === 'kerayskasa')
