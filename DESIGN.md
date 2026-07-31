@@ -761,6 +761,17 @@ Kartta avautuu **katselutilassa** joka latauksella; kaikki kartan MUTATOIVAT ele
 - **Tuplamerkki (`.marker-visual-row-combo`, `parts.length>1`, V107):** pystypino, max 4 lohkoa (`.marker-visual-row-combo-slot`), `1px`-jakoviiva lohkojen välissä, `border-radius:8px` koko pinolle, sama resolvoitu väri kaikissa ikoni/label-lohkoissa. **Ei kulmabadgea** (esim. "2") — käyttäjäpäätös: kaksi näkyvää lohkoa jo kertoo tuplauksen, badge koettiin turhaksi.
 - **Zoom (`opts.zoomable=true`, `.marker-visual-row-zoom`):** `44×44px` klikattava hit-area (V129/B89 — alkuperäinen 20px-toteutus rikkoi §A:n, korjattu ennen ✓-merkintää) oikeassa alakulmassa, sisällä `18×18px` näkyvä pyöreä tumma badge valkoisella suurennuslasi-SVG:llä, `aria-label="Suurenna <label>"`. Klikkaus `stopPropagation` + avaa lightboxin — ei valitse mitään, pelkkä esikatselu (ero ImageGalleryPickeriin: siellä zoom voi myös valita).
 - **Lightbox (`.marker-visual-lightbox`, `.marker-visual-lightbox-backdrop`):** sama pattern kuin ImageGalleryPickerin lightbox (rivit 468-471) — `overlay`-token backdrop, `z-index:5000`, keskitetty `max-width:min(90vw,420px)`, `surface-card` tausta (ei valkoinen — tämä ei ole vain kuva-esikatselu vaan koko merkkivisuaali omalla taustallaan), sisällä `buildMarkerVisual(marker, {size:160, zoomable:false})` + caption (label tai compactLabel). Sulkeutuu: Esc, backdrop-klikkaus, `✕`-nappi (`.marker-visual-lightbox-close`, `34×34px`, `aria-label="Sulje"`).
+- **Päätetilan koriste (T442/V328, `data-decoration`):** merkin PÄÄTETILA luetaan muodosta, ei himmennyksestä. `markerDecoration(status, phase)` (`src/logic/sign-visual.ts`, puhdas) → `collected` | `missing` | `skipped` | `none`; `buildMarkerVisual` kirjoittaa sen `data-decoration`-attribuutille ja `.marker-visual-row-sv--<arvo>`-luokaksi. `status`/`phase` ovat **vapaaehtoisia** — merkkikirjasto ja esikatselut piirtävät tyyppejä joilla ei ole elinkaarta, ja ilman niitä koriste on `none`.
+
+| Arvo | Milloin | Ilme |
+|---|---|---|
+| `collected` | `status = kerätty` | **Vinoviiva** ikonin yli (`::after`, `3px`, −45°) |
+| `missing` | `status = ei_tarpeen` **ja** `phase = purku` ("ei löytynyt", V319) | **Katkoviiva** + `?`-merkki oikeassa yläkulmassa |
+| `skipped` | `status = ei_tarpeen` muussa vaiheessa | Himmennys `opacity:.5`, ei viivaa |
+
+  Viiva **ei peitä ikonin ydintä**: talkoolainen tarvitsee kasaa kootessaan yhä tiedon MIKÄ merkki tämä oli — peittävä rasti hävittäisi juuri sen. Kolme päätetilaa näyttivät ennen samalta himmeältä ∴ sama merkki kerättiin kahdesti tai keräämätön ohitettiin.
+  **Kontrastitokenit (`:root`, teemariippumattomat kuten karttapinta-tokenit V253):** `--mark-slash: #10161A` (viiva) + `--mark-slash-halo: rgba(255,255,255,0.95)` (halo, kaksi `drop-shadow`ia). Halo tarvitaan koska merkin oma väri ei ole tiedossa piirtohetkellä: sama viiva osuu sekä vaalealle kuvakyltille että tummalle tyyppivärille. Ei inline-hexiä — kirkkaan auringon kalibrointi eläisi kahdessa paikassa.
+  **Sama kieli kartalla:** `MarkerManager.reapplyElementState` asettaa `.marker-collected` Leaflet-merkin elementille → identtinen `::after`-vinoviiva. Kaksi kieltä samalle tilalle olisi kaksi asiaa opeteltavaksi.
 - **Käyttäjä:** molemmat (järjestäjä nyt SegmentDetailsModalissa, talkoolainen tuleva SegmentView).
 
 ### AdminPage (`admin.html` + `src/admin.ts` + `src/ui/admin-page.ts`, T122)

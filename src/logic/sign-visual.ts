@@ -45,3 +45,30 @@ export function signVisualParts(
   }
   return [signVisual(template, resolveImageSrc(template.imageId))]
 }
+
+// ─── T442/V328: PÄÄTETILAN KORISTE ────────────────────────────────────────────────────
+//
+// Purussa merkillä on KOLME loppua (`kerätty`, purun `ei_tarpeen` = "ei löytynyt" V319,
+// asetusvaiheen `ei_tarpeen`) & kaikki kolme näyttivät samalta himmeältä ∴ talkoolainen ⊥
+// nähnyt mitä hän oli jo tehnyt → sama merkki kerättiin kahdesti tai keräämätön ohitettiin.
+//
+// Ero ! näkyä KIRKKAASSA AURINGOSSA halvalla puhelimella. Siellä kylläisyys katoaa ensin &
+// himmennys on ensimmäinen mikä sulaa taustaan ∴ ero on MUODOSSA ⊥ värissä tai opasiteetissa.
+//
+// Viiva ⊥ peittävä rasti: rasti hävittäisi juuri sen tiedon jota kasaa kootessa tarvitaan
+// (MIKÄ merkki tämä oli). Viiva kertoo "tehty", ikoni säilyy tunnistettavana.
+//
+// Puhdas lookup ∴ sama vastaus kartalla & listalla — kaksi kieltä samalle tilalle olisi kaksi
+// asiaa opeteltavaksi.
+
+export type MarkerDecoration = 'none' | 'collected' | 'missing' | 'skipped'
+
+export type DecorationPhase = 'asettaminen' | 'tarkastus' | 'purku'
+
+export function markerDecoration(status: string, phase?: DecorationPhase): MarkerDecoration {
+  if (status === 'kerätty') return 'collected'
+  if (status !== 'ei_tarpeen') return 'none'
+  // V319: purun `ei_tarpeen` on "ei löytynyt" — eri TAPAHTUMA kuin asetusvaiheen ohitus,
+  // vaikka status on sama. Vaihe erottaa ne; ilman vaihetta ⊥ arvata kumpi (→ ohitus).
+  return phase === 'purku' ? 'missing' : 'skipped'
+}

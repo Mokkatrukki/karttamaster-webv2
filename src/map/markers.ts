@@ -250,6 +250,10 @@ export class MarkerManager {
       el.style.cursor = 'pointer'
       el.classList.toggle('leaflet-marker-pending', this.pendingIds.has(id))
       el.classList.toggle('marker-next-highlight', this.highlightNextId === id)
+      // T442/V328: kerätty merkki saa vinoviivan MYÖS kartalla — sama kieli molemmilla
+      // pinnoilla. Ikoni jää luettavaksi ∴ talkoolainen näkee yhä MIKÄ merkki se oli.
+      const m = this.markers.find((x) => x.id === id)
+      el.classList.toggle('marker-collected', m?.status === 'kerätty')
     }
     this.applyFocusClass(lm, id)
     this.applyZoomScale(lm)

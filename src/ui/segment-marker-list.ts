@@ -179,7 +179,9 @@ export class SegmentMarkerList {
       row.addEventListener('click', () => this.ctx.onOpenDetail(m.id))
 
       row.appendChild(buildMarkerVisual(
-        { type: m.type, iconId: m.iconId, label: m.label, parts: m.parts, color: m.color },
+        // T442/V328: status + vaihe → päätetilan koriste (vinoviiva / katkoviiva+? / himmennys).
+        { type: m.type, iconId: m.iconId, label: m.label, parts: m.parts, color: m.color,
+          status: m.status, phase: segment?.phase },
         { size: 36, zoomable: false },
       ))
 

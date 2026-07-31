@@ -357,7 +357,9 @@ export class SegmentView {
       if (done) row.classList.add('segment-view-collect-row--done')
 
       row.appendChild(buildMarkerVisual(
-        { type: m.type, iconId: m.iconId, label: m.label, parts: m.parts, color: m.color },
+        // T442/V328: keräyslistalla päätetila ! erottua muodolla — himmennys sulaa auringossa.
+        { type: m.type, iconId: m.iconId, label: m.label, parts: m.parts, color: m.color,
+          status: m.status, phase: this.segment.phase },
         { size: 36, zoomable: false },
       ))
 
