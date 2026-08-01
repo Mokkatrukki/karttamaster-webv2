@@ -176,6 +176,43 @@ pidettävä synkassa tämän taulukon kanssa (Leaflet-SVG ei peri CSS-tokeneja).
 | btn-modal-close        | `padding: 4px 8px` ⚠️ | LIIAN PIENI |
 | `.left-panel-section-header` | `min-height: 44px` ✓ | OK (T373) |
 | `.leaflet-control-zoom a` | `44×44px` ✓ | OK (B156 — oli 30×30) |
+| `.btn--sm`             | `min-height: 44px` ✓ | OK (UX-audit 2026-08-01 — oli 36px) |
+| `.modal-btn-destructive` | `min-height: 44px` ✓ | OK (UX-audit 2026-08-01 — oli 32px) |
+| `.equipment-check-box` | `44×44px` ✓ | OK (UX-audit 2026-08-01 — oli 22×22) |
+| alue-rivin `▶`         | `44×44px` ✓ | OK (UX-audit 2026-08-01 — oli 32×44) |
+| `.leaflet-control-attribution a` | — | POIKKEUS: lisenssimaininta, ⊥ toiminto |
+
+**`--sm` on TYPOGRAFINEN variantti, ⊥ kokovariantti (UX-audit 2026-08-01).** Se pienentää
+fonttia (12px) ja vaakapaddingia — **⊥ korkeutta**. Molemmat käyttöpaikat ("✎ Muokkaa
+varusteita", "✎ Muokkaa pätkän rajoja") ovat talkoolaisen omia ∴ juuri se käyttäjä jolle
+§A on kirjoitettu sai ennen pienimmän kohteen. Vahti: `tests/t206-button-system.test.ts`.
+
+### Mobiiliaudit — geometrinen vahti (2026-08-01)
+
+`e2e/ux-mobile-audit.spec.ts` ajaa **25 näkymää** kahdella leveydellä (390px mediaanipuhelin,
+360px kapein tuettu Android) ja mittaa kolme asiaa jokaisesta:
+
+1. `document.scrollWidth ≤ innerWidth` — ei vaakascrollia
+2. jokaisen näkyvän elementin `rect.right ≤ innerWidth` — mikään ⊥ jää ruudun oikealle puolelle
+3. jokainen `button/[role=button]/a/input/select/textarea` ≥44×44px
+
+Lisäksi jokaisella näkymällä on **`must`-lista**: mitkä elementit KÄYTTÄJÄN pitää nähdä siinä
+näkymässä. Mittari on geometrinen — `querySelector`-osuma ei riitä, elementin ! olla näkyvissä
+ja kokonaan viewportissa. Lista elää `docs/UX-MOBIILI-CHECKLIST.md`:ssä.
+
+Uusi näkymä → rivi checklistiin JA `must`-lista speciin. Uusi kelluva kontrolli → tarkista
+pinojärjestys sheettejä vasten (ks. `#gps-control` z-index 1050 alla).
+
+**Teema pätee JOKAISELLA sivulla (UX-audit 2026-08-01).** `initTheme()` ! kutsua jokaisessa
+entrypointissa (`main` · `patkat` · `kasat` · `inventory` · `admin` · `loki`) ennen ensimmäistä
+renderiä. Ennen tätä vain `main.ts` teki sen ∴ Kaamoksen valinnut talkoolainen sai muille
+sivuille täyden valkoisen — juuri niille pinnoille jotka avataan pimeässä. Vahti: audit-specin
+"teema pätee sivulla …" -testit vaativat `<html data-theme="dark">` per sivu.
+
+**Inline-tyyli voittaa CSS:n.** Useat modaalikontrollit (`area-details-modal.ts`,
+`sign-template-modal.ts`) asettavat mittansa `style.cssText`illä ∴ §A:n korjausta EI voi tehdä
+`style.css`:ään — se ei pure. Poikkeus: natiivi checkbox, jonka koko ! tulla jaetusta
+`appearance:none`-kaavasta (B171) ⇒ inline-leveys on siltä poistettava, ei kasvatettava.
 
 **Sääntö:** `min-height: 44px` kaikille napeille. Tämä on erityisen kriittistä talkoolaiselle
 metsässä, hanskat kädessä.

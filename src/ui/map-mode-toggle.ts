@@ -25,7 +25,9 @@ export function mapModeToggleLabel(mode: MapMode): string {
 /** Pillerin teksti — sanoin, ei pelkkä ikoni/väri (V219/V197). */
 export const MAP_MODE_PILL_TEXT = '✎ Muokkaustila'
 
-const DEFAULT_BUTTON_SELECTORS = ['#btn-map-mode', '#btn-tk-map-mode']
+// `#btn-menu-map-mode` = järjestäjän KAPEAN ruudun sisääntulo ⋯-valikossa (UX-audit
+// 2026-08-01). Kaikki kolme ohjaavat samaa tilaa; kumpi näkyy on CSS-asia (V218).
+const DEFAULT_BUTTON_SELECTORS = ['#btn-map-mode', '#btn-tk-map-mode', '#btn-menu-map-mode']
 const DEFAULT_PILL_SELECTOR = '#map-mode-pill'
 
 export interface MapModeToggleOptions {

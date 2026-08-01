@@ -45,9 +45,14 @@ describe('T206 — nappijärjestelmä (.btn base + variantit)', () => {
     expect(css).toMatch(/\.btn--confirm[^{]*\{[^}]*background:\s*var\(--confirm\)/)
   })
 
-  it('.btn--sm pienentää touch-targetin 36px:ään', () => {
+  // UX-audit 2026-08-01: `--sm` pienensi ENNEN touch-targetin 36px:ään. Molemmat käyttöpaikat
+  // ovat talkoolaisen omia ("✎ Muokkaa varusteita", "✎ Muokkaa pätkän rajoja") ∴ juuri se
+  // käyttäjä jolle §A on kirjoitettu sai pienimmän kohteen. `--sm` on nyt TYPOGRAFINEN
+  // variantti: pienempi teksti & tiiviimpi vaakapadding, 44px korkeus säilyy.
+  it('.btn--sm säilyttää 44px touch-targetin (§A) — pienentää vain typografian', () => {
     btn.className = 'btn btn--sm'
-    expect(getComputedStyle(btn).minHeight).toBe('36px')
+    expect(getComputedStyle(btn).minHeight).toBe('44px')
+    expect(getComputedStyle(btn).fontSize).toBe('12px')
   })
 
   it('vanhat kertakäyttöluokat aliasoitu variantteihin (confirm/secondary/danger)', () => {

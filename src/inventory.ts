@@ -1,4 +1,10 @@
 import './style.css'
+// UX-audit 2026-08-01: teema on KÄYTTÄJÄN valinta (V132/T202) & se persistoituu
+// localStorageen — mutta vain `main.ts` sovelsi sen. Talkoolainen joka valitsi Kaamoksen
+// karttanäkymässä sai tälle sivulle täyden valkoisen ∴ juuri se pinta joka avataan
+// pimeässä metsässä oli ainoa joka ⊥ totellut. `initTheme` ! olla jokaisessa
+// entrypointissa ENNEN ensimmäistä renderiä (välkkeen esto).
+import { initTheme } from './logic/theme'
 import { AuthScreen } from './ui/auth-screen'
 import { renderInventory, renderForbidden, renderSignPicker, defaultSelection, type LocationSelection, type InventoryViewMode } from './ui/inventory-page'
 import { SignTemplateModal } from './ui/sign-template-modal'
@@ -12,6 +18,10 @@ import { renderMergePanel, unlinkedCount, type MergeActionResult } from './ui/in
 import { computeMarkerStock } from './logic/marker-stock'
 import { fetchInventoryLinkRows, linkInventoryItemToTemplate } from './logic/inventory-sync'
 import { fetchMarkers } from './logic/sync'
+
+
+// Ennen ensimmäistä renderiä: <html data-theme> talteen localStoragesta (ei välkettä).
+initTheme()
 
 const content = document.getElementById('inventory-content')!
 const logoutBtn = document.getElementById('btn-inventory-logout')!

@@ -1,9 +1,19 @@
 import './style.css'
+// UX-audit 2026-08-01: teema on KÄYTTÄJÄN valinta (V132/T202) & se persistoituu
+// localStorageen — mutta vain `main.ts` sovelsi sen. Talkoolainen joka valitsi Kaamoksen
+// karttanäkymässä sai tälle sivulle täyden valkoisen ∴ juuri se pinta joka avataan
+// pimeässä metsässä oli ainoa joka ⊥ totellut. `initTheme` ! olla jokaisessa
+// entrypointissa ENNEN ensimmäistä renderiä (välkkeen esto).
+import { initTheme } from './logic/theme'
 import { AuthScreen } from './ui/auth-screen'
 import { renderAdminUsers, renderAdminSettings, renderAdminFaq, renderAdminPhase, renderForbidden } from './ui/admin-page'
 import type { AdminUser } from './ui/admin-page'
 import { phaseChangeErrorMessage } from './logic/phase-labels'
 import type { Segment } from './logic/segments'
+
+
+// Ennen ensimmäistä renderiä: <html data-theme> talteen localStoragesta (ei välkettä).
+initTheme()
 
 const content = document.getElementById('admin-content')!
 const phaseEl = document.getElementById('admin-phase')!

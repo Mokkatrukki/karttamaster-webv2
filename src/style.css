@@ -356,6 +356,18 @@ body[data-phase] #toolbar #toolbar-actions button:hover {
   color: var(--phase-accent-contrast);
 }
 
+/* UX-audit 2026-08-01: muokkaustilan KAPEAN ruudun sisääntulo. Leveällä se on yläpalkissa
+   (T308/V219) ∴ valikkokopio on piilossa — kaksi näkyvää sisääntuloa samaan tilaan on kaksi
+   paikkaa joista etsiä. Raja 560px: mitattu ylivuoto oli 390px:ssä 19px & suomenkieliset
+   vaihenimet vaihtelevat pituudeltaan ("Tarkastusmaster" > "Asetusmaster") ∴ 480px olisi
+   ollut nollamarginaali. */
+#btn-menu-map-mode { display: none; }
+
+@media (max-width: 560px) {
+  #toolbar #btn-map-mode { display: none; }
+  body[data-role="järjestäjä"] #btn-menu-map-mode { display: block; }
+}
+
 #toolbar-menu {
   position: fixed;
   top: 56px;
@@ -992,7 +1004,10 @@ button {
    talkoolaisen pätkälista käyttävät samaa ruutua ∴ kaava elää yhdessä paikassa (ennen T412:ta
    se oli talkoolais-rajattu duplikaatti & järjestäjä jäi 13px:ään). V303 vahtii mitalla. */
 .marker-item-checkbox,
-.bulk-action-bar .bulk-select-all {
+.bulk-action-bar .bulk-select-all,
+.equipment-check-box,
+.equipment-manual-check,
+.sign-lib-fav-checkbox {
   appearance: none;
   -webkit-appearance: none;
   width: 44px;
@@ -1006,7 +1021,10 @@ button {
   place-content: center;
 }
 .marker-item-checkbox::before,
-.bulk-action-bar .bulk-select-all::before {
+.bulk-action-bar .bulk-select-all::before,
+.equipment-check-box::before,
+.equipment-manual-check::before,
+.sign-lib-fav-checkbox::before {
   content: '';
   width: 22px;
   height: 22px;
@@ -1023,11 +1041,19 @@ button {
 /* Valittu = täytetty ruutu + ✓. Pelkkä täyttö ⊥ riitä: väri yksin ⊥ ole tila jonka näkee
    aurinkoisessa metsässä (§R kontrasti) & se on ainoa vihje siitä mihin bulk kohdistuu. */
 .marker-item-checkbox:checked::before,
-.bulk-action-bar .bulk-select-all:checked::before {
+.bulk-action-bar .bulk-select-all:checked::before,
+.equipment-check-box:checked::before,
+.equipment-manual-check:checked::before,
+.sign-lib-fav-checkbox:checked::before {
   content: '✓';
   background: var(--confirm);
   border-color: var(--confirm);
 }
+
+/* V285: "jo maastossa" -rivi disabloi rastin — se ⊥ ole enää päätös. Himmennys ! näkyä
+   ruudussa itsessään, ⊥ vain labelin yliviivauksessa. */
+.equipment-check-box:disabled,
+.equipment-manual-check:disabled { opacity: 0.45; cursor: default; }
 
 .bulk-status-toolbar {
   display: flex;
@@ -3546,10 +3572,14 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
    (sisäkkäinen kontrolli painikkeessa ⊥ ole validia HTML:ää) ∴ `<li>` on flex-rivi. */
 .segment-view-markers-item { display: flex; align-items: center; flex-wrap: wrap; }
 .segment-view-markers-item--nocheck { padding-left: 44px; }
-/* T437/V323: peruutus omalle riville (`flex-basis:100%`) — koko `revertLabel` mahtuu näkyviin
-   340px-leveydellä leikkautumatta (B108-oppi) & kohde on ≥44px hanska kädessä. */
+/* T437/V323: peruutus omalle riville — koko `revertLabel` mahtuu näkyviin 340px-leveydellä
+   leikkautumatta (B108-oppi) & kohde on ≥44px hanska kädessä.
+   UX-audit 2026-08-01: `flex-basis:100%` EI huomioi marginia ∴ 44px sisennys työnsi napin
+   ruudun oikean reunan yli (mitattu 390px-viewport: right=422, "↩ Palauta asettamattomaksi"
+   leikkautui). Basis ! vähentää sisennys — `calc(100% - 44px)` on ainoa arvo joka pitää
+   sekä sisennyksen että lupauksen leikkautumattomuudesta. */
 .segment-view-markers-revert {
-  flex: 0 0 100%;
+  flex: 0 0 calc(100% - 44px);
   min-height: 44px;
   padding: 4px 8px;
   margin: 0 0 4px 44px;
@@ -3573,11 +3603,17 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   font-size: 13px;
   cursor: pointer;
 }
+/* UX-audit 2026-08-01: rivi oli `width:100%` wrapaavassa `<li>`:ssä ∴ se työnsi rastin
+   OMALLE RIVILLEEN sen yläpuolelle — merkin nimi ja sitä koskeva valinta näyttivät kahdelta
+   eri asialta & lista oli kaksi kertaa liian korkea juuri siinä näkymässä jossa selataan
+   kymmeniä merkkejä puhelimella. `flex:1 1 0` + `min-width:0` pitää rastin & rivin samalla
+   rivillä ja jättää wrapin sille jolle se on tarkoitettu (`.segment-view-markers-revert`). */
 .segment-view-markers-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  width: 100%;
+  flex: 1 1 0;
+  min-width: 0;
   min-height: 44px;
   padding: 6px 4px;
   background: none;
@@ -3594,19 +3630,22 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
 .equipment-check {
   display: flex;
   align-items: center;
-  gap: 10px;
+  /* Rasti on nyt 44px kohde jonka sisällä näkyvä ruutu on 22px ∴ 11px "ilmaa" tulee
+     kohteesta itsestään — 10px gap päälle olisi tuplasisennys. */
+  gap: 4px;
   min-height: 44px;
   cursor: pointer;
   font-size: 13px;
   color: var(--text-body);
 }
+/* UX-audit 2026-08-01/V303: varustelistan rastit olivat 22×22 natiiveja checkboxeja.
+   `<label>` ympärillä oli 44px korkea ∴ osuma toimi — mutta §A mittaa KONTROLLIN & sama
+   vika oli jo korjattu merkkilistalta (T412/B171) omana duplikaattinaan. Kaava on nyt
+   JAETTU (ylempänä `.marker-item-checkbox`-lohkossa): 44×44 kohde, 22px näkyvä ruutu.
+   Tänne jää vain se mikä on varustelistan omaa. */
 .equipment-check-box,
 .equipment-manual-check {
-  width: 22px;
-  height: 22px;
   flex-shrink: 0;
-  accent-color: var(--confirm);
-  cursor: pointer;
 }
 .equipment-check--done .equipment-check-label {
   text-decoration: line-through;
@@ -3933,8 +3972,11 @@ body[data-role="talkoolainen"] #app {
   border-right: 1px solid var(--border-subtle);
 }
 
+/* UX-audit 2026-08-01: kaista oli 32px & sen ainoa sisältö on 44px `#left-panel-toggle`
+   ∴ nappi levisi kaistan yli molemmin puolin (mitattu 390px: x=-6…38 — 6px ruudun ULKOPUOLELLA
+   & 6px kartan päällä). Kaista ! olla vähintään sen kohteen levyinen jota se kantaa. */
 #left-panel.collapsed {
-  width: 32px;
+  width: 44px;
   overflow: hidden;
 }
 
@@ -3943,7 +3985,7 @@ body[data-role="talkoolainen"] #app {
 }
 
 #left-panel.collapsed #left-panel-header {
-  padding: 4px;
+  padding: 0;
   justify-content: center;
 }
 
@@ -4372,9 +4414,12 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   justify-content: center;
 }
 
+/* UX-audit 2026-08-01: 32px korkeus + 4px padding = 88×32 kohde ("Poista pätkä").
+   Destruktiivinen toiminto saa olla HILLITTY (taustaton, text-muted-suku) mutta ⊥ PIENI:
+   pieni kohde ei estä vahinkoklikkiä, se vain tekee tahallisesta osumasta vaikean. */
 .modal-btn-destructive {
-  min-height: 32px;
-  padding: 4px 8px;
+  min-height: 44px;
+  padding: 0 12px;
   background: transparent;
   border: none;
   color: var(--danger-text);
@@ -4427,7 +4472,12 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   white-space: nowrap;
 }
 .btn:disabled { cursor: not-allowed; opacity: 0.5; }
-.btn--sm { min-height: 36px; font-size: 12px; padding: 0 10px; }
+/* UX-audit 2026-08-01: `--sm` oli KOKO-variantti joka söi touch-targetin (36px). Molemmat
+   käyttöpaikat ovat talkoolaisen omia ("✎ Muokkaa varusteita", "✎ Muokkaa pätkän rajoja")
+   ∴ juuri se käyttäjä jolle §A on kirjoitettu (hanskat, metsä) sai pienimmän kohteen.
+   `--sm` on nyt TYPOGRAFINEN variantti: pienempi teksti & tiiviimpi vaakapadding, mutta
+   44px korkeus on `.btn`-perustan lupaus jota koko ⊥ saa kumota. */
+.btn--sm { font-size: 12px; padding: 0 10px; }
 
 /* Variantti: primary (accent-huomionauha) */
 .btn--primary { background: var(--accent); color: var(--accent-text); }
@@ -4817,6 +4867,52 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+/* UX-audit 2026-08-01: kuusi saraketta ⊥ mahdu 390px:iin (mitattu 551px ∴ koko sivu sai
+   vaakascrollin & kaksi oikeanpuoleisinta saraketta — Tila & Toiminnot — jäivät näkymättä).
+   Kapealla ruudulla RIVI ON KORTTI: `thead` piiloon, solut allekkain, otsikko solun omasta
+   `data-label`ista. Vaakascrollaava taulu olisi ollut halvempi mutta väärä: adminin ainoat
+   toiminnot (Deaktivoi / Resetoi salasana) ovat juuri siinä sarakkeessa joka jää piiloon. */
+@media (max-width: 700px) {
+  .admin-users-table thead { display: none; }
+  .admin-users-table,
+  .admin-users-table tbody,
+  .admin-users-table tr,
+  .admin-users-table td { display: block; width: auto; }
+  .admin-user-row {
+    background: var(--surface-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    margin-bottom: 10px;
+    padding: 4px 0;
+  }
+  .admin-users-table td {
+    border-bottom: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+  }
+  .admin-users-table td::before {
+    content: attr(data-label);
+    flex: 0 0 42%;
+    color: var(--text-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  /* Toiminnot ovat napteja ⊥ arvo ∴ ne saavat koko leveyden otsikon ALLE. */
+  .admin-users-table td.admin-user-actions {
+    flex-wrap: wrap;
+    padding-top: 8px;
+  }
+  /* Spesifisyys ! ylittää `.admin-users-table td::before` (0,1,2) — muuten otsikko jää
+     42%:n sarakkeeseen & ensimmäinen nappi kutistuu sen viereen. */
+  .admin-users-table td.admin-user-actions::before { flex: 0 0 100%; }
+  .admin-toggle-active-btn,
+  .admin-copy-invite-btn,
+  .admin-reset-password-btn { flex: 1 1 auto; }
 }
 
 .admin-whatsapp-link {
@@ -5479,6 +5575,18 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 .admin-faq-save { min-height: 44px; padding: 0 16px; margin-top: 8px; }
 .admin-faq-textarea { width: 100%; min-height: 180px; padding: 10px 12px; background: var(--surface-app); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: var(--text-body); font-family: inherit; line-height: 1.5; resize: vertical; }
 .admin-faq-crepe { border: 1px solid var(--border-default); border-radius: var(--radius-sm); }
+/* UX-audit 2026-08-01: Crepe-teema antaa editorille kiinteän `padding: 0 120px` (luettava
+   rivinmitta isolla ruudulla). 390px-puhelimessa se jättää tekstille 82px ∴ sanat katkeavat
+   kesken ("kokoontumi | nen") & FAQ:n muokkaus on käytännössä mahdotonta. Mittari ⊥ nähnyt
+   tätä: mikään ei vuoda reunan yli — sisältö vain kuristuu. Desktop pitää 120px:n. */
+/* Spesifisyys (0,3,0): Crepen oma sääntö on `.milkdown .ProseMirror` (0,2,0) JA sen tyylit
+   ladataan `admin-page.ts`:n importista tämän tiedoston jälkeen ∴ tasapelillä se voittaisi. */
+@media (max-width: 700px) {
+  .admin-faq-crepe .milkdown .ProseMirror {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
 .patkat-row-actions { display: flex; gap: 6px; align-items: center; }
 .patkat-row-copy { min-height: 44px; padding: 0 12px; font-size: 0.85rem; }
 /* T274: järjestäjä-crossover-linkki tilivalikossa */
@@ -5926,13 +6034,15 @@ body[data-map-mode="muokkaus"] #map-filter-bar:not([hidden]) ~ .marker-focus-pil
   body[data-map-mode="muokkaus"] #map-filter-bar:not([hidden]) ~ .marker-focus-pill { top: 101px; }
 }
 
-/* T181/V114 + T377: mobiilissa `#left-panel` OVERLAYAA kartan (kutistettuna 32px kaista
+/* T181/V114 + T377: mobiilissa `#left-panel` OVERLAYAA kartan (kutistettuna 44px kaista
    vasemmassa reunassa) ∴ suodatinbar ! jättää sille tilaa — muuten bar peittää ▶-togglen &
    sivupaneelia ⊥ saa auki lainkaan. Talkoolaisella paneelia ⊥ ole → ⊥ sisennystä. */
 @media (max-width: 480px) {
   /* MARGIN ⊥ padding: elementin ! päättyä ennen kaistaa, muuten sen läpinäkyvä tausta
      nappaa klikin vaikka lapset olisivat sivussa (mitattu: ▶ ⊥ avautunut lainkaan). */
-  body[data-role="järjestäjä"] #map-filter-bar { margin-left: 40px; }
+  /* Kaista leveni 32→44px (UX-audit 2026-08-01) ∴ sisennys seuraa: 40px olisi jättänyt
+     barin 4px togglen päälle & vienyt takaisin B170:n umpikujaan. */
+  body[data-role="järjestäjä"] #map-filter-bar { margin-left: 48px; }
 }
 
 /* ── T386: InventoryMergePanel — järjestäjän "Yhdistä"-työkalu (V277/V279) ──────────
@@ -6145,7 +6255,12 @@ body[data-map-mode="muokkaus"] #map-filter-bar:not([hidden]) ~ .marker-focus-pil
   /* 24px oletus: Leafletin attribuutiorivi asuu alareunassa & 8px jätti napin sen päälle
      (lähdemerkintä ! pysyä luettavana — Maanmittauslaitoksen lisenssiehto). */
   bottom: var(--gps-control-bottom, 24px);
-  z-index: 1100; /* Leaflet-panet 200–700 & hero 1000 yllä, modaalit 3000 alla */
+  /* UX-audit 2026-08-01: oli 1100 = TASAN sama kuin `#map-filter-bar` ∴ kapean ruudun
+     suodatin-sheet (`.map-filter-groups`, z-index 2100) EI päässyt yli: sen 2100 on barin
+     omassa pinokontekstissa & kontekstien tasapelin ratkaisee DOM-järjestys, jossa
+     gps-control on myöhempi. Lopputulos: sheetin sticky "Valmis" jäi GPS-pillerin alle.
+     1050 pitää pillerin yhä heron (1000) & Leaflet-panejen (200–700) yllä. */
+  z-index: 1050;
   display: flex;
   align-items: center;
   gap: 6px;

@@ -108,7 +108,7 @@ export class AreaDetailsModal {
     nameInput.type = 'text'
     nameInput.value = area.name
     nameInput.style.cssText =
-      'width:100%;box-sizing:border-box;padding:8px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:6px;color:var(--text-body);font-size:13px'
+      'width:100%;box-sizing:border-box;min-height:44px;padding:0 10px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:6px;color:var(--text-body);font-size:13px'
 
     const save = () => {
       const val = nameInput.value.trim()
@@ -130,10 +130,12 @@ export class AreaDetailsModal {
     section.appendChild(this.buildLabel('Koko ja kierto'))
 
     const row = document.createElement('div')
-    row.style.cssText = 'display:flex;gap:8px;align-items:center;flex-wrap:wrap'
+    row.style.cssText = 'display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap'
 
+    // §A/V268: kenttä on kosketuskohde siinä missä nappi — 29px korkea numerokenttä on
+    // hanskalla osumaton (UX-audit 2026-08-01).
     const inputStyle =
-      'padding:6px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:6px;color:var(--text-body);font-size:13px'
+      'min-height:44px;padding:0 8px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:6px;color:var(--text-body);font-size:13px'
 
     const addLabeledInput = (
       labelText: string,
@@ -144,10 +146,15 @@ export class AreaDetailsModal {
       step: number,
       width: string,
     ): HTMLInputElement => {
+      // UX-audit 2026-08-01: label & kenttä olivat rivin ERILLISIÄ lapsia ∴ `flex-wrap`
+      // katkaisi juuri niiden VÄLISTÄ kapealla ruudulla — "Kierto (°)" jäi edellisen rivin
+      // loppuun & sen kenttä hyppäsi seuraavalle omana irrallisena laatikkonaan. Pari on
+      // yksi asia ∴ se on yksi flex-lapsi & `<label>` kääriytyy kentän ympärille (osuma
+      // labelista kenttään tulee ilmaiseksi).
       const lbl = document.createElement('label')
-      lbl.style.cssText = 'font-size:11px;color:var(--text-muted)'
-      lbl.textContent = labelText
-      row.appendChild(lbl)
+      lbl.style.cssText =
+        'display:flex;flex-direction:column;gap:2px;font-size:11px;color:var(--text-muted)'
+      lbl.appendChild(document.createTextNode(labelText))
       const inp = document.createElement('input')
       inp.className = cls
       inp.type = 'number'
@@ -155,8 +162,9 @@ export class AreaDetailsModal {
       inp.min = String(min)
       inp.max = String(max)
       inp.step = String(step)
-      inp.style.cssText = `width:${width};${inputStyle}`
-      row.appendChild(inp)
+      inp.style.cssText = `width:${width};box-sizing:border-box;${inputStyle}`
+      lbl.appendChild(inp)
+      row.appendChild(lbl)
       return inp
     }
 
@@ -248,10 +256,14 @@ export class AreaDetailsModal {
     const swatchBtn = document.createElement('button')
     swatchBtn.className = 'feat-color-swatch-btn'
     swatchBtn.setAttribute('aria-label', 'Vaihda väri')
-    swatchBtn.style.cssText = `display:inline-block;width:22px;height:22px;border-radius:4px;background:${currentColor};flex-shrink:0;border:2px solid var(--border-default);cursor:pointer;padding:0`
+    // §A: kohde 44×44, näkyvä läiskä 22×22 — `background-clip:content-box` + padding pitää
+    // värin sisällä ja kasvattaa vain osuma-alueen (UX-audit 2026-08-01: oli 22×44).
+    swatchBtn.style.cssText = `box-sizing:border-box;width:44px;height:44px;padding:11px;border-radius:12px;background:${currentColor};background-clip:content-box;flex-shrink:0;border:none;cursor:pointer`
     const updateSwatch = (color: string) => {
       currentColor = color
       swatchBtn.style.background = color
+      // `background`-shorthand nollaa `background-clip`in ∴ se ! kirjoittaa takaisin.
+      swatchBtn.style.backgroundClip = 'content-box'
     }
     swatchBtn.addEventListener('click', (e) => {
       e.stopPropagation()
@@ -265,14 +277,14 @@ export class AreaDetailsModal {
     nameInput.value = feat.name ?? ''
     nameInput.placeholder = 'Nimi (valinnainen)'
     nameInput.style.cssText =
-      'flex:1;padding:4px 8px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:4px;color:var(--text-body);font-size:12px'
+      'flex:1;min-width:0;min-height:44px;padding:0 8px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:4px;color:var(--text-body);font-size:12px'
     li.appendChild(nameInput)
 
     const deleteBtn = document.createElement('button')
     deleteBtn.className = 'btn-feat-delete'
     deleteBtn.setAttribute('aria-label', 'Poista')
     deleteBtn.style.cssText =
-      'min-width:32px;min-height:32px;background:var(--danger-soft);border:none;border-radius:4px;color:var(--danger-text);cursor:pointer;font-size:14px'
+      'min-width:44px;min-height:44px;background:var(--danger-soft);border:none;border-radius:4px;color:var(--danger-text);cursor:pointer;font-size:14px'
     deleteBtn.textContent = '✕'
     li.appendChild(deleteBtn)
 

@@ -35,6 +35,14 @@
                kaksi label-synkkaa jotka ajautuvat erilleen. -->
         </div>
         <div class="menu-sep"></div>
+        <!-- UX-audit 2026-08-01: järjestäjän yläpalkki (brändi + vaihe-chip + ✎ Muokkaa +
+             Kaikki merkit + ⋯) ⊥ mahtunut puhelimeen — `#btn-menu` leikkautui ruudun oikean
+             reunan yli (mitattu 390px: right=409). Kapealla ruudulla muokkaustila muuttaa
+             tänne, sama T233-liike jolla Karttatyyli siirtyi. Sama tila kuin `#btn-map-mode`
+             (V218: ⊥ rooli-logiikkaa, ⊥ toista tilamuuttujaa) — vain sisääntulo vaihtuu.
+             Labelin SANAT säilyvät (V219): ikoni-only nappi olisi ollut se arvaus jota
+             hanskakäyttäjä ⊥ saa joutua tekemään. -->
+        <button id="btn-menu-map-mode" class="map-mode-toggle" data-role-hide="talkoolainen" aria-pressed="false">✎ Muokkaa</button>
         <button id="btn-layer">Karttatyyli</button>
         <div id="basemap-dim-container"></div>
         <div class="menu-sep"></div>

@@ -113,7 +113,9 @@ export class AreaPanel {
       expandBtn.textContent = isExpanded ? '▼' : '▶'
       expandBtn.setAttribute('aria-label', isExpanded ? 'Sulje komponentit' : 'Näytä komponentit')
       expandBtn.style.cssText =
-        'min-width:32px;min-height:44px;background:transparent;border:none;color:var(--text-muted);font-size:10px;cursor:pointer;flex-shrink:0'
+        // §A/V268: 44 MOLEMMISSA suunnissa — 32px leveä kohde on hanskalla yhtä huono
+        // kuin 32px korkea (UX-audit 2026-08-01).
+        'min-width:44px;min-height:44px;background:transparent;border:none;color:var(--text-muted);font-size:10px;cursor:pointer;flex-shrink:0'
       expandBtn.addEventListener('click', (e) => {
         e.stopPropagation()
         this.toggleAreaExpand(area.id)

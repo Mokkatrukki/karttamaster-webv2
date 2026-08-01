@@ -69,16 +69,26 @@ function buildUserRow(user: AdminUser, callbacks: AdminPageCallbacks): HTMLTable
   tr.className = 'admin-user-row'
   tr.dataset.userId = user.id
 
+  // UX-audit 2026-08-01: kuusisarakkeinen taulu ⊥ mahdu puhelimeen (mitattu 390px-viewport:
+  // taulun leveys 551px ∴ "Tila" & "Toiminnot" jäivät ruudun ulkopuolelle & koko sivu sai
+  // vaakascrollin). Kapealla ruudulla rivi latautuu kortiksi (CSS `.admin-users-table`) ja
+  // sarakeotsikko tulee solun omasta `data-label`ista — piilotettu `thead` ei voi kertoa
+  // mikä "mokka" on. VISION §Admin: "Toimii myös puhelimella jos tarve."
   const nameTd = document.createElement('td')
+  nameTd.dataset.label = 'Nimi'
   nameTd.textContent = user.display_name ?? '—'
   const usernameTd = document.createElement('td')
+  usernameTd.dataset.label = 'Käyttäjätunnus'
   usernameTd.textContent = user.username
   const roleTd = document.createElement('td')
+  roleTd.dataset.label = 'Rooli'
   roleTd.textContent = user.role
   const createdTd = document.createElement('td')
+  createdTd.dataset.label = 'Luotu'
   createdTd.textContent = user.created_at.slice(0, 10)
 
   const statusTd = document.createElement('td')
+  statusTd.dataset.label = 'Tila'
   const statusSpan = document.createElement('span')
   statusSpan.className = `admin-user-status ${active ? 'active' : 'inactive'}`
   statusSpan.textContent = active ? 'Aktiivinen' : 'Deaktivoitu'
@@ -86,6 +96,7 @@ function buildUserRow(user: AdminUser, callbacks: AdminPageCallbacks): HTMLTable
 
   const actionsTd = document.createElement('td')
   actionsTd.className = 'admin-user-actions'
+  actionsTd.dataset.label = 'Toiminnot'
 
   const toggleBtn = document.createElement('button')
   toggleBtn.className = 'admin-toggle-active-btn'

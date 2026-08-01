@@ -1,5 +1,11 @@
 import './style.css'
 import './name-prompt.css'
+// UX-audit 2026-08-01: teema on KÄYTTÄJÄN valinta (V132/T202) & se persistoituu
+// localStorageen — mutta vain `main.ts` sovelsi sen. Talkoolainen joka valitsi Kaamoksen
+// karttanäkymässä sai tälle sivulle täyden valkoisen ∴ juuri se pinta joka avataan
+// pimeässä metsässä oli ainoa joka ⊥ totellut. `initTheme` ! olla jokaisessa
+// entrypointissa ENNEN ensimmäistä renderiä (välkkeen esto).
+import { initTheme } from './logic/theme'
 import { isValidTalkooName, readRememberedName, rememberName, NAME_MAX } from './logic/talkoo-identity'
 import { renderPatkatPage } from './ui/patkat-page'
 import { buildNamePrompt } from './ui/name-prompt'
@@ -8,6 +14,10 @@ import { loadActivePhase, getActivePhase } from './logic/phase-view'
 import { fetchMarkers } from './logic/sync'
 import type { Segment } from './logic/segments'
 import type { SignMarker } from './logic/types'
+
+
+// Ennen ensimmäistä renderiä: <html data-theme> talteen localStoragesta (ei välkettä).
+initTheme()
 
 const content = document.getElementById('patkat-content')!
 

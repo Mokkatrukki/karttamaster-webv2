@@ -458,7 +458,9 @@ export class SignTemplateModal {
     addPartBtn.className = 'sign-lib-part-add-toggle'
     addPartBtn.type = 'button'
     addPartBtn.textContent = '+ Lisää osa'
-    addPartBtn.style.cssText = 'min-height:36px;padding:4px 10px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-muted);font-size:12px;cursor:pointer'
+    // §A/V268: 36px oli alle kosketusminimin (UX-audit 2026-08-01). Pieni FONTTI kelpaa,
+    // pieni KOHDE ei.
+    addPartBtn.style.cssText = 'min-height:44px;padding:0 12px;background:var(--field-tint);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-muted);font-size:12px;cursor:pointer'
     addPartRow.appendChild(addPartBtn)
     modal.appendChild(addPartRow)
 
@@ -635,7 +637,10 @@ export class SignTemplateModal {
     favCheckbox.type = 'checkbox'
     favCheckbox.className = 'sign-lib-fav-checkbox'
     favCheckbox.checked = template?.favorite ?? prefill?.favorite ?? true
-    favCheckbox.style.cssText = 'width:18px;height:18px;cursor:pointer'
+    // §A/V303: koko EI tule tänne inline-tyylinä — natiivi checkbox ohittaa paddingin
+    // (B171) ∴ ainoa toimiva kaava on `appearance:none` + oma piirto, ja se elää JAETTUNA
+    // `src/style.css`:ssä (`.marker-item-checkbox`-lohko). Inline-leveys myös voittaisi sen.
+    favCheckbox.style.cursor = 'pointer'
     favLabel.appendChild(favCheckbox)
     favLabel.appendChild(document.createTextNode('Näytä suosikit-pickissä'))
     modal.appendChild(favLabel)
