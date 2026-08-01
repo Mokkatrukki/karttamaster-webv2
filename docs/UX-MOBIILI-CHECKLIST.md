@@ -120,6 +120,23 @@ kartan pitää latautua kokonaan, napit pitää osua, moodia ei saa vaihtaa vahi
 | "Kierto (°)" label ja sen kenttä eri riveillä | aluemodaali | label kääriytyy kentän ympärille → pari on yksi flex-lapsi |
 | "+ Lisää osa" 88×36, suosikkirasti 18×18 | merkkikirjastomodaali | 44px; rasti jaettuun V303-kaavaan |
 
+### Kolmas aalto — admin-rooli (käyttäjähavainto 2026-08-01)
+
+| Vika | Näkymä | Korjaus |
+|---|---|---|
+| **"Suodata" asettui ▶-togglen päälle ja nappasi klikin** — suunnittelupaneelia ei saanut auki | järjestäjän kartta **admin-tilillä**, ≤480px | `layoutRole()`: admin → järjestäjä-layout |
+| ✎ Muokkaa katosi kokonaan ≤560px | admin | sama korjaus |
+| Talkoolaisen ⋯-valikkolohko näkyi | admin | sama korjaus |
+
+**Roolisidonnainen CSS on ansa.** `[data-role="järjestäjä"]`-sääntöjä oli viisi ja **kaikki**
+ohittivat adminin hiljaa. Korjaus on yksi kartta (`layoutRole`), ei viisi selektorilaajennusta.
+
+**Auditoi jokainen rooli erikseen.** Fixtuurin `role` oli aina `järjestäjä` ∴ 53 vihreää
+näkymää eivät nähneet tätä lainkaan. Nyt mukana `admin-kartta_390` + `admin-valikko_390`.
+
+**Geometria ei riitä.** Päällekkäisyys mitataan `elementFromPoint`illa: nappi voi olla
+oikean kokoinen ja oikeassa paikassa, ja silti toinen elementti syö sen klikin.
+
 **Kaamos-tumma auditoidaan omana kierroksenaan.** Teema ei saa muuttaa geometriaa — jos muuttaa,
 jokin luki värin kokoa määräävästä paikasta. Lisäksi jokaiselle sivulle on erillinen vahti joka
 vaatii `<html data-theme="dark">`: teemavalinta on käyttäjän eikä se saa kadota sivunvaihdossa.

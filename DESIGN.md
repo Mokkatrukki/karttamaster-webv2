@@ -209,6 +209,23 @@ renderiä. Ennen tätä vain `main.ts` teki sen ∴ Kaamoksen valinnut talkoolai
 sivuille täyden valkoisen — juuri niille pinnoille jotka avataan pimeässä. Vahti: audit-specin
 "teema pätee sivulla …" -testit vaativat `<html data-theme="dark">` per sivu.
 
+**`body[data-role]` on LAYOUT-rooli, ⊥ tilirooli (B184/V344).** Layout-rooleja on kaksi
+(`järjestäjä` · `talkoolainen`), tilirooleja kolme. `layoutRole()` (`src/app/role-view.ts`)
+typistää `admin`in järjestäjäksi — VISION §Roolihierarkia: admin ⊇ järjestäjä, eikä
+karttanäkymässä ole yhtään admin-erityistä pintaa.
+
+Ennen tätä `data-role` sai tilin roolin sellaisenaan ∴ `body[data-role="admin"]` EI osunut
+yhteenkään `[data-role="järjestäjä"]`-sääntöön ja admin putosi jokaisesta niistä **hiljaa**:
+`#map-filter-bar`in 48px sisennys jäi pois ⇒ "Suodata" asettui `#left-panel-toggle`in päälle
+ja nappasi klikin ⇒ suunnittelupaneelia ⊥ saanut auki lainkaan (sama umpikuja kuin B170);
+`#btn-menu-map-mode` jäi piiloon ⇒ ≤560px muokkaustila katosi kokonaan; talkoolaisen
+⋯-valikkolohko jäi näkyviin.
+
+**Sääntö:** roolisidonnainen CSS kirjoitetaan VAIN layout-roolilla. Uusi tilirooli → rivi
+`layoutRole`en, ⊥ uusi haara jokaiseen selektoriin. Vahdit: `tests/b184-layout-role.test.ts`
+(kartta) + audit-specin `admin-kartta_390` (mittaa `elementFromPoint`illa KUKA SAA KLIKIN —
+pelkkä geometria ⊥ paljasta varastettua klikkiä).
+
 **Inline-tyyli voittaa CSS:n.** Useat modaalikontrollit (`area-details-modal.ts`,
 `sign-template-modal.ts`) asettavat mittansa `style.cssText`illä ∴ §A:n korjausta EI voi tehdä
 `style.css`:ään — se ei pure. Poikkeus: natiivi checkbox, jonka koko ! tulla jaetusta

@@ -435,6 +435,47 @@ test.describe('järjestäjä 390px', () => {
     await auditView(page, 'jarjestaja-merkkimodaali_390', ['.marker-detail-modal'])
   })
 
+  // B184/V344: admin AJAA JÄRJESTÄJÄN LAYOUTIA. Ennen korjausta `body[data-role="admin"]`
+  // ohitti jokaisen `[data-role="järjestäjä"]`-säännön ∴ "Suodata" asettui
+  // `#left-panel-toggle`in päälle & nappasi klikin — suunnittelupaneelia ⊥ saanut auki.
+  // Geometria ei riitä vahdiksi: mitataan KUKA SAA KLIKIN togglen keskipisteessä.
+  test('admin-kartta_390', async ({ page }) => {
+    await mockEverything(page, 'admin')
+    await page.goto('/')
+    await page.waitForTimeout(LOAD)
+
+    const hit = await page.evaluate(() => {
+      const tog = document.querySelector('#left-panel-toggle')
+      if (!tog) return 'ei togglea'
+      const b = tog.getBoundingClientRect()
+      const el = document.elementFromPoint((b.x + b.right) / 2, (b.y + b.bottom) / 2)
+      return el?.id || el?.className || 'null'
+    })
+    expect(hit, 'Suodata-nappi peittää sivupaneelin togglen (B184)').toContain('left-panel-toggle')
+
+    // Paneelin ! oikeasti avautua klikistä — hit-testi yksin ⊥ todista koko ketjua.
+    await page.click('#left-panel-toggle')
+    await page.waitForTimeout(400)
+    await expect(page.locator('#left-panel')).not.toHaveClass(/collapsed/)
+
+    await auditView(page, 'admin-kartta_390', [
+      '#toolbar', '#btn-menu', '#map', '#left-panel-toggle',
+    ])
+  })
+
+  test('admin-valikko_390', async ({ page }) => {
+    await mockEverything(page, 'admin')
+    await page.goto('/')
+    await page.waitForTimeout(LOAD)
+    await page.click('#btn-menu')
+    await page.waitForTimeout(400)
+    // ✎ Muokkaa ! löytyä valikosta myös adminilta (yläpalkin nappi on piilossa ≤560px),
+    // ja talkoolaisen lohko ! olla piilossa.
+    await expect(page.locator('#btn-menu-map-mode')).toBeVisible()
+    await expect(page.locator('#tk-menu-actions')).toBeHidden()
+    await auditView(page, 'admin-valikko_390', ['#toolbar-menu', '#btn-layer', '#btn-menu-map-mode'])
+  })
+
   test('inventaario-muokkaus_390', async ({ page }) => {
     await mockEverything(page, 'järjestäjä')
     await page.goto('/inventory.html')
