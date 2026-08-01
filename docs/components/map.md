@@ -101,6 +101,36 @@ Leaflet-glue. Ohut kerros kartan päällä. **Testattavuus: Playwright.**
 
 ---
 
+## SegmentOverlay — T464 ✓ ⚠️ pilkko
+**Vastuu:** pätkien piirto kartalle — tunniste, status, nimilappu, raja. Lisäksi rajamuokkauksen ja luonnin snap-merkit.
+**Käyttäjä:** järjestäjä (tilannekuva), talkoolainen (oma pätkä + himmennetty konteksti)
+**Konteksti:** desktop-kartta ja puhelin metsässä; taustakarttana MML ∴ kontrastin on kestettävä aurinko
+**Moduuli:** `src/map/segment-overlay.ts`
+**Testattavuus:** Playwright (`e2e/t464-segment-boundaries.spec.ts`, `t419-label-scale`, `t349-map-surface-theme`, `critical-paths`) — tyylilaskenta on puhtaissa moduuleissa (`segment-style.ts`, `segments.ts`) ja testataan Vitest-purena
+
+### Neljä kanavaa samasta viivasta
+| Kanava | Miten | Kantaa | Sopimus |
+|---|---|---|---|
+| casing | pätkäväri `weight 15` | kenen pätkä | DESIGN.md §K SegmentCasing, V244 |
+| sisus | reitin väri `weight 9` valkoisen erottimen takaa | mikä reitti | V244/B137 |
+| viivatyyli | `dashArray` + `opacity` casingissa | phase-status | V252, `LINE_STATE_STYLE` |
+| **raja** | rako 12 m + päätepistemerkki `r=5` kummassakin päässä | mistä mihin | V353 |
+
+- **Väri ei riitä rajaksi.** Se pettää värisokealle, himmennetyssä kontekstissa (V142/V270) ja aina kun paletti törmää. Raja saa siksi geometrisen kanavan — sama periaate jolla pätkä ja reitti erotettiin.
+- **Rako on presentaatio, ei dataa.** `insetRoutePoints` lyhentää piirrettyä viivaa; `sliceRoutePoints` ja `deriveTrackFromBounds` (V258/V260) pitävät km-rajansa pikselilleen.
+- **Päätepiste istuu piirretyn viivan päässä**, ei km-rajalla: jaetulla rajalla molemmat pätkät piirtävät omansa ja rako pitää ne erillään. `interactive: false` ∴ se ei varasta klikkiä casingilta eikä viritetyltä sijoitukselta (V345/T460).
+- **Väri tulee `assignSegmentColors`ilta kerran per render** — silmukan sisällä se olisi O(n²).
+- **Kaikki kerrokset samaan `this.layers`-listaan** ⇒ `clear()` vie kolmikon JA päätepisteet; orpo merkki väittäisi rajaa jota ei enää ole.
+
+### Pilkkolippu
+Ylitti 400 riviä T464:ssä. Kolme vastuuta samassa luokassa: **render** (viiva + casing + lappu + päätepiste), **edit-mode** (raahattavat rajamerkit) ja **creation-snap-merkit**. Kaksi jälkimmäistä ovat muokkaustyökaluja, eivät katselukerrosta.
+
+### Käyttäjätarkistus
+> Talkoolainen: näkeekö mistä mihin oma pätkä ulottuu ilman listan avaamista? ✓ (rako + päätepiste)
+> Järjestäjä: erottaako vierekkäiset pätkät yhdellä silmäyksellä? ✓ (naapuriväritys, V352)
+
+---
+
 ## GpsNavigator *(T30 ✓, T341 ✓ — T21/T31 tulossa)*
 **Vastuu:** Laitteen GPS-sijainti kartalla + navigointi seuraavaan merkkiin
 **Käyttäjä:** talkoolainen metsässä

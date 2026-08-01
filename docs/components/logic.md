@@ -189,27 +189,52 @@ suunniteltu → asetettu → tarkistettu → kerätty
 
 ---
 
-## SegmentManager *(tulossa — T13)*
-**Vastuu:** Pätkädata: alku/loppu reitillä + talkoolaisen assign
-**Käyttäjä:** järjestäjä luo, talkoolainen näkee oman
-**Moduuli:** `src/logic/segments.ts` *(ei vielä)*
-**Testattavuus:** Vitest-pure
+## SegmentManager — T464 ✓ ⚠️ pilkko
+**Vastuu:** pätkän/tehtävän tietomalli + store-CRUD + jäsenyys/overlap + phase-progress + kartan värikieli.
+**Käyttäjä:** järjestäjä luo ja jakaa, talkoolainen näkee oman
+**Moduuli:** `src/logic/segments.ts`
+**Testattavuus:** Vitest-pure (`tests/segments.test.ts`)
 
-### Segment-tyyppi (alustava)
-```typescript
-interface Segment {
-  id: string
-  routeId: string
-  startDist: number   // meters from start
-  endDist: number     // meters from start
-  assignedTo: string  // roolitunnus
-}
-```
+### Ominaisuudet
+- ✓ `Segment`-tyyppi + V11/V25-validointi (T13); **route-optional** (T212/V139): reititön tehtävä jättää `routeIds`/`startDist`/`endDist` pois, route-validoinnit koskevat vain reitillisiä
+- ✓ `primaryRouteId` (T299/V211) — MITÄ reittiä km:t mittaavat; `segmentPrimaryRouteId` on kanoninen lukija (legacy → `routeIds[0]`)
+- ✓ `validateNoOverlap` vertaa PRIMARY-reittiä, ei jäsenyyttä (T299/V211/B114)
+- ✓ `getPhaseProgress` / `segmentLineState` — vaiheen edistymä & viivatila; `completed` voittaa merkkilaskurin (T353/V256, B142)
+- ✓ **Värikieli** — ks. alla
 
-### Tulossa
-- [ ] `Segment` type + jatkuvuus-validointi (T13, V11)
-- [ ] Assign talkoolaiselle (T26)
-- [ ] **Route-optional yleistys (T212, V139):** `routeIds?`/`startDist?`/`endDist?` valinnaisiksi → reititön tehtävä (aluetehtävä). V11/V25 vain reitillisille.
+### Värikieli (T464/V352, V96-amend)
+| Funktio | Palauttaa | Kuka lukee |
+|---|---|---|
+| `assignSegmentColors(segments)` | `Map<id, väri>` — naapuritietoinen jako | `segment-overlay.ts` (kerran per render) |
+| `colorForSegment(id)` | hash-väri paletista | reitittömät tehtävät + fallback |
+| `segmentLineColor(tunnisteväri, state)` | `valmis` → `SEGMENT_DONE_COLOR`, muuten tunnisteväri | kartta |
+
+- **Väri on suhde naapureihin, ei funktio id:stä.** `hash(id) % 4` antoi vakauden mutta ei erottuvuutta: 13 purkupätkää + 4 väriä → kolme peräkkäistä samanväristä (B200). `assignSegmentColors` ryhmittelee (`phase` + primary-reitti), järjestää `startDist`in mukaan ja antaa pienimmän värin jota mikään **leikkaava tai koskettava** naapuri ei käytä.
+- **Ahne värjäys aloitusjärjestyksessä on intervalligraafilla optimaalinen** ∴ 4 väriä riittää kunnes viisi pätkää on päällekkäin yhtä aikaa. Paletin loppuessa törmäys hyväksytään — ei kaadu, ei paletin ulkopuolista väriä (V244-ehdot pysyvät).
+- **Jako on riippumaton `completed`-lipusta** vaikka valmis pätkä piirtyy vihreänä (T348): muuten yhden pätkän kuittaus vaihtaisi naapureiden värit kesken työpäivän.
+- **Hinta (V96-amend):** lisäys/poisto saa vaihtaa naapureiden värejä. Erottuvuus voittaa vakauden.
+- Vihreä on VARATTU status-kanavalle — `SEGMENT_COLORS` ei sisällä sitä (T304).
+
+### Pilkkolippu
+Ylitti 400 riviä T464:ssä & vastuut ovat eriytyneet. Luonteva ensimmäinen irrotus: **väritys + viivatila** omaksi moduulikseen — yksi kutsupaikka (`segment-overlay.ts`), oma testilohko, ei riippuvuutta store-CRUD:iin.
+
+---
+
+## SegmentSlice — T464 ✓
+**Vastuu:** pätkän piirrettävä geometria km-rajoista — siivu reitistä + rajan rako.
+**Käyttäjä:** molemmat (primitiivi kartalle)
+**Moduuli:** `src/logic/segment-slice.ts`
+**Testattavuus:** Vitest-pure (`tests/segment-slice.test.ts`)
+
+### Rajapinta
+| Funktio | Palauttaa |
+|---|---|
+| `sliceRoutePoints(points, start, end)` | reitin pisteet välillä, molemmat rajat mukaan lukien |
+| `insetRoutePoints(points, start, end)` | sama siivu, molemmista päistä `SEGMENT_END_GAP_M` (12 m) lyhyempänä |
+
+- **Miksi omana moduulinaan:** `insetRoutePoints`in rajatapaukset — lyhyt pätkä (`≤ 4 × rako`) ja harva GPX (kavennettu siivu < 2 pistettä) — ovat juuri niitä joita Playwright ei näe, koska tuotantoreitillä ei ole sellaista syötettä. Puhtaana funktiona ne ovat yhden testin päässä. Ennen tätä koodi asui `src/map/segment-overlay.ts`:ssä eli väärässä kerroksessa.
+- **Rako on presentaatio, ei dataa.** `deriveTrackFromBounds` (V258/V260) käyttää `sliceRoutePoints`in kanssa täsmälleen samaa ehtoa ∴ jäljen migraatio ei siirrä karttaa pikselilläkään. Jos ehtoa muuttaa, se on muutettava molemmissa.
+- **Molemmat peruutukset ovat tarkoituksellisia:** näkyvä väärä raja on parempi kuin näkymätön pätkä.
 
 ---
 

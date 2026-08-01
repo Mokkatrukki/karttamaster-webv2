@@ -1014,6 +1014,20 @@ Himmennetyn merkin ainoa toiminto talkoolaiselle. **⊥ ole karsittu MarkerDetai
 - **Reititön tehtävä (V139)** ja **talkoolaisen himmennetty konteksti-pätkä (V142)** → yksi viiva kuten ennen: edellisellä ei ole sisusta jota kehystää, jälkimmäiselle ei anneta korostuksen kieltä.
 - Tyylit tulevat puhtaalta `segmentLayerStyles()`-funktiolta (`src/logic/segment-style.ts`) valmiiksi järjestettynä — Leaflet vain soveltaa. Kaikki kerrokset samaan `this.layers`-listaan ⇒ `clear()` poistaa kolmikon, ei jätä orpoa viivaa.
 
+**Pätkän raja — kolmas kanava (T464/V352/V353, B200).** Casing kertoo KENEN pätkä, ei sitä MISTÄ MIHIN se ulottuu. Tuotannossa 13 purkupätkää jaettiin 4 värin paletista hashilla ∴ kolme peräkkäistä sai saman värin ja 16 km luki yhtenä viivana.
+
+| Osa | Arvo | Kantaa |
+|---|---|---|
+| tunnisteväri | `assignSegmentColors()` — ahne intervallivärjäys, ryhmä (`phase` + primary-reitti) | naapurista erottuminen |
+| rako | `SEGMENT_END_GAP_M = 12` m molemmista päistä | raja geometriana |
+| päätepiste | `r = 5`, `stroke #FFFFFF` `2px`, `fill` = pätkän oma väri, `interactive: false` | "mistä mihin" |
+
+- **Väri on suhde naapuriin, ei funktio id:stä (V352).** Paletti (`SEGMENT_COLORS`, T304-kalibrointi) pysyy ennallaan — 4 väriä riittää kunnes viisi pätkää on päällekkäin yhtä aikaa, koska ahne värjäys aloitusjärjestyksessä on intervalligraafilla optimaalinen. Hinta: pätkän lisäys/poisto **saa** vaihtaa naapureiden värejä (V96-amend). Vakaus palvelee muistia, erottuvuus lukemista — samanvärinen naapuri tekee kartasta väärän, ei vain epämukavan.
+- **Rako on metreissä, ei pikseleissä.** ~1.5 px zoomilla 13, ~12 px zoomilla 16 ∴ se katoaa kaukaa jossa sitä ei tarvita (kaukaa luetaan väriä) ja on selvä läheltä jossa raja kiinnostaa. Rako on **presentaatio**: `sliceRoutePoints` ja sen kanssa identtinen `deriveTrackFromBounds` (V258/V260) pitävät km-rajansa pikselilleen — jälki on dataa.
+- **Päätepiste istuu piirretyn viivan päässä, ei km-rajalla.** Jaetulla rajalla molemmat pätkät piirtävät omansa; täsmälleen samaan pisteeseen asetettuina ne peittäisivät toisensa ja raja katoaisi taas. Rako pitää ne erillään.
+- **Ei klikattava.** `interactive: false` ∴ merkki ei varasta klikkiä casingilta eikä viritetyltä sijoitukselta (V345/T460) vaikka Leaflet piirtää sen viimeisenä.
+- **Kaksi peruuttamista lähtötilaan:** lyhyt pätkä (`≤ 4 × gap`) ja harva GPX (kavennettu siivu < 2 pistettä) piirtyvät ilman rakoa. Näkyvä väärä raja on parempi kuin näkymätön pätkä.
+
 
 
 **Regressiosuoja (V88):** `getSegmentStatusCounts()` (src/logic/segments.ts) yksikkötestaus ei riitä — T95 hävisi juuri koska pelkkä logiikkatesti jäi vihreäksi vaikka kutsupaikka katosi UI:sta. Pakollinen lisäksi: Vitest-jsdom-testi joka rakentaa oikean `main.ts`-wiring-polun (ei eristettyä komponenttia) ja tarkistaa että `#segment-status-bar` DOM-teksti sisältää oikean lukumäärän segmentStoren mutaation jälkeen. Tulevat refaktorit jotka koskevat `#map-area`-lasten järjestystä tai `SegmentPanel`/`segment-view`-riviä eivät saa läpäistä testejä jos tämä kutsu putoaa pois.

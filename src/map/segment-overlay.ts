@@ -3,11 +3,12 @@ import { deliverMapClick } from '../logic/map-click'
 import { nearestPointIndex } from '../logic/bearing'
 import type { RoutePoint, SignMarker } from '../logic/types'
 import type { Segment, SegmentStore, SegmentLineState } from '../logic/segments'
-import { segmentLineColor, segmentLineState, getPhaseProgress, segmentPrimaryRouteId } from '../logic/segments'
-import { segmentLayerStyles } from '../logic/segment-style'
+import { segmentLineColor, segmentLineState, getPhaseProgress, segmentPrimaryRouteId, assignSegmentColors, colorForSegment } from '../logic/segments'
+import { segmentLayerStyles, SEPARATOR_COLOR } from '../logic/segment-style'
 import { segmentDisplayName } from '../logic/segment-name'
 import { segmentVisibleOnRoutes } from '../logic/segment-visibility'
 import { segmentLabelScaleForZoom } from '../logic/marker-scale'
+import { insetRoutePoints } from '../logic/segment-slice'
 import type { MapFilter } from '../logic/map-filter'
 import { defaultMapFilter, segmentVisibility, DIM_OPACITY } from '../logic/map-filter'
 
@@ -30,6 +31,12 @@ export const LINE_STATE_STYLE: Record<SegmentLineState, { opacity: number; weigh
 // tila jonka järjestäjän ! bongata kartalta (kuka ⊥ ole aloittanut). 0.7 = 3.0:1. Hierarkia ⊥
 // katoa: valmis/kesken/ei_alkanut erottuvat yhä kuviolla ('' / '10 8' / '6 12'), leveydellä
 // (11/11/9) & alfalla (.9/.85/.7) ∴ kevein on yhä kevein, muttei näkymätön.
+
+// T464/V353: päätepistemerkin säde. 5 px = casingin (15) kolmannes ∴ merkki lukee viivan
+// PÄÄTTEENÄ ⊥ omana kohteenaan (& se on `interactive: false` ∴ se ⊥ myöskään ole sellainen).
+// Rako (`SEGMENT_END_GAP_M`) & siivutus asuvat `logic/segment-slice.ts`:ssä: ne ovat puhdasta
+// geometriaa jonka rajatapaukset ⊥ näy Playwrightissa.
+export const SEGMENT_END_RADIUS = 5
 
 export interface ContextLineStyle {
   opacity: number
@@ -175,8 +182,14 @@ export class SegmentOverlay {
     // oli koodissa jo. Aukon havaittavuus ratkeaa PÄTKÄN kontrastilla (§K alfa-alaraja ≥3:1),
     // ⊥ aukon omalla tyylillä — yksi säädin ⊥ kaksi.
 
-    // T152/V96: väri = tunniste (stabiili per id), viivatyyli = phase-status.
+    // T152/V96: väri = tunniste, viivatyyli = phase-status.
     // T348: valmis-tila ohittaa tunnistevärin (segmentLineColor) — status voittaa identiteetin.
+    // T464/V352: jako lasketaan KERRAN per render — silmukan sisällä se olisi O(n²) & sen
+    // syöte on koko `segments` ∴ se ⊥ kuulu sinne mihin yhden pätkän tiedot kuuluvat.
+    // Syöte on sama phase-suodatettu joukko jonka silmukka käy läpi (V259-perustelu pätee myös
+    // tässä: kilpailijajoukko on se joka piirtyy) — ryhmittely hoitaa loput.
+    const identityColors = assignSegmentColors(segments)
+
     for (const seg of segments) {
       // T374/V269/B157: piilotetun reitin pätkäviiva & nimilappu katoavat reitin mukana.
       // Reititön tehtävä (V139) läpäisee aina — predikaatti hoitaa sen, ⊥ toista sääntöä tänne.
@@ -188,7 +201,10 @@ export class SegmentOverlay {
       // T353/V256 (B142): talkoolaisen kuittaus (`completed`) voittaa merkkilaskurin — ilman tätä
       // eksplisiittinen "pätkä valmis" ⊥ näkynyt kartalla lainkaan.
       const state = segmentLineState(progress, seg.completed)
-      const color = segmentLineColor(seg.id, state)
+      // `??` on vyö & henkselit: jako kattaa jokaisen syötteensä pätkän (reititönkin). Fallback
+      // on olemassa jotta uusi kutsupaikka joka unohtaa syöttää pätkän jakoon saa VÄRIN ⊥
+      // `undefined`ia — näkymätön viiva olisi pahempi vika kuin väärä väri.
+      const color = segmentLineColor(identityColors.get(seg.id) ?? colorForSegment(seg.id), state)
       const done = state === 'valmis'
       // T377/V271: suodatin päättää — overlay soveltaa. 'hidden' = ⊥ renderöidä (eksplisiittinen
       // käyttäjävalinta, V243-amend), 'dim' = sama himmennyskieli kuin fokuksella.
@@ -217,7 +233,12 @@ export class SegmentOverlay {
         const routeId = segmentPrimaryRouteId(seg)
         const route = this.routes.find(r => r.id === routeId)
         if (!route) continue
-        const pts = sliceRoutePoints(route.routePoints, segStart, segEnd)
+        // T464/V353: piirretty viiva on hiukan pätkän km-väliä LYHYEMPI ∴ vierekkäiset pätkät ⊥
+        // kosketa toisiaan pikselitasolla & jaettu raja lukee rakona myös silloin kun värit
+        // sattuvat olemaan lähellä toisiaan. Rako on PRESENTAATIO: `sliceRoutePoints` (& sen
+        // kanssa identtinen `deriveTrackFromBounds`, V258/V260) pitää km-rajansa pikselilleen —
+        // jälki on dataa, rako on lukemisen apu.
+        const pts = insetRoutePoints(route.routePoints, segStart, segEnd)
         if (pts.length < 2) continue
         // T336/V244/B137: casing — pätkäväri reunaksi, valkoinen erotin, reitin väri sisukseksi.
         // Piirtojärjestys on merkitsevä (Leaflet: myöhempi päälle) ∴ tyylit tulevat valmiiksi
@@ -244,6 +265,32 @@ export class SegmentOverlay {
           pl.addTo(this.map)
           this.layers.push(pl)
           if (ls.interactive) line = pl
+        }
+        // T464/V353: päätepistemerkit. Väri yksin ⊥ riitä rajaksi — se pettää värisokealle,
+        // himmennetyssä kontekstissa & aina kun paletti törmää (V352:n varaventtiili) ∴ "mistä
+        // mihin" ! olla luettavissa GEOMETRIASTA, samalla periaatteella jolla pätkä & reitti
+        // erotettiin (V244). Merkit istuvat PIIRRETYN viivan päissä ⊥ km-rajalla: jaetulla
+        // rajalla molemmat pätkät piirtävät omansa & rako pitää ne erillään — täsmälleen samaan
+        // pisteeseen asetettuina ne peittäisivät toisensa & raja katoaisi taas.
+        // `interactive: false` ∴ merkki ⊥ vie klikkiä casingilta (V345/T460: viritetty sijoitus
+        // saa klikin ensin, & se luetaan casingin kuuntelijassa).
+        for (const pos of [pts[0], pts[pts.length - 1]]) {
+          const cap = L.circleMarker(pos, {
+            radius: SEGMENT_END_RADIUS,
+            // Valkoinen reunus & pätkän oma väri sisuksena = sama kolmikanavaperiaate kuin
+            // casingissa (V244): kumpikin kontrastoi valkoista vasten ∴ merkki erottuu sekä
+            // taustakartasta että viivasta. Vihreä tulee vain statuksesta (`color`, T348).
+            color: SEPARATOR_COLOR,
+            weight: 2,
+            fillColor: color,
+            fillOpacity: style.opacity,
+            opacity: style.opacity,
+            interactive: false,
+          })
+          cap.addTo(this.map)
+          // Samaan listaan kuin viivat ⇒ `clear()` vie ne. Orpo päätepiste kartalla väittäisi
+          // rajaa jota ⊥ enää ole.
+          this.layers.push(cap)
         }
         // T445/V324: nimi kulkee `segmentDisplayName`in läpi kuten ∀ muu näyttöpaikka (hub,
         // sivupaneeli, hero, modaalit). Tämä oli AINOA suora `seg.displayName`-luku ∴ kartalla
@@ -390,9 +437,4 @@ function routePointAtDist(routePoints: RoutePoint[], dist: number): [number, num
   return [closest.lat, closest.lon]
 }
 
-function sliceRoutePoints(points: RoutePoint[], startDist: number, endDist: number): [number, number][] {
-  return points
-    .filter(p => p.distanceFromStart >= startDist && p.distanceFromStart <= endDist)
-    .map(p => [p.lat, p.lon])
-}
 
