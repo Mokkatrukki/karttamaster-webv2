@@ -6,7 +6,7 @@ import { setRole } from '../logic/role'
 import { fetchMarkers } from '../logic/sync'
 import type { MarkerManager } from '../map/markers'
 
-// B184/V344: LAYOUT-ROOLEJA ON KAKSI, TILIROOLEJA KOLME.
+// B193/V346: LAYOUT-ROOLEJA ON KAKSI, TILIROOLEJA KOLME.
 //
 // VISION §Roolihierarkia: `admin → kaikki järjestäjän oikeudet`. Layoutissa admin ON
 // järjestäjä — karttanäkymässä ei ole yhtään admin-erityistä pintaa (käyttäjähallinta &
@@ -54,7 +54,7 @@ export function wireAuth(
     // T274/V189 (crossover): /s/<koodi>-deep-link → TALKOO-näkymä riippumatta tilin roolista.
     // Järjestäjä (usein itse reitintekijä) avaa pätkän talkoolais-layoutissa; sessio + oikeudet
     // säilyvät (cookie), vain client-layout vaihtuu. Ilman koodia → tilin oma rooli.
-    // B184/V344: `role` voi olla 'admin' — `layoutRole` typistää sen järjestäjäksi YHDESSÄ
+    // B193/V346: `role` voi olla 'admin' — `layoutRole` typistää sen järjestäjäksi YHDESSÄ
     // paikassa ∴ `setRole` ⊥ enää nojaa siihen että `'admin' !== 'talkoolainen'` sattuu
     // tuottamaan oikean arvon vahingossa.
     const viewRole = layoutRole(code ? 'talkoolainen' : role)

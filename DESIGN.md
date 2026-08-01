@@ -209,7 +209,7 @@ renderiä. Ennen tätä vain `main.ts` teki sen ∴ Kaamoksen valinnut talkoolai
 sivuille täyden valkoisen — juuri niille pinnoille jotka avataan pimeässä. Vahti: audit-specin
 "teema pätee sivulla …" -testit vaativat `<html data-theme="dark">` per sivu.
 
-**`body[data-role]` on LAYOUT-rooli, ⊥ tilirooli (B184/V344).** Layout-rooleja on kaksi
+**`body[data-role]` on LAYOUT-rooli, ⊥ tilirooli (B193/V346).** Layout-rooleja on kaksi
 (`järjestäjä` · `talkoolainen`), tilirooleja kolme. `layoutRole()` (`src/app/role-view.ts`)
 typistää `admin`in järjestäjäksi — VISION §Roolihierarkia: admin ⊇ järjestäjä, eikä
 karttanäkymässä ole yhtään admin-erityistä pintaa.
@@ -222,7 +222,7 @@ ja nappasi klikin ⇒ suunnittelupaneelia ⊥ saanut auki lainkaan (sama umpikuj
 ⋯-valikkolohko jäi näkyviin.
 
 **Sääntö:** roolisidonnainen CSS kirjoitetaan VAIN layout-roolilla. Uusi tilirooli → rivi
-`layoutRole`en, ⊥ uusi haara jokaiseen selektoriin. Vahdit: `tests/b184-layout-role.test.ts`
+`layoutRole`en, ⊥ uusi haara jokaiseen selektoriin. Vahdit: `tests/b193-layout-role.test.ts`
 (kartta) + audit-specin `admin-kartta_390` (mittaa `elementFromPoint`illa KUKA SAA KLIKIN —
 pelkkä geometria ⊥ paljasta varastettua klikkiä).
 

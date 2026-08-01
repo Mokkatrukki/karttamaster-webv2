@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// B184/V344: admin-tili sai `body[data-role="admin"]` ∴ jokainen
+// B193/V346: admin-tili sai `body[data-role="admin"]` ∴ jokainen
 // `[data-role="järjestäjä"]`-CSS-sääntö ohitti hänet HILJAA. Näkyvin seuraus: kapealla
 // ruudulla `#map-filter-bar` menetti 48px sisennyksensä & "Suodata" asettui
 // `#left-panel-toggle`in päälle nappaamaan klikin ⇒ suunnittelupaneelia ⊥ saanut auki.
@@ -10,7 +10,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { layoutRole, applyRoleView, applyRoleHide } from '../src/app/role-view'
 
-describe('B184/V344 — layout-rooli ⊥ tilirooli', () => {
+describe('B193/V346 — layout-rooli ⊥ tilirooli', () => {
   beforeEach(() => {
     document.body.innerHTML = ''
     delete document.body.dataset.role

@@ -435,7 +435,7 @@ test.describe('järjestäjä 390px', () => {
     await auditView(page, 'jarjestaja-merkkimodaali_390', ['.marker-detail-modal'])
   })
 
-  // B184/V344: admin AJAA JÄRJESTÄJÄN LAYOUTIA. Ennen korjausta `body[data-role="admin"]`
+  // B193/V346: admin AJAA JÄRJESTÄJÄN LAYOUTIA. Ennen korjausta `body[data-role="admin"]`
   // ohitti jokaisen `[data-role="järjestäjä"]`-säännön ∴ "Suodata" asettui
   // `#left-panel-toggle`in päälle & nappasi klikin — suunnittelupaneelia ⊥ saanut auki.
   // Geometria ei riitä vahdiksi: mitataan KUKA SAA KLIKIN togglen keskipisteessä.
@@ -451,7 +451,7 @@ test.describe('järjestäjä 390px', () => {
       const el = document.elementFromPoint((b.x + b.right) / 2, (b.y + b.bottom) / 2)
       return el?.id || el?.className || 'null'
     })
-    expect(hit, 'Suodata-nappi peittää sivupaneelin togglen (B184)').toContain('left-panel-toggle')
+    expect(hit, 'Suodata-nappi peittää sivupaneelin togglen (B193)').toContain('left-panel-toggle')
 
     // Paneelin ! oikeasti avautua klikistä — hit-testi yksin ⊥ todista koko ketjua.
     await page.click('#left-panel-toggle')
