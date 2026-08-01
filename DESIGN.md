@@ -189,8 +189,8 @@ varusteita", "✎ Muokkaa pätkän rajoja") ovat talkoolaisen omia ∴ juuri se 
 
 ### Mobiiliaudit — geometrinen vahti (2026-08-01)
 
-`e2e/ux-mobile-audit.spec.ts` ajaa **25 näkymää** kahdella leveydellä (390px mediaanipuhelin,
-360px kapein tuettu Android) ja mittaa kolme asiaa jokaisesta:
+`e2e/ux-mobile-audit.spec.ts` ajaa **53 näkymää** (SPEC §T463) kahdella leveydellä (390px
+mediaanipuhelin, 360px kapein tuettu Android) ja mittaa kolme asiaa jokaisesta:
 
 1. `document.scrollWidth ≤ innerWidth` — ei vaakascrollia
 2. jokaisen näkyvän elementin `rect.right ≤ innerWidth` — mikään ⊥ jää ruudun oikealle puolelle

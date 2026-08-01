@@ -3,6 +3,11 @@
 Lähde: `VISION.md` §Käyttäjät + `DESIGN.md` §R/§K. Vahti: `e2e/ux-mobile-audit.spec.ts`
 (kuvat `screenshots/audit_*.png`, mittaukset `screenshots/audit-json/*.json`).
 
+SPEC: **T463** (vahti + ensimmäisen aallon korjaukset) · **V348** ruudulle mahtuminen ·
+**V349** kosketuskohteen koko · **V350** kelluva kontrolli vs sheet · **V351** kuristuminen
+(mittari ⊥ näe, kuva näkee). Bugit **B195–B199**. Roolikohtaisuus: **B193/V346**.
+Teema jokaisella sivulla: **B194/V347**.
+
 **Mittari on geometrinen, ei DOM-olemassaolo.** "Nappi on olemassa" ei riitä — sen pitää olla
 näkyvissä viewportissa ja ≥44×44px. Toiminto jonka löytää vain koodista ei ole olemassa
 talkoolaiselle metsässä.
