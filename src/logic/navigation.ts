@@ -3,7 +3,25 @@ import { distancesForRoute } from './marker-distance'
 import { orderMarkersInSegment, type SegmentOrder } from './segment-order'
 import { haversineDistance } from './bearing'
 import { isOpenInSegment, isPendingInSegment } from './phase-target'
+import { onlySigns } from './marker-kind'
 import type { Segment } from './segments'
+
+// T459/V344: NAVIGAATION JOUKKO ON KYLTIT — kasa ⊥ ole askel pätkän läpi vaan toisen porukan
+// työ. Selektorit suodattivat vain VAIHEELLA ∴ purussa kasa (`suunniteltu` = välitila,
+// T436/V326) nousi heroon kuittaamattomana merkkinä & yksi napautus vei sen `kerätty`yn =
+// "haettu" jota kukaan ⊥ tehnyt (B191). T456/V341 sulki saman oven merkkimodaalista muttei
+// tästä: luokkarajaus oli PINNASSA ⊥ joukossa jota navigaatio lukee.
+//
+// POIKKEUS on tyyppitehtävä: `markerTypeFilter`-pätkä (V143/V139 — autoporukan keräys)
+// MÄÄRITTELEE joukkonsa itse ∴ suodatus tekisi tyhjän listan tehtävästä jonka koko sisältö on
+// kasoja. Ehto luetaan pätkästä joka on jo parametrina (V237-oppi: sitä ⊥ voi unohtaa).
+function navigable(
+  markers: SignMarker[],
+  segment?: { markerTypeFilter?: string } | null,
+): SignMarker[] {
+  if (segment?.markerTypeFilter) return markers
+  return markers.filter(onlySigns)
+}
 
 // T328/V237: pätkäkontekstin akseli EI enää kulje `routeId`-parametrina vaan tulee pätkästä.
 // Hero/lista tuntevat pätkän jo ∴ akselia ei voi unohtaa (B126/B129 syntyivät unohduksesta).
@@ -31,7 +49,7 @@ export function unsetMarkersOrdered(
 ): SignMarker[] {
   // T421/V313: predikaatti tulee pätkän vaiheesta — segment on jo parametrina ∴ vaihetta ei voi
   // unohtaa (V237-oppi). `null`-pätkä (orpojen lista) → asettaminen-oletus, entinen käytös.
-  const unset = markers.filter((m) => isOpenInSegment(m.status, segment))
+  const unset = navigable(markers, segment).filter((m) => isOpenInSegment(m.status, segment))
   const { onRoute, offRoute }: SegmentOrder = orderMarkersInSegment(unset, segment)
   return [...onRoute, ...offRoute]
 }
@@ -44,7 +62,7 @@ export function pendingMarkersOrdered(
   markers: SignMarker[],
   segment: OrderingSegment,
 ): SignMarker[] {
-  const pending = markers.filter((m) => isPendingInSegment(m.status, segment))
+  const pending = navigable(markers, segment).filter((m) => isPendingInSegment(m.status, segment))
   const { onRoute, offRoute }: SegmentOrder = orderMarkersInSegment(pending, segment)
   return [...onRoute, ...offRoute]
 }
@@ -73,7 +91,7 @@ export function nearestUnsetByGps(
 ): SignMarker | null {
   let best: SignMarker | null = null
   let bestM = Infinity
-  for (const m of markers) {
+  for (const m of navigable(markers, segment)) {
     // T421/V313: sama vaihepredikaatti kuin listajärjestyksellä — muuten GPS-oletus valitsisi
     // purussa merkin jota lista ei näytä lainkaan.
     if (!isOpenInSegment(m.status, segment)) continue
@@ -125,7 +143,8 @@ export function nearestUnsetMarker(
 ): SignMarker | null {
   let best: SignMarker | null = null
   let bestDiff = Infinity
-  for (const m of markers) {
+  // V344: ⊥ pätkäkontekstia (drive/kursori) ∴ joukko on aina kyltit — kasa ⊥ ole reitin askel.
+  for (const m of navigable(markers)) {
     if (m.status !== 'suunniteltu') continue
     if (!m.routeIds.includes(routeId)) continue
     // Lenkillä merkillä on useampi km-ehdokas samalla reitillä (V214) → lähin ratkaisee.
@@ -150,7 +169,7 @@ export function nextMarkerAhead(
 ): SignMarker | null {
   let best: SignMarker | null = null
   let bestKm = Infinity
-  for (const m of markers) {
+  for (const m of navigable(markers)) {
     if (!m.routeIds.includes(routeId)) continue
     for (const d of distancesForRoute(m, routeId)) {
       if (d <= currentDist) continue
@@ -169,7 +188,7 @@ export function distanceAhead(
   routeId: string,
 ): number | null {
   let bestKm: number | null = null
-  for (const m of markers) {
+  for (const m of navigable(markers)) {
     if (!m.routeIds.includes(routeId)) continue
     for (const d of distancesForRoute(m, routeId)) {
       if (d <= currentDist) continue
