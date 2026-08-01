@@ -1,4 +1,5 @@
 import L from 'leaflet'
+import { deliverMapClick } from '../logic/map-click'
 import { nearestPointIndex } from '../logic/bearing'
 import type { RouteConfig } from '../logic/multi-route'
 import { routeSwatchBackground } from '../logic/route-swatch'
@@ -116,6 +117,8 @@ export class RouteBar {
   private bindPolylineClicks(): void {
     this.polylines.forEach((polyline, i) => {
       polyline.on('click', (e: L.LeafletMouseEvent) => {
+        // T460/V345: sijoitustilassa reittiviivan napautus on SIJOITUS ⊥ drive-hyppy.
+        if (e.latlng && deliverMapClick(e.latlng.lat, e.latlng.lng)) return
         const r = this.routes[i]
         if (r.id !== this.driveRouteId) this.setDriveRoute(r.id)
         const idx = nearestPointIndex(r.routePoints, e.latlng.lat, e.latlng.lng)

@@ -1,4 +1,5 @@
 import L from 'leaflet'
+import { deliverMapClick } from '../logic/map-click'
 import type { SignMarker, MarkerType, RoutePoint } from '../logic/types'
 import { createSignIcon } from './icons'
 import { signImageSrc } from '../logic/sign-images'
@@ -698,6 +699,14 @@ export class MarkerManager {
     // addEventListener('click', ...) on the element does not get that suppression.
     lm.on('click', (e) => {
       L.DomEvent.stopPropagation(e)
+      // T460/V345: sijoitustila omistaa napautuksen. Merkin päälle napauttaminen ON se tapaus
+      // johon kasa kuuluu (merkit kerättiin siitä kohdasta) ∴ luovutus ENNEN omaa työtä —
+      // jälkeenpäin modaali olisi jo auki.
+      // `latlng` puuttuu näppäimistöaktivoinnilta (role=button + Enter) & testien synteettisiltä
+      // tapahtumilta ∴ vara-arvo on MERKIN oma sijainti: sijoitustilassa "tähän" on se kohde
+      // jota napautettiin, ⊥ hiljainen ohitus takaisin modaaliin.
+      const at = e.latlng ?? { lat: m.lat, lng: m.lon }
+      if (deliverMapClick(at.lat, at.lng)) return
       // T416/V306: 'claimable'-merkki EI avaa detail-modaalia (siinä on muokkauskentät joita
       // talkoolainen ⊥ omista) vaan rajoitetun lehtisen. Luokka on totuus samasta lähteestä
       // kuin CSS ∴ väylät ⊥ voi olla eri mieltä.

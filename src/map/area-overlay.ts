@@ -1,4 +1,5 @@
 import L from 'leaflet'
+import { deliverMapClick } from '../logic/map-click'
 import type { AreaMarker, AreaFeature } from '../logic/area-types'
 import { cornersFromRect } from '../logic/area-geometry'
 import type { MapRectEditor } from './map-rect-editor'
@@ -95,6 +96,8 @@ export class AreaOverlay {
 
     poly.on('click', (e: L.LeafletMouseEvent) => {
       L.DomEvent.stopPropagation(e)
+      // T460/V345: sijoitustila omistaa napautuksen — alueen päälle sijoittaminen ⊥ avaa aluetta.
+      if (e.latlng && deliverMapClick(e.latlng.lat, e.latlng.lng)) return
       if (this.mapRectEditor?.isEditing()) return  // V69: edit mode → no modal
       this.onAreaClick?.(area)
       this.map.flyTo([area.centerLat, area.centerLng], 18)

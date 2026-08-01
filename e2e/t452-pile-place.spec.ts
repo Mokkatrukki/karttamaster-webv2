@@ -293,3 +293,40 @@ test('T457 — kasa jää raahattavaksi luonnin jälkeen & seuraava nappi sulkee
   // ∴ se olisi V150:n nojalla raahattava ilman ikkunaakin & assertio ⊥ erottaisi näitä.)
   await expect(page.locator('.pile-done-row')).toHaveCount(0)
 })
+
+/**
+ * T460/V345 (B192) — sijoitustilassa MERKIN päälle napauttaminen sijoittaa kasan, ⊥ avaa
+ * merkkimodaalia. Käyttäjä 2026-08-01: "kun asetan kasaa kartalle ei voi avata merkkien
+ * modaaleja tai muita modaaleja vaan voin laittaa vaikka toisen merkin päälle."
+ *
+ * Kohta johon kasa kuuluu on juuri se jossa merkit olivat ∴ osuma kerrokseen on TODENNÄKÖINEN.
+ */
+test('T460 — napautus merkin päälle sijoittaa kasan eikä avaa modaalia', async ({ page }) => {
+  const { posted } = await mockPurkuSegment(page)
+  await collectThenGoHome(page)
+
+  await page.locator('.segment-view-pile-btn').click()
+  await page.waitForTimeout(500)
+
+  // Napauta TÄSMÄLLEEN olemassa olevan merkin päälle (title = label, V197).
+  const existing = page.locator('.leaflet-marker-icon[title="Alku"]').first()
+  await expect(existing).toBeVisible()
+  const box = (await existing.boundingBox())!
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+  await page.waitForTimeout(600)
+
+  // ⊥ merkkimodaalia — sijoitustila omistaa napautuksen.
+  await expect(page.locator('.marker-detail-title')).toHaveCount(0)
+  await expect(page.locator('.modal-backdrop')).toHaveCount(0)
+  // Esikatselupiste & vahvistus ovat siinä mihin napautettiin.
+  await expect(page.locator('.pile-preview-pin')).toHaveCount(1)
+  await expect(page.locator('.pile-confirm-bar')).toBeVisible()
+
+  await page.locator('.pile-confirm-ok').click()
+  await page.waitForTimeout(700)
+  expect(posted.filter(b => (b as { template_id?: string }).template_id === 'kerayskasa')).toHaveLength(1)
+
+  // Viritys purkautui sijoituksen mukana ∴ kartta ⊥ jää omistamaan napautuksia. (Varauksen
+  // vapautus itsessään: `tests/t460-place-mode-claim.test.ts`.)
+  await expect(page.locator('#map')).not.toHaveClass(/place-mode/)
+})

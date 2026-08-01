@@ -1,4 +1,5 @@
 import L from 'leaflet'
+import { deliverMapClick } from '../logic/map-click'
 import { nearestPointIndex } from '../logic/bearing'
 import type { RoutePoint, SignMarker } from '../logic/types'
 import type { Segment, SegmentStore, SegmentLineState } from '../logic/segments'
@@ -263,6 +264,9 @@ export class SegmentOverlay {
           const clickedSeg = seg
           line.on('click', (e: L.LeafletMouseEvent) => {
             L.DomEvent.stopPropagation(e)
+            // T460/V345: viritetty sijoitus saa klikin ensin (pätkäviiva kulkee juuri siellä
+            // missä merkit ovat ∴ osuma on todennäköinen).
+            if (e.latlng && deliverMapClick(e.latlng.lat, e.latlng.lng)) return
             this.onSegmentClick!(clickedSeg)
           })
         }
@@ -311,6 +315,7 @@ export class SegmentOverlay {
           const m = L.circleMarker(pos, { radius: 8, color, fillColor: color, fillOpacity: 0.9, weight: 2 })
           m.on('click', (e: L.LeafletMouseEvent) => {
             L.DomEvent.stopPropagation(e)
+            if (e.latlng && deliverMapClick(e.latlng.lat, e.latlng.lng)) return
             onSnap(routeId, dist, pos[0], pos[1])
           })
           m.addTo(this.map)

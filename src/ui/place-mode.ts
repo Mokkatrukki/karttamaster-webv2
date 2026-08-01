@@ -6,6 +6,8 @@ import { getIconById, renderIconSvg } from '../logic/icon-set'
 import type { MarkerType } from '../logic/types'
 import type { MarkerManager } from '../map/markers'
 import { mapMode as sharedMapMode, type MapModeState } from '../logic/map-mode'
+// T460/V345: viritetty kartta OMISTAA napautuksen — muuten merkkikerros nappaa sen itselleen.
+import { claimMapClicks } from '../logic/map-click'
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -25,6 +27,10 @@ export class PlaceMode {
   // ripustetaan tähän — ei jokaiseen poistumistiehen erikseen, koska juuri se tie joka jää
   // kytkemättä on se jolla käyttäjä jää tilaan josta ⊥ pääse ulos.
   private armedDisarm: (() => void) | null = null
+  // T460/V345: kartan napautusten varaus elää TÄSMÄLLEEN virityksen ajan ∴ vapautus asuu
+  // `clearArmed`issa yhdessä muun virityksen kanssa — erillinen elinkaari olisi se joka jää
+  // purkamatta & veisi jokaisen myöhemmän merkkiklikin sijoitukseen jota ⊥ enää ole.
+  private releaseClicks: (() => void) | null = null
 
   constructor(
     private readonly markerManager: MarkerManager,
@@ -56,6 +62,7 @@ export class PlaceMode {
     this.disarm()
     this.closePicker()
     this.armedTemplate = template
+    this.claimClicks()
     document.getElementById('map')?.classList.add('place-mode')
   }
 
@@ -69,6 +76,7 @@ export class PlaceMode {
     this.armedTemplate = null
     this.armedPlacer = fn
     this.armedDisarm = onDisarm ?? null
+    this.claimClicks()
     document.getElementById('map')?.classList.add('place-mode')
   }
 
@@ -91,7 +99,19 @@ export class PlaceMode {
   private clearArmed(): void {
     this.armedTemplate = null
     this.armedPlacer = null
+    this.releaseClicks?.()
+    this.releaseClicks = null
     document.getElementById('map')?.classList.remove('place-mode')
+  }
+
+  /**
+   * V345: kerrokset (merkki, pätkäviiva, reittiviiva) luovuttavat klikkinsä TÄNNE — muuten
+   * `stopPropagation` nielaisisi ne & sijoitus jäisi odottamaan napautusta joka ⊥ koskaan tule
+   * kohtaan jossa on jo jotain.
+   */
+  private claimClicks(): void {
+    this.releaseClicks?.()
+    this.releaseClicks = claimMapClicks((lat, lon) => { this.placeArmedAt(lat, lon) })
   }
 
   // Kutsutaan kartan single-clickistä main.ts:ssä kun isArmed(). Palauttaa true jos sijoitti.
