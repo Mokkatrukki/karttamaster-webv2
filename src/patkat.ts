@@ -10,6 +10,9 @@ import { isValidTalkooName, readRememberedName, rememberName, NAME_MAX } from '.
 import { renderPatkatPage } from './ui/patkat-page'
 import { buildNamePrompt } from './ui/name-prompt'
 import { fetchAllSegments } from './logic/segment-sync'
+import { segmentsInPhase } from './logic/segments'
+import { layoutRole } from './logic/role'
+import { phaseSourceFor } from './ui/phase-indicator'
 import { loadActivePhase, getActivePhase } from './logic/phase-view'
 import { fetchMarkers } from './logic/sync'
 import type { Segment } from './logic/segments'
@@ -42,15 +45,33 @@ async function boot(): Promise<void> {
   const segments: Segment[] = segRes.ok ? segRes.segments : []
   const markers: SignMarker[] = markerRes.ok ? markerRes.markers : []
 
-  // T427/V318: talkoolainen näkee VAIN aktiivisen vaiheen tehtävät. Muut vaiheet ⊥ ole
+  // T427/V318 → T470/V357: VAIHE RAJAA LISTAN ROOLISTA RIIPPUMATTA. Muut vaiheet ⊥ ole
   // piilotettuja vaan EIVÄT OLE MENOSSA — sama fyysinen osuus elää kolmena pätkänä (V26/V91)
-  // ∴ suodattamaton lista näyttäisi saman maaston kolmesti ja talkoolainen valitsisi väärän.
-  // Järjestäjä näkee kaikki: hän vaihtaa vaihetta & tarvitsee kokonaiskuvan.
-  const activePhase = getActivePhase()
-  const visibleSegments = role === 'talkoolainen'
-    ? segments.filter(s => s.phase === activePhase)
-    : segments
-  renderPatkatPage(content, { faqMarkdown, segments: visibleSegments, markers, role, activePhase })
+  // ∴ suodattamaton lista näyttää saman maaston kahdesti-kolmesti & sama nimi toistuu
+  // vaiheiden yli (B204: järjestäjä luki hubista 31 riviä kun talkoolainen luki 13).
+  //
+  // Ero ei ole suodattamisessa vaan VAIHEEN LÄHTEESSÄ (`phaseSourceFor`, sama kuin
+  // vaiheindikaattorilla): talkoolaiselle globaali vaihe (tapahtuman tosiasia ⊥ valinta, V318),
+  // järjestäjälle hänen oma katseluvaiheensa (V321) jota alla oleva valitsin muuttaa.
+  const audience = layoutRole(role)
+  const phaseSource = phaseSourceFor(audience)
+
+  function render(): void {
+    const activePhase = phaseSource()
+    renderPatkatPage(content, {
+      faqMarkdown,
+      segments: segmentsInPhase(segments, activePhase),
+      markers,
+      role,
+      activePhase,
+      audience,
+      // V332: kasakortti lukee GLOBAALIA vaihetta — järjestäjän katselu ⊥ saa loihtia
+      // autoporukan pintaa kesken asetusvaiheen.
+      globalPhase: getActivePhase(),
+      onPhaseChange: render,
+    })
+  }
+  render()
 
   // T322/V228: ennen T317:ää kirjautuneet sessiot ovat nimettömiä 7 vrk ajan — kysytään nimi
   // hubissa, ei pakoteta uudelleenkirjautumista kesken kenttätyön. Ohitettavissa.

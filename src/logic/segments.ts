@@ -223,7 +223,17 @@ export function getSegmentsForPhase(
   store: SegmentStore,
   phase: Segment['phase'],
 ): Segment[] {
-  return Array.from(store.values()).filter(s => s.phase === phase)
+  return segmentsInPhase(Array.from(store.values()), phase)
+}
+
+// T470/V357: sama sääntö listamuodossa. Hubilla (`patkat.ts`) ⊥ ole `SegmentStore`a vaan
+// taulukko serveriltä ∴ ilman tätä se kirjoitti oman `.filter`insä — & juuri se haarautui
+// (B204: roolihaara ohitti suotimen kokonaan). Yksi sääntö, kaksi säilöä.
+export function segmentsInPhase(
+  segments: Segment[],
+  phase: Segment['phase'],
+): Segment[] {
+  return segments.filter(s => s.phase === phase)
 }
 
 export function getSegmentForCode(

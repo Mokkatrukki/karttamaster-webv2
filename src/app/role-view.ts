@@ -2,7 +2,7 @@ import { AuthScreen } from '../ui/auth-screen'
 import { AccountMenu } from '../ui/account-menu'
 import { SnapshotPanel } from '../ui/snapshot-panel'
 import { GpkgControls } from '../ui/gpkg-controls'
-import { setRole } from '../logic/role'
+import { setRole, layoutRole, type Role } from '../logic/role'
 import { fetchMarkers } from '../logic/sync'
 import type { MarkerManager } from '../map/markers'
 
@@ -25,11 +25,10 @@ import type { MarkerManager } from '../map/markers'
 // Korjaus on YKSI kartta, ⊥ viisi CSS-selektorin laajennusta: uusi rooli (tai uusi sääntö)
 // ⊥ voi unohtaa itseään tästä. `data-role` on siis LAYOUT-rooli, ei tilirooli — tilirooli
 // elää `AccountMenu`n `role`-propissa & palvelimen tarkistuksissa, jotka ⊥ katso DOM:ia.
-export type LayoutRole = 'järjestäjä' | 'talkoolainen'
-
-export function layoutRole(accountRole: string): LayoutRole {
-  return accountRole === 'talkoolainen' ? 'talkoolainen' : 'järjestäjä'
-}
+// T470: itse kartta asuu `logic/role.ts`:ssä — hub tarvitsee sen ilman tätä moduulia (ks. siellä).
+// Uudelleenvienti pitää kartta-puolen kutsupaikat & `tests/b193-layout-role.test.ts` ennallaan.
+export type LayoutRole = Role
+export { layoutRole }
 
 export function applyRoleView(role: string): void {
   document.body.dataset.role = layoutRole(role)

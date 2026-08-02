@@ -2,6 +2,9 @@ import { marked } from 'marked'
 import { getSegmentStatusCounts, formatStatusCounts, segmentPath } from '../logic/segments'
 // T445: pätkän näyttönimi yhdestä paikasta — vaihe-etuliite ⊥ saa jäädä puolelle listasta.
 import { segmentDisplayName } from '../logic/segment-name'
+import { PHASE_LABELS } from '../logic/phase-labels'
+import { PhaseSwitcher } from './phase-switcher'
+import type { Role } from '../logic/role'
 import type { Segment } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
 
@@ -28,18 +31,29 @@ export interface PatkatPageOpts {
   role: string
   // T427/V318: tapahtuman aktiivinen vaihe. Otsikko & tyhjä tila kertovat MIKÄ on menossa —
   // ilman sitä talkoolainen näkee tyhjän listan eikä tiedä onko vika hänessä vai järjestelmässä.
+  // T470/V357: sama arvo kertoo nyt MIKSI lista on rajattu — myös järjestäjälle (hänelle se on
+  // katseluvaihe, `getViewPhase`). `segments` on jo suodatettu tähän vaiheeseen; tämä on selite.
   activePhase?: Segment['phase']
+  // T470/V357: järjestäjän vaiheenvaihtaja hubiin. Ilman sitä suodin veisi T275:n kyvyn koota
+  // ∀ pätkän jakolinkit yhteen näkymään — toisen vaiheen linkit katoaisivat tavoittamattomiin.
+  // Talkoolaiselle ⊥ anneta (V318: vaihe on hänelle tapahtuman tosiasia ⊥ valinta).
+  audience?: Role
+  // T470/V332: KASAKORTTI ELÄÄ GLOBAALISTA VAIHEESTA, ⊥ katselusta. Kun `activePhase` alkoi
+  // tarkoittaa järjestäjälle katseluvaihetta, kortti olisi ilmestynyt pelkästä purun
+  // KATSOMISESTA kesken asetusvaiheen — kasat ovat tapahtuman tosiasia ⊥ näkymävalinta.
+  // Oletus = `activePhase` ∴ talkoolaisella (jolla ⊥ ole katselua) ⊥ muutu mikään.
+  globalPhase?: Segment['phase']
+  onPhaseChange?: () => void
   onKartalle?: () => void
 }
 
-const PHASE_LABEL: Record<Segment['phase'], string> = {
-  asettaminen: 'Asetus',
-  tarkastus: 'Tarkastus',
-  purku: 'Purku',
-}
+// T470: vaiheen nimi yhdestä lookupista (`logic/phase-labels`) — paikallinen kopio olisi
+// neljäs sanasto samalle kolmelle sanalle.
+const PHASE_LABEL = PHASE_LABELS
 
 export function renderPatkatPage(container: HTMLElement, opts: PatkatPageOpts): void {
-  const { faqMarkdown, segments, markers, role, activePhase, onKartalle } = opts
+  const { faqMarkdown, segments, markers, role, activePhase, audience, onPhaseChange, onKartalle } = opts
+  const globalPhase = opts.globalPhase ?? activePhase
   container.innerHTML = ''
   container.classList.add('patkat-page')
 
@@ -54,13 +68,24 @@ export function renderPatkatPage(container: HTMLElement, opts: PatkatPageOpts): 
   hero.append(h1, lead)
   container.appendChild(hero)
 
+  // ── Vaiheenvaihtaja (T470/V357) ──
+  // Sama komponentti kuin kartan sivupalkissa ∴ ⊥ toista valitsinta ylläpidettäväksi & sama
+  // "Katselet: X · käynnissä: Y — palaa" -pilleri (V321:n ainoa aisti) seuraa mukana. Kirjoittaa
+  // VAIN `localStorage`n katseluvaiheen — ⊥ verkkokutsua, ⊥ vaikutusta kehenkään muuhun.
+  if (audience === 'järjestäjä' && onPhaseChange) {
+    const switcherHost = document.createElement('div')
+    switcherHost.className = 'patkat-phase-switcher'
+    container.appendChild(switcherHost)
+    new PhaseSwitcher(switcherHost, () => onPhaseChange())
+  }
+
   // ── Kasat (T448/V332, §C) ──
   // Kortti on olemassa VAIN purkuvaiheessa: kasapinta elää globaalin vaiheen mukana, ⊥
   // katseluvaiheen (V321-jako) — kasat ovat tapahtuman tosiasia ⊥ järjestäjän näkymävalinta.
   // Muissa vaiheissa kortti ⊥ ole olemassa (⊥ disabloituna: kuollut pinta lupaa jotain, V250).
   // Tämä on autoporukan ainoa aloituspiste ∴ se on hubissa ENNEN pätkälistaa: hän ⊥ avaa
   // pätkänäkymää lainkaan & pätkälistan alta löytyvä linkki olisi sama umpisolmu uudessa asussa.
-  if (activePhase === 'purku') {
+  if (globalPhase === 'purku') {
     const card = document.createElement('a')
     card.className = 'patkat-kasat-card'
     card.href = '/kasat'
@@ -91,9 +116,10 @@ export function renderPatkatPage(container: HTMLElement, opts: PatkatPageOpts): 
   const listSection = document.createElement('section')
   listSection.className = 'patkat-list-section'
   const listTitle = document.createElement('h2')
-  // T427/V318: vaihe otsikkoon talkoolaiselle — "Pätkät · Purku" kertoo yhdellä silmäyksellä
-  // mitä ollaan tekemässä (järjestäjällä on oma vaihevalitsin).
-  listTitle.textContent = activePhase && role === 'talkoolainen'
+  // T427/V318 → T470/V357: vaihe otsikkoon ∀ roolille — jos lista rajaa, otsikko ! kertoa millä
+  // perusteella. Järjestäjälle se on hänen katseluvaiheensa (valitsin yllä), talkoolaiselle
+  // tapahtuman tosiasia. Pelkkä "Pätkät" rajatun listan yllä on lupaus jota lista ⊥ pidä.
+  listTitle.textContent = activePhase
     ? `Pätkät · ${PHASE_LABEL[activePhase]}`
     : 'Pätkät'
   listSection.appendChild(listTitle)
@@ -102,8 +128,10 @@ export function renderPatkatPage(container: HTMLElement, opts: PatkatPageOpts): 
     const empty = document.createElement('p')
     empty.className = 'patkat-empty'
     // V21-linja: tyhjä ruutu luetaan rikkinäiseksi ∴ kerro MIKSI se on tyhjä.
-    empty.textContent = activePhase && role === 'talkoolainen'
-      ? `${PHASE_LABEL[activePhase]}-vaiheessa ei ole vielä pätkiä sinulle.`
+    empty.textContent = activePhase
+      ? (role === 'talkoolainen'
+          ? `${PHASE_LABEL[activePhase]}-vaiheessa ei ole vielä pätkiä sinulle.`
+          : `${PHASE_LABEL[activePhase]}-vaiheessa ei ole pätkiä. Vaihda vaihetta yltä nähdäksesi muut.`)
       : 'Ei pätkiä vielä.'
     listSection.appendChild(empty)
   } else {

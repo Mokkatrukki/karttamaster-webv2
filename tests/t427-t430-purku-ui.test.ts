@@ -59,13 +59,18 @@ describe('T427/V318 — talkoolaiselle vain aktiivisen vaiheen tehtävät', () =
     expect(empty).not.toBe('Ei pätkiä vielä.')
   })
 
-  it('järjestäjä näkee kaikki vaiheet eikä saa vaihe-otsikkoa', () => {
+  // T470/V357/B204: tämä testi koodasi lupauksen "järjestäjä näkee kaikki vaiheet eikä saa
+  // vaihe-otsikkoa" — & juuri se lupaus OLI bugi: hub listasi 18 asetus- + 13 purkupätkää
+  // sekaisin kun sivupalkki oli suodattanut samalla hetkellä. Rajaus tehdään `patkat.ts`:ssä
+  // (`segmentsInPhase`, ks. `tests/t470-*`); tämä pinta vastaa siitä että rajaus SANOTAAN.
+  it('otsikko kertoo vaiheen myös järjestäjälle (rajattu lista ⊥ saa esiintyä rajaamattomana)', () => {
     const c = document.createElement('div')
     renderPatkatPage(c, {
-      faqMarkdown: '', markers: [], role: 'järjestäjä', activePhase: 'purku', segments,
+      faqMarkdown: '', markers: [], role: 'järjestäjä', activePhase: 'purku',
+      segments: segments.filter(s => s.phase === 'purku'),
     })
-    expect(c.querySelectorAll('.patkat-list li')).toHaveLength(3)
-    expect(c.querySelector('h2')?.textContent).toBe('Pätkät')
+    expect(c.querySelectorAll('.patkat-list li')).toHaveLength(1)
+    expect(c.querySelector('h2')?.textContent).toBe('Pätkät · Purku')
   })
 })
 

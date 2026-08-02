@@ -5555,6 +5555,15 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 .patkat-page { max-width: 640px; margin: 0 auto; padding: 20px 16px 40px; display: flex; flex-direction: column; gap: 24px; }
 .patkat-hero h1 { margin: 0 0 6px; font-size: 1.6rem; }
 .patkat-lead { margin: 0; color: var(--text-muted); }
+/* T470/V357: järjestäjän vaiheenvaihtaja hubissa. Sama komponentti kuin sivupalkissa ∴ vain
+   säilö tyylitellään — `.phase-switcher` tuo 44px-kosketuskohteen & pillerin omista säännöistään
+   (DESIGN §K). Kortin pinta erottaa sen listasta: se ON kontrolli, ⊥ osa sisältöä. */
+.patkat-phase-switcher {
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+.patkat-phase-switcher .phase-switcher { padding: 8px 12px; }
 .patkat-faq h2, .patkat-list-section h2 { font-size: 1.15rem; margin: 0 0 10px; }
 .patkat-faq-body { background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px 16px; line-height: 1.5; }
 .patkat-faq-body :first-child { margin-top: 0; }

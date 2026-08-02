@@ -31,6 +31,9 @@ const ISOLATED = [
   'tests/t426-phase-state.test.ts',
   // T434/V321: sama syy — katseluvaihe on toinen moduulitason muuttuja samassa tiedostossa.
   'tests/t434-view-phase.test.ts',
+  // T470/V357: hub lukee vaiheen samasta moduulista ∴ testi lataa sen uudelleen jokaiselle
+  // vaihe/katselu-yhdistelmälle. Sama syy kuin kahdella yllä.
+  'tests/t470-patkat-phase-filter.test.ts',
 ]
 
 export default defineConfig({
