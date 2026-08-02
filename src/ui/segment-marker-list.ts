@@ -96,7 +96,9 @@ export class SegmentMarkerList {
     const pending = onRoute.filter(m => isPendingInSegment(m.status, segment) && m.status !== target.secondaryStatus)
 
     this.renderGroup(target.openGroupLabel, open, segment)
-    this.renderGroup(target.pendingGroupLabel, pending, segment)
+    // UX-audit T468(f): välitila on ainoa ryhmä joka vaatii toimenpiteen ∴ se saa varoituskanavan
+    // (`--warn-highlight`) — neljä samannäköistä otsikkoa hukuttaisi sen.
+    this.renderGroup(target.pendingGroupLabel, pending, segment, 'segment-view-markers-group--pending')
     this.renderGroup(target.doneGroupLabel, done, segment)
     this.renderGroup(target.secondaryGroupLabel, secondary, segment)
 
@@ -162,11 +164,11 @@ export class SegmentMarkerList {
     return btn
   }
 
-  private renderGroup(title: string, markers: SignMarker[], segment: Segment | null): void {
+  private renderGroup(title: string, markers: SignMarker[], segment: Segment | null, modifier?: string): void {
     if (markers.length === 0) return
 
     const groupTitle = document.createElement('p')
-    groupTitle.className = 'segment-view-markers-group'
+    groupTitle.className = modifier ? `segment-view-markers-group ${modifier}` : 'segment-view-markers-group'
     groupTitle.textContent = `${title} (${markers.length})`
     this.el.appendChild(groupTitle)
 

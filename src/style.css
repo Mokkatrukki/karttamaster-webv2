@@ -3556,6 +3556,8 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   color: var(--text-body);
   margin-bottom: 6px;
 }
+/* Sama väliotsikkotypografia kuin `.marker-overview-subhead` & `.sign-lib-subhead` (§K) —
+   T468 kasvatti ryhmien määrän 2-3:sta 4-5:een mutta ⊥ uutta otsikkotasoa. */
 .segment-view-markers-group {
   font-size: 11px;
   font-weight: 700;
@@ -3563,6 +3565,30 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   letter-spacing: 0.03em;
   color: var(--text-muted);
   margin: 10px 0 4px;
+}
+/* T468: ensimmäinen otsikko ⊥ tarvitse 10px erotusta headeristä joka on jo oma lohkonsa —
+   4-5 ryhmää × 28px on 390px-ruudulla mitattavaa pystytilaa. */
+.segment-view-markers-group:first-of-type { margin-top: 4px; }
+/* T468/V326: VÄLITILA on varoitus ⊥ neutraali ryhmä — "Ei kuitattu asetetuksi" tarkoittaa että
+   merkki on maastossa mutta kukaan ⊥ kuitannut sitä. Muut ryhmät ovat tilatietoa; tämä on ainoa
+   joka vaatii toimenpiteen ∴ se ⊥ saa hukkua neljän samannäköisen otsikon joukkoon. Kanava on
+   olemassa oleva `--warn-highlight` + täysi tekstiväri — ⊥ uutta väritokenia (V132). */
+.segment-view-markers-group--pending {
+  color: var(--text-body);
+  background: var(--warn-highlight);
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  display: inline-block;
+}
+/* T436/V326: heron välitilarivi oli luokiteltu (`segment-view-next-pending`) muttei koskaan
+   tyylitelty ∴ "⚠ Ei kuitattu asetetuksi — maastossa?" näytti samalta kuin sijaintimuistiinpano
+   sen vieressä. Sama kanava kuin ryhmäotsikolla — varoitus näyttää varoitukselta molemmissa. */
+.segment-view-next-pending {
+  color: var(--text-body);
+  background: var(--warn-highlight);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  align-self: flex-start;
 }
 .segment-view-markers-empty {
   margin: 0;

@@ -108,6 +108,15 @@ describe('T468/V355 — ryhmäotsikot & kuittaus tulevat vaihetavoitteesta', () 
     expect(groupOf(el, 'suunniteltu-1')).toBe('Ei kuitattu asetetuksi (1)')
   })
 
+  // UX-audit T468(f): välitila on VAROITUS ⊥ neutraali ryhmä — se on ainoa joka vaatii
+  // toimenpiteen & neljä samannäköistä otsikkoa hukuttaisi sen.
+  it('välitilaryhmä saa varoituskanavan, muut ryhmät eivät', () => {
+    const el = mount(MIXED, PURKU)
+    const warn = [...el.querySelectorAll('.segment-view-markers-group--pending')]
+    expect(warn.length).toBe(1)
+    expect(warn[0]!.textContent).toBe('Ei kuitattu asetetuksi (1)')
+  })
+
   it('avoin ryhmä on ENSIN & välitila ennen tehtyjä — järjestys on merkitys', () => {
     expect(groups(mount(MIXED, PURKU))).toEqual([
       'Purkamatta (2)', 'Ei kuitattu asetetuksi (1)', 'Puretut (1)', 'Ei löytynyt (1)',

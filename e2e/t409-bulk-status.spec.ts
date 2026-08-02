@@ -53,7 +53,10 @@ test('koti-tab: valitse 2 → "Aseta valituille" → statukset muuttuvat (T409)'
   await expect(page.locator('.segment-view-markers-item[data-id="mk-b"] .segment-view-markers-meta'))
     .toContainText('Asetettu')
   await expect(page.locator('.segment-view-markers-group', { hasText: 'Asettamatta' })).toHaveCount(0)
-  await expect(aseta).toBeDisabled()
+  // T468/V355: kuittauksen jälkeen ⊥ ole enää yhtään AVOINTA riviä ∴ koko bar katoaa — ⊥ jää
+  // disabloituna viemään 44px pystytilaa. Ennen T468:aa `asetettu` oli yhä valittavissa
+  // (globaali `isTerminal`) ∴ bar jäi paikalleen & tämä rivi vaati sen disabloitua.
+  await expect(page.locator('.bulk-action-bar')).toHaveCount(0)
 })
 
 test('koti-tab: "Valitse kaikki" + "Ei tarpeen" ohittaa valitut (T409)', async ({ page }) => {
