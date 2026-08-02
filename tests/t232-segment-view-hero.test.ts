@@ -64,7 +64,7 @@ describe('T232 — kokoava hero', () => {
     })
 
     it('näkyy kun onToggleGps annettu', () => {
-      new SegmentView(container, makeSeg(), undefined, undefined, {
+      new SegmentView(container, makeSeg(), undefined, {
         onToggleGps: () => true,
         isGpsActive: () => false,
       })
@@ -73,7 +73,7 @@ describe('T232 — kokoava hero', () => {
 
     it('klikkaus togglaa: kutsuu onToggleGps, päivittää tekstin + gps-active-luokan', () => {
       let gpsOn = false
-      new SegmentView(container, makeSeg(), undefined, undefined, {
+      new SegmentView(container, makeSeg(), undefined, {
         onToggleGps: () => { gpsOn = !gpsOn; return gpsOn },
         isGpsActive: () => gpsOn,
       })
@@ -89,7 +89,7 @@ describe('T232 — kokoava hero', () => {
     })
 
     it('näkyy myös purku-phasessa (VISION phase 5) — ei asettaminen-only', () => {
-      new SegmentView(container, makeSeg({ phase: 'purku' }), undefined, undefined, {
+      new SegmentView(container, makeSeg({ phase: 'purku' }), undefined, {
         onToggleGps: () => true,
         isGpsActive: () => false,
       })
@@ -133,7 +133,7 @@ describe('T232 — kokoava hero', () => {
 
     it('▶ vaihtaa näytettyä merkkiä ja Aseta kohdistuu näytettyyn (V159)', () => {
       const setIds: string[] = []
-      const view = new SegmentView(container, makeSeg(), undefined, undefined, {
+      const view = new SegmentView(container, makeSeg(), undefined, {
         onSetMarker: (id) => setIds.push(id),
       })
       view.update([m1, m2, m3])
@@ -149,7 +149,7 @@ describe('T232 — kokoava hero', () => {
 
     it('onNavigate synkkaa valitun merkin (highlight) — ◀▶ ja reconcile', () => {
       const nav: (string | null)[] = []
-      const view = new SegmentView(container, makeSeg(), undefined, undefined, {
+      const view = new SegmentView(container, makeSeg(), undefined, {
         onNavigate: (id) => nav.push(id),
       })
       view.update([m1, m2])
@@ -160,7 +160,7 @@ describe('T232 — kokoava hero', () => {
 
     it('V159: valittu merkki asetettu → reconcile palaa firstUnsetMarkeriin, ei osoita asetettuun', () => {
       const nav: (string | null)[] = []
-      const view = new SegmentView(container, makeSeg(), undefined, undefined, {
+      const view = new SegmentView(container, makeSeg(), undefined, {
         onNavigate: (id) => nav.push(id),
       })
       view.update([m1, m2])
@@ -174,7 +174,7 @@ describe('T232 — kokoava hero', () => {
 
     it('done-tila (kaikki asetettu) → onNavigate(null) tyhjentää korostuksen', () => {
       const nav: (string | null)[] = []
-      const view = new SegmentView(container, makeSeg(), undefined, undefined, {
+      const view = new SegmentView(container, makeSeg(), undefined, {
         onNavigate: (id) => nav.push(id),
       })
       view.update([makeMarker({ id: 'm1', status: 'asetettu' })])
@@ -192,7 +192,7 @@ describe('T232 — kokoava hero', () => {
 
     it('enabloitu + kutsuu onAddMarker', () => {
       let added = false
-      const view = new SegmentView(container, makeSeg(), undefined, undefined, {
+      const view = new SegmentView(container, makeSeg(), undefined, {
         onAddMarker: () => { added = true },
       })
       view.update([makeMarker({ status: 'suunniteltu' })])
@@ -224,7 +224,7 @@ describe('T232 — kokoava hero', () => {
     })
 
     it('complete + bounds "Kaikki merkit" -tab-panelin sisällä (ei accordionissa/hero-primaryssä)', () => {
-      const view = new SegmentView(container, makeSeg(), undefined, undefined, {
+      const view = new SegmentView(container, makeSeg(), undefined, {
         onComplete: () => {},
         onEditBounds: () => {},
       })
@@ -235,7 +235,7 @@ describe('T232 — kokoava hero', () => {
     })
 
     it('complete tavoitettavissa purku-phasessa (tab aina läsnä, ei phase-gattua accordionia)', () => {
-      const view = new SegmentView(container, makeSeg({ phase: 'purku' }), undefined, undefined, {
+      const view = new SegmentView(container, makeSeg({ phase: 'purku' }), undefined, {
         onComplete: () => {},
       })
       view.update([makeMarker({ status: 'kerätty' })])

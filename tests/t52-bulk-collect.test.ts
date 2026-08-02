@@ -83,8 +83,19 @@ describe('T52 — bulkCollect (logiikka, V28)', () => {
 })
 
 // ── Taso 2: Vitest-jsdom ─────────────────────────────────────────────────────
+//
+// T471/V358: PANEELIN JOUKKONAPPI ON POISTETTU. Tässä oli viisi testiä jotka koodasivat sen
+// lupauksen (piilossa asetuksessa, näkyvissä purussa, klikki → `onBulkCollect`) — ne olivat
+// oikeassa siihen asti kun kysymys oli "toimiiko nappi". Kysymys on nyt "onko nappia", & vastaus
+// on invariantti ⊥ kertaluontoinen poisto: paneeli on kartan päällä ∴ täysleveä rivi joka näkyy
+// koko purkutyön ajan maksaa juuri sitä tilaa jota talkoolainen tarvitsee eniten.
+//
+// Kyky ⊥ kadonnut vaan palasi kotiinsa: `SegmentMarkerList`in "Valitse kaikki" + `bulkLabel`
+// (T409/T468) tekee saman kahdella napautuksella pinnalla joka NÄYTTÄÄ mitä kuitataan —
+// paneelinappi kuittasi 12 merkkiä näyttämättä yhtäkään. Alla molemmat puolet: ⊥ nappia
+// paneelissa, & korvaava reitti on olemassa.
 
-describe('T52 — SegmentView bulk-collect UI', () => {
+describe('T471/V358 — joukkokuittaus asuu listassa, ⊥ navigaatiopaneelissa', () => {
   let container: HTMLElement
 
   beforeEach(() => {
@@ -93,60 +104,36 @@ describe('T52 — SegmentView bulk-collect UI', () => {
     document.body.appendChild(container)
   })
 
-  it('bulk-nappi piilotettu kun phase=asettaminen', () => {
-    const seg = makeSeg({ phase: 'asettaminen' })
-    const view = new SegmentView(container, seg)
+  it('paneelissa ⊥ ole joukkonappia purkuvaiheessa (V358)', () => {
+    const view = new SegmentView(container, makeSeg({ phase: 'purku' }))
+    view.update([makeMarker({ status: 'suunniteltu' }), makeMarker({ id: 'm-9', status: 'asetettu' })])
+    expect(container.querySelector('.btn-bulk-collect')).toBeNull()
+  })
+
+  it('⊥ myöskään asetusvaiheessa — sääntö ⊥ ole vaihekohtainen', () => {
+    const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }))
     view.update([makeMarker({ status: 'suunniteltu' })])
-    const btn = container.querySelector('.btn-bulk-collect') as HTMLButtonElement
-    expect(btn.hidden).toBe(true)
+    expect(container.querySelector('.btn-bulk-collect')).toBeNull()
   })
 
-  it('bulk-nappi piilotettu kun kaikki merkit terminal (V28)', () => {
-    const seg = makeSeg({ phase: 'purku' })
-    const view = new SegmentView(container, seg)
-    view.update([makeMarker({ status: 'kerätty' })])
-    const btn = container.querySelector('.btn-bulk-collect') as HTMLButtonElement
-    expect(btn.hidden).toBe(true)
-  })
+  it('korvaava reitti: listan "Valitse kaikki" + kuittausnappi vie merkit kerätyksi', () => {
+    const onBulkStatus = vi.fn()
+    const view = new SegmentView(container, makeSeg({ phase: 'purku' }), undefined, { onBulkStatus })
+    view.update([
+      makeMarker({ id: 'm-1', status: 'asetettu' }),
+      makeMarker({ id: 'm-2', status: 'tarkistettu' }),
+    ])
 
-  it('bulk-nappi näkyy purku-vaiheessa kun on ei-terminal-merkkejä', () => {
-    const seg = makeSeg({ phase: 'purku' })
-    const view = new SegmentView(container, seg)
-    view.update([makeMarker({ status: 'suunniteltu' })])
-    const btn = container.querySelector('.btn-bulk-collect') as HTMLButtonElement
-    expect(btn.hidden).toBe(false)
-  })
+    const all = container.querySelector('.bulk-select-all') as HTMLInputElement
+    all.checked = true
+    all.dispatchEvent(new Event('change'))
+    const bulk = container.querySelector('.btn-bulk-checkin-aseta') as HTMLButtonElement
+    expect(bulk.textContent).toContain('(2)')
+    bulk.click()
 
-  it('bulk-nappi klikkaus kutsuu onBulkCollect-callbackia oikeilla merkeillä', () => {
-    const seg = makeSeg({ phase: 'purku' })
-    const onBulkCollect = vi.fn()
-    const view = new SegmentView(container, seg, onBulkCollect)
-    const markers = [
-      makeMarker({ id: 'm-1', status: 'suunniteltu' }),
-      makeMarker({ id: 'm-2', status: 'kerätty' }),
-    ]
-    view.update(markers)
-
-    const btn = container.querySelector('.btn-bulk-collect') as HTMLButtonElement
-    btn.click()
-
-    expect(onBulkCollect).toHaveBeenCalledOnce()
-    const arg = onBulkCollect.mock.calls[0][0] as SignMarker[]
-    expect(arg.length).toBe(1)
-    expect(arg[0].id).toBe('m-1')
-    expect(arg[0].status).toBe('kerätty')
-  })
-
-  it('bulk-nappi ei kutsu callbackia kun kaikki terminal', () => {
-    const seg = makeSeg({ phase: 'purku' })
-    const onBulkCollect = vi.fn()
-    const view = new SegmentView(container, seg, onBulkCollect)
-    view.update([makeMarker({ status: 'kerätty' })])
-
-    // Button is hidden, but even if called directly:
-    const btn = container.querySelector('.btn-bulk-collect') as HTMLButtonElement
-    btn.click()
-
-    expect(onBulkCollect).not.toHaveBeenCalled()
+    expect(onBulkStatus).toHaveBeenCalledOnce()
+    const [ids, status] = onBulkStatus.mock.calls[0]
+    expect((ids as string[]).sort()).toEqual(['m-1', 'm-2'])
+    expect(status).toBe('kerätty')
   })
 })

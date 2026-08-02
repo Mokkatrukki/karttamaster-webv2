@@ -97,7 +97,7 @@ describe('T218/V143: dynaaminen keräyslista (skenaario 2)', () => {
   it('"Haettu"-kuittaus → onCollectMarker(id, true) kerätymättömälle', () => {
     let call: [string, boolean] | null = null
     const actions: SegmentViewActions = { onCollectMarker: (id, c) => { call = [id, c] } }
-    const view = new SegmentView(container, collectSeg(), undefined, undefined, actions)
+    const view = new SegmentView(container, collectSeg(), undefined, actions)
     view.update([pile({ id: 'x', status: 'suunniteltu' })])
     const btn = container.querySelector('.segment-view-collect-btn') as HTMLButtonElement
     expect(btn.textContent).toContain('Haettu')
@@ -108,7 +108,7 @@ describe('T218/V143: dynaaminen keräyslista (skenaario 2)', () => {
   it('jo kerätyn "Haettu ✓" → onCollectMarker(id, false) (peruutus)', () => {
     let call: [string, boolean] | null = null
     const actions: SegmentViewActions = { onCollectMarker: (id, c) => { call = [id, c] } }
-    const view = new SegmentView(container, collectSeg(), undefined, undefined, actions)
+    const view = new SegmentView(container, collectSeg(), undefined, actions)
     view.update([pile({ id: 'y', status: 'kerätty' })])
     const btn = container.querySelector('.segment-view-collect-btn') as HTMLButtonElement
     expect(btn.textContent).toBe('Haettu ✓')

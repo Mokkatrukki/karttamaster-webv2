@@ -24,7 +24,7 @@ function marker(id: string, status: MarkerStatus = 'asetettu'): SignMarker {
 function mountView(segment: Segment, markers: SignMarker[], actions: SegmentViewActions = {}) {
   const container = document.createElement('div')
   document.body.appendChild(container)
-  const view = new SegmentView(container, segment, undefined, undefined, actions)
+  const view = new SegmentView(container, segment, undefined, actions)
   view.update(markers)
   return { container, view }
 }

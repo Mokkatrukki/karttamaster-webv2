@@ -47,7 +47,7 @@ describe('T413/V304 — hero:n GPS-oletusvalinta', () => {
   })
 
   it('reititön tehtävä + fix → hero avaa LÄHIMMÄN, ei km-järjestyksen ensimmäistä', () => {
-    const sv = new SegmentView(container, routelessSeg(), undefined, undefined, {
+    const sv = new SegmentView(container, routelessSeg(), undefined, {
       gpsPosition: () => ({ lat: 65.6, lon: 27.5 }),
     })
     sv.update([far, near])
@@ -61,7 +61,7 @@ describe('T413/V304 — hero:n GPS-oletusvalinta', () => {
   })
 
   it('provider palauttaa null (fixiä ⊥ vielä) → sama fallback, ⊥ heitto', () => {
-    const sv = new SegmentView(container, routelessSeg(), undefined, undefined, {
+    const sv = new SegmentView(container, routelessSeg(), undefined, {
       gpsPosition: () => null,
     })
     sv.update([far, near])
@@ -70,7 +70,7 @@ describe('T413/V304 — hero:n GPS-oletusvalinta', () => {
 
   it('HYSTERESIS: valittu merkki ⊥ vaihdu kun fix siirtyy toisen merkin viereen', () => {
     let pos = { lat: 65.6, lon: 27.5 }
-    const sv = new SegmentView(container, routelessSeg(), undefined, undefined, {
+    const sv = new SegmentView(container, routelessSeg(), undefined, {
       gpsPosition: () => pos,
     })
     sv.update([far, near])
@@ -83,7 +83,7 @@ describe('T413/V304 — hero:n GPS-oletusvalinta', () => {
 
   it('valittu poistuu asettamattomista → uusi oletus lukee fixin uudelleen', () => {
     let pos = { lat: 65.7, lon: 27.7 }
-    const sv = new SegmentView(container, routelessSeg(), undefined, undefined, {
+    const sv = new SegmentView(container, routelessSeg(), undefined, {
       gpsPosition: () => pos,
     })
     sv.update([far, near])
@@ -107,7 +107,7 @@ describe('T413/V304 — hero:n GPS-oletusvalinta', () => {
     } as Segment
     const a = marker({ id: 'a', lat: 65.7, lon: 27.7, distanceFromStart: 1000, label: 'Ensimmäinen' })
     const b = marker({ id: 'b', lat: 65.6001, lon: 27.5001, distanceFromStart: 9000, label: 'Lähin' })
-    const sv = new SegmentView(container, routed, undefined, undefined, {
+    const sv = new SegmentView(container, routed, undefined, {
       gpsPosition: () => ({ lat: 65.6, lon: 27.5 }),
     })
     sv.update([a, b])

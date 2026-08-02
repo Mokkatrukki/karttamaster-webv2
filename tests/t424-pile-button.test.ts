@@ -24,7 +24,7 @@ function marker(id: string, status: MarkerStatus = 'kerätty'): SignMarker {
 function mount(actions: SegmentViewActions, seg = makeSeg(), markers = [marker('a')]) {
   const container = document.createElement('div')
   document.body.appendChild(container)
-  const view = new SegmentView(container, seg, undefined, undefined, actions)
+  const view = new SegmentView(container, seg, undefined, actions)
   view.update(markers)
   return { container, view, btn: container.querySelector('.segment-view-pile-btn') as HTMLButtonElement }
 }
@@ -94,7 +94,7 @@ describe('T424/V314 — "Jätä kasa tähän"', () => {
     let claimed = false
     const container = document.createElement('div')
     document.body.appendChild(container)
-    const view = new SegmentView(container, makeSeg(), undefined, undefined, {
+    const view = new SegmentView(container, makeSeg(), undefined, {
       pileCandidates: () => (claimed ? [] : [marker('a'), marker('b')]),
       onLeavePile: () => { claimed = true },
     })

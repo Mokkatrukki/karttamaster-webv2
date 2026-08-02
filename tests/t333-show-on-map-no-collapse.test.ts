@@ -44,7 +44,7 @@ describe('T333/V242 — panorointi ei kutista näkymää (B131)', () => {
 
   it('hero "Näytä kartalla": kutsuu onShowOnMap eikä lisää --collapsed-luokkaa', () => {
     const shown: string[] = []
-    const view = new SegmentView(container, makeSeg(), undefined, undefined, {
+    const view = new SegmentView(container, makeSeg(), undefined, {
       onShowOnMap: (id) => shown.push(id),
     })
     view.update([makeMarker({ id: 'm-1' })])
@@ -63,7 +63,7 @@ describe('T333/V242 — panorointi ei kutista näkymää (B131)', () => {
   it('keräyslistan rivi: sama sääntö — panoroi, ei kutista', () => {
     const shown: string[] = []
     const seg = makeSeg({ markerTypeFilter: 'right' })
-    const view = new SegmentView(container, seg, undefined, undefined, {
+    const view = new SegmentView(container, seg, undefined, {
       onShowOnMap: (id) => shown.push(id),
     })
     view.update([makeMarker({ id: 'm-9', type: 'right' })])

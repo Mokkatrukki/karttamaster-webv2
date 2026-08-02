@@ -1735,8 +1735,7 @@ button {
 .segment-view--collapsed .segment-view-more,
 .segment-view--collapsed .segment-view-bounds,
 .segment-view--collapsed .segment-view-inspect,
-.segment-view--collapsed .segment-view-complete,
-.segment-view--collapsed .btn-bulk-collect {
+.segment-view--collapsed .segment-view-complete {
   display: none;
 }
 
@@ -2196,13 +2195,9 @@ body[data-role="talkoolainen"] #app[data-view-mode="kartta"] #btn-home-view {
   padding: 0 14px;
 }
 
-.btn-bulk-collect {
-  width: 100%;
-  margin: 8px 0;
-}
-
 /* T424/V314: "📦 Jätä kasa tähän" — pätkätason toiminto heron alla, ei kolmas primary-nappi.
-   Samat tokenit kuin bulk-napilla (leveys/marginaali); 44px kosketuskohde tulee .btn:stä. */
+   T471: leveys/marginaali olivat aiemmin jaettu poistetun `.btn-bulk-collect`in kanssa;
+   44px kosketuskohde tulee `.btn`:stä. */
 .segment-view-pile-btn {
   width: 100%;
   margin: 8px 0;
@@ -4479,7 +4474,7 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
    dimensiottomat propit → ei visuaalimuutosta olemassa oleviin). */
 .btn,
 .btn-bulk-apply, .btn-bulk-checkin-aseta, .btn-bulk-checkin-ohita,
-.btn-status-primary, .btn-status-secondary, .btn-bulk-collect,
+.btn-status-primary, .btn-status-secondary,
 .btn-mark-inspected, .btn-snapshot-create, .btn-snapshot-download,
 .btn-snapshot-restore, .btn-snapshot-restore-file, .btn-segment-create,
 .btn-segment-creation-save, .btn-segment-creation-cancel,
@@ -4521,13 +4516,13 @@ body[data-role="talkoolainen"] #left-panel { display: none; }
 /* Variantti: confirm (vihreä kuittaus) — + vanhat vihreät napit */
 .btn--confirm,
 .btn-bulk-apply:not(:disabled), .btn-bulk-checkin-aseta:not(:disabled),
-.btn-status-primary, .btn-bulk-collect, .btn-mark-inspected,
+.btn-status-primary, .btn-mark-inspected,
 .btn-segment-creation-save, .modal-btn-primary {
   background: var(--confirm);
   color: var(--confirm-text);
 }
 .btn--confirm:hover,
-.btn-status-primary:hover, .btn-bulk-collect:hover,
+.btn-status-primary:hover,
 .btn-mark-inspected:hover, .modal-btn-primary:hover {
   background: var(--confirm-hover);
 }

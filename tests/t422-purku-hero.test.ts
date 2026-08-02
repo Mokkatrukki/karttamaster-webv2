@@ -53,7 +53,7 @@ describe('T422/V313 — purku-hero', () => {
       onCollectMarker: (id, c) => collected.push([id, c]),
       onSetMarker: (id) => set.push(id),
     }
-    const view = new SegmentView(container, makeSeg(), undefined, undefined, actions)
+    const view = new SegmentView(container, makeSeg(), undefined, actions)
     view.update([makeMarker()])
     const btn = container.querySelector('.segment-view-next-set') as HTMLButtonElement
     expect(btn.textContent).toContain('Kerätty')
@@ -103,7 +103,7 @@ describe('T422/V313 — purku-hero', () => {
 
   it('(iv) asettaminen-hero muuttumaton', () => {
     const set: string[] = []
-    const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, undefined, {
+    const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, {
       onSetMarker: (id) => set.push(id),
     })
     view.update([makeMarker({ status: 'suunniteltu' })])
@@ -116,7 +116,7 @@ describe('T422/V313 — purku-hero', () => {
 
   it('(v) "Merkitse pätkä valmiiksi" toimii purussa kun kaikki kerätty (T230/T351)', () => {
     const done: boolean[] = []
-    const view = new SegmentView(container, makeSeg(), undefined, undefined, {
+    const view = new SegmentView(container, makeSeg(), undefined, {
       onComplete: (c) => done.push(c),
     })
     view.update([makeMarker({ status: 'kerätty' })])

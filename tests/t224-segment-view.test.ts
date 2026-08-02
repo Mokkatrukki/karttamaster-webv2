@@ -90,7 +90,7 @@ describe('T224 — pätkäkeskeinen näkymä', () => {
 
     it('"Ei tarpeen" valikossa kutsuu onSkipMarker', () => {
       let skipId: string | null = null
-      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, undefined, {
+      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, {
         onSkipMarker: (id) => { skipId = id },
       })
       view.update([makeMarker({ id: 'm1', status: 'suunniteltu' })])
@@ -106,7 +106,7 @@ describe('T224 — pätkäkeskeinen näkymä', () => {
 
       document.body.innerHTML = ''
       const c2 = document.createElement('div'); document.body.appendChild(c2)
-      const view = new SegmentView(c2, makeSeg({ phase: 'asettaminen' }), undefined, undefined, {
+      const view = new SegmentView(c2, makeSeg({ phase: 'asettaminen' }), undefined, {
         onMoveMarker: (id) => { movedId = id },
       })
       view.update([makeMarker({ id: 'm7', status: 'suunniteltu' })])
@@ -125,7 +125,7 @@ describe('T224 — pätkäkeskeinen näkymä', () => {
 
     it('T228/T380: "Lisää ohje" enabloitu + kutsuu onComment kun annettu', () => {
       let commentId: string | null = null
-      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, undefined, {
+      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, {
         onComment: (id) => { commentId = id },
       })
       view.update([makeMarker({ id: 'm9', status: 'suunniteltu' })])
@@ -141,7 +141,7 @@ describe('T224 — pätkäkeskeinen näkymä', () => {
   // ---- T230: "Merkitse pätkä valmiiksi" (asettaminen/purku) ----
   describe('T230 — pätkä valmiiksi', () => {
     it('nappi näkyy asettaminen-vaiheessa kun onComplete annettu', () => {
-      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, undefined, {
+      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, {
         onComplete: () => {},
       })
       view.update([makeMarker({ status: 'asetettu' })])
@@ -157,7 +157,7 @@ describe('T224 — pätkäkeskeinen näkymä', () => {
     })
 
     it('piilossa tarkastus-vaiheessa (käyttää inspect-osiota)', () => {
-      const view = new SegmentView(container, makeSeg({ phase: 'tarkastus' }), undefined, undefined, {
+      const view = new SegmentView(container, makeSeg({ phase: 'tarkastus' }), undefined, {
         onComplete: () => {},
       })
       view.update([makeMarker()])
@@ -166,7 +166,7 @@ describe('T224 — pätkäkeskeinen näkymä', () => {
 
     it('klikkaus kutsuu onComplete(true), completed=true vaihtaa tekstin + näyttää statuksen', () => {
       let called: boolean | null = null
-      const view = new SegmentView(container, makeSeg({ phase: 'purku' }), undefined, undefined, {
+      const view = new SegmentView(container, makeSeg({ phase: 'purku' }), undefined, {
         onComplete: (c) => { called = c },
       })
       view.update([makeMarker({ status: 'kerätty' })])
@@ -184,7 +184,7 @@ describe('T224 — pätkäkeskeinen näkymä', () => {
   // ---- C/T233: Varustelista siirtyi yläpalkkiin → SegmentView.openEquipment() ----
   describe('Varustelista (C/T233) — openEquipment()', () => {
     it('openEquipment() avaa EquipmentModalin (yläpalkin #btn-varuste kutsuu tätä)', () => {
-      const view = new SegmentView(container, makeSeg({ equipment: [{ name: 'Nauha', count: 3 }] }), undefined, undefined, {
+      const view = new SegmentView(container, makeSeg({ equipment: [{ name: 'Nauha', count: 3 }] }), undefined, {
         onEquipmentChange: () => {},
       })
       view.update([makeMarker()])

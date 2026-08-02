@@ -60,7 +60,7 @@ describe('T436/V326 — hero näyttää kuittaamattoman merkin, ei valmis-riviä
       onCollectMarker: (id, c) => collected.push([id, c]),
       onSkipMarker: (id) => skipped.push(id),
     }
-    const view = new SegmentView(container, makeSeg(), undefined, undefined, actions)
+    const view = new SegmentView(container, makeSeg(), undefined, actions)
     view.update([makeMarker({ id: 'p1', status: 'suunniteltu', label: 'Toka' })])
     const setBtn = container.querySelector('.segment-view-next-set') as HTMLButtonElement
     expect(setBtn.textContent).toContain('Kerätty')

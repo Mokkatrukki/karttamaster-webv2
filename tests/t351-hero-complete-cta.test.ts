@@ -53,7 +53,7 @@ describe('T351 — valmis-toggle hero:n done-rivillä', () => {
   })
 
   it('kaikki merkit asetettu → nappi näkyy done-rivillä', () => {
-    const view = new SegmentView(container, makeSeg(), undefined, undefined, actions)
+    const view = new SegmentView(container, makeSeg(), undefined, actions)
     view.update([makeMarker({ status: 'asetettu' })])
     const btn = heroCompleteBtn(container)
     expect(btn).not.toBeNull()
@@ -61,14 +61,14 @@ describe('T351 — valmis-toggle hero:n done-rivillä', () => {
   })
 
   it('klikki → onComplete(!completed)', () => {
-    const view = new SegmentView(container, makeSeg({ completed: false }), undefined, undefined, actions)
+    const view = new SegmentView(container, makeSeg({ completed: false }), undefined, actions)
     view.update([makeMarker({ status: 'asetettu' })])
     heroCompleteBtn(container)?.click()
     expect(onComplete).toHaveBeenCalledWith(true)
   })
 
   it('jo valmis → label kääntyy ja klikki peruu (onComplete(false))', () => {
-    const view = new SegmentView(container, makeSeg({ completed: true }), undefined, undefined, actions)
+    const view = new SegmentView(container, makeSeg({ completed: true }), undefined, actions)
     view.update([makeMarker({ status: 'asetettu' })])
     const btn = heroCompleteBtn(container)
     expect(btn?.textContent).toBe('↩ Merkitse keskeneräiseksi')
@@ -77,26 +77,26 @@ describe('T351 — valmis-toggle hero:n done-rivillä', () => {
   })
 
   it('asettamattomia jäljellä → ⊥ nappia (done-riviä ei ole)', () => {
-    const view = new SegmentView(container, makeSeg(), undefined, undefined, actions)
+    const view = new SegmentView(container, makeSeg(), undefined, actions)
     view.update([makeMarker({ status: 'suunniteltu' })])
     expect(heroCompleteBtn(container)).toBeNull()
   })
 
   it('tyhjä pätkä (0 merkkiä) → ⊥ nappia — "Ei merkkejä" ⊥ ole valmiussignaali', () => {
-    const view = new SegmentView(container, makeSeg(), undefined, undefined, actions)
+    const view = new SegmentView(container, makeSeg(), undefined, actions)
     view.update([])
     expect(container.querySelector('.segment-view-next-done-title')?.textContent).toContain('Ei merkkejä')
     expect(heroCompleteBtn(container)).toBeNull()
   })
 
   it('onComplete puuttuu (⊥ talkoolainen) → ⊥ nappia', () => {
-    const view = new SegmentView(container, makeSeg(), undefined, undefined, {})
+    const view = new SegmentView(container, makeSeg(), undefined, {})
     view.update([makeMarker({ status: 'asetettu' })])
     expect(heroCompleteBtn(container)).toBeNull()
   })
 
   it('T228 säilyy: done-rivi pysyy matalana (⊥ accent-kortti) napista huolimatta', () => {
-    const view = new SegmentView(container, makeSeg(), undefined, undefined, actions)
+    const view = new SegmentView(container, makeSeg(), undefined, actions)
     view.update([makeMarker({ status: 'asetettu' })])
     const next = container.querySelector('.segment-view-next') as HTMLElement
     expect(next.classList.contains('segment-view-next--done')).toBe(true)

@@ -1,5 +1,4 @@
-import { bulkCollect } from '../logic/segment-actions'
-import { isTerminal, type MarkerStatus } from '../logic/marker-status'
+import type { MarkerStatus } from '../logic/marker-status'
 import { getPhaseProgress, formatPhaseProgress } from '../logic/segments'
 import { orderMarkersInSegment } from '../logic/segment-order'
 import { defaultUnsetSelection } from '../logic/navigation'
@@ -16,8 +15,8 @@ import { SegmentMarkerList } from './segment-marker-list'
 import { SegmentKotiTabs } from './segment-koti-tabs'
 import type { SignMarker } from '../logic/types'
 
-// T14/T208 (talkoolainen): pätkänäkymän toiminta-callbackit. Erillinen positional-parametreista
-// (onBulkCollect/onInspect) taaksepäin-yhteensopivuuden vuoksi (t14/t52-testit).
+// T14/T208 (talkoolainen): pätkänäkymän toiminta-callbackit. Erillinen `onInspect`-positional-
+// parametrista taaksepäin-yhteensopivuuden vuoksi (t14-testit).
 export interface SegmentViewActions {
   // "Aseta" — merkki suunniteltu→asetettu (V9). Ohjaus etenee pätkän merkit järjestyksessä.
   onSetMarker?: (id: string) => void
@@ -65,8 +64,10 @@ export interface SegmentViewActions {
   // ja sijainti ratkeavat kutsupaikassa, jotta näkymä ei tunne luontipolkua.
   onLeavePile?: () => void
   // T409/V292 (VISION §Kenttätyö): koti-tabin "Kaikki merkit" -listan valikoiva bulk-kuittaus.
-  // Erillinen `onBulkCollect`ista (purkuvaiheen "merkitse KAIKKI kerätyksi") — eri kysymys:
-  // kaikki ⊥ valitut. Kytkemättä lista renderöityy ilman checkboxeja (kyky on opt-in).
+  // T471/V358: tämä on nyt AINOA joukkokuittaus. Paneelin "✓ Merkitse kaikki kerätyksi"
+  // (`onBulkCollect`) poistettiin: se kuittasi 12 merkkiä näyttämättä yhtäkään & vei kartalta
+  // täysleveän rivin koko purkutyön ajan. "Kaikki" = tämän listan "Valitse kaikki".
+  // Kytkemättä lista renderöityy ilman checkboxeja (kyky on opt-in).
   onBulkStatus?: (ids: string[], status: MarkerStatus) => void
 }
 
@@ -77,7 +78,6 @@ export class SegmentView {
   private readonly nextEl: HTMLElement
   // T218/V143: keräyskasa-tehtävän (markerTypeFilter) elävä keräyslista — asettaminen-heron tilalla.
   private readonly collectionEl: HTMLElement
-  private readonly bulkBtn: HTMLButtonElement
   // T424/V314: "📦 Jätä kasa tähän" — pätkätason toiminto, oma rivi heron alla.
   private readonly pileBtn: HTMLButtonElement
   private readonly inspectSection: HTMLElement
@@ -112,7 +112,6 @@ export class SegmentView {
   constructor(
     container: HTMLElement,
     private segment: Segment,
-    private readonly onBulkCollect?: (updated: SignMarker[]) => void,
     private readonly onInspect?: (inspected: boolean, note: string) => void,
     private readonly actions: SegmentViewActions = {},
   ) {
@@ -124,7 +123,6 @@ export class SegmentView {
     this.equipmentEl = b.equipmentEl
     this.markerListEl = b.markerListEl
     this.collectionEl = b.collectionEl
-    this.bulkBtn = b.bulkBtn
     this.pileBtn = b.pileBtn
     this.inspectSection = b.inspectSection
     this.inspectBtn = b.inspectBtn
@@ -167,7 +165,7 @@ export class SegmentView {
       { id: 'varuste', label: '🎒 Varustelista', els: [this.equipmentEl] },
       { id: 'merkit', label: 'Kaikki merkit', els: [this.markerListEl, this.completeSection, this.boundsSection] },
     ])
-    this.panel.insertBefore(this.kotiTabs.root, this.bulkBtn)
+    this.panel.insertBefore(this.kotiTabs.root, this.pileBtn)
     this.renderGpsBtn()
     this.renderInspectSection()
     this.renderCompleteSection()
@@ -196,7 +194,6 @@ export class SegmentView {
     this.equipment.render()
     this.markerList.render()
     this.renderCollectionList()
-    this.updateBulkBtn(markers)
     this.renderPileBtn()
     this.renderEquipmentVisibility()
     this.renderInspectSection()
@@ -298,11 +295,6 @@ export class SegmentView {
     this.pileBtn.hidden = false
     // Määrä on napissa: talkoolainen näkee mitä on jättämässä ennen kuin painaa.
     this.pileBtn.textContent = `📦 Jätä kasa tähän (${candidates.length} merkkiä)`
-  }
-
-  private updateBulkBtn(markers: SignMarker[]): void {
-    const hasNonTerminal = markers.some(m => !isTerminal(m.status))
-    this.bulkBtn.hidden = this.segment.phase !== 'purku' || !hasNonTerminal
   }
 
   // T143/V90: phase-tietoinen edistymispalkki — "N/M asetettu" tai "N/M kerätty".
@@ -448,7 +440,6 @@ export class SegmentView {
     gpsBtn: HTMLButtonElement
     nextEl: HTMLElement
     collectionEl: HTMLElement
-    bulkBtn: HTMLButtonElement
     pileBtn: HTMLButtonElement
     equipmentEl: HTMLElement
     markerListEl: HTMLElement
@@ -549,16 +540,6 @@ export class SegmentView {
     // (bulk + rivi→MarkerDetailModal). Inline-lista duplikoi sen ja söi kartan tilan → poistettu.
     // T233/V155: Varustelista-nappi siirtyi yläpalkkiin (avaa openEquipment()); ei enää panelissa.
 
-    const bulkBtn = document.createElement('button')
-    bulkBtn.className = 'btn btn--confirm btn-bulk-collect'
-    bulkBtn.textContent = '✓ Merkitse kaikki kerätyksi'
-    bulkBtn.hidden = true
-    bulkBtn.addEventListener('click', () => {
-      const updated = bulkCollect(this.segment, this.currentMarkers)
-      if (updated.length > 0) this.onBulkCollect?.(updated)
-    })
-    panel.appendChild(bulkBtn)
-
     // T424/V314: kasanappi heron ALLA — ei kolmas primary-nappi vaan pätkätason toiminto,
     // samaa luokkaa kuin "Merkitse pätkä valmiiksi". VISION "max 2 nappia" koskee VALITTUUN
     // merkkiin kohdistuvia toimintoja.
@@ -646,7 +627,7 @@ export class SegmentView {
     panel.appendChild(moreSection)
 
     return {
-      panel, progressEl, gpsBtn, nextEl, equipmentEl, markerListEl, collectionEl, bulkBtn, pileBtn,
+      panel, progressEl, gpsBtn, nextEl, equipmentEl, markerListEl, collectionEl, pileBtn,
       inspectSection, inspectBtn, inspectNoteInput, inspectStatus,
       moreSection, boundsSection,
       completeSection, completeBtn, completeStatus,

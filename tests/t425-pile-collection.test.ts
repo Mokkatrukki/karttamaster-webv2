@@ -24,7 +24,7 @@ function kasa(id: string, ids: string[], lat = 65, status: MarkerStatus = 'suunn
 function mount(markers: SignMarker[], actions: SegmentViewActions = {}) {
   const container = document.createElement('div')
   document.body.appendChild(container)
-  const view = new SegmentView(container, kasaTehtava(), undefined, undefined, actions)
+  const view = new SegmentView(container, kasaTehtava(), undefined, actions)
   view.update(markers)
   return { container, view }
 }
@@ -65,7 +65,7 @@ describe('T425 — autoporukan kasanhaku', () => {
     const markers = [kasa('eka', ['a'], 65.0), kasa('toka', ['b'], 65.9)]
     const container = document.createElement('div')
     document.body.appendChild(container)
-    const view = new SegmentView(container, kasaTehtava(), undefined, undefined, {
+    const view = new SegmentView(container, kasaTehtava(), undefined, {
       gpsPosition: () => pos,
     })
     view.update(markers)
@@ -81,7 +81,7 @@ describe('T425 — autoporukan kasanhaku', () => {
     const markers = [kasa('eka', ['a'], 65.0), kasa('toka', ['b', 'c'], 65.9)]
     const container = document.createElement('div')
     document.body.appendChild(container)
-    const view = new SegmentView(container, kasaTehtava(), undefined, undefined, {
+    const view = new SegmentView(container, kasaTehtava(), undefined, {
       gpsPosition: () => pos,
     })
     view.update(markers)

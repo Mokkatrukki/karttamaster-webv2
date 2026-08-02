@@ -416,12 +416,9 @@ function wireMarkersInner(
       segmentView = new SegmentView(
         document.getElementById('segment-view-container')!,
         seg,
-        (updated) => {
-          // V28 (B-lista3): bulkCollect palauttaa merkit jo 'kerätty'-tilassa. Käytä suoraa
-          // bulkSetStatus-asetusta — EI 'kerää'-actionia, joka heittää "Virheellinen siirtymä"
-          // suunniteltu/ei_tarpeen-merkeille (uncaught throw, osittainen päivitys, ei banneria).
-          markerManager.bulkSetStatus(updated.map(m => m.id), 'kerätty')
-        },
+        // T471/V358: paneelin "✓ Merkitse kaikki kerätyksi" poistettu ∴ `onBulkCollect` meni
+        // mukana. Joukkokuittaus kulkee nyt `onBulkStatus`in kautta (alempana) — sama
+        // `markerManager.bulkSetStatus`, mutta pinnalla joka NÄYTTÄÄ mitä kuitataan.
         (inspected, note) => {
           const updatedSeg = updateSegment(segmentStore, seg.id, { inspected, inspectionNote: note || undefined })
           // T149/V93: tarkastuskuittaus EI saa hävitä hiljaa — false-paluu tai reject → virhebanneri

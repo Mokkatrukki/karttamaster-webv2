@@ -104,7 +104,7 @@ describe('T14 — SegmentView', () => {
 
     it('"Aseta" kutsuu onSetMarker ensimmäisen merkin id:llä', () => {
       let setId: string | null = null
-      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, undefined, {
+      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, {
         onSetMarker: (id) => { setId = id },
       })
       view.update([
@@ -118,7 +118,7 @@ describe('T14 — SegmentView', () => {
     it('"Ei tarpeen" kutsuu onSkipMarker, "Näytä kartalla" onFocusMarker', () => {
       let skipId: string | null = null
       let focusId: string | null = null
-      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, undefined, {
+      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, {
         onSkipMarker: (id) => { skipId = id },
         onFocusMarker: (id) => { focusId = id },
       })
@@ -180,7 +180,7 @@ describe('T14 — SegmentView', () => {
     it('"Näytä kartalla" kutsuu onShowOnMap EIKÄ kutista (ei avaa detaljia)', () => {
       let shown: string | null = null
       let focused: string | null = null
-      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, undefined, {
+      const view = new SegmentView(container, makeSeg({ phase: 'asettaminen' }), undefined, {
         onShowOnMap: (id) => { shown = id },
         onFocusMarker: (id) => { focused = id },
       })
@@ -200,14 +200,14 @@ describe('T14 — SegmentView', () => {
     })
 
     it('näyttää nykyiset rajat toggle-napissa', () => {
-      new SegmentView(container, makeSeg({ startDist: 5000, endDist: 12000 }), undefined, undefined, {
+      new SegmentView(container, makeSeg({ startDist: 5000, endDist: 12000 }), undefined, {
         onEditBounds: () => {},
       })
       expect(container.querySelector('.segment-view-bounds-toggle')?.textContent).toContain('5.0–12.0 km')
     })
 
     it('toggle avaa formin esitäytetyillä km-arvoilla', () => {
-      new SegmentView(container, makeSeg({ startDist: 5000, endDist: 12000 }), undefined, undefined, {
+      new SegmentView(container, makeSeg({ startDist: 5000, endDist: 12000 }), undefined, {
         onEditBounds: () => {},
       })
       ;(container.querySelector('.segment-view-bounds-toggle') as HTMLButtonElement).click()
@@ -218,7 +218,7 @@ describe('T14 — SegmentView', () => {
 
     it('Tallenna kutsuu onEditBounds metreinä (km×1000)', () => {
       let bounds: [number, number] | null = null
-      new SegmentView(container, makeSeg(), undefined, undefined, {
+      new SegmentView(container, makeSeg(), undefined, {
         onEditBounds: (s, e) => { bounds = [s, e] },
       })
       ;(container.querySelector('.segment-view-bounds-toggle') as HTMLButtonElement).click()
@@ -230,7 +230,7 @@ describe('T14 — SegmentView', () => {
 
     it('hylkää loppu <= alku virheellä, ei kutsu callbackia', () => {
       let called = false
-      new SegmentView(container, makeSeg(), undefined, undefined, {
+      new SegmentView(container, makeSeg(), undefined, {
         onEditBounds: () => { called = true },
       })
       ;(container.querySelector('.segment-view-bounds-toggle') as HTMLButtonElement).click()
@@ -243,7 +243,7 @@ describe('T14 — SegmentView', () => {
 
     it('Peruuta sulkee formin tallentamatta', () => {
       let called = false
-      new SegmentView(container, makeSeg(), undefined, undefined, {
+      new SegmentView(container, makeSeg(), undefined, {
         onEditBounds: () => { called = true },
       })
       ;(container.querySelector('.segment-view-bounds-toggle') as HTMLButtonElement).click()
@@ -277,7 +277,7 @@ describe('T14 — SegmentView', () => {
 
     it('klikkaus kutsuu onInspect(true, huomioteksti)', () => {
       let called: [boolean, string] | null = null
-      const view = new SegmentView(container, makeSeg({ phase: 'tarkastus' }), undefined, (inspected, note) => {
+      const view = new SegmentView(container, makeSeg({ phase: 'tarkastus' }), (inspected, note) => {
         called = [inspected, note]
       })
       const noteInput = container.querySelector('.segment-view-inspect-note') as HTMLTextAreaElement

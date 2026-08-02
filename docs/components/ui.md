@@ -193,7 +193,7 @@ DOM-komponentit ilman Leafletia. **Testattavuus: Vitest-jsdom.**
 - ✓ Automaattinen varustelaskuri: merkit ryhmiteltynä tyypin mukaan ("N× tyyppi")
 - ✓ Manuaaliset varusterivit järjestäjän `segment.equipment`-listasta
 - ✓ Merkkilista km-järjestyksessä, tyyppi + statusbadge per merkki
-- ✓ "✓ Merkitse kaikki kerätyksi" -bulk-nappi, näkyy vain purku-vaiheessa (`phase === 'purku'`) kun ei-terminaalitilaisia merkkejä on jäljellä
+- ✗ "✓ Merkitse kaikki kerätyksi" -bulk-nappi POISTETTU (T471/V358) — joukkokuittaus on "Kaikki merkit" -listan "Valitse kaikki" + kuittausnappi; paneeli on kartan päällä ∴ pysyvä rivi maksaa karttatilaa
 
 ### Käyttäjätarkistus
 > Talkoolainen: avaa oman pätkän näkymän autossa, tarkistaa varustelistan ja merkit ennen lähtöä ✓
