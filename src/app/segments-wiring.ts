@@ -1,6 +1,9 @@
 import L from 'leaflet'
 import type { MarkerManager } from '../map/markers'
 import { SegmentOverlay } from '../map/segment-overlay'
+// T466: muokkaustyökalut (rajakahvat + luonnin snap-pisteet) ovat oma luokkansa — overlay
+// piirtää, kahvat muokkaavat. Eri elinkaari ∴ eri olio, ⊥ overlayn läpi delegoitu API.
+import { SegmentEditHandles } from '../map/segment-edit-handles'
 import { SegmentPanel } from '../ui/segment-panel'
 import { PhaseSwitcher } from '../ui/phase-switcher'
 import { getSegmentsForPhase, getSegmentForCode, getMarkersForSegment, segmentPeers } from '../logic/segments'
@@ -19,6 +22,7 @@ import { initMarkerFocusPill } from '../ui/marker-focus-pill'
 export interface SegmentsWiring {
   segmentStore: Map<string, Segment>
   segmentOverlay: SegmentOverlay
+  editHandles: SegmentEditHandles
   segmentPanel: SegmentPanel
   renderSegmentOverlay: () => void
   phaseFilteredStore: () => Map<string, Segment>
@@ -94,6 +98,7 @@ export async function wireSegments(
   }
 
   const segmentOverlay = new SegmentOverlay(map, routes)
+  const editHandles = new SegmentEditHandles(map, routes)
   // V142: talkoolaisen näkymässä oma tehtävä kirkas+klikattava, muut himmeä+read-only.
   // Oma = koodilla haettu pätkä; muut näkyvät vasta kun kontekstihaku tuo ne (erillinen task).
   if (talkoolainenCode) {
@@ -108,7 +113,7 @@ export async function wireSegments(
   // T307/V218: muokkaustilasta poistuminen sulkee auki olevan rajaeditorin — muuten kahvat
   // jäisivät kartalle raahattaviksi katselutilassa (rinnakkainen mekanismi).
   mapMode.onChange(() => {
-    if (!mapMode.canDragSegmentBounds() && segmentOverlay.isEditMode()) segmentOverlay.exitEditMode()
+    if (!mapMode.canDragSegmentBounds() && editHandles.isEditMode()) editHandles.exitEditMode()
   })
 
   // T335/V243: järjestäjän korostustila. Asuu TÄÄLLÄ eikä modaalissa — modaali tuhoutuu
@@ -193,14 +198,14 @@ export async function wireSegments(
       // ole kartan ele ∴ ei tämän portin takana.
       onEnterEditMode: (seg, onSave) => {
         if (!mapMode.canDragSegmentBounds()) return
-        segmentOverlay.enterEditMode(seg, onSave)
+        editHandles.enterEditMode(seg, onSave)
       },
-      onExitEditMode: () => segmentOverlay.exitEditMode(),
+      onExitEditMode: () => editHandles.exitEditMode(),
       onEnterCreationMode: () => { map.getContainer().style.cursor = 'crosshair' },
       onExitCreationMode: () => { map.getContainer().style.cursor = '' },
       // T150/V94: snap-pisteet vain aktiivisen phasen pätkistä — ei piilotettujen vaiheiden endpointteja
-      onShowSnapMarkers: (onSnap) => segmentOverlay.showCreationSnapMarkers(phaseFilteredStore(), onSnap),
-      onHideSnapMarkers: () => segmentOverlay.hideCreationSnapMarkers(),
+      onShowSnapMarkers: (onSnap) => editHandles.showCreationSnapMarkers(phaseFilteredStore(), onSnap),
+      onHideSnapMarkers: () => editHandles.hideCreationSnapMarkers(),
       onSaveError,
       getMarkers: () => markerManagerRef.current?.getAll() ?? [],
       // T335/V243: korostuskytkin pätkämodaalissa — tila tässä, pilleri sen näkyvä ulospääsy.
@@ -238,7 +243,7 @@ export async function wireSegments(
   async function reloadSegments(): Promise<void> {
     // Kesken oleva luonti/rajamuokkaus omistaa kartan: uudelleenrender veisi kahvat alta &
     // rakenteilla oleva pätkä ⊥ ole vielä storessa. Heräte odottaa — se on kiihdytin ⊥ pakko.
-    if (segmentPanel.isCreationMode() || segmentOverlay.isEditMode()) return
+    if (segmentPanel.isCreationMode() || editHandles.isEditMode()) return
     if (talkoolainenCode) {
       const remote = await fetchSegmentByCode(talkoolainenCode)
       if (!remote) return
@@ -258,7 +263,7 @@ export async function wireSegments(
   }
 
   return {
-    segmentStore, segmentOverlay, segmentPanel, renderSegmentOverlay, phaseFilteredStore, reloadSegments,
+    segmentStore, segmentOverlay, editHandles, segmentPanel, renderSegmentOverlay, phaseFilteredStore, reloadSegments,
     setOnFocusChange: cb => { onFocusChange = cb },
     clearFocusSegment: () => setFocusSegment(null),
   }

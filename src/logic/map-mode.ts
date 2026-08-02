@@ -29,7 +29,7 @@ export function canPlaceMarkers(mode: MapMode): boolean {
   return mode === 'muokkaus'
 }
 
-/** Pätkän rajakahvojen raahaus kartalla (segment-overlay.enterEditMode). V218. */
+/** Pätkän rajakahvojen raahaus kartalla (segment-edit-handles.enterEditMode). V218. */
 export function canDragSegmentBounds(mode: MapMode): boolean {
   return mode === 'muokkaus'
 }

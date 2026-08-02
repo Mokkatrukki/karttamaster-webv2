@@ -3,7 +3,7 @@ import {
   segmentLayerStyles, CASING_WEIGHT, SEPARATOR_WEIGHT, CORE_WEIGHT, SEPARATOR_COLOR,
 } from '../src/logic/segment-style'
 import { ROUTE_DEFS } from '../src/logic/route-defs'
-import { SEGMENT_COLORS } from '../src/logic/segments'
+import { SEGMENT_COLORS } from '../src/logic/segment-color'
 import { contrastRatio } from './helpers/contrast'
 
 // T336/V244/B137: pätkä piirtyy reitin PÄÄLLE ∴ yksi viiva kantaisi vain toisen tiedon.

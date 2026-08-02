@@ -133,7 +133,7 @@ async function init(talkoolainenCode?: string) {
     if (!talkoolainenCode) showWarning('⚠ Alueiden lataus epäonnistui — päivitä sivu', 0)
   })
 
-  const { segmentStore, segmentOverlay, renderSegmentOverlay, segmentPanel, setOnFocusChange, clearFocusSegment, reloadSegments } = await wireSegments(
+  const { segmentStore, segmentOverlay, editHandles, renderSegmentOverlay, segmentPanel, setOnFocusChange, clearFocusSegment, reloadSegments } = await wireSegments(
     map, routes, talkoolainenCode, initialMarkers, markerManagerRef,
     () => showWarning('⚠ Pätkän tallennus epäonnistui (muisti täynnä?)', 5000),
     () => showWarning('⚠ Pätkien lataus epäonnistui — päivitä sivu', 0),
@@ -188,7 +188,7 @@ async function init(talkoolainenCode?: string) {
     if (e.key === 'Escape') {
       if (placeMode.isArmed())           { placeMode.disarm();        return }
       if (segmentPanel.isCreationMode()) { segmentPanel.cancelCreation(); return }
-      if (segmentOverlay.isEditMode())   { segmentOverlay.exitEditMode(); return }
+      if (editHandles.isEditMode())      { editHandles.exitEditMode();    return }
       if (placeMode.isPickerOpen())      { placeMode.closePicker();   return }
       // T404: merkkijono-telakka korvasi `#marker-modal`in samassa kohdassa ketjua.
       if (markerOverview?.isOpen())      { markerOverview.close();   return }

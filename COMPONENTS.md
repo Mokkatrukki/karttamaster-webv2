@@ -42,7 +42,8 @@ server/       ← Hono + Bun + SQLite
 | Uid | `src/logic/uid.ts` | ✓ T238 (turva-genId, guard+insecure-fallback B103) | — | [logic.md](docs/components/logic.md) |
 | SignLibrary | `src/logic/sign-library.ts` | ✓ T171 | — | [logic.md](docs/components/logic.md) |
 | MarkerStatus | `src/logic/marker-status.ts` | ✓ T10 | — | [logic.md](docs/components/logic.md) |
-| SegmentManager | `src/logic/segments.ts` | ✓ T464 ⚠️ pilkko | t464-segment-boundaries: naapuriväritys kartalla (V352) | [logic.md](docs/components/logic.md) |
+| SegmentManager | `src/logic/segments.ts` | ✓ T465 | — (Taso-1: `tests/segments.test.ts`) | [logic.md](docs/components/logic.md) |
+| SegmentColor | `src/logic/segment-color.ts` | ✓ T465 | t464-segment-boundaries: naapuriväritys kartalla (V352) | [logic.md](docs/components/logic.md) |
 | SegmentSlice | `src/logic/segment-slice.ts` | ✓ T464 | — (rajatapaukset Taso-1: `tests/segment-slice.test.ts`) | [logic.md](docs/components/logic.md) |
 | TaskMarkers | `src/logic/task-markers.ts` | ✓ T214 | — | [logic.md](docs/components/logic.md) |
 | MarkerFocus | `src/logic/marker-focus.ts` | ✓ T334 (focusState: fokus/dim per merkki, jäsenyys TaskMarkersista V243) | tests/marker-focus.test.ts | [logic.md](docs/components/logic.md) |
@@ -97,7 +98,8 @@ server/       ← Hono + Bun + SQLite
 | GpsControl | `src/ui/gps-control.ts` | ✓ T407 (paikannus KARTALLE 1 napautuksella; laukaisin ON tilanäyttö, 4 tilaa; hero väistetään ResizeObserverilla, V294) | tests/t407-gps-control.test.ts; e2e t406-t407-gps-follow | [ui.md](docs/components/ui.md) |
 | AreaOverlay | `src/map/area-overlay.ts` | ✓ | area-interaction | [map.md](docs/components/map.md) |
 | MapRectEditor | `src/map/map-rect-editor.ts` | ✓ T117 | area-interaction | [map.md](docs/components/map.md) |
-| SegmentOverlay | `src/map/segment-overlay.ts` | ✓ T464 ⚠️ pilkko | t464-segment-boundaries: päätepistemerkit + klikki casingille (V353/V345); t419-label-scale; t349-map-surface-theme; critical-paths: nimilapun klikkaus + V142-dim; segments: viivatyyli koodaa statuksen (V252) | [map.md](docs/components/map.md) |
+| SegmentOverlay | `src/map/segment-overlay.ts` | ✓ T466 | t464-segment-boundaries: päätepistemerkit + klikki casingille (V353/V345); t419-label-scale; t349-map-surface-theme; critical-paths: nimilapun klikkaus + V142-dim; segments: viivatyyli koodaa statuksen (V252) | [map.md](docs/components/map.md) |
+| SegmentEditHandles | `src/map/segment-edit-handles.ts` | ✓ T466 | segments: luonnin snap-flow + rajakahvat | [map.md](docs/components/map.md) |
 | CssParseGuard | `tests/css-parse.test.ts` | ✓ B168 (∀ CSS-tiedosto postcss-parsitaan + sulkutasapaino + merge-konfliktimerkit; Vitest ⊥ muuten katso CSS:ää ∴ rikkinäinen tyylitiedosto pääsi läpi 1984 vihreän testin) | — | — |
 | ~~MarkerListUI~~ | POISTETTU T404 | `marker-list.ts` + `#marker-modal` poistettu 2026-07-30 — korvaaja MarkerOverviewPanel. `renderSignDots` siirtyi `src/ui/route-sign-dots.ts`:ään (ProgressBarin riippuvuus). | — | — |
 | MarkerOverviewPanel | `src/ui/marker-overview-panel.ts` | ✓ T402/T403/T404 (telakoitu merkkijono järjestäjälle, korvaa `#marker-modal`in; oikea reuna ⊥ modaali koska rivin klikkaus panoroi karttaa V114; parity: haku + bulk-status + V117-pending; DESIGN §K), T412/V303 (checkbox 44×44 — jaettu sääntö, oli 13×13 B171), T415/V305 (toinen polku valituille: kohdevalitsin + "Lisää valitut tehtävään" — natiivi select ⊥ oma popup, DESIGN §K) | tests/t402-marker-overview-panel.test.ts; e2e/t412-checkbox-touch-target.spec.ts | [ui.md](docs/components/ui.md) |
@@ -213,8 +215,8 @@ Lippu ilman toimenpidettä on hukkaa: ⚠️-tason lippu → varmista pilkko-§T
 | `src/ui/segment-details-modal.ts` | ⚠️ | monta vastuuta. T346 päätti moduulirajat: Tiedot / Sisältö / Jako / Kartta / Vaiheet — pilkkominen seuraa näitä, ei keksi uusia. T354 teki rajat NÄKYVIKSI (Sisältö = kaksi tabia, loput Asetukset-tabin sisäotsikoita) ∴ pilkko-§T voi seurata tabijakoa suoraan |
 | `src/ui/area-panel.ts` | ⚠️ | ylittää 400 riv -kynnyksen (analysoi 2026-07-04) |
 | `src/ui/inventory-page.ts` | ⚠️ | suurin UI-moduuli; vastuut eriytyneet: read/edit-viewMode + paikkatabit + add-form + undo-toast (analysoi 2026-07-25) |
-| `src/logic/segments.ts` | ⚠️ **T465** | ylitti 400 riv -kynnyksen T464:ssä & vastuut eriytyneet: store-CRUD + jäsenyys/overlap + phase-progress + väri. Jakolinja on **väri / status** — `segmentLineState` jää, koska se lukee `PhaseProgress`ia (kehä muuten). Värikielellä 3 kutsupaikkaa vaikka moduulilla 92 importtaajaa |
-| `src/map/segment-overlay.ts` | ⚠️ **T466** | ylitti 400 riv -kynnyksen T464:ssä. Kolme vastuuta samassa luokassa: render (viiva+casing+lappu+päätepiste), edit-mode (rajakahvat) & creation-snap-merkit. Kaksi jälkimmäistä ovat MUOKKAUStyökaluja ⊥ katselukerrosta & ne ⊥ koske `this.layers`iin ∴ V353(e) ⊥ ristikkäisty |
+| `src/logic/segments.ts` | ✓ T465 | PILKOTTU 2026-08-02: värikieli → `segment-color.ts`. Jakolinja väri/status — `segmentLineState` jäi koska se lukee `PhaseProgress`ia (kehä muuten) |
+| `src/map/segment-overlay.ts` | ✓ T466 | PILKOTTU 2026-08-02: rajakahvat + luonnin snap-merkit → `segment-edit-handles.ts`. Jakolinja seurasi TILAA: kumpikaan ⊥ koske `layers`-listaan ∴ V353(e):n `clear()`-sopimus ⊥ ristikkäisty |
 | `src/map/markers.ts` | evaluoitu → KEEP | T236 2026-07-10: API-glue JO eriytetty V116-outboxiin; reconcile/addImage ovat domain-mutaattoreita → irrotus jakaisi totuuslähteen. Ei pilkota. |
 | `src/ui/marker-detail-modal.ts` | seuraa | kasvoi T103/T137:ssä |
 | `src/map/map-rect-editor.ts` | seuraa | erota drag-logiikka jos vastuut eriytyvät |

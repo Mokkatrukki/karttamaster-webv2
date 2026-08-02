@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest'
 import { LINE_STATE_STYLE, segmentLabelOptions, contextSegmentStyle } from '../src/map/segment-overlay'
-import { SEGMENT_DONE_COLOR } from '../src/logic/segments'
+import { SEGMENT_DONE_COLOR } from '../src/logic/segment-color'
 import type { SegmentLineState } from '../src/logic/segments'
 
 // T348/V252/B135: kartan statuskielen ! olla luettavissa TAUSTAKARTAN PÄÄLTÄ & akromaattisesti.

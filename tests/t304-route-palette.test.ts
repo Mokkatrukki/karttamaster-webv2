@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { ROUTE_DEFS } from '../src/logic/route-defs'
-import { SEGMENT_COLORS, SEGMENT_DONE_COLOR } from '../src/logic/segments'
+import { SEGMENT_COLORS, SEGMENT_DONE_COLOR } from '../src/logic/segment-color'
 import { routeSwatchBackground, parseDashArray } from '../src/logic/route-swatch'
 import { BASEMAP, PILL_TEXT, contrastRatio, hueOf, hueDistance } from './helpers/contrast'
 

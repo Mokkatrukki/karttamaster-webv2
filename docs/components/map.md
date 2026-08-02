@@ -101,8 +101,8 @@ Leaflet-glue. Ohut kerros kartan päällä. **Testattavuus: Playwright.**
 
 ---
 
-## SegmentOverlay — T464 ✓ ⚠️ pilkko
-**Vastuu:** pätkien piirto kartalle — tunniste, status, nimilappu, raja. Lisäksi rajamuokkauksen ja luonnin snap-merkit.
+## SegmentOverlay — T466 ✓
+**Vastuu:** pätkien piirto kartalle — tunniste, status, nimilappu, raja. VAIN katselukerros: muokkaustyökalut irtosivat T466:ssa → `segment-edit-handles.ts`.
 **Käyttäjä:** järjestäjä (tilannekuva), talkoolainen (oma pätkä + himmennetty konteksti)
 **Konteksti:** desktop-kartta ja puhelin metsässä; taustakarttana MML ∴ kontrastin on kestettävä aurinko
 **Moduuli:** `src/map/segment-overlay.ts`
@@ -122,12 +122,28 @@ Leaflet-glue. Ohut kerros kartan päällä. **Testattavuus: Playwright.**
 - **Väri tulee `assignSegmentColors`ilta kerran per render** — silmukan sisällä se olisi O(n²).
 - **Kaikki kerrokset samaan `this.layers`-listaan** ⇒ `clear()` vie kolmikon JA päätepisteet; orpo merkki väittäisi rajaa jota ei enää ole.
 
-### Pilkkolippu
-Ylitti 400 riviä T464:ssä. Kolme vastuuta samassa luokassa: **render** (viiva + casing + lappu + päätepiste), **edit-mode** (raahattavat rajamerkit) ja **creation-snap-merkit**. Kaksi jälkimmäistä ovat muokkaustyökaluja, eivät katselukerrosta.
-
 ### Käyttäjätarkistus
 > Talkoolainen: näkeekö mistä mihin oma pätkä ulottuu ilman listan avaamista? ✓ (rako + päätepiste)
 > Järjestäjä: erottaako vierekkäiset pätkät yhdellä silmäyksellä? ✓ (naapuriväritys, V352)
+
+---
+
+## SegmentEditHandles — T466 ✓
+**Vastuu:** pätkän kartta-ELEET — raahattavat rajakahvat (A/B) + luonnin snap-pisteet.
+**Käyttäjä:** järjestäjä (pätkän luonti ja rajojen muokkaus)
+**Moduuli:** `src/map/segment-edit-handles.ts`
+**Testattavuus:** Playwright (`e2e/segments.spec.ts` — luonnin snap-flow)
+
+### Rajapinta
+| Metodi | Mitä |
+|---|---|
+| `enterEditMode(seg, onSave)` / `exitEditMode()` / `isEditMode()` | A/B-rajakahvat, `dragend` snappaa lähimpään reittipisteeseen (T78/V43) |
+| `showCreationSnapMarkers(store, onSnap)` / `hideCreationSnapMarkers()` | olemassa olevien pätkien päätepisteet luonnin tarttumapintana (T150/V94) |
+
+- **Miksi erillään overlaystä (T466):** nämä ovat TYÖKALUJA joilla on oma elinkaari — ne syntyvät käyttäjän eleestä ja kuolevat siihen, eivät jokaisesta renderistä. Jakolinja seurasi **tilaa**: kumpikaan ei koske overlayn `layers`-listaan ∴ V353(e):n `clear()`-sopimus (orpo päätepiste ei jää kartalle) ei ristikkäistynyt. Molemmilla on oma listansa ja oma siivousmetodinsa.
+- **Portti on `mapMode` (T307/V218):** rajakahvat ovat muokkaustilan toiminto — katselussa `enterEditMode` on no-op eikä kartalle ilmesty raahattavia päätepisteitä. Numeerinen rajojen muokkaus (hero/modaali) ei ole kartan ele ∴ ei tämän portin takana.
+- **Escape-ketju (`main.ts`):** `isEditMode()` → `exitEditMode()` on ketjun kolmas askel (placeMode → creation → **editMode** → picker → overview → drive). Järjestys on käyttäytymistä eikä muuttunut pilkkomisessa.
+- **Snap-pisteet luovuttavat klikin** `deliverMapClick`ille ennen omaa käsittelyään (V345/T460).
 
 ---
 

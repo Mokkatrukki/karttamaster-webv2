@@ -189,8 +189,8 @@ suunniteltu → asetettu → tarkistettu → kerätty
 
 ---
 
-## SegmentManager — T464 ✓ ⚠️ pilkko
-**Vastuu:** pätkän/tehtävän tietomalli + store-CRUD + jäsenyys/overlap + phase-progress + kartan värikieli.
+## SegmentManager — T465 ✓
+**Vastuu:** pätkän/tehtävän tietomalli + store-CRUD + jäsenyys/overlap + phase-progress. Värikieli irtosi T465:ssä → `segment-color.ts`.
 **Käyttäjä:** järjestäjä luo ja jakaa, talkoolainen näkee oman
 **Moduuli:** `src/logic/segments.ts`
 **Testattavuus:** Vitest-pure (`tests/segments.test.ts`)
@@ -200,23 +200,32 @@ suunniteltu → asetettu → tarkistettu → kerätty
 - ✓ `primaryRouteId` (T299/V211) — MITÄ reittiä km:t mittaavat; `segmentPrimaryRouteId` on kanoninen lukija (legacy → `routeIds[0]`)
 - ✓ `validateNoOverlap` vertaa PRIMARY-reittiä, ei jäsenyyttä (T299/V211/B114)
 - ✓ `getPhaseProgress` / `segmentLineState` — vaiheen edistymä & viivatila; `completed` voittaa merkkilaskurin (T353/V256, B142)
-- ✓ **Värikieli** — ks. alla
 
-### Värikieli (T464/V352, V96-amend)
+### Miksi värikieli lähti (T465)
+Jakolinja on **väri / status**, ei "kaikki mikä liittyy viivaan". `segmentLineState` jäi tänne koska se lukee `PhaseProgress`ia, joka on tämän moduulin oma tyyppi — siirto olisi tehnyt kehäriippuvuuden (`segment-color` → `segments` → `segment-color`). **Raja tuli riippuvuudesta, ei nimestä.**
+
+Blast-radius oli mitattu, ei arvattu: värikielellä oli 3 kutsupaikkaa vaikka tällä moduulilla on 92 importtaajaa — importit eivät kulkeneet värin kautta.
+
+---
+
+## SegmentColor — T465 ✓
+**Vastuu:** pätkän tunnisteväri kartalla + valmis-tilan väriohitus.
+**Käyttäjä:** järjestäjä (tilannekuva), talkoolainen (oma pätkä)
+**Moduuli:** `src/logic/segment-color.ts`
+**Testattavuus:** Vitest-pure (`tests/segment-color.test.ts`)
+
 | Funktio | Palauttaa | Kuka lukee |
 |---|---|---|
 | `assignSegmentColors(segments)` | `Map<id, väri>` — naapuritietoinen jako | `segment-overlay.ts` (kerran per render) |
 | `colorForSegment(id)` | hash-väri paletista | reitittömät tehtävät + fallback |
 | `segmentLineColor(tunnisteväri, state)` | `valmis` → `SEGMENT_DONE_COLOR`, muuten tunnisteväri | kartta |
 
-- **Väri on suhde naapureihin, ei funktio id:stä.** `hash(id) % 4` antoi vakauden mutta ei erottuvuutta: 13 purkupätkää + 4 väriä → kolme peräkkäistä samanväristä (B200). `assignSegmentColors` ryhmittelee (`phase` + primary-reitti), järjestää `startDist`in mukaan ja antaa pienimmän värin jota mikään **leikkaava tai koskettava** naapuri ei käytä.
+- **Väri on suhde naapureihin, ei funktio id:stä (V352).** `hash(id) % 4` antoi vakauden mutta ei erottuvuutta: 13 purkupätkää + 4 väriä → kolme peräkkäistä samanväristä (B200). `assignSegmentColors` ryhmittelee (`phase` + primary-reitti), järjestää `startDist`in mukaan ja antaa pienimmän värin jota mikään **leikkaava tai koskettava** naapuri ei käytä.
 - **Ahne värjäys aloitusjärjestyksessä on intervalligraafilla optimaalinen** ∴ 4 väriä riittää kunnes viisi pätkää on päällekkäin yhtä aikaa. Paletin loppuessa törmäys hyväksytään — ei kaadu, ei paletin ulkopuolista väriä (V244-ehdot pysyvät).
 - **Jako on riippumaton `completed`-lipusta** vaikka valmis pätkä piirtyy vihreänä (T348): muuten yhden pätkän kuittaus vaihtaisi naapureiden värit kesken työpäivän.
 - **Hinta (V96-amend):** lisäys/poisto saa vaihtaa naapureiden värejä. Erottuvuus voittaa vakauden.
 - Vihreä on VARATTU status-kanavalle — `SEGMENT_COLORS` ei sisällä sitä (T304).
-
-### Pilkkolippu
-Ylitti 400 riviä T464:ssä & vastuut ovat eriytyneet. Luonteva ensimmäinen irrotus: **väritys + viivatila** omaksi moduulikseen — yksi kutsupaikka (`segment-overlay.ts`), oma testilohko, ei riippuvuutta store-CRUD:iin.
+- Riippuvuus kulkee yhteen suuntaan: tämä lukee `Segment`in ja `segmentPrimaryRouteId`in, `segments.ts` ei lue täältä mitään.
 
 ---
 
