@@ -18,7 +18,10 @@
           <!-- T308/V219: kartan muokkaustilan toggle. Järjestäjä = karttatyökalurivi (tässä);
                talkoolainen = ⋯-valikon #btn-tk-map-mode (V179-linja) → data-role-hide. -->
           <button id="btn-map-mode" class="map-mode-toggle" data-role-hide="talkoolainen" aria-pressed="false">✎ Muokkaa</button>
-          <button id="btn-list">Kaikki merkit</button>
+          <!-- T469/V356: disabled kunnes `markers-wiring` on kytkenyt kuuntelijan. Painallus
+               ennen sitä katosi hiljaa (B203). Playwrightin actionability odottaa `enabled`ia
+               ∴ sama korjaus poistaa myös testien kilpajuoksun ilman keinotekoisia odotuksia. -->
+          <button id="btn-list" disabled>Kaikki merkit</button>
           <button id="btn-menu" aria-label="Tilivalikko">⋯</button>
         </div>
       </div>

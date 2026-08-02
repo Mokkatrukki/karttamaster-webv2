@@ -594,6 +594,15 @@ button {
   border: 1px solid var(--border-strong);
 }
 
+/* T469/V356: alustuksen ikkuna — nappi on olemassa muttei vielä kytketty (B203). Himmennys on
+   REHELLISYYTTÄ ⊥ koristetta: se erottaa "ei vielä" -tilan toimivasta napista, jotta painallus
+   joka ei tee mitään ei näytä rikkinäiseltä sovellukselta (V337). Ikkuna on tyypillisesti
+   millisekunteja & huonolla yhteydellä sekunteja — juuri silloin palaute on tarpeen. */
+#btn-list:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* ── Sign type dropdown (toolbar) ── */
 
 #sign-type-dropdown {

@@ -13,8 +13,10 @@ describe('T207 — käyttäjänäkyvät nimet', () => {
   const html = read('index.html')
 
   it('#btn-list → "Kaikki merkit" (ei "Lista")', () => {
-    expect(html).toMatch(/<button id="btn-list">Kaikki merkit<\/button>/)
-    expect(html).not.toMatch(/<button id="btn-list">Lista<\/button>/)
+    // T469: nappi sai `disabled`in (V356) ∴ attribuutit ovat vapaita — testi vahtii SANAA,
+    // ei merkintää. Tiukka literaali teki nimivahdista myös attribuuttivahdin jota kukaan ⊥ pyytänyt.
+    expect(html).toMatch(/<button id="btn-list"[^>]*>Kaikki merkit<\/button>/)
+    expect(html).not.toMatch(/<button id="btn-list"[^>]*>Lista<\/button>/)
   })
 
   it('#btn-gpkg-export/import → "Vie/Tuo kartta-aineisto" (ei "GPKG")', () => {

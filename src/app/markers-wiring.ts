@@ -844,7 +844,14 @@ function wireMarkersInner(
   }
   // T404: `#btn-list` = merkkijono-telakan toggle. Vanha `#marker-modal` POISTETTU — se oli
   // järjestäjän pintaa & talkoolaiselta piilotettu jo T264:ssä (V292) ∴ ⊥ fallback-haaraa.
-  document.getElementById('btn-list')?.addEventListener('click', () => markerOverview?.toggle())
+  //
+  // T469/V356 (B203): nappi on `disabled` HTML:ssä & aukeaa VASTA tässä. `wireMarkers` ajetaan
+  // kahden `await`in (`wireAreas`, `wireSegments`) JÄLKEEN ∴ nappi on ollut ruudulla & painettavissa
+  // koko verkkohaun ajan ilman kuuntelijaa — painallus katosi täysin (V337: hiljaisuus ⊥ ole
+  // neutraali). Ikkuna on lyhyt hyvällä yhteydellä & pitkä metsässä, eli juuri väärinpäin.
+  const btnList = document.getElementById('btn-list') as HTMLButtonElement | null
+  btnList?.addEventListener('click', () => markerOverview?.toggle())
+  if (btnList) btnList.disabled = false
 
   // T264/V184: yläpalkin "🎒 Varustelista" -nappi POISTETTU — varuste on nyt koti-Varustelista-tab
   // (inline SegmentEquipment). EquipmentModal avautuu yhä koti-tabin "✎ Muokkaa varusteita" -napista.
