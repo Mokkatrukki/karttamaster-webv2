@@ -1,0 +1,71 @@
+{
+  // T467/V354: TESTIT TYPECHECKIN PIIRIIN — `tsconfig.json`in `include` on `["src"]` ∴ 280
+  // tiedostoa `tests/`+`e2e/`:ssä oli rajan ulkopuolella & symbolin siirto moduulista toiseen
+  // saattoi jättää testin rikki tavalla jonka tyyppijärjestelmä olisi nähnyt (B201).
+  //
+  // Miksi ERILLINEN konfiguraatio ⊥ pelkkä `include`-laajennus: testeissä on tarkoituksellisia
+  // stubbeja (`as any` -mockit, vajaat Leaflet-tuplat) & apureita joita ⊥ kutsuta joka
+  // tiedostosta. Yhteen tiukkaan konfiguraatioon pakotettuna ne vaatisivat joko `src`:n sääntöjen
+  // löysentämistä TAI mockien kirjoittamista uusiksi — kumpikin väärä hinta. Löysennykset alla
+  // ovat siis VALINTA joka on perusteltu (V354), ⊥ oletus jota kukaan ⊥ ole valinnut.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Käyttämätön apuri testitiedostossa ⊥ ole vika samalla tavalla kuin `src`:ssä: testi
+    // rakentaa usein fixtuurin josta se käyttää osaa. Nämä ovat AINOAT löysennykset —
+    // `strict` pysyy päällä, koska juuri se näkee väärän importin & väärän muodon.
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    // Testit ajetaan node/bun-ympäristössä: `require`, `__dirname` & `process` ovat siellä
+    // olemassa vaikka selainkoodissa ⊥ olisi. `src` ⊥ saa näitä — se on selainbundle.
+    "types": ["vite/client", "node"],
+    // `src` on ES2020 koska se on selainbundle jonka kohde on kalibroitu; testit ajaa node/bun
+    // ∴ `Array.prototype.at` & muu ES2022 on niissä käytettävissä ILMAN että selaimen kohde
+    // liikkuu. Eri lib on tässä oikea vastaus, ⊥ `as any` jokaiseen `.at()`-kutsuun.
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": ["tests", "e2e"],
+
+  // ─── VELKALISTA (T467(b)) ─────────────────────────────────────────────────────────────
+  // Ensimmäinen ajo: 148 virhettä / 48 tiedostoa. `node`-tyypit & ES2022-lib veivät sen
+  // 65 virheeseen / 26 tiedostoon; loput ovat VANHAA velkaa — pääosin vajaita fixtuureita
+  // (`{...} as Segment` ilman `equipment`ia) & `vi.fn()`:n paluutyyppi joka ⊥ istu typattuun
+  // callbackiin. Ne EIVÄT ole tuotantovikoja & niiden korjaaminen tässä taskissa olisi 26
+  // tiedoston sokea muokkaus samassa commitissa jossa portti pystytetään.
+  //
+  // Lista on RAJA ⊥ hyväksyntä: jokainen tiedosto joka ⊥ ole tässä listassa on typechekin
+  // piirissä ∴ UUSI testitiedosto & jokainen siirretty symboli (B201:n luokka) menee punaiseksi
+  // heti. Listan kutistaminen on omaa työtään; sen KASVU on signaali että portti kierrettiin
+  // (sama idiomi kuin `vite.config.ts`:n `ISOLATED`-lista).
+  //
+  // 2026-08-02: 26 tiedostoa / 65 virhettä. Yksi löytö korjattiin heti: `sign-picker.spec.ts`
+  // kutsui `createSignIcon(type, 45)` — toinen parametri oli joskus kulma & on nyt
+  // `MarkerStatus` ∴ testi ajoi vuosia roskastatuksella & väitti silti todistavansa jotain.
+  "exclude": [
+    "tests/map-filter.test.ts",
+    "tests/snapshot-panel.test.ts",
+    "tests/t119-area-feature-inline-edit.test.ts",
+    "tests/t186-reauth.test.ts",
+    "tests/t204-route-visibility-control.test.ts",
+    "tests/t216-routeless-creation.test.ts",
+    "tests/t252-inventory-undo.test.ts",
+    "tests/t296-talkoo-landing.test.ts",
+    "tests/t317-talkoo-nimi.test.ts",
+    "tests/t345-segment-row-menu.test.ts",
+    "tests/t351-hero-complete-cta.test.ts",
+    "tests/t386-inventory-merge-panel.test.ts",
+    "tests/t388-creation-anchor-feedback.test.ts",
+    "tests/t389-creation-route-choice.test.ts",
+    "tests/t399-inventory-link-picker.test.ts",
+    "tests/t406-gps-navigator.test.ts",
+    "tests/t421-phase-target.test.ts",
+    "tests/t426-phase-state.test.ts",
+    "tests/t433-admin-phase.test.ts",
+    "tests/t436-terminal-completion.test.ts",
+    "tests/t451-creation-dismiss.test.ts",
+    "tests/t457-pile-edit-window.test.ts",
+    "tests/t459-navigation-kind.test.ts",
+    "tests/t51-auth-screen.test.ts",
+    "tests/t53-url-routing.test.ts",
+    "tests/t94-segment-creation-modal.test.ts"
+  ]
+}

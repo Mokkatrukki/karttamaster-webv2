@@ -45,18 +45,18 @@ describe('Sign icons — all 4 types', () => {
   })
 
   it('upcoming-right icon renders without error', () => {
-    const icon = createSignIcon('upcoming-right', 45)
+    const icon = createSignIcon('upcoming-right', 'asetettu')
     expect((icon.options as any).html).toBeTruthy()
   })
 
   it('upcoming-left icon renders without error', () => {
-    const icon = createSignIcon('upcoming-left', 45)
+    const icon = createSignIcon('upcoming-left', 'asetettu')
     expect((icon.options as any).html).toBeTruthy()
   })
 
   it('icons are no wider than 40px (V136/T208 kortti)', () => {
     for (const type of ['left', 'right', 'upcoming-left', 'upcoming-right'] as const) {
-      const icon = createSignIcon(type, 0)
+      const icon = createSignIcon(type, 'suunniteltu')
       const size = (icon.options as any).iconSize
       expect(size[0]).toBeLessThanOrEqual(40)
     }

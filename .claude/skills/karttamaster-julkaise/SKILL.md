@@ -13,13 +13,17 @@ Projekti on bun-only (ei npm) — ks. CLAUDE.md. Aja molemmat testitasot: Vitest
 ja Bun-integraatiotestit (`server/`). Pelkkä `test:ci` ei kata `server/`-koodia (Taso 4) —
 rikkinäinen server-testi pääsisi deployyn huomaamatta.
 
+Aja myös typecheck (T467/V354): `bun run build` typecheckkaa VAIN `src`:n — testien
+väärä importti (B201) näkyisi vasta ajossa, tavalla joka näyttää tuotantovialta.
+
 ```bash
+bun run typecheck 2>&1
 bun run test:ci 2>&1
 bun run test:server 2>&1
 ```
 
-- Molemmat exit code 0 → tulosta "testit ok", jatka
-- Jompikumpi exit code != 0 → näytä virheet, **stop** — älä commitoi tai deployta
+- Kaikki exit code 0 → tulosta "testit ok", jatka
+- Jokin exit code != 0 → näytä virheet, **stop** — älä commitoi tai deployta
 
 ## 2. Muutokset
 
