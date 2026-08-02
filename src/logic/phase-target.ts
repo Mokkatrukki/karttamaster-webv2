@@ -39,6 +39,22 @@ export interface PhaseTarget {
   /** T436/V326: välitilarivin varoitus — miksi merkki ⊥ ole avoin muttei tehty. */
   pendingLabel: string
   /**
+   * T468/V355: RYHMÄOTSIKOT listalle. Sanat kuuluvat tähän tauluun samasta syystä kuin
+   * `label`/`actionLabel`: otsikko joka lasketaan UI:ssa if-lauseella on kopio joka jää
+   * päivittämättä seuraavalla vaiheella (B202 oli juuri se kopio — lista puhui asetusvaiheen
+   * kieltä purkumasterille & piti purkamattomat & puretut samassa ryhmässä).
+   */
+  openGroupLabel: string
+  doneGroupLabel: string
+  pendingGroupLabel: string
+  secondaryGroupLabel: string
+  /**
+   * T468: JOUKKOkuittauksen sana. Erillinen `actionLabel`ista koska yksikkö & monikko taipuvat
+   * eri tavalla: "✓ Kerätty" on merkin tila, "✓ Kerää valitut" on teko monelle. Yhdistelmä
+   * `actionLabel + " valituille"` tuottaisi purussa "✓ Kerätty valituille".
+   */
+  bulkLabel: string
+  /**
    * T437/V323: MIHIN päätetila puretaan. Paluu on vaiheen funktio kuten kuittauskin ∴ sama
    * lookup toisin päin — ⊥ UI:n if-lause, ⊥ per-vaihe-erikoistapaus (V313-suku).
    */
@@ -70,6 +86,11 @@ const TARGETS: Record<'asettaminen' | 'purku', PhaseTarget> = {
     doneStatuses: ['asetettu', 'tarkistettu', 'kerätty'],
     terminalStatuses: ['asetettu', 'tarkistettu', 'kerätty', 'ei_tarpeen'],
     pendingLabel: '⚠ Odottaa kuittausta',
+    openGroupLabel: 'Asettamatta',
+    doneGroupLabel: 'Asetetut',
+    pendingGroupLabel: 'Odottaa kuittausta',
+    secondaryGroupLabel: 'Ei tarpeen',
+    bulkLabel: '✓ Aseta valituille',
     revertStatus: 'suunniteltu',
     revertLabel: '↩ Palauta asettamattomaksi',
     targetStatus: 'asetettu',
@@ -85,6 +106,11 @@ const TARGETS: Record<'asettaminen' | 'purku', PhaseTarget> = {
     doneStatuses: ['kerätty'],
     terminalStatuses: ['kerätty', 'ei_tarpeen'],
     pendingLabel: '⚠ Ei kuitattu asetetuksi — maastossa?',
+    openGroupLabel: 'Purkamatta',
+    doneGroupLabel: 'Puretut',
+    pendingGroupLabel: 'Ei kuitattu asetetuksi',
+    secondaryGroupLabel: 'Ei löytynyt',
+    bulkLabel: '✓ Kerää valitut',
     revertStatus: 'asetettu',
     revertLabel: '↩ Palauta keräämättömäksi',
     targetStatus: 'kerätty',
@@ -106,6 +132,11 @@ const COLLECTION: PhaseTarget = {
   doneStatuses: ['kerätty'],
   terminalStatuses: ['kerätty', 'ei_tarpeen'],
   pendingLabel: '⚠ Odottaa hakua',
+  openGroupLabel: 'Hakematta',
+  doneGroupLabel: 'Haetut',
+  pendingGroupLabel: 'Odottaa hakua',
+  secondaryGroupLabel: 'Ei löytynyt',
+  bulkLabel: '✓ Hae valitut',
   revertStatus: 'suunniteltu',
   revertLabel: '↩ Palauta hakemattomaksi',
   targetStatus: 'kerätty',

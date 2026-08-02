@@ -50,13 +50,22 @@ describe('T409 — valikoiva bulk-kuittaus (talkoolaisen koti-tab)', () => {
     expect(el.querySelector('.bulk-action-bar')).toBeNull()
   })
 
-  it('kytkettynä jokainen ei-terminaali rivi saa checkboxin', () => {
+  // T468/V355 PÄIVITTI TÄMÄN: "ei-terminaali" luettiin globaalista `isTerminal`ista (= onko
+  // siirtymätaulussa siirtymiä) ∴ asetusvaiheessa `asetettu` & `ei_tarpeen` saivat checkboxin
+  // vaikka MOLEMMAT ovat vaiheen päätetiloja — checkbox lupasi joukkokuittausta jolle ⊥ ole
+  // kohdetta (ja purussa sama rivi mutatoitui väärään tilaan, B202). Valittavuus tulee nyt
+  // tehtävästä (`isTerminalInSegment`, V326). Paluu päätetilasta ⊥ katoa: rivin oma ↩-nappi
+  // (T437/V323) hoitaa sen samaa `bulkSetStatus`-reittiä.
+  it('kytkettynä VAIHEEN avoin rivi saa checkboxin — päätetila ⊥ saa', () => {
     const { el } = mount([
       makeMarker({ id: 'a' }),
       makeMarker({ id: 'b', status: 'asetettu', distanceFromStart: 2000 }),
       makeMarker({ id: 'c', status: 'ei_tarpeen', distanceFromStart: 3000 }),
     ], vi.fn())
-    expect(el.querySelectorAll('.marker-item-checkbox').length).toBe(3)
+    expect(el.querySelectorAll('.marker-item-checkbox').length).toBe(1)
+    expect(checkbox(el, 'a')).not.toBeNull()
+    // Molemmilla päätetiloilla on silti paluupolku listassa.
+    expect(el.querySelectorAll('.segment-view-markers-revert').length).toBe(2)
   })
 
   it('terminaali rivi (kerätty) EI saa checkboxia — sille ei ole siirtymää', () => {

@@ -1,8 +1,11 @@
 import { buildMarkerVisual } from './marker-visual-row'
 import { markerLabel } from './segment-hero'
-import { isTerminal, type MarkerStatus } from '../logic/marker-status'
+import type { MarkerStatus } from '../logic/marker-status'
 import { countsAsSign } from '../logic/marker-kind'
-import { revertTarget, revertLabel } from '../logic/phase-target'
+import {
+  revertTarget, revertLabel, segmentTarget,
+  isOpenInSegment, isPendingInSegment, isTerminalInSegment,
+} from '../logic/phase-target'
 import { displayKm, orderMarkersInSegment } from '../logic/segment-order'
 import type { Segment } from '../logic/segments'
 import type { SignMarker } from '../logic/types'
@@ -78,26 +81,37 @@ export class SegmentMarkerList {
     // saa väärää paikkaa järjestyksessä (hiljainen katoaminen olisi B127:n uusi versio).
     this.renderGroup('Ei reitillä', offRoute, segment)
 
-    // T264/V184: ryhmittele asettamatta (suunniteltu) / asetetut (asetettu·tarkistettu·kerätty) /
-    // ei tarpeen. Tyhjät ryhmät jätetään pois; talkoolainen näkee heti mitä on vielä laittamatta.
-    // Ryhmien sisäinen järjestys periytyy `onRoute`sta = kulkusuunta (V237/V238).
-    const unplaced = onRoute.filter(m => m.status === 'suunniteltu')
-    const placed = onRoute.filter(m => m.status === 'asetettu' || m.status === 'tarkistettu' || m.status === 'kerätty')
-    const skipped = onRoute.filter(m => m.status === 'ei_tarpeen')
+    // T264/V184 → T468/V355: ryhmittely tulee VAIHETAVOITTEESTA ⊥ statusvakioista. Ennen tätä
+    // jako oli kovakoodattu asetusvaiheeseen (`asetettu·tarkistettu·kerätty` = "Asetetut") ∴
+    // purussa purkamattomat & puretut olivat SAMASSA ryhmässä (B202): purkumaster ⊥ nähnyt
+    // listasta omaa työjonoaan. Tyhjät ryhmät jätetään pois. Ryhmien sisäinen järjestys periytyy
+    // `onRoute`sta = kulkusuunta (V237/V238).
+    //
+    // Järjestys on merkitys: AVOIN ensin (se on työ) → VÄLITILA (se on epäselvyys jota ⊥ saa
+    // haudata listan pohjalle, V326/B175) → TEHDYT → sekundääri.
+    const target = segmentTarget(segment)
+    const open = onRoute.filter(m => isOpenInSegment(m.status, segment))
+    const done = onRoute.filter(m => target.doneStatuses.includes(m.status))
+    const secondary = onRoute.filter(m => m.status === target.secondaryStatus)
+    const pending = onRoute.filter(m => isPendingInSegment(m.status, segment) && m.status !== target.secondaryStatus)
 
-    this.renderGroup('Asettamatta', unplaced, segment)
-    this.renderGroup('Asetetut', placed, segment)
-    this.renderGroup('Ei tarpeen', skipped, segment)
+    this.renderGroup(target.openGroupLabel, open, segment)
+    this.renderGroup(target.pendingGroupLabel, pending, segment)
+    this.renderGroup(target.doneGroupLabel, done, segment)
+    this.renderGroup(target.secondaryGroupLabel, secondary, segment)
 
     // T409: bar vain jos valittavaa on — muuten se olisi pysyvästi disabloitu pinta joka vie
     // 44px pystytilaa puhelimessa ilman että sillä on koskaan tekemistä.
     if (this.ctx.onBulkStatus && selectableIds.size > 0) this.renderActionBar(selectableIds)
   }
 
-  // T409: terminaali merkki (kerätty, `isTerminal`) ⊥ saa checkboxia — sille ⊥ ole siirtymää
-  // & valittavissa oleva rivi jota bulk ⊥ voi muuttaa on lupaus jota UI ⊥ pidä.
+  // T409 → T468/V355: päätetila ⊥ saa checkboxia — valittavissa oleva rivi jota bulk ⊥ voi
+  // muuttaa on lupaus jota UI ⊥ pidä. Päätetila luetaan TEHTÄVÄSTÄ (`isTerminalInSegment`, V326)
+  // ⊥ globaalista `isTerminal`ista: se on siirtymätaulun tyhjyys, ⊥ tehtävän valmius ∴ purussa
+  // se piti `ei_tarpeen`-riviä yhä valittavana vaikka `revertTarget` (sama rivi, sama lista) piti
+  // sitä jo purettuna.
   private isSelectable(m: SignMarker): boolean {
-    return this.ctx.onBulkStatus !== undefined && !isTerminal(m.status)
+    return this.ctx.onBulkStatus !== undefined && !isTerminalInSegment(m.status, this.ctx.getSegment())
   }
 
   private renderActionBar(selectableIds: Set<string>): void {
@@ -119,9 +133,14 @@ export class SegmentMarkerList {
     allLabel.append(all, document.createTextNode(' Valitse kaikki'))
     bar.appendChild(allLabel)
 
+    // T468/V355: sana & KOHDESTATUS taulusta. Kovakoodattu `'asetettu'` teki purkumasterin
+    // joukkokuittauksesta väärän siirtymän: nappi lupasi purun & vei merkin takaisin
+    // asetusvaiheen tilaan (B202). Luokkanimet pysyvät (CSS + E2E-valitsimet) — ne nimeävät
+    // paikan (ensisijainen/sekundäärinen), ⊥ vaiheen tekoa.
     const n = this.selected.size
-    bar.appendChild(this.bulkButton('btn-bulk-checkin-aseta', `✓ Aseta valituille (${n})`, 'asetettu', n))
-    bar.appendChild(this.bulkButton('btn-bulk-checkin-ohita', `Ei tarpeen (${n})`, 'ei_tarpeen', n))
+    const target = segmentTarget(this.ctx.getSegment())
+    bar.appendChild(this.bulkButton('btn-bulk-checkin-aseta', `${target.bulkLabel} (${n})`, target.targetStatus, n))
+    bar.appendChild(this.bulkButton('btn-bulk-checkin-ohita', `${target.secondaryLabel} (${n})`, target.secondaryStatus, n))
 
     this.el.appendChild(bar)
   }
